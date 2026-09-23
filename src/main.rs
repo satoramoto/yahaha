@@ -54,7 +54,7 @@ fn dump(path: &std::path::Path) -> Result<()> {
             let z = &r.zones[1];
             println!("    src {:>2} -> {:>2} {:<8} root {} type {:>2} mid {}..{} {:?}/{:?} hk {} lim {}..{} {:?} bass {} nm {:03x} cm {:09x}",
                 r.src_ch + 1, r.dest_ch + 1, r.name, r.src_root, r.src_type, r.mid_lo, r.mid_hi,
-                z.ntr, z.ntt, z.high_key, z.lo, z.hi, z.rtr, r.bass_on, r.note_mute, r.chord_mute);
+                z.ntr, z.ntt, z.high_key, z.lo, z.hi, z.rtr, z.bass_on, r.note_mute, r.chord_mute);
         }
     }
     for (id, d) in &s.other_chunks {

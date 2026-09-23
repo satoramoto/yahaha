@@ -519,15 +519,23 @@ fn chord_map_raw(d: u8, src_ty: u8, tgt_ty: u8, src_scale: &[u8; 7], tgt_scale: 
 // Transposition
 // ---------------------------------------------------------------------------
 
+/// Note Limit: octave-shift `n` into `lo..=hi`. A range of an octave or more always has
+/// room for every pitch class. A narrower range cannot hold all twelve, so a pitch class
+/// that has no octave inside it goes to the octave nearest the range (the lower one on a
+/// tie), which keeps it within a tritone of the limits. A reversed range is read as
+/// `hi..=lo`.
 #[inline]
 fn fold_into(mut n: i32, lo: u8, hi: u8) -> i32 {
-    let (lo, hi) = (lo as i32, hi as i32);
-    if hi - lo >= 11 {
-        while n < lo {
-            n += 12;
-        }
-        while n > hi {
+    let (lo, hi) = (lo.min(hi) as i32, lo.max(hi) as i32);
+    if n < lo {
+        n += (lo - n + 11) / 12 * 12; // lowest octave at or above lo
+        if n > hi && lo - (n - 12) <= n - hi {
             n -= 12;
+        }
+    } else if n > hi {
+        n -= (n - hi + 11) / 12 * 12; // highest octave at or below hi
+        if n < lo && (n + 12) - hi < lo - n {
+            n += 12;
         }
     }
     n.clamp(0, 127)
@@ -594,7 +602,7 @@ pub fn transpose(key: u8, rule: &ChannelRule, chord: Chord) -> Option<u8> {
         }
     };
     // On-bass: parts with Bass On replace the root with the bass note.
-    if let (true, Some(b)) = (rule.bass_on || z.ntt == Ntt::Bass, chord.bass) {
+    if let (true, Some(b)) = (z.bass_on || z.ntt == Ntt::Bass, chord.bass) {
         if val.rem_euclid(12) == 0 {
             let mut off = (b as i32 - chord.root as i32).rem_euclid(12);
             if off > 6 {
@@ -750,7 +758,7 @@ mod tests {
 
     fn rule(ntr: Ntr, ntt: Ntt, hk: u8, lo: u8, hi: u8) -> ChannelRule {
         let mut r = ChannelRule::default_for(12);
-        r.zones = [Zone { ntr, ntt, high_key: hk, lo, hi, rtr: Rtr::PitchShift }; 3];
+        r.zones = [Zone { ntr, ntt, high_key: hk, lo, hi, rtr: Rtr::PitchShift, bass_on: false }; 3];
         r
     }
 
@@ -1192,9 +1200,79 @@ mod tests {
     #[test]
     fn bass_on_slash() {
         let mut r = rule(Ntr::RootTrans, Ntt::Melody, 11, 0, 127);
-        r.bass_on = true;
+        r.zones[1].bass_on = true;
         let c_over_e = Chord { root: 0, ty: 0, bass: Some(4) };
         assert_eq!(transpose(36, &r, c_over_e), Some(40));
+    }
+
+    /// SFF2 Bass On is per zone: a piano whose left-hand zone (below Mid Low) follows the
+    /// slash bass while its chord zone keeps the root.
+    #[test]
+    fn bass_on_per_zone() {
+        let mut r = rule(Ntr::RootTrans, Ntt::Melody, 11, 0, 127);
+        r.mid_lo = 50;
+        r.zones[0].bass_on = true;
+        let c_over_e = Chord { root: 0, ty: 0, bass: Some(4) };
+        assert_eq!(transpose(36, &r, c_over_e), Some(40)); // low zone: C2 -> E2
+        assert_eq!(transpose(60, &r, c_over_e), Some(60)); // mid zone: C3 stays C3
+    }
+
+    #[test]
+    fn fold_into_wide_ranges() {
+        // An octave or more: plain octave folding, notes inside are untouched.
+        assert_eq!(fold_into(40, 48, 59), 52);
+        assert_eq!(fold_into(70, 48, 59), 58);
+        assert_eq!(fold_into(55, 48, 59), 55);
+        assert_eq!(fold_into(30, 60, 74), 66);
+        assert_eq!(fold_into(90, 60, 74), 66);
+        assert_eq!(fold_into(200, 0, 127), 116);
+    }
+
+    #[test]
+    fn fold_into_narrow_ranges() {
+        // C3..E3 (60..64): every pitch class that fits lands inside.
+        for n in [36, 48, 60, 72, 84] {
+            assert_eq!(fold_into(n, 60, 64), 60);
+        }
+        assert_eq!(fold_into(76, 60, 64), 64);
+        assert_eq!(fold_into(51, 60, 64), 63);
+        // Those that don't go to the nearest octave: G is 3 above E3, 5 below C3.
+        assert_eq!(fold_into(43, 60, 64), 67);
+        assert_eq!(fold_into(79, 60, 64), 67);
+        // A is 5 above E3, 3 below C3.
+        assert_eq!(fold_into(81, 60, 64), 57);
+        assert_eq!(fold_into(45, 60, 64), 57);
+        // A single note: the tritone is a tie and goes down.
+        assert_eq!(fold_into(66, 60, 60), 54);
+        assert_eq!(fold_into(54, 60, 60), 54);
+        assert_eq!(fold_into(65, 60, 60), 65);
+        assert_eq!(fold_into(55, 60, 60), 55);
+        assert_eq!(fold_into(79, 60, 60), 55);
+        // The result is never more than a tritone outside the range.
+        for lo in 30..90u8 {
+            for w in 0..11u8 {
+                for n in 0..128 {
+                    let out = fold_into(n, lo, lo + w);
+                    assert_eq!((out - n).rem_euclid(12), 0);
+                    assert!(out >= lo as i32 - 6 && out <= (lo + w) as i32 + 6, "{n} in {lo}..{} -> {out}", lo + w);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn fold_into_reversed_range() {
+        assert_eq!(fold_into(40, 59, 48), 52);
+        assert_eq!(fold_into(70, 59, 48), 58);
+    }
+
+    /// A bass limited to E1..G1 (40..43) over a moving root stays in that pocket.
+    #[test]
+    fn narrow_note_limit_transpose() {
+        let mut r = rule(Ntr::RootTrans, Ntt::Melody, 11, 40, 43);
+        r.src_type = 0;
+        let out: Vec<u8> = (0..12).map(|root| transpose(36, &r, Chord::new(root, 0)).unwrap()).collect();
+        assert_eq!(names(&out), ["C1", "C#1", "D1", "Eb1", "E1", "F1", "F#1", "G1", "Ab1", "A1", "Bb1", "B1"]);
     }
 
     #[test]
