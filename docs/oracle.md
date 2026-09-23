@@ -69,6 +69,9 @@ The file holds counts only: style paths, table names, chord-change labels and in
 ## Pin history
 
 - **#55 (NTT 5th-variation tables, #11)** moved the pin; #56, #59 and #57 did not. Measured by cherry-picking the oracle onto each merge commit. Across all pairs, exact: Harmonic Minor 64.1% -> 67.8%, Melodic Minor 66.3% -> 67.0%, Natural Minor 62.4% -> 66.5%, Dorian 64.0% -> 65.7%. Harmonic Minor now agrees best on both `M>m` (68.9% against Melodic Minor's 68.3%) and `m>M`, so the baseline's "Melodic Minor agrees best" no longer holds. As authored fell by 120 of 249112 notes (512 pitch class), all in Melodic Minor 5th pairs of BaroqueConcerto and KoolFunk between a 7 and a maj7 source: the authors' copies take the played chord's 7th, and #55 keeps the source's 7th ("other notes are not changed"). This is #55's playtest flag; see the PR #57 notes.
+- **#60 (Guitar NTR, #12)** moved only the identity check. Guitar went from 10.4% to 81.3% exact (18.1% to 81.3% pitch class), and the notes moved inside Note Limit went from 86606 to 18099. Nothing else changed: no scored pair is Guitar. Every remaining miss changes pitch class:
+  - 10690 notes are Arpeggio sources recorded over CM7. #60 snaps each Arpeggio note to its nearest CM7 tone, even on CM7, and these sources hold many F and A notes. That contradicts RM p.28 if CM7 is the source chord.
+  - 7409 notes (Arpeggio 2584, Stroke 4825) are from rules whose CASM Source Root/Chord is not C M7 (C, Cm7, Cm11, C6/9, F#M7, AM7). The oracle plays them on that chord. #60 reads every Guitar source as CM7, because RM p.29 says Source Root/Chord is ignored for Guitar, so on any other chord it re-voices them. The pitch content of these sources looks like the CM7 ones, which supports RM p.29. If so, these misses come from the oracle's choice of chord, not from the transposer.
 
 ## Baseline (208 styles)
 
@@ -85,4 +88,4 @@ The file holds counts only: style paths, table names, chord-change labels and in
 
   - Root Fixed: every miss is a Note Limit fold.
   - Root Trans: 44559 misses are folds. The other **1426 notes are a transposer bug**. `theory::transpose` applies High Key even when the chord root equals the Source Root: with Source Root E and High Key D#, playing Em7 (the source chord) shifts the pattern down an octave, although the notes lie inside their Note Limit. RM p.28 says the source chord plays the recorded data back. These are channels whose Source Root is above their High Key. The fix belongs in the transposer, not here; the pin will show `identity RootTrans moved-in-limit` drop to 0 when it lands.
-  - Guitar: `guitar()` re-voices patterns even on their own chord (#12).
+  - Guitar: `guitar()` re-voices patterns even on their own chord (#12). Fixed by #60, apart from the misses listed under Pin history.

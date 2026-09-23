@@ -485,6 +485,96 @@ mod tests {
         assert!(ons(&rec, 0, bar).is_empty());
     }
 
+    /// Channels whose every rule is a Guitar (other parts may retrigger a unison).
+    fn guitar_channels(style: &Style) -> Vec<u8> {
+        use crate::sff::Ntr;
+        let rules: Vec<_> = style.casm.iter().flat_map(|s| &s.rules).collect();
+        let is_guitar = |r: &&crate::sff::ChannelRule| (0..128).all(|k| r.zone_for(k).ntr == Ntr::Guitar);
+        (8..16u8)
+            .filter(|&ch| rules.iter().any(|r| r.dest_ch == ch && is_guitar(r)))
+            .filter(|&ch| rules.iter().all(|r| r.dest_ch != ch || is_guitar(r)))
+            .collect()
+    }
+
+    /// A chord just after the beat corrects the strum outright: the strings the previous
+    /// chord left out (unisons folded by 1+8 / 1+5, strings Stroke muted below its bass)
+    /// come in too, so every corpus Guitar part rings the strings of that strum it rings
+    /// when the chord lands on the beat. (Strings of earlier strums follow their
+    /// retrigger rule in both cases.)
+    #[test]
+    fn corpus_late_chord_restores_guitar_strings() {
+        let mut styles = 0;
+        for f in corpus() {
+            let style = Style::load(&f).unwrap();
+            let guitar = guitar_channels(&style);
+            if guitar.is_empty() {
+                continue;
+            }
+            styles += 1;
+            let name = f.file_name().unwrap().to_string_lossy().to_string();
+            let bar = bar_ns(&Prepared::new(&style));
+            for (before, after) in [(Chord::new(0, 30), Chord::new(0, 0)), (Chord::new(7, 31), Chord::new(7, 1)),
+                                    (Chord::new(2, 0), Chord::new(0, 0)), (Chord::new(9, 10), Chord::new(4, 2))] {
+                let t_f = 2 * bar + 20_000_000;
+                let mut held = Vec::new();
+                for at in [2 * bar, t_f] {
+                    let script = [(0, Step::Chord(before)), (at, Step::Chord(after))];
+                    let (e, _) = run(Box::new(Prepared::new(&style)), &script, t_f + 1);
+                    held.push(guitar.iter().map(|&ch| e.guitar_strings(ch, 2 * bar)).collect::<Vec<_>>());
+                }
+                assert_eq!(held[1], held[0], "{name}: {after:?} 20 ms late after {before:?}");
+            }
+        }
+        if !corpus().is_empty() {
+            assert!(styles > 0, "corpus has no Guitar parts");
+        }
+    }
+
+    /// A guitar strikes each pitch once. Over chords that fold strings together (1+8, 1+5,
+    /// 7#9) and through chord changes that re-pitch ringing strings, no Guitar part of any
+    /// corpus style re-strikes a pitch another of its strings is ringing, and no two of its
+    /// strings sound the same pitch.
+    #[test]
+    fn corpus_guitar_strikes_each_pitch_once() {
+        let mut styles = 0;
+        for f in corpus() {
+            let style = Style::load(&f).unwrap();
+            let guitar = guitar_channels(&style);
+            if guitar.is_empty() {
+                continue;
+            }
+            styles += 1;
+            let prep = Box::new(Prepared::new(&style));
+            let bar = bar_ns(&prep);
+            let chords = [Chord::new(0, 0), Chord::new(7, 30), Chord::new(0, 27), Chord::new(7, 31), Chord::new(2, 0),
+                          Chord { root: 0, ty: 0, bass: Some(7) }, Chord::new(9, 10), Chord::new(6, 0), Chord::new(4, 30),
+                          Chord::new(0, 2), Chord::new(5, 27), Chord::new(9, 31)];
+            // Half-bar changes (ringing strings are re-pitched) and changes just after the
+            // downbeat (the notes that just started are re-voiced).
+            let script: Vec<(u64, Step)> = chords
+                .iter()
+                .enumerate()
+                .map(|(i, &c)| (i as u64 * bar / 2 + if i % 3 == 2 { 10_000_000 } else { 0 }, Step::Chord(c)))
+                .collect();
+            let mut unisons = 0;
+            let (_, rec) = run_observed(prep, &script, chords.len() as u64 * bar / 2 + bar, |e, _| unisons += e.guitar_unisons());
+            let name = f.file_name().unwrap().to_string_lossy().to_string();
+            assert_eq!(unisons, 0, "{name}: two guitar strings on one pitch");
+            // What the synth hears: a note-on for a pitch the channel already sounds either
+            // re-strikes a ringing string or is cut by the other string's later note-off.
+            let mut on = [[false; 128]; 16];
+            for (t, m) in rec.out.iter().filter(|(_, m)| m[0] & 0xE0 == 0x80) {
+                let (ch, key) = (m[0] & 0xF, m[1] as usize);
+                let strike = m[0] & 0xF0 == 0x90 && m[2] > 0;
+                assert!(!(strike && on[ch as usize][key] && guitar.contains(&ch)), "{name} ch{}: key {key} struck while sounding at {t} ns", ch + 1);
+                on[ch as usize][key] = strike;
+            }
+        }
+        if !corpus().is_empty() {
+            assert!(styles > 0, "corpus has no Guitar parts");
+        }
+    }
+
     /// 1+8 and 1+5 over every corpus style: parts that follow the chord (NTT other than
     /// Bypass) play only the root for 1+8, and only root, 5th, 2nd and 4th for 1+5. The
     /// CASM chord-mute routing in the corpus always gives the bass something to play.
@@ -546,6 +636,49 @@ mod tests {
                         assert!(got.iter().any(|&(x, _)| x == ch), "{name}: ch{} silent under type {ty}", ch + 1);
                     }
                 }
+            }
+        }
+    }
+
+    /// A chord change moves each sounding note once, whatever the part. Every corpus style
+    /// played through the golden chord script (chords on and between beats, over held
+    /// notes, section changes, the Ending): at every moment the notes the MIDI stream has
+    /// left on are exactly the notes the engine counts as sounding.
+    #[test]
+    fn corpus_stream_matches_sounding_notes() {
+        let text = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden/chords.script")).unwrap();
+        for f in corpus() {
+            let style = Style::load(&f).unwrap();
+            let prep = Box::new(Prepared::new(&style));
+            let ns_per_tick = 60e9 / (prep.bpm * prep.ppq as f64);
+            let (steps, bars) = parse_script(&text, prep.tpb).unwrap();
+            let script: Vec<(u64, Step)> = steps.iter().map(|s| ((s.tick as f64 * ns_per_tick).ceil() as u64, s.step)).collect();
+            let end = ((bars + 4) * prep.tpb) as f64 * ns_per_tick;
+            // What the engine counts as sounding after each wake-up (the last one at each time).
+            let mut seen: Vec<(u64, Vec<(u8, u8)>)> = Vec::new();
+            let (_, rec) = run_observed(prep, &script, end as u64, |e, now| {
+                if seen.last().is_some_and(|(t, _)| *t == now) {
+                    seen.pop();
+                }
+                seen.push((now, e.sounding_notes()));
+            });
+            let name = f.file_name().unwrap().to_string_lossy().to_string();
+            let mut on = std::collections::BTreeMap::<(u8, u8), i32>::new();
+            let mut msgs = rec.out.iter().peekable();
+            for (now, sounding) in seen {
+                while let Some((_, m)) = msgs.next_if(|(t, _)| *t <= now) {
+                    let n = on.entry((m[0] & 0xF, m[1])).or_default();
+                    match m[0] & 0xF0 {
+                        0x90 if m[2] > 0 => *n += 1,
+                        0x80 | 0x90 => *n -= 1,
+                        _ => {}
+                    }
+                    // A note-off only ever ends a note the stream has on: one sent for a pitch
+                    // that is off would cut whatever the synth plays there next.
+                    assert!(*n >= 0, "{name}: ch{} key {} released while off at {now} ns", (m[0] & 0xF) + 1, m[1]);
+                }
+                let stream: Vec<(u8, u8)> = on.iter().flat_map(|(&k, &n)| std::iter::repeat_n(k, n as usize)).collect();
+                assert_eq!(stream, sounding, "{name}: MIDI stream and engine disagree at {now} ns");
             }
         }
     }

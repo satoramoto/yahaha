@@ -229,14 +229,14 @@ bar 38  Main D  Ab7@1.000
 bar 39  Main D  G7#9@1.000
   ch10 Rhythm2 8cdc0d670c220e15
   ch11 Bass    8a7fe42451a23c39
-  ch12 Chord1  9ca3cd62625b2046
-  ch13 Chord2  007409aaa66b3115
+  ch12 Chord1  4f10fa87ce7ae08e
+  ch13 Chord2  8bcce16f043ab5bf
 
 bar 40  Main D  C/G@1.000  [EndingA]@3.479
   ch10 Rhythm2 832d47230ea5af24
   ch11 Bass    4ce6e3a8eaae811d
   ch12 Chord1  32914c7ade46e734
-  ch13 Chord2  7bef43d2cccdf5d3
+  ch13 Chord2  2fe24f4eabd19c67
 
 bar 41  Ending A  C@1.000
   ch10 Rhythm2 59cba42d455fc856

@@ -741,7 +741,7 @@ Optional.
 - **1+8:**
   - Root plus its octave (for example C+C). A unison or octave chord.
   - MIDI chord type 30.
-  - **Our rule (#4):** CASM chord-mute bit 30 decides which channels play. Parts that follow the chord play only the root (in octaves), including chromatic notes and the Guitar table's "fifth" string. NTT Bypass parts still play as written.
+  - **Our rule (#4):** CASM chord-mute bit 30 decides which channels play. Parts that follow the chord play only the root (in octaves), including chromatic notes and every Guitar string. NTT Bypass parts still play as written.
   - Ref: DL p.45; RM p.29
 - **Keyboard Harmony note:** Harmony types "1+5" and "Octave" are harmony types, not chord types. They ignore the detected chord. Ref: OM p.56
 
@@ -832,6 +832,18 @@ With NTR = Guitar:
 | **All Purpose** | Works for both strumming and arpeggios |
 | **Stroke** | Strumming. Some notes deliberately sound muted |
 | **Arpeggio** | Four-note arpeggio voicings |
+
+**Guitar NTR voicing model (#12, our model).** The manuals give only each table's purpose, so this is our model (`theory::guitar`).
+- **Source:** a guitar part fingered over CM7. Source Root/Chord are ignored. Every Guitar channel in the corpus is written this way: 43 rules, all with source C/M7, playing real CM7 fingerings. Examples are the open x32000, the barre x35453, upper-string triads, and an alternating C/G bass.
+- **Per note:** most strums spread their notes over several ticks (254 of the corpus's 345 strums), so each note is converted on its own, and a source note always gives the same result.
+- **Role:** the note's degree over CM7 goes to the target's matching degree using the Chord table. Five-note targets keep the 3rd, 7th and tension (7♯9 keeps its major 3rd; the minor one is the ♯9). Tensions and chromatic notes follow the Melody scale. For example, x32000 plays unchanged over CM7, becomes x32010 over C, and becomes C E B♭ D E over C9.
+- **Position:** the hand slides the shape along the neck by the root interval, at most six frets either way (−5 to +6 semitones). The pattern keeps its shape and register.
+- **Range:** nothing sounds below the open low E (E1, MIDI 40). A note that slides off the neck comes back up an octave. Note Limit applies as usual.
+- **Bass On:** with NTT Bass On, a root on the bass strings (below the open G string, G2) becomes the slash bass. It goes below the root when that fits on the neck, so C/G is 332010 and C/E is 032010. With Bass Off, the slash is ignored.
+- **All Purpose:** every note sounds.
+- **Stroke:** strings a strummer leaves out are muted, which means the note is dropped. That covers anything below the chord's bass, which is its lowest root or slash bass from low E up (x32010 for C, xx0232 for D, all six strings for E), and any string that slides off the neck. The neck decides this, not the Note Limit: a Note Limit Low above C2 folds strummed strings up, as for All Purpose, and never mutes them. A source string below the root (a G1 under C2) is muted even over CM7; no corpus Stroke part has one.
+- **Arpeggio:** four voices. Each note first snaps to its nearest CM7 tone, with ties going down (D → C, A → G). The pattern then picks only the target's chord voices, at most four pitch classes. This changes the source even over CM7 (a D2 plays C2). No corpus rule uses Arpeggio, and none sets Bass On, so both are unverified against real data.
+- **One strike per pitch:** strings that land on the same pitch (1+8, 1+5, two strings a semitone apart) are struck once. The engine leaves out a Guitar note whose pitch another string of the same strum (struck within a 32nd note) is ringing, and a string that a chord change would move onto a pitch another string keeps stops instead. On one MIDI channel the unison would cut the first string short and strike the pitch again. A later strum strikes the pitch again, as a guitarist would. The left-out string sounds only as long as the string that rings its pitch; when the pattern holds it longer, the pitch still ends with the ringing string. A chord that lands just after the strum (the 40 ms late-chord allowance) corrects it outright: strings the previous chord left out come in, unless another string of the part already rings their pitch.
 
 **NTT Bass (On/Off)**
 - When On, the channel follows slash chords: for Dm7/G, the bass transposes to G instead of D.
