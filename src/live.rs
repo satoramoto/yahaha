@@ -13,7 +13,7 @@ use crate::engine::{Button, Engine, Prepared, Snapshot};
 use crate::launchkey;
 use crate::midi::{for_each_message, InputHandler};
 use crate::rt::{self, Histogram, PacketSink, Wakeup};
-use crate::theory::{Chord, Recognizer};
+use crate::theory::{Chord, Recognizer, CANCEL};
 use rtrb::{Consumer, Producer, RingBuffer};
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicU8, Ordering::*};
 use std::sync::Arc;
@@ -23,6 +23,8 @@ pub enum Cmd {
     Button(Button),
     ChordReleased,
     PartVolume(u8, u8),
+    /// Manual Bass in effect: mute the Style's Bass part.
+    ManualBass(bool),
     Arm,
     Panic,
 }
@@ -33,6 +35,11 @@ pub struct Shared {
     pub wake: Wakeup,
     pub quit: AtomicBool,
     pub split: AtomicU8,
+    /// Chord Detection Area = Upper: the chord comes from the keys above the split
+    /// (Fingered*), and the left hand plays the Left part.
+    pub upper: AtomicBool,
+    /// The Manual Bass setting. It only takes effect in Upper mode; see `manual_bass()`.
+    pub manual_bass: AtomicBool,
     /// Engine wake lateness vs. its deadline.
     pub lateness: Histogram,
     /// CoreMIDI packet timestamp -> our callback.
@@ -56,6 +63,8 @@ impl Shared {
             wake: Wakeup::new(),
             quit: AtomicBool::new(false),
             split: AtomicU8::new(split),
+            upper: AtomicBool::new(false),
+            manual_bass: AtomicBool::new(true),
             lateness: Histogram::new(),
             input_lat: Histogram::new(),
             chord_lat: Histogram::new(),
@@ -65,6 +74,11 @@ impl Shared {
             work_lat: Histogram::new(),
             spin_ns: AtomicU64::new(150_000),
         }
+    }
+
+    /// Manual Bass in effect: Upper detection mode with the Manual Bass setting on.
+    pub fn manual_bass(&self) -> bool {
+        self.upper.load(Relaxed) && self.manual_bass.load(Relaxed)
     }
 }
 
@@ -109,6 +123,25 @@ pub const TAG_PADS: usize = 2;
 pub const RH_CH: u8 = 0;
 pub const LH_CH: u8 = 1;
 
+/// Where a held key went at note-on, so its note-off follows it even if the split or
+/// the detection area changed while it was held.
+const R_LH: u8 = 1;
+const R_RH: u8 = 2;
+const R_CHORD: u8 = 4;
+
+/// Fingered*, the only fingering in Upper detection mode: Fingered without 1+5, 1+8 or
+/// Chord Cancel, so melody fragments in the right hand (single notes, octaves, fifths,
+/// chromatic runs) don't change the chord. 1+8 and 1+5 are the only Fingered shapes
+/// with fewer than three pitch classes (Data List p.44), so Fingered* needs three.
+/// As in Fingered, the bass is the root.
+pub fn fingered_star(mask: u16, c: Chord) -> Option<Chord> {
+    // Types 30 and 31 are 1+8 and 1+5.
+    if mask.count_ones() < 3 || matches!(c.ty, CANCEL | 30 | 31) {
+        return None;
+    }
+    Some(Chord { bass: None, ..c })
+}
+
 // ---------------------------------------------------------------------------
 // Input (CoreMIDI receive thread)
 // ---------------------------------------------------------------------------
@@ -116,7 +149,7 @@ pub const LH_CH: u8 = 1;
 pub struct Input {
     shared: Arc<Shared>,
     rec: Recognizer,
-    held: [bool; 128],
+    route: [u8; 128],
     zone_held: u32,
     current: Option<Chord>,
     generation: u16,
@@ -132,7 +165,7 @@ impl Input {
         Input {
             shared,
             rec,
-            held: [false; 128],
+            route: [0; 128],
             zone_held: 0,
             current: None,
             generation: 0,
@@ -152,13 +185,17 @@ impl Input {
         let mut mask = 0u16;
         let mut low = None;
         for k in 0..128 {
-            if self.held[k] {
+            if self.route[k] & R_CHORD != 0 {
                 mask |= 1 << (k % 12);
                 low.get_or_insert(k as u8);
             }
         }
         let Some(low) = low else { return };
-        if let Some(c) = self.rec.recognize(mask, low % 12) {
+        let mut c = self.rec.recognize(mask, low % 12);
+        if self.shared.upper.load(Relaxed) {
+            c = c.and_then(|c| fingered_star(mask, c));
+        }
+        if let Some(c) = c {
             if Some(c) != self.current {
                 self.current = Some(c);
                 self.generation = self.generation.wrapping_add(1);
@@ -175,25 +212,44 @@ impl Input {
         match (st, m.len()) {
             (0x90, 3) if m[2] > 0 => {
                 let k = m[1];
-                if k <= split {
-                    if !self.held[k as usize] {
-                        self.held[k as usize] = true;
-                        self.zone_held += 1;
-                    }
-                    self.out.push(&[0x90 | LH_CH, k, m[2]]);
+                // Lower: the chord section is the left hand. Upper: it is the right hand
+                // (above Split Point (Left)), and the left hand only plays the Left part.
+                let left = k <= split;
+                let chord = left != self.shared.upper.load(Relaxed);
+                let r = if left { R_LH } else { R_RH } | if chord { R_CHORD } else { 0 };
+                let prev = self.route[k as usize];
+                if prev & R_CHORD == 0 && chord {
+                    self.zone_held += 1;
+                } else if prev & R_CHORD != 0 && !chord {
+                    self.zone_held = self.zone_held.saturating_sub(1);
+                }
+                // A repeated note-on after the split moved: release where it sounded before.
+                if prev & R_LH != 0 && !left {
+                    self.out.push(&[0x80 | LH_CH, k, 0]);
+                } else if prev & R_RH != 0 && left {
+                    self.out.push(&[0x80 | RH_CH, k, 0]);
+                }
+                self.route[k as usize] = r;
+                self.out.push(&[0x90 | if left { LH_CH } else { RH_CH }, k, m[2]]);
+                if chord {
                     self.recompute();
-                } else {
-                    self.out.push(&[0x90 | RH_CH, k, m[2]]);
                 }
             }
             (0x80, 3) | (0x90, 3) => {
                 let k = m[1];
-                if self.held[k as usize] {
-                    self.held[k as usize] = false;
-                    self.zone_held = self.zone_held.saturating_sub(1);
-                    self.out.push(&[0x80 | LH_CH, k, 0]);
-                    if self.zone_held == 0 && self.cmd.push(Cmd::ChordReleased).is_ok() {
-                        self.signal = true;
+                let r = std::mem::take(&mut self.route[k as usize]);
+                if r != 0 {
+                    if r & R_LH != 0 {
+                        self.out.push(&[0x80 | LH_CH, k, 0]);
+                    }
+                    if r & R_RH != 0 {
+                        self.out.push(&[0x80 | RH_CH, k, 0]);
+                    }
+                    if r & R_CHORD != 0 {
+                        self.zone_held = self.zone_held.saturating_sub(1);
+                        if self.zone_held == 0 && self.cmd.push(Cmd::ChordReleased).is_ok() {
+                            self.signal = true;
+                        }
                     }
                 } else {
                     self.out.push(&[0x80 | RH_CH, k, 0]);
@@ -393,6 +449,7 @@ fn apply(engine: &mut Engine, cmd: Cmd, now: u64, out: &mut Out) {
         Cmd::ChordReleased => engine.chord_released(now, out),
         Cmd::Arm => engine.arm(out),
         Cmd::PartVolume(p, v) => engine.set_gain(p, v, out),
+        Cmd::ManualBass(on) => engine.set_manual_bass(on, out),
         Cmd::Panic => {
             engine.stop(out);
             for ch in 0..16u8 {
@@ -422,4 +479,129 @@ pub fn channels(out: Out) -> Channels {
     let (old, old_rx) = RingBuffer::new(8);
     let (snaps, snap_rx) = RingBuffer::new(256);
     Channels { input_tx, ui_tx, style_tx, old_rx, snap_rx, io: EngineIo { input, ui, styles, old, snaps, out } }
+}
+
+#[cfg(test)]
+mod detection_area {
+    use super::*;
+    use crate::rt::Target;
+
+    struct Rig {
+        input: Input,
+        played: Consumer<[u8; 3]>,
+        cmds: Consumer<Cmd>,
+        shared: Arc<Shared>,
+    }
+
+    /// An input handler whose output is captured through the synth ring (nothing is flushed
+    /// to CoreMIDI). Split at F#2 (54).
+    fn rig(upper: bool) -> Rig {
+        let shared = Arc::new(Shared::new(54));
+        shared.upper.store(upper, Relaxed);
+        let (tx, played) = RingBuffer::new(1024);
+        let (cmd, cmds) = RingBuffer::new(64);
+        let input = Input::new(shared.clone(), Recognizer::new(), cmd, Out::new(PacketSink::new(Target::Virtual(0)), Some(tx)));
+        Rig { input, played, cmds, shared }
+    }
+
+    impl Rig {
+        fn on(&mut self, keys: &[u8]) {
+            for &k in keys {
+                self.input.key_msg(&[0x90, k, 100]);
+            }
+        }
+        fn off(&mut self, keys: &[u8]) {
+            for &k in keys {
+                self.input.key_msg(&[0x80, k, 0]);
+            }
+        }
+        fn chord(&self) -> Option<Chord> {
+            Chord::unpack(self.shared.chord.load(Relaxed)).map(|(c, _)| c)
+        }
+        fn played(&mut self) -> Vec<[u8; 3]> {
+            std::iter::from_fn(|| self.played.pop().ok()).collect()
+        }
+        fn released(&mut self) -> bool {
+            std::iter::from_fn(|| self.cmds.pop().ok()).any(|c| matches!(c, Cmd::ChordReleased))
+        }
+    }
+
+    #[test]
+    fn fingered_star_drops_1_5_1_8_cancel_and_the_bass() {
+        let rec = Recognizer::new();
+        let pcs = |ps: &[u8]| ps.iter().fold(0u16, |m, &p| m | 1 << (p % 12));
+        let fs = |ps: &[u8]| rec.recognize(pcs(ps), ps[0] % 12).and_then(|c| fingered_star(pcs(ps), c));
+        assert_eq!(fs(&[0]), None); // single note
+        assert_eq!(fs(&[0, 12]), None); // 1+8
+        assert_eq!(fs(&[0, 7]), None); // 1+5
+        assert_eq!(fs(&[7, 12]), None); // 1+5, inverted
+        assert_eq!(fs(&[0, 4]), None); // a melody third is not a chord in Fingered*
+        assert_eq!(fs(&[0, 1, 2]), None); // Cancel
+        assert_eq!(fs(&[0, 4, 7]), Some(Chord::new(0, 0)));
+        assert_eq!(fs(&[9, 12, 16]), Some(Chord::new(9, 8))); // Am
+        // An inversion is still the chord, with the root as the bass.
+        let c = fs(&[4, 7, 12]).unwrap();
+        assert_eq!((c.root, c.ty, c.bass), (0, 0, None));
+    }
+
+    /// Lower (default): the left hand is the chord section and sounds on the LH channel.
+    #[test]
+    fn lower_detects_the_left_hand() {
+        let mut r = rig(false);
+        r.on(&[36, 40, 43]);
+        assert_eq!(r.chord(), Some(Chord::new(0, 0)));
+        r.on(&[72, 76, 79, 81]); // right-hand melody never changes the chord
+        assert_eq!(r.chord(), Some(Chord::new(0, 0)));
+        let p = r.played();
+        assert!(p[..3].iter().all(|m| m[0] == 0x90 | LH_CH));
+        assert!(p[3..].iter().all(|m| m[0] == 0x90 | RH_CH));
+    }
+
+    /// Upper: the chord comes from the right hand; the left hand plays the Left part and
+    /// never changes the chord.
+    #[test]
+    fn upper_detects_the_right_hand() {
+        let mut r = rig(true);
+        r.on(&[36, 40, 43]); // a C triad in the left hand: just bass notes now
+        assert_eq!(r.chord(), None);
+        assert!(r.played().iter().all(|m| m[0] == 0x90 | LH_CH));
+        r.on(&[69, 72, 76]); // Am in the right hand
+        assert_eq!(r.chord(), Some(Chord::new(9, 8)));
+        assert!(r.played().iter().all(|m| m[0] == 0x90 | RH_CH));
+        r.off(&[69, 72, 76]);
+        assert!(r.released(), "releasing the right-hand chord is what Sync Stop sees");
+        // Melody alone: single notes, fifths, octaves don't touch the chord.
+        r.on(&[79]);
+        r.on(&[84]);
+        r.on(&[91]);
+        assert_eq!(r.chord(), Some(Chord::new(9, 8)));
+        r.off(&[79, 84, 91]);
+        assert!(r.released(), "all right-hand keys up");
+        // A new chord, played as an inversion over a left-hand note: root position, no slash.
+        r.on(&[38]);
+        r.on(&[67, 71, 74, 77]); // G7 in the right hand
+        let c = r.chord().unwrap();
+        assert_eq!((c.root, c.ty, c.bass), (7, 19, None));
+        // Releasing the left hand does not count as releasing the chord.
+        r.played();
+        r.off(&[36, 40, 43, 38]);
+        assert!(!r.released());
+        assert!(r.played().iter().all(|m| m[0] == 0x80 | LH_CH));
+    }
+
+    /// Switching the area while keys are held: note-offs follow where each note went.
+    #[test]
+    fn note_offs_follow_the_note_ons_across_a_switch() {
+        let mut r = rig(false);
+        r.on(&[36, 40, 43]);
+        r.shared.upper.store(true, Relaxed);
+        r.on(&[72, 76, 79]); // lower-mode chord keys still held, so C + C = C
+        r.played();
+        r.off(&[36, 40, 43]);
+        assert!(r.played().iter().all(|m| m[0] == 0x80 | LH_CH));
+        assert!(!r.released(), "the right hand still holds the chord");
+        r.off(&[72, 76, 79]);
+        assert!(r.played().iter().all(|m| m[0] == 0x80 | RH_CH));
+        assert!(r.released());
+    }
 }

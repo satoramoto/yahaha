@@ -33,6 +33,23 @@ pub struct Options {
     pub palette_leds: bool,
     /// 1-based left output channel for the synth (None = auto).
     pub audio_out: Option<u8>,
+    /// Chord Detection Area = Upper.
+    pub upper: bool,
+    /// The Manual Bass setting (takes effect in Upper mode only).
+    pub manual_bass: bool,
+}
+
+/// Push the effective Manual Bass state (Upper mode and the setting both on) to the
+/// engine, which mutes the Style's Bass part, and to the synth, which gives the Left part
+/// the Style's Bass voice.
+fn sync_manual_bass(shared: &Shared, ui_tx: &mut rtrb::Producer<Cmd>, synth: Option<&synth::Synth>) {
+    let on = shared.manual_bass();
+    if ui_tx.push(Cmd::ManualBass(on)).is_ok() {
+        shared.wake.signal();
+    }
+    if let Some(sy) = synth {
+        sy.control.set_manual_bass(on);
+    }
 }
 
 fn collect_styles(paths: &[PathBuf]) -> Vec<PathBuf> {
@@ -102,6 +119,8 @@ pub fn play(opts: Options) -> Result<()> {
     let client = Client::new("yahaha")?;
     let out_src = client.virtual_source("yahaha")?;
     let shared = Arc::new(Shared::new(opts.split));
+    shared.upper.store(opts.upper, Relaxed);
+    shared.manual_bass.store(opts.manual_bass, Relaxed);
 
     // --- built-in synth (optional) ---
     let mut feeds = synth::feeds();
@@ -178,6 +197,10 @@ pub fn play(opts: Options) -> Result<()> {
     let io = ch.io;
     let engine_thread =
         std::thread::Builder::new().name("yahaha-engine".into()).spawn(move || live::run_engine(engine, io, sh))?;
+    if let Some(sy) = &synth {
+        sy.control.set_bass_program(synth::style_bass_program(info.voices[10]));
+    }
+    sync_manual_bass(&shared, &mut ch.ui_tx, synth.as_ref());
 
     // --- terminal ---
     let mut term = ratatui::init();
@@ -364,6 +387,25 @@ pub fn play(opts: Options) -> Result<()> {
                         None
                     }
                     KeyCode::Char('h') => Some(Button::StopAcmp),
+                    KeyCode::Char('d') => {
+                        let v = !shared.upper.load(Relaxed);
+                        shared.upper.store(v, Relaxed);
+                        // Selecting Upper turns Manual Bass on, its default there.
+                        if v {
+                            shared.manual_bass.store(true, Relaxed);
+                        }
+                        sync_manual_bass(&shared, &mut ch.ui_tx, synth.as_ref());
+                        None
+                    }
+                    KeyCode::Char('D') => {
+                        // Manual Bass is only available in Upper mode.
+                        if shared.upper.load(Relaxed) {
+                            let v = !shared.manual_bass.load(Relaxed);
+                            shared.manual_bass.store(v, Relaxed);
+                            sync_manual_bass(&shared, &mut ch.ui_tx, synth.as_ref());
+                        }
+                        None
+                    }
                     KeyCode::Char('\\') => {
                         let _ = ch.ui_tx.push(Cmd::Panic);
                         shared.wake.signal();
@@ -377,6 +419,9 @@ pub fn play(opts: Options) -> Result<()> {
                                 if ch.style_tx.push(p).is_ok() {
                                     idx = next;
                                     info = i;
+                                    if let Some(sy) = &synth {
+                                        sy.control.set_bass_program(synth::style_bass_program(info.voices[10]));
+                                    }
                                     message.clear();
                                     shared.wake.signal();
                                 }
@@ -465,7 +510,7 @@ fn draw(
         Constraint::Length(5),
         Constraint::Length(10),
         Constraint::Length(10),
-        Constraint::Length(5),
+        Constraint::Length(6),
         Constraint::Min(4),
     ])
     .split(area);
@@ -586,6 +631,19 @@ fn draw(
                 ),
                 Span::raw(format!("  split {} [ / ]", note_name(shared.split.load(Relaxed)))),
             ]),
+            Line::from({
+                let upper = shared.upper.load(Relaxed);
+                let split = note_name(shared.split.load(Relaxed));
+                let mut v = vec![Span::raw(" chord detection "), flag(upper, if upper { "UPPER · Fingered* [d]" } else { "LOWER [d]" })];
+                if upper {
+                    v.push(flag(shared.manual_bass.load(Relaxed), "MANUAL BASS [D]"));
+                    let lh = if shared.manual_bass() { "bass (style Bass part muted)" } else { "Left voice" };
+                    v.push(Span::styled(format!(" chord: keys above {split} · left hand: {lh}"), dim));
+                } else {
+                    v.push(Span::styled(format!(" chord: keys up to {split}"), dim));
+                }
+                v
+            }),
             Line::from(match synth {
                 Some((_, c)) => {
                     let active = c.active.load(Relaxed);
@@ -604,10 +662,12 @@ fn draw(
                         if c.layer_mode.load(Relaxed) { St::default().fg(Color::Black).bg(Color::Rgb(255, 140, 0)) } else { dim },
                     ));
                     v.push(Span::raw(" "));
-                    let left_on = c.lh_sound.load(Relaxed);
-                    let lname: String = gm_name(c.left_program.load(Relaxed)).chars().take(10).collect();
+                    let mb = c.manual_bass.load(Relaxed);
+                    let left_on = c.lh_sound.load(Relaxed) || mb;
+                    let left = if mb { &c.bass_program } else { &c.left_program };
+                    let lname: String = gm_name(left.load(Relaxed)).chars().take(10).collect();
                     v.push(Span::styled(
-                        format!(" LEFT {lname} [l ( )] "),
+                        format!(" LEFT {}{lname} [l ( )] ", if mb { "bass: " } else { "" }),
                         if left_on { St::default().fg(Color::Black).bg(Color::Rgb(40, 200, 90)) } else { dim },
                     ));
                     Line::from(v)
