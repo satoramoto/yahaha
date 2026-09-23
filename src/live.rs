@@ -13,6 +13,7 @@ use crate::engine::{shift_key, Button, Engine, Prepared, Snapshot, Transpose};
 use crate::fingering::{self, Fingering};
 use crate::launchkey::{self, Action, Control, Page};
 use crate::midi::{for_each_message, InputHandler};
+use crate::parts::{self, FaderPage, Parts};
 use crate::rt::{self, Histogram, PacketSink, Wakeup};
 use crate::theory::{Chord, Recognizer, CANCEL, ONE_PLUS_EIGHT, ONE_PLUS_FIVE};
 use rtrb::{Consumer, Producer, RingBuffer};
@@ -25,6 +26,8 @@ pub enum Cmd {
     ChordReleased,
     /// A Launchkey part fader (0..8) moved to a value (soft takeover in the engine).
     PartVolume(u8, u8),
+    /// The faders are on the Style page again, at these physical positions.
+    FadersAt([u8; 8]),
     /// Manual Bass in effect: mute the Style's Bass part.
     ManualBass(bool),
     Transpose(Transpose),
@@ -68,6 +71,8 @@ pub struct Shared {
     pub flush_lat: Histogram,
     pub work_lat: Histogram,
     pub spin_ns: AtomicU64,
+    /// The keyboard parts (Right 1-3, Left) and the fader page.
+    pub parts: Arc<Parts>,
 }
 
 impl Shared {
@@ -92,6 +97,7 @@ impl Shared {
             flush_lat: Histogram::new(),
             work_lat: Histogram::new(),
             spin_ns: AtomicU64::new(150_000),
+            parts: Arc::new(Parts::new()),
         }
     }
 
@@ -151,8 +157,10 @@ impl crate::engine::Sink for Out {
 pub const TAG_KEYS: usize = 1;
 pub const TAG_PADS: usize = 2;
 
-pub const RH_CH: u8 = 0;
-pub const LH_CH: u8 = 1;
+#[cfg(test)]
+pub const RH_CH: u8 = parts::CHANNEL[parts::RIGHT1];
+#[cfg(test)]
+pub const LH_CH: u8 = parts::CHANNEL[parts::LEFT];
 
 /// Which side of the split a held key went to at note-on, so it keeps counting for that
 /// side even if the split or the detection area changed while it was held (where its
@@ -177,27 +185,63 @@ pub fn fingered_star(mask: u16, c: Chord) -> Option<Chord> {
 // Input (CoreMIDI receive thread)
 // ---------------------------------------------------------------------------
 
-/// Where each held key sounded (channel and transposed note), so its note-off goes to the
-/// same place even if the split or transpose changed while it was down.
+/// The notes one key sounds: a (channel, note) for each keyboard part that played it (up
+/// to the three Right parts layered).
+#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
+pub struct Sounded {
+    n: u8,
+    notes: [(u8, u8); 3],
+}
+
+impl Sounded {
+    pub fn push(&mut self, ch: u8, note: u8) {
+        if (self.n as usize) < self.notes.len() {
+            self.notes[self.n as usize] = (ch, note);
+            self.n += 1;
+        }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (u8, u8)> + '_ {
+        self.notes[..self.n as usize].iter().copied()
+    }
+}
+
+/// What a key sounds as: on each keyboard part of its side of the split that is on (the
+/// Right parts layered, or Left), on the part's channel, moved by the transpose `shift`
+/// and the part's octave.
+pub fn sounds(parts: &Parts, left: bool, key: u8, shift: i8) -> Sounded {
+    let mut s = Sounded::default();
+    let side: &[usize] = if left { &[parts::LEFT] } else { &[parts::RIGHT1, parts::RIGHT2, parts::RIGHT3] };
+    for &p in side {
+        let on = if p == parts::LEFT { parts.left_sounds() } else { parts.is_on(p) };
+        if on {
+            let oct = parts.octave[p].load(Relaxed).clamp(-2, 2);
+            s.push(parts::CHANNEL[p], shift_key(key, shift + 12 * oct));
+        }
+    }
+    s
+}
+
+/// Where each held key sounded (channels and notes), so its note-offs go to the same place
+/// even if the split, transpose, part on/off or octave changed while it was down.
 pub struct Keys {
-    sounding: [Option<(u8, u8)>; 128],
+    sounding: [Sounded; 128],
 }
 
 impl Keys {
     pub fn new() -> Keys {
-        Keys { sounding: [None; 128] }
+        Keys { sounding: [Sounded::default(); 128] }
     }
 
-    /// Key down: the (channel, note) to sound, remembered for the release. A retrigger of a
-    /// key that is still sounding first returns the old note to release.
-    pub fn press(&mut self, key: u8, ch: u8, shift: i8) -> ((u8, u8), Option<(u8, u8)>) {
-        let out = (ch, shift_key(key, shift));
-        (out, self.sounding[key as usize & 127].replace(out))
+    /// Key down, sounding as `now`: remembered for the release. Returns what a retrigger of
+    /// a key that is still sounding had sounding, to release first.
+    pub fn press(&mut self, key: u8, now: Sounded) -> Sounded {
+        std::mem::replace(&mut self.sounding[key as usize & 127], now)
     }
 
-    /// Key up: the (channel, note) it sounded as, if any.
-    pub fn release(&mut self, key: u8) -> Option<(u8, u8)> {
-        self.sounding[key as usize & 127].take()
+    /// Key up: what it sounded as.
+    pub fn release(&mut self, key: u8) -> Sounded {
+        std::mem::take(&mut self.sounding[key as usize & 127])
     }
 }
 
@@ -305,12 +349,15 @@ impl Input {
                 let r = if left { R_LH } else { R_RH };
                 let chord = r == self.chord_side();
                 self.route[k as usize] = r;
-                let ((ch, note), prev) = self.keys.press(k, if left { LH_CH } else { RH_CH }, self.shared.key_shift.load(Relaxed));
-                // A retrigger (possibly after the split or transpose moved): release where it sounded.
-                if let Some((pch, pnote)) = prev {
+                let now = sounds(&self.shared.parts, left, k, self.shared.key_shift.load(Relaxed));
+                // A retrigger (possibly after the split, transpose or parts changed): release
+                // where it sounded.
+                for (pch, pnote) in self.keys.press(k, now).iter() {
                     self.out.push(&[0x80 | pch, pnote, 0]);
                 }
-                self.out.push(&[0x90 | ch, note, m[2]]);
+                for (ch, note) in now.iter() {
+                    self.out.push(&[0x90 | ch, note, m[2]]);
+                }
                 // The Full Keyboard types (Lower only) read both hands.
                 if chord
                     || (!self.shared.upper.load(Relaxed)
@@ -321,7 +368,7 @@ impl Input {
             }
             (0x80, 3) | (0x90, 3) => {
                 let k = m[1] & 0x7F;
-                if let Some((ch, note)) = self.keys.release(k) {
+                for (ch, note) in self.keys.release(k).iter() {
                     self.out.push(&[0x80 | ch, note, 0]);
                 }
                 let r = std::mem::take(&mut self.route[k as usize]);
@@ -336,12 +383,15 @@ impl Input {
                     }
                 }
             }
-            // Wheels, pedals, pressure: to the right-hand channel.
+            // Wheels, pedals, pressure: to every Right part, on or off, so a pedal release
+            // always reaches a note that is still ringing.
             (0xB0 | 0xE0 | 0xD0 | 0xA0 | 0xC0, _) => {
                 let mut msg = [0u8; 3];
                 msg[..m.len()].copy_from_slice(m);
-                msg[0] = st | RH_CH;
-                self.out.push(&msg[..m.len()]);
+                for p in [parts::RIGHT1, parts::RIGHT2, parts::RIGHT3] {
+                    msg[0] = st | parts::CHANNEL[p];
+                    self.out.push(&msg[..m.len()]);
+                }
             }
             _ => {}
         }
@@ -369,7 +419,7 @@ impl Input {
                 return;
             }
             if launchkey::FADER_CC.contains(&cc) {
-                if cc == 13 {
+                if cc == launchkey::MASTER_FADER_CC {
                     // Soft takeover, as for the part faders (in the engine).
                     if let Some(s) = &self.synth {
                         if self.master_takeover.hardware(s.master.load(Relaxed), v) {
@@ -377,23 +427,32 @@ impl Input {
                         }
                         s.master_waiting.store(self.master_takeover.waiting(), Relaxed);
                     }
-                } else if self.cmd.push(Cmd::PartVolume(cc - 5, v)).is_ok() {
-                    // The part faders' takeover state lives in the engine and only changes
-                    // when a move arrives; a move lost to a full ring leaves it consistent.
-                    self.signal = true;
+                } else {
+                    let f = (cc - launchkey::FADER_CC.start()) as usize;
+                    let parts = &self.shared.parts;
+                    let prev = parts.fader_hw[f].swap(v, Relaxed);
+                    match parts.fader_page() {
+                        // The engine thread sends the new volume as the part's CC7.
+                        FaderPage::Panel => {
+                            if f < parts::COUNT && parts.hw_fader(f, prev, v) {
+                                self.signal = true;
+                            }
+                        }
+                        // The Style faders' takeover state lives in the engine and only
+                        // changes when a move arrives; a move lost to a full ring leaves it
+                        // consistent.
+                        FaderPage::Style => {
+                            if self.cmd.push(Cmd::PartVolume(f as u8, v)).is_ok() {
+                                self.signal = true;
+                            }
+                        }
+                    }
                 }
                 return;
             }
             if launchkey::FADER_BTN_CC.contains(&cc) {
                 if v > 0 {
-                    if let Some(s) = &self.synth {
-                        if cc == 45 {
-                            let l = !s.layer_mode.load(Relaxed);
-                            s.layer_mode.store(l, Relaxed);
-                        } else {
-                            s.press_slot(cc - 37);
-                        }
-                    }
+                    self.fader_button(cc - launchkey::FADER_BTN_CC.start());
                 }
                 return;
             }
@@ -420,6 +479,26 @@ impl Input {
             } else {
                 self.unmapped(m);
             }
+        }
+    }
+
+    /// A button under fader `i` (0..8), or under the master fader (8): the fader page
+    /// toggle. On the Panel page the buttons turn Right 1-3 and Left on/off (Shift: select
+    /// the part for the voice keys); on the Style page they mute the Style parts.
+    fn fader_button(&mut self, i: u8) {
+        let parts = &self.shared.parts;
+        if i == 8 {
+            let (page, hw) = parts.toggle_fader_page();
+            if page == FaderPage::Style && self.cmd.push(Cmd::FadersAt(hw)).is_ok() {
+                self.signal = true;
+            }
+            return;
+        }
+        match parts.fader_page() {
+            FaderPage::Panel if (i as usize) < parts::COUNT && self.shift => parts.select(i as usize),
+            FaderPage::Panel if (i as usize) < parts::COUNT => parts.toggle(i as usize),
+            FaderPage::Panel => {}
+            FaderPage::Style => self.act(Action::Button(Button::TogglePart(i))),
         }
     }
 
@@ -482,23 +561,17 @@ pub struct EngineIo {
     pub old: Producer<Box<Prepared>>,
     pub snaps: Producer<Snapshot>,
     pub out: Out,
-    /// Your parts' levels (voice slots, OTS, Left), when the built-in synth runs: their
-    /// CC7 also goes out on the port, on your channels.
-    pub player: Option<Arc<crate::synth::SynthControl>>,
 }
 
-/// Send your parts' CC7 on the port when it changed: the right hand's on ch 1, the left
-/// hand's on ch 2. Port only: the built-in synth already has them per voice slot, and a
-/// CC7 on ch 1 there would set every slot alike. Also hands the Style's Bass fader to the
-/// synth for Manual Bass.
-fn sync_player_volumes(io: &mut EngineIo, bass_fader: u8, last: &mut [u8; 2]) {
-    let Some(p) = &io.player else { return };
-    p.set_bass_vol(bass_fader);
-    let (rh, lh) = p.port_volumes();
-    for (i, (ch, v)) in [(RH_CH, rh), (LH_CH, lh)].into_iter().enumerate() {
-        if last[i] != v {
-            last[i] = v;
-            io.out.midi.push(&[0xB0 | ch, 7, v]);
+/// Send each keyboard part's volume as CC7 on its channel when it changed, to the port and
+/// the built-in synth alike. Under Manual Bass, Left's is the Style's Bass fader.
+fn sync_part_volumes(out: &mut Out, parts: &Parts, bass_fader: u8, last: &mut [u8; parts::COUNT]) {
+    parts.bass_vol.store(bass_fader, Relaxed);
+    for (p, sent) in last.iter_mut().enumerate() {
+        let v = parts.channel_volume(p);
+        if *sent != v {
+            *sent = v;
+            out.push(&[0xB0 | parts::CHANNEL[p], 7, v]);
         }
     }
 }
@@ -507,8 +580,8 @@ pub fn run_engine(mut engine: Engine, mut io: EngineIo, shared: Arc<Shared>) {
     let rt_ok = std::env::var("YAHAHA_NO_RT").is_err() && rt::make_realtime(1_000_000, 300_000, 1_000_000);
     shared.engine_rt.store(rt_ok, Relaxed);
     let mut last_packed = 0u32;
-    // Out of range, so the first wake sends both.
-    let mut last_player_vol = [255u8; 2];
+    // Out of range, so the first wake sends them all.
+    let mut last_part_vol = [255u8; parts::COUNT];
     let mut last_snap: Option<Snapshot> = None;
     let mut last_snap_ns = 0u64;
     engine.send_init(&mut io.out);
@@ -573,7 +646,7 @@ pub fn run_engine(mut engine: Engine, mut io: EngineIo, shared: Arc<Shared>) {
             apply(&mut engine, cmd, now, &mut io.out);
         }
         engine.process(now, &mut io.out);
-        sync_player_volumes(&mut io, engine.snapshot(now).volumes[2], &mut last_player_vol);
+        sync_part_volumes(&mut io.out, &shared.parts, engine.snapshot(now).volumes[2], &mut last_part_vol);
         let t1 = rt::now_ns();
         io.out.flush();
         let t2 = rt::now_ns();
@@ -596,6 +669,7 @@ fn apply(engine: &mut Engine, cmd: Cmd, now: u64, out: &mut Out) {
         Cmd::ChordReleased => engine.chord_released(now, out),
         Cmd::Arm => engine.arm(out),
         Cmd::PartVolume(p, v) => engine.hw_fader(p, v, out),
+        Cmd::FadersAt(hw) => engine.faders_at(hw),
         Cmd::ManualBass(on) => engine.set_manual_bass(on, out),
         Cmd::Transpose(t) => engine.set_transpose(t, now, out),
         Cmd::Panic => {
@@ -626,7 +700,7 @@ pub fn channels(out: Out) -> Channels {
     let (style_tx, styles) = RingBuffer::new(4);
     let (old, old_rx) = RingBuffer::new(8);
     let (snaps, snap_rx) = RingBuffer::new(256);
-    Channels { input_tx, ui_tx, style_tx, old_rx, snap_rx, io: EngineIo { input, ui, styles, old, snaps, out, player: None } }
+    Channels { input_tx, ui_tx, style_tx, old_rx, snap_rx, io: EngineIo { input, ui, styles, old, snaps, out } }
 }
 
 #[cfg(test)]
@@ -684,24 +758,132 @@ mod tests {
         assert_eq!(chord(&shared).as_deref(), Some("Am"));
     }
 
-    /// A key is released at the pitch and channel it sounded at, whatever changed meanwhile.
+    fn snd(notes: &[(u8, u8)]) -> Sounded {
+        let mut s = Sounded::default();
+        for &(c, n) in notes {
+            s.push(c, n);
+        }
+        s
+    }
+
+    /// A key is released at the pitches and channels it sounded at, whatever changed meanwhile.
     #[test]
     fn keys_release_where_they_sounded() {
+        let parts = Parts::new();
+        parts.toggle(parts::LEFT);
         let mut k = Keys::new();
-        assert_eq!(k.press(60, RH_CH, 2), ((RH_CH, 62), None));
-        assert_eq!(k.press(48, LH_CH, -12), ((LH_CH, 36), None));
+        let press = |k: &mut Keys, key: u8, left: bool, shift: i8| {
+            let now = sounds(&parts, left, key, shift);
+            (now, k.press(key, now))
+        };
+        assert_eq!(press(&mut k, 60, false, 2), (snd(&[(RH_CH, 62)]), snd(&[])));
+        assert_eq!(press(&mut k, 48, true, -12), (snd(&[(LH_CH, 36)]), snd(&[])));
         // Transpose changes while both are held: the new press uses it, the releases do not.
-        assert_eq!(k.press(64, RH_CH, 5), ((RH_CH, 69), None));
-        assert_eq!(k.release(60), Some((RH_CH, 62)));
-        assert_eq!(k.release(48), Some((LH_CH, 36)));
-        assert_eq!(k.release(48), None);
+        assert_eq!(press(&mut k, 64, false, 5), (snd(&[(RH_CH, 69)]), snd(&[])));
+        assert_eq!(k.release(60), snd(&[(RH_CH, 62)]));
+        assert_eq!(k.release(48), snd(&[(LH_CH, 36)]));
+        assert_eq!(k.release(48), snd(&[]));
         // Retrigger without a release returns the old note to stop first.
-        assert_eq!(k.press(64, RH_CH, 0), ((RH_CH, 64), Some((RH_CH, 69))));
-        assert_eq!(k.release(64), Some((RH_CH, 64)));
+        assert_eq!(press(&mut k, 64, false, 0), (snd(&[(RH_CH, 64)]), snd(&[(RH_CH, 69)])));
+        assert_eq!(k.release(64), snd(&[(RH_CH, 64)]));
         // Out of MIDI range folds by octaves.
-        assert_eq!(k.press(127, RH_CH, 12).0, (RH_CH, 127));
-        assert_eq!(k.press(2, RH_CH, -12).0, (RH_CH, 2));
-        assert_eq!(k.press(125, RH_CH, 5).0, (RH_CH, 118));
+        assert_eq!(press(&mut k, 127, false, 12).0, snd(&[(RH_CH, 127)]));
+        assert_eq!(press(&mut k, 2, false, -12).0, snd(&[(RH_CH, 2)]));
+        assert_eq!(press(&mut k, 125, false, 5).0, snd(&[(RH_CH, 118)]));
+    }
+
+    /// The Right parts that are on sound together, each on its channel and octave; Left
+    /// sounds only when it is on (or under Manual Bass).
+    #[test]
+    fn right_parts_layer_and_left_follows_its_switch() {
+        let parts = Parts::new();
+        assert_eq!(sounds(&parts, false, 60, 0), snd(&[(0, 60)]), "Right 1 alone at start");
+        assert_eq!(sounds(&parts, true, 40, 0), snd(&[]), "Left off: the left hand is silent");
+        parts.toggle(parts::RIGHT2);
+        parts.toggle(parts::RIGHT3);
+        parts.octave[parts::RIGHT2].store(-1, Relaxed);
+        parts.octave[parts::RIGHT3].store(2, Relaxed);
+        assert_eq!(sounds(&parts, false, 60, 1), snd(&[(0, 61), (2, 49), (3, 85)]));
+        parts.toggle(parts::RIGHT1);
+        assert_eq!(sounds(&parts, false, 60, 0), snd(&[(2, 48), (3, 84)]), "Right 1 off: its channel is silent");
+        parts.set_manual_bass(true);
+        parts.octave[parts::LEFT].store(-1, Relaxed);
+        assert_eq!(sounds(&parts, true, 40, 0), snd(&[(1, 28)]), "Manual Bass sounds the left hand");
+        parts.set_manual_bass(false);
+        parts.toggle(parts::LEFT);
+        assert_eq!(sounds(&parts, true, 40, 0), snd(&[(1, 28)]));
+    }
+
+    /// Through `Input`: a held layered note is released on every part it started on, even
+    /// after the parts changed; pedals reach all three Right parts.
+    #[test]
+    fn layered_notes_release_where_they_started() {
+        let shared = Arc::new(Shared::new(54));
+        let (cmd, _cmd_rx) = RingBuffer::new(16);
+        let (synth, mut heard) = RingBuffer::new(64);
+        let mut input = Input::new(shared.clone(), Recognizer::new(), cmd, Out::new(PacketSink::new(rt::Target::Virtual(0)), Some(synth)));
+        let mut sent = || std::iter::from_fn(|| heard.pop().ok()).collect::<Vec<_>>();
+        let parts = &shared.parts;
+        parts.toggle(parts::RIGHT2);
+        input.key_msg(&[0x90, 72, 90]);
+        assert_eq!(sent(), vec![[0x90, 72, 90], [0x92, 72, 90]]);
+        parts.toggle(parts::RIGHT1);
+        parts.toggle(parts::RIGHT3);
+        parts.octave[parts::RIGHT2].store(1, Relaxed);
+        input.key_msg(&[0x80, 72, 0]);
+        assert_eq!(sent(), vec![[0x80, 72, 0], [0x82, 72, 0]]);
+        input.key_msg(&[0xB0, 64, 127]);
+        assert_eq!(sent(), vec![[0xB0, 64, 127], [0xB2, 64, 127], [0xB3, 64, 127]]);
+        // The left hand is silent while Left is off.
+        input.key_msg(&[0x90, 40, 90]);
+        assert!(sent().is_empty());
+        input.key_msg(&[0x80, 40, 0]);
+        assert!(sent().is_empty());
+    }
+
+    /// Panel page: faders 1-4 set the keyboard parts' volumes (soft takeover), their
+    /// buttons turn the parts on/off, Shift + button selects. The master button switches to
+    /// the Style page, whose faders and buttons go to the engine; the engine hears where
+    /// the faders physically are.
+    #[test]
+    fn fader_pages_route_faders_and_buttons() {
+        use crate::engine::Button;
+        let (mut input, shared, mut cmds, _acts) = pads_rig();
+        let parts = &shared.parts;
+        assert_eq!(parts.fader_page(), FaderPage::Panel);
+        input.pad_msg(&[0xB0, 6, 100]); // fader 2 = Right 2, at its level already
+        input.pad_msg(&[0xB0, 6, 64]);
+        assert_eq!(parts.volume[parts::RIGHT2].load(Relaxed), 64);
+        input.pad_msg(&[0xB0, 12, 30]); // fader 8: unused on Panel
+        assert!(cmds.pop().is_err(), "nothing reaches the Style parts");
+        input.pad_msg(&[0xB0, 40, 127]); // button 4: Left on
+        assert!(parts.is_on(parts::LEFT));
+        input.pad_msg(&[0xB0, launchkey::SHIFT_CC, 127]);
+        input.pad_msg(&[0xB0, 39, 127]); // Shift + button 3: select Right 3
+        input.pad_msg(&[0xB0, launchkey::SHIFT_CC, 0]);
+        assert_eq!(parts.selected(), parts::RIGHT3);
+        assert!(!parts.is_on(parts::RIGHT3));
+
+        input.pad_msg(&[0xB0, 45, 127]); // master button: Style page
+        assert_eq!(parts.fader_page(), FaderPage::Style);
+        let mut hw = [crate::engine::HW_UNKNOWN; 8];
+        hw[1] = 64;
+        hw[7] = 30;
+        assert!(matches!(cmds.pop(), Ok(Cmd::FadersAt(h)) if h == hw));
+        input.pad_msg(&[0xB0, 6, 10]);
+        assert!(matches!(cmds.pop(), Ok(Cmd::PartVolume(1, 10))));
+        assert_eq!(parts.volume[parts::RIGHT2].load(Relaxed), 64, "Right 2 keeps its level");
+        input.pad_msg(&[0xB0, 38, 127]);
+        assert!(matches!(cmds.pop(), Ok(Cmd::Button(Button::TogglePart(1)))));
+        // Back on Panel, fader 2 (now at 10) must pick Right 2 up at 64 first.
+        input.pad_msg(&[0xB0, 45, 127]);
+        assert_eq!(parts.fader_page(), FaderPage::Panel);
+        assert!(parts.waiting(parts::RIGHT2));
+        input.pad_msg(&[0xB0, 6, 12]);
+        assert_eq!(parts.volume[parts::RIGHT2].load(Relaxed), 64, "no jump");
+        input.pad_msg(&[0xB0, 6, 63]);
+        assert_eq!(parts.volume[parts::RIGHT2].load(Relaxed), 63);
+        assert!(cmds.pop().is_err());
     }
 
     /// Through `Input`: notes sound transposed on their split channel, the chord is recognized
@@ -715,6 +897,7 @@ mod tests {
         let out = Out::new(PacketSink::new(rt::Target::Virtual(0)), Some(synth));
         let mut input = Input::new(shared.clone(), Recognizer::new(), cmd, out);
         let mut sent = || std::iter::from_fn(|| heard.pop().ok()).collect::<Vec<_>>();
+        shared.parts.toggle(parts::LEFT);
 
         shared.key_shift.store(2, Relaxed);
         for k in [48, 52, 55] {
@@ -774,15 +957,15 @@ mod tests {
         input.pad_msg(&[0xB0, launchkey::PAD_DOWN_CC, 127]); // stops at the last page
         assert_eq!(page(), Page::OtsParts);
         input.pad_msg(&[0x90, 114, 100]);
-        assert!(matches!(cmds.pop(), Ok(Cmd::Button(Button::TogglePart(2)))));
+        assert_eq!(acts.pop(), Ok(Action::PartOnOff(2)));
         input.pad_msg(&[0x90, 99, 100]);
         assert_eq!(acts.pop(), Ok(Action::Ots(3)));
 
-        // Shift + ▲ toggles the Left voice and leaves the page alone.
+        // Shift + ▲ toggles the Left part and leaves the page alone.
         input.pad_msg(&[0xB0, launchkey::SHIFT_CC, 127]);
         input.pad_msg(&[0xB0, launchkey::PAD_UP_CC, 127]);
         input.pad_msg(&[0xB0, launchkey::SHIFT_CC, 0]);
-        assert_eq!(acts.pop(), Ok(Action::ToggleLeft));
+        assert_eq!(acts.pop(), Ok(Action::PartOnOff(3)));
         assert_eq!(page(), Page::OtsParts);
         input.pad_msg(&[0xB0, launchkey::PAD_UP_CC, 127]);
         assert_eq!(page(), Page::ChordSetup);
@@ -843,7 +1026,7 @@ mod tests {
 
         input.pad_msg(&[0xB6, launchkey::SHIFT_CC, 127]); // Shift reported on channel 7 counts too
         input.pad_msg(&[0xB0, launchkey::PAD_UP_CC, 127]);
-        assert_eq!(acts.pop(), Ok(Action::ToggleLeft));
+        assert_eq!(acts.pop(), Ok(Action::PartOnOff(3)));
         input.pad_msg(&[0xB6, launchkey::PAD_MODE_CC, 2]); // back in DAW pad mode
         input.pad_msg(&[0xB0, launchkey::PAD_UP_CC, 127]);
         assert_eq!(page(), Page::Sections, "the pad mode report cleared Shift");
@@ -877,10 +1060,11 @@ mod detection_area {
     }
 
     /// An input handler whose output is captured through the synth ring (nothing is flushed
-    /// to CoreMIDI). Split at F#2 (54).
+    /// to CoreMIDI). Split at F#2 (54); Left on, so both hands sound.
     fn rig(upper: bool) -> Rig {
         let shared = Arc::new(Shared::new(54));
         shared.upper.store(upper, Relaxed);
+        shared.parts.toggle(parts::LEFT);
         let (tx, played) = RingBuffer::new(1024);
         let (cmd, cmds) = RingBuffer::new(64);
         let input = Input::new(shared.clone(), Recognizer::new(), cmd, Out::new(PacketSink::new(Target::Virtual(0)), Some(tx)));

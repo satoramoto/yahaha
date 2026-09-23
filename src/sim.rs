@@ -1070,6 +1070,33 @@ mod mixer {
         assert!(u.hardware(100, 101), "first report within 2 picks up at once");
     }
 
+    /// Back from the Panel fader page, each Style fader picks its part up only once it
+    /// reaches the part's level: a fader moved elsewhere meanwhile must not jump the part.
+    #[test]
+    fn style_faders_rebind_after_a_page_switch() {
+        use crate::engine::HW_UNKNOWN;
+        let Some(p) = prep("TickingAway.T162.sty") else { return };
+        let mut e = Engine::new(p);
+        let mut rec = Recorder::default();
+        e.hw_fader(0, e.snapshot(0).volumes[0], &mut rec);
+        e.hw_fader(0, 90, &mut rec);
+        e.hw_fader(1, e.snapshot(0).volumes[1], &mut rec);
+        let v1 = e.snapshot(0).volumes[1];
+        assert_eq!((e.snapshot(0).volumes[0], e.snapshot(0).pickup), (90, 0));
+        // On the Panel page fader 1 went down to 10; fader 2 stayed at its part's level.
+        let mut hw = [HW_UNKNOWN; 8];
+        hw[0] = 10;
+        hw[1] = v1;
+        e.faders_at(hw);
+        assert_eq!(e.snapshot(0).pickup, 0b01, "fader 1 waits, fader 2 still holds its part");
+        e.hw_fader(0, 12, &mut rec);
+        assert_eq!(e.snapshot(0).volumes[0], 90, "no jump to the fader");
+        e.hw_fader(0, 91, &mut rec);
+        assert_eq!(e.snapshot(0).volumes[0], 91);
+        e.hw_fader(1, v1.saturating_sub(1), &mut rec);
+        assert_eq!(e.snapshot(0).volumes[1], v1.saturating_sub(1));
+    }
+
     /// A start keeps a fader the player moved, and its hardware fader stays in control.
     #[test]
     fn start_keeps_moved_fader_under_hardware_control() {

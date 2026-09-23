@@ -7,6 +7,7 @@ mod launchkey;
 mod library;
 mod live;
 mod midi;
+mod parts;
 #[cfg(test)]
 mod recognizer_golden;
 mod rt;
