@@ -460,7 +460,8 @@ fn four_note_roles(t: &[u8]) -> (u8, u8, u8) {
 }
 
 fn five_note_roles(ty: u8, t: &[u8]) -> (u8, u8, u8, u8) {
-    let third = *t.iter().find(|&&x| matches!(x, 3 | 4 | 5)).unwrap_or(&4);
+    // 7#9 holds both a minor and a major 3rd; the major one is the 3rd, the minor one the #9.
+    let third = if t.contains(&4) { 4 } else { *t.iter().find(|&&x| matches!(x, 3 | 5)).unwrap_or(&4) };
     let sev = *t.iter().rev().find(|&&x| matches!(x, 9 | 10 | 11)).unwrap_or(&10);
     let fifth = if t.contains(&7) { 7 } else { *t.iter().find(|&&x| x == 6 || x == 8).unwrap_or(&7) };
     let ten = match ty {
@@ -693,8 +694,8 @@ pub fn transpose_group(keys: &[u8], rule: &ChannelRule, chord: Chord, out: &mut 
 //
 // The source is a guitar part fingered over CM7. Source Root/Chord are ignored, and every
 // corpus Guitar channel is recorded that way: open x32000, barre x35453, upper-string
-// triads, an alternating C/G bass. A strum's notes arrive a few ticks apart, so each note
-// is converted on its own, and a source note always gives the same result.
+// triads, an alternating C/G bass. Most strums spread their notes over several ticks, so
+// each note is converted on its own, and a source note always gives the same result.
 //
 // - Role: the note's degree over CM7 goes to the target's matching degree with the Chord
 //   table (5-note targets keep 3rd, 7th and tension); tensions and chromatic notes follow
@@ -710,7 +711,13 @@ pub fn transpose_group(keys: &[u8], rule: &ChannelRule, chord: Chord, out: &mut 
 // - All Purpose: every note sounds.
 // - Stroke: strings a strummer leaves out are muted (the note is dropped): anything below
 //   the chord's bass, its lowest root or slash bass from low E up (x32010 for C, xx0232
-//   for D, all six strings for E), and a string slid off the neck.
+//   for D, all six strings for E), and a string slid off the neck. The neck decides this,
+//   not the Note Limit: a Note Limit Low above C2 folds strummed strings up as it does
+//   for All Purpose, it never mutes them.
+//
+// Strings that land on the same pitch (1+8, 1+5, or two strings a fret apart) are struck
+// once: the engine skips a Guitar note whose pitch another string of the part is ringing
+// (`Engine::note_on`), since on one MIDI channel the unison would cut the first string.
 // - Arpeggio: four voices. Each note first snaps to its nearest CM7 tone (ties go down:
 //   D -> C, A -> G), so the pattern picks only the target's four chord voices.
 
@@ -741,20 +748,23 @@ fn guitar(key: u8, rule: &ChannelRule, z: &Zone, chord: Chord) -> Option<u8> {
     }
     let shift = if chord.root > 6 { chord.root as i32 - 12 } else { chord.root as i32 };
     let mut out = key + shift + delta;
-    // The neck's range, unless the Note Limit is too narrow to fold into (under an octave).
-    let lo = if z.hi >= LOW_E + 11 { z.lo.max(LOW_E) } else { z.lo };
+    let neck = LOW_E as i32;
     let bass = match (rule.bass_on, chord.bass) {
         (true, Some(b)) => b % 12,
         _ => chord.root,
     };
     if bass != chord.root && d == 0 && key < G_STRING as i32 {
         let up = out + (bass as i32 - chord.root as i32).rem_euclid(12);
-        out = if up - 12 >= lo as i32 { up - 12 } else { up };
+        out = if up - 12 >= neck { up - 12 } else { up };
     }
-    // Stroke: a string below the bass string, or slid off the neck, is not strummed.
-    if z.ntt == Ntt::GuitarStroke && out < lo as i32 + (bass as i32 - lo as i32).rem_euclid(12) {
+    // Stroke: a string below the bass string, or slid off the neck, is not strummed. The
+    // neck decides this, not the Note Limit, which folds what is strummed.
+    let bass_string = neck + (bass as i32 - neck).rem_euclid(12);
+    if z.ntt == Ntt::GuitarStroke && out < bass_string {
         return None;
     }
+    // The neck's range, unless the Note Limit is too narrow to fold into (under an octave).
+    let lo = if z.hi >= LOW_E + 11 { z.lo.max(LOW_E) } else { z.lo };
     Some(fold_into(out, lo, z.hi) as u8)
 }
 
@@ -1205,6 +1215,17 @@ mod tests {
     }
 
     #[test]
+    fn chord_table_7sharp9_keeps_the_major_third() {
+        // 7#9 holds both 3rds: the major one is the chord's 3rd, the minor one its #9.
+        let r = rule(Ntr::RootFixed, Ntt::Chord, 11, 0, 127);
+        let mut out = [None; 3];
+        transpose_group(&[64, 67, 71], &r, Chord::new(0, 27), &mut out);
+        let mut v: Vec<u8> = out.iter().map(|o| o.unwrap()).collect();
+        v.sort();
+        assert_eq!(names(&v), ["Eb3", "E3", "Bb3"]); // #9, 3rd, 7th
+    }
+
+    #[test]
     fn bass_on_slash() {
         let mut r = rule(Ntr::RootTrans, Ntt::Melody, 11, 0, 127);
         r.bass_on = true;
@@ -1447,6 +1468,32 @@ mod tests {
     }
 
     #[test]
+    fn guitar_7sharp9_keeps_the_third() {
+        // The open and barre CM7 shapes over C7#9: root, 3rd, 7th and #9, no string lost.
+        for ntt in [Ntt::GuitarAllPurpose, Ntt::GuitarStroke] {
+            let r = guitar(ntt);
+            assert_eq!(strum(&r, Chord::new(0, 27), &X32000), ["C2", "E2", "Bb2", "Eb3", "E3"]);
+            assert_eq!(strum(&r, Chord::new(0, 27), &[48, 55, 59, 64, 67]), ["C2", "Bb2", "Eb3", "E3", "Bb3"]);
+        }
+    }
+
+    #[test]
+    fn guitar_stroke_ignores_note_limit_for_muting() {
+        // Note Limit Low above C2 folds strummed strings up (as for All Purpose); it never
+        // mutes them. Only the neck (low E) and the chord's bass decide what is muted.
+        for lo in [48, 52] {
+            let (ap, st) = (rule(Ntr::Guitar, Ntt::GuitarAllPurpose, 11, lo, 127), rule(Ntr::Guitar, Ntt::GuitarStroke, 11, lo, 127));
+            for c in [Chord::new(0, 2), Chord::new(0, 0), Chord::new(10, 0), Chord::new(7, 0), Chord::new(9, 10)] {
+                let s = strum(&st, c, &X32000);
+                assert_eq!(s, strum(&ap, c, &X32000), "Low {lo} {}", c.name());
+                assert!(s.iter().all(|n| n != "x"), "Low {lo} {}: {s:?}", c.name());
+            }
+        }
+        let st = rule(Ntr::Guitar, Ntt::GuitarStroke, 11, 52, 127);
+        assert_eq!(strum(&st, Chord::new(0, 2), &X32000), ["C3", "E2", "G2", "B2", "E3"]);
+    }
+
+    #[test]
     fn guitar_never_below_low_e() {
         // G1 (alternating bass) over G slides down to D1, off the neck: it folds up an octave.
         for ntt in [Ntt::GuitarAllPurpose, Ntt::GuitarStroke, Ntt::GuitarArpeggio] {
@@ -1475,14 +1522,29 @@ mod tests {
         assert!(strum(&st, Chord::new(4, 0), &keys).iter().all(|n| n != "x"));
     }
 
+    /// What the engine strikes of one strum: a pitch another string already rings is left
+    /// out (`Engine::note_on`; `sim::corpus_guitar_strikes_each_pitch_once`).
+    fn struck(notes: Vec<String>) -> Vec<String> {
+        let mut out: Vec<String> = Vec::new();
+        for n in notes {
+            if n == "x" || !out.contains(&n) {
+                out.push(n);
+            }
+        }
+        out
+    }
+
     #[test]
-    fn guitar_power_chords_keep_every_string() {
-        // 1+5 and 1+8 fold the strings onto root and 5th; an upper-string strum (no root in
-        // it) still sounds, so a part the style lets play under 1+8 is never silent.
+    fn guitar_power_chords_strike_root_and_fifth() {
+        // 1+5 and 1+8 fold the strings onto root and 5th: each string maps on its own, and
+        // the engine strikes each pitch once. An upper-string strum (no root in it) still
+        // sounds, so a part the style lets play under 1+8 is never silent.
         for ntt in [Ntt::GuitarAllPurpose, Ntt::GuitarStroke] {
             let r = guitar(ntt);
             assert_eq!(strum(&r, Chord::new(7, 31), &X32000), ["G1", "G1", "D2", "G2", "G2"]);
-            assert_eq!(strum(&r, Chord::new(7, 30), &[59, 64, 67]), ["G2", "G2", "G3"]);
+            assert_eq!(struck(strum(&r, Chord::new(7, 31), &X32000)), ["G1", "D2", "G2"]);
+            assert_eq!(struck(strum(&r, Chord::new(0, 30), &X32000)), ["C2", "C3"]);
+            assert_eq!(struck(strum(&r, Chord::new(7, 30), &[59, 64, 67])), ["G2", "G3"]);
         }
     }
 
@@ -1519,15 +1581,19 @@ mod tests {
         let mut st = guitar(Ntt::GuitarStroke);
         st.bass_on = true;
         assert_eq!(strum(&st, slash(7), &[40, 43, 48, 52]), ["x", "G1", "G1", "E2"]);
+        assert_eq!(struck(strum(&st, slash(7), &[40, 43, 48, 52])), ["x", "G1", "E2"]);
     }
 
     /// Every note of every Guitar channel in the corpus comes back unchanged over CM7, except
-    /// what Stroke leaves out below the root.
+    /// what Stroke leaves out below the root. And every strum (notes at most 30 ticks apart)
+    /// that holds the source's 3rd keeps a 3rd under every chord with one that the channel
+    /// plays: the target's major 3rd, or its minor 3rd.
     #[test]
     fn corpus_guitar_parts_play_as_written_over_cm7() {
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("corpus");
+        let have_corpus = dir.exists();
         let mut stack = vec![dir];
-        let mut notes = 0;
+        let (mut notes, mut strums, mut spread) = (0, 0, 0);
         while let Some(d) = stack.pop() {
             for e in std::fs::read_dir(&d).into_iter().flatten().flatten() {
                 let p = e.path();
@@ -1541,6 +1607,7 @@ mod tests {
                 let s = crate::sff::Style::load(&p).unwrap();
                 for (id, sec) in &s.sections {
                     for (ch, r) in s.rules_for(*id) {
+                        let mut on = Vec::new();
                         for ev in &sec.events {
                             let crate::sff::Ev::NoteOn { ch: c, key, vel } = ev.ev else { continue };
                             let z = r.zone_for(key);
@@ -1548,6 +1615,7 @@ mod tests {
                                 continue;
                             }
                             notes += 1;
+                            on.push((ev.tick, key));
                             let out = transpose(key, &r, Chord::new(0, 2));
                             if z.ntt == Ntt::GuitarStroke && key < 48 {
                                 assert_eq!(out, None);
@@ -1555,10 +1623,38 @@ mod tests {
                                 assert_eq!(out, Some(key), "{} {} ch{} key {key}", p.display(), id.name(), ch + 1);
                             }
                         }
+                        let mut i = 0;
+                        while i < on.len() {
+                            let mut j = i + 1;
+                            while j < on.len() && on[j].0 - on[j - 1].0 <= 30 {
+                                j += 1;
+                            }
+                            let strum = &on[i..j];
+                            i = j;
+                            if strum.len() < 2 {
+                                continue;
+                            }
+                            strums += 1;
+                            spread += (strum[strum.len() - 1].0 > strum[0].0) as u32;
+                            if !strum.iter().any(|&(_, k)| k % 12 == 4) {
+                                continue;
+                            }
+                            for c in (0..12).flat_map(|root| (0..NUM_TYPES as u8).map(move |ty| Chord::new(root, ty))) {
+                                let tones = chord_tones(c.ty);
+                                let Some(third) = [4u8, 3].into_iter().find(|t| tones.contains(t)) else { continue };
+                                if !plays(&r, c) {
+                                    continue;
+                                }
+                                let pcs = strum.iter().filter_map(|&(_, k)| transpose(k, &r, c)).fold(0u16, |m, n| m | 1 << (n % 12));
+                                assert!(pcs & 1 << ((c.root + third) % 12) != 0,
+                                        "{} {} ch{}: no 3rd over {}", p.display(), id.name(), ch + 1, c.name());
+                            }
+                        }
                     }
                 }
             }
         }
-        eprintln!("{notes} guitar notes");
+        eprintln!("{notes} guitar notes, {strums} strums, {spread} spread over more than one tick");
+        assert!(!have_corpus || notes > 0, "corpus has no Guitar parts");
     }
 }

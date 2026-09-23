@@ -112,7 +112,7 @@ bar 16  Main B  Asus2@1.0000  A@3.0000
 bar 17  Main B  C1+5@1.0000
   ch10 Rhythm2 736b86b5ea3fae48
   ch11 Bass    79f64b3ed2099584
-  ch12 Chord1  2141f02d2eef63aa
+  ch12 Chord1  8b66d4fee2b5ff17
   ch13 Chord2  dcb15e8d236174c9
   ch15 Phrase1 587ef45a80a3c9ed
 
@@ -265,8 +265,8 @@ bar 38  Main C  Ab7@1.0000
 bar 39  Main C  G7#9@1.0000
   ch10 Rhythm2 2491846e24201b68
   ch11 Bass    3113b93aec2f7971
-  ch12 Chord1  6a0770bdda245468
-  ch13 Chord2  1f3ab435dfa7fc10
+  ch12 Chord1  3acaf829350ce01f
+  ch13 Chord2  3b22375b39e5ca9d
   ch15 Phrase1 a2d4fbe336dfe381
 
 bar 40  Main C  C/G@1.0000  [EndingA]@3.1919

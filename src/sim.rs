@@ -485,6 +485,52 @@ mod tests {
         assert!(ons(&rec, 0, bar).is_empty());
     }
 
+    /// A guitar strikes each pitch once. Over chords that fold strings together (1+8, 1+5,
+    /// 7#9) and through chord changes that re-pitch ringing strings, no Guitar part of any
+    /// corpus style re-strikes a pitch another of its strings is ringing, and no two of its
+    /// strings sound the same pitch.
+    #[test]
+    fn corpus_guitar_strikes_each_pitch_once() {
+        use crate::sff::Ntr;
+        let mut styles = 0;
+        for f in corpus() {
+            let style = Style::load(&f).unwrap();
+            // Parts whose every rule is a guitar (other parts may retrigger a unison).
+            let rules: Vec<_> = style.casm.iter().flat_map(|s| &s.rules).collect();
+            let is_guitar = |r: &&crate::sff::ChannelRule| (0..128).all(|k| r.zone_for(k).ntr == Ntr::Guitar);
+            let guitar: Vec<u8> = (8..16u8)
+                .filter(|&ch| rules.iter().any(|r| r.dest_ch == ch && is_guitar(r)))
+                .filter(|&ch| rules.iter().all(|r| r.dest_ch != ch || is_guitar(r)))
+                .collect();
+            if guitar.is_empty() {
+                continue;
+            }
+            styles += 1;
+            let prep = Box::new(Prepared::new(&style));
+            let bar = bar_ns(&prep);
+            let chords = [Chord::new(0, 0), Chord::new(7, 30), Chord::new(0, 27), Chord::new(7, 31), Chord::new(2, 0),
+                          Chord { root: 0, ty: 0, bass: Some(7) }, Chord::new(9, 10), Chord::new(6, 0), Chord::new(4, 30),
+                          Chord::new(0, 2), Chord::new(5, 27), Chord::new(9, 31)];
+            // Half-bar changes (ringing strings are re-pitched) and changes just after the
+            // downbeat (the notes that just started are re-voiced).
+            let script: Vec<(u64, Step)> = chords
+                .iter()
+                .enumerate()
+                .map(|(i, &c)| (i as u64 * bar / 2 + if i % 3 == 2 { 10_000_000 } else { 0 }, Step::Chord(c)))
+                .collect();
+            let mut unisons = 0;
+            let (e, _) = run_observed(prep, &script, chords.len() as u64 * bar / 2 + bar, |e, _| unisons += e.guitar_unisons());
+            let name = f.file_name().unwrap().to_string_lossy().to_string();
+            assert_eq!(unisons, 0, "{name}: two guitar strings on one pitch");
+            for ch in guitar {
+                assert_eq!(e.unison_steals[ch as usize], 0, "{name} ch{}: a string re-struck another's pitch", ch + 1);
+            }
+        }
+        if !corpus().is_empty() {
+            assert!(styles > 0, "corpus has no Guitar parts");
+        }
+    }
+
     /// 1+8 and 1+5 over every corpus style: parts that follow the chord (NTT other than
     /// Bypass) play only the root for 1+8, and only root, 5th, 2nd and 4th for 1+5. The
     /// CASM chord-mute routing in the corpus always gives the bass something to play.

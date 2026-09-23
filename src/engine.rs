@@ -4,8 +4,8 @@
 //! the current time in nanoseconds. It never allocates after construction, so the
 //! real-time output thread can drive it directly.
 
-use crate::sff::{ChannelRule, Ev, Rtr, SectionId, Style};
-use crate::theory::{is_drum_part, plays, transpose_group, Chord, CANCEL};
+use crate::sff::{ChannelRule, Ev, Ntr, Rtr, SectionId, Style};
+use crate::theory::{is_drum_part, plays, transpose, transpose_group, Chord, CANCEL};
 
 pub trait Sink {
     fn send(&mut self, msg: &[u8]);
@@ -432,6 +432,10 @@ pub struct Engine {
     taps: [u64; 4],
     tap_n: usize,
     sounding: [Sounding; MAX_SOUNDING],
+    /// Tests: note-ons that stole their pitch from another source note of the same part
+    /// struck moments before (a unison struck twice in one strum), per destination channel.
+    #[cfg(test)]
+    pub unison_steals: [u32; 16],
 }
 
 impl Engine {
@@ -468,6 +472,8 @@ impl Engine {
             taps: [0; 4],
             tap_n: 0,
             sounding: [EMPTY; MAX_SOUNDING],
+            #[cfg(test)]
+            unison_steals: [0; 16],
         };
         e.set_bpm_internal(bpm, 0);
         e
@@ -1081,12 +1087,62 @@ impl Engine {
             return;
         }
         let out = self.master(dest, out);
+        let other_string = |s: &Sounding| s.active && s.src == src && s.src_key != src_key && s.dest == dest && s.out == out;
+        // A strum strikes each pitch once: when another string of the same strum (struck
+        // within a 32nd note) already rings it (strings folded together by 1+8, 1+5 or
+        // 7#9), this one is left out rather than cutting that string short and striking
+        // the pitch again. A later strum strikes it again, as a guitarist would.
+        let strum = (self.ns_per_tick * self.style.ppq as f64 / 8.0) as u64;
+        let same_strum = |s: &Sounding| other_string(s) && now.saturating_sub(s.started_ns) < strum;
+        if self.is_guitar(slot, src, src_key) && self.sounding.iter().any(same_strum) {
+            return;
+        }
+        #[cfg(test)]
+        if self.sounding.iter().any(same_strum) {
+            self.unison_steals[dest as usize & 15] += 1;
+        }
         // Steal an identical sounding note on the same channel so offs stay balanced.
         self.off_where(sink, |s| s.dest == dest && s.out == out);
         if let Some(free) = self.sounding.iter_mut().find(|s| !s.active) {
             *free = Sounding { active: true, src, src_key, dest, out, vel, slot, started_ns: now };
             sink.send(&[0x90 | dest, out, vel]);
         }
+    }
+
+    /// Where a sounding note goes on a chord change (None: it stops), by its retrigger
+    /// rule. `voiced` is its note in the new chord.
+    fn retarget(&self, o: &Sounding, rule: &ChannelRule, chord: Chord, voiced: Option<u8>, now: u64) -> Option<u8> {
+        let late = now.saturating_sub(o.started_ns) < LATE_CHORD_NS;
+        match (late, rule.zone_for(o.src_key).rtr) {
+            (true, _) => voiced.map(|t| self.master(o.dest, t)),
+            (false, Rtr::Stop) => None,
+            (false, Rtr::PitchShiftToRoot | Rtr::RetriggerToRoot) => {
+                let pc = self.master(o.dest, chord.bass.unwrap_or(chord.root)) as i32;
+                let cur = o.out as i32;
+                let mut d = (pc - cur).rem_euclid(12);
+                if d > 6 {
+                    d -= 12;
+                }
+                Some((cur + d).clamp(0, 127) as u8)
+            }
+            (false, _) => voiced.map(|t| self.master(o.dest, t)),
+        }
+    }
+
+    /// Tests: pairs of sounding guitar strings of one part on the same pitch.
+    #[cfg(test)]
+    pub fn guitar_unisons(&self) -> usize {
+        let s = &self.sounding;
+        (0..MAX_SOUNDING)
+            .filter(|&i| s[i].active && self.is_guitar(s[i].slot, s[i].src, s[i].src_key))
+            .map(|i| (i + 1..MAX_SOUNDING).filter(|&j| s[j].active && (s[j].src, s[j].dest, s[j].out) == (s[i].src, s[i].dest, s[i].out)).count())
+            .sum()
+    }
+
+    /// Does this source note follow the chord as a guitar (NTR Guitar)?
+    fn is_guitar(&self, slot: u8, src: u8, src_key: u8) -> bool {
+        let rule = self.style.sections.get(slot as usize).and_then(|s| s.as_ref()).and_then(|s| s.rules.get(src as usize));
+        rule.and_then(|r| r.as_ref()).is_some_and(|r| r.zone_for(src_key).ntr == Ntr::Guitar)
     }
 
     fn off_where(&mut self, sink: &mut impl Sink, f: impl Fn(&Sounding) -> bool) {
@@ -1172,6 +1228,20 @@ impl Engine {
 
     /// Re-pitch sounding notes after a chord change according to each part's retrigger rule.
     fn revoice(&mut self, chord: Chord, now: u64, sink: &mut impl Sink) {
+        // Where each guitar string ends up. Guitar notes convert one by one, so this is
+        // the note the loop below picks.
+        let mut fin = [None::<u8>; MAX_SOUNDING];
+        for (x, o) in self.sounding.iter().enumerate() {
+            if !o.active || o.src >= 16 || !self.is_guitar(o.slot, o.src, o.src_key) {
+                continue;
+            }
+            let Some(rule) = self.style.sections[o.slot as usize].as_ref().and_then(|s| s.rules[o.src as usize].as_ref()) else {
+                continue;
+            };
+            if let Some(c) = effective_chord(Some(chord), rule).filter(|&c| plays(rule, c)) {
+                fin[x] = self.retarget(o, rule, c, transpose(o.src_key, rule, c), now);
+            }
+        }
         for i in 0..MAX_SOUNDING {
             let s = self.sounding[i];
             if !s.active || is_drum_part(s.dest) || s.src >= 16 {
@@ -1204,25 +1274,23 @@ impl Engine {
                 if o.started_ns == u64::MAX {
                     continue; // already handled this pass
                 }
-                let late = now.saturating_sub(o.started_ns) < LATE_CHORD_NS;
-                let zone = rule.zone_for(o.src_key);
-                let target = match (late, zone.rtr) {
-                    (true, _) => outs[k].map(|t| self.master(o.dest, t)),
-                    (false, Rtr::Stop) => None,
-                    (false, Rtr::PitchShiftToRoot | Rtr::RetriggerToRoot) => {
-                        let pc = self.master(o.dest, chord.bass.unwrap_or(chord.root)) as i32;
-                        let cur = o.out as i32;
-                        let mut d = (pc - cur).rem_euclid(12);
-                        if d > 6 {
-                            d -= 12;
-                        }
-                        Some((cur + d).clamp(0, 127) as u8)
-                    }
-                    (false, _) => outs[k].map(|t| self.master(o.dest, t)),
-                };
+                let target = self.retarget(&o, rule, chord, outs[k], now);
                 if target == Some(o.out) {
                     self.sounding[j].started_ns = u64::MAX;
                     continue;
+                }
+                // A guitar string moving onto the pitch another string of the part ends on
+                // (one that stays, or one moved there first) stops instead (see `note_on`).
+                let doubles = |t: u8| {
+                    (0..MAX_SOUNDING).any(|x| {
+                        let s = self.sounding[x];
+                        x != j && s.active && s.src == o.src && s.dest == o.dest && fin[x] == Some(t)
+                            && (x < j || fin[x] == Some(s.out))
+                    })
+                };
+                let target = target.filter(|&t| !(fin[j].is_some() && doubles(t)));
+                if target.is_none() {
+                    fin[j] = None;
                 }
                 sink.send(&[0x80 | o.dest, o.out, 0]);
                 match target {
