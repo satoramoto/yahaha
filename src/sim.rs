@@ -1,6 +1,6 @@
 //! Offline driver: runs the engine with simulated time and records what it sends.
 
-use crate::engine::{Button, Engine, Prepared, Sink};
+use crate::engine::{Button, Engine, Prepared, Sink, Transpose};
 use crate::theory::Chord;
 
 #[derive(Default)]
@@ -19,6 +19,7 @@ impl Sink for Recorder {
 pub enum Step {
     Chord(Chord),
     Button(Button),
+    Transpose(Transpose),
 }
 
 /// Run a script of (time_ns, step) against the engine until `end_ns`.
@@ -41,6 +42,7 @@ pub fn run(style: Box<Prepared>, script: &[(u64, Step)], end_ns: u64) -> (Engine
             match step {
                 Step::Chord(c) => e.set_chord(*c, now, &mut rec),
                 Step::Button(b) => e.button(*b, now, &mut rec),
+                Step::Transpose(t) => e.set_transpose(*t, now, &mut rec),
             }
             i += 1;
         }
@@ -149,7 +151,12 @@ mod tests {
                 script.push((t + bar / 7, Step::Chord(chords[(i + 1) % chords.len()])));
                 t += bar + bar / 5;
             }
+            // Transpose changes while notes sound (Keyboard moves the chord, Master the output).
+            script.push((bar * 2 + bar / 2, Step::Transpose(Transpose::new(3, 0))));
+            script.push((bar * 4 + bar / 3, Step::Transpose(Transpose::new(3, -5))));
+            script.push((bar * 6 + bar / 5, Step::Transpose(Transpose::new(-12, 12))));
             script.push((t, Step::Button(Button::Ending(0))));
+            script.sort_by_key(|s| s.0);
             let (e, rec) = run(prep, &script, t + bar * 12);
             let name = f.file_name().unwrap().to_string_lossy().to_string();
             assert!(!e.is_running(), "{name}: still running after ending");
@@ -173,6 +180,114 @@ mod tests {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod transpose {
+    use super::*;
+    use crate::engine::{shift_key, Snapshot};
+    use crate::sff::Style;
+
+    fn funky() -> Option<Box<Prepared>> {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("corpus/MOX_v2/FunkyFinger.S930.STY");
+        path.exists().then(|| Box::new(Prepared::new(&Style::load(&path).unwrap())))
+    }
+
+    fn bar_ns(p: &Prepared) -> u64 {
+        (60e9 / p.bpm * (p.tpb as f64 / p.ppq as f64)) as u64
+    }
+
+    fn snap(e: &Engine) -> Snapshot {
+        e.snapshot(0)
+    }
+
+    /// Keyboard transpose +2 with C fingered plays exactly what fingering D plays.
+    #[test]
+    fn keyboard_transpose_moves_chord_root() {
+        let Some(p) = funky() else { return };
+        let end = bar_ns(&p) * 4;
+        let c7_over_e = Chord { root: 0, ty: 19, bass: Some(4) };
+        let (e, a) = run(p, &[(0, Step::Transpose(Transpose::new(2, 0))), (0, Step::Chord(c7_over_e)), (end / 2, Step::Chord(Chord::new(9, 8)))], end);
+        let s = snap(&e);
+        assert_eq!(s.chord, Some(Chord::new(11, 8)), "Am + 2 = Bm");
+        assert_eq!(s.played, Some(Chord::new(9, 8)));
+        let (_, b) = run(funky().unwrap(), &[(0, Step::Chord(Chord { root: 2, ty: 19, bass: Some(6) })), (end / 2, Step::Chord(Chord::new(11, 8)))], end);
+        assert!(a.out.len() > 50);
+        assert_eq!(a.out, b.out);
+    }
+
+    /// Changing Keyboard transpose with a chord held is the same as playing the moved chord then.
+    #[test]
+    fn keyboard_transpose_change_moves_held_chord() {
+        let Some(p) = funky() else { return };
+        let bar = bar_ns(&p);
+        let (_, a) = run(p, &[(0, Step::Chord(Chord::new(0, 0))), (bar + bar / 3, Step::Transpose(Transpose::new(5, 0)))], bar * 3);
+        let (_, b) = run(funky().unwrap(), &[(0, Step::Chord(Chord::new(0, 0))), (bar + bar / 3, Step::Chord(Chord::new(5, 0)))], bar * 3);
+        assert!(a.out.len() > 50);
+        assert_eq!(a.out, b.out);
+    }
+
+    /// Master transpose shifts every pitched style note and leaves drum parts alone. The chord
+    /// the style follows (and shows) is unchanged.
+    #[test]
+    fn master_transpose_shifts_output_not_drums() {
+        let Some(p) = funky() else { return };
+        let kit = p.kit;
+        let end = bar_ns(&p) * 4;
+        let script = |m: i8| vec![(0, Step::Transpose(Transpose::new(0, m))), (0, Step::Chord(Chord::new(9, 8))), (end / 2, Step::Chord(Chord::new(5, 0)))];
+        let (e, a) = run(p, &script(-3), end);
+        assert_eq!(snap(&e).chord, Some(Chord::new(5, 0)));
+        let (_, b) = run(funky().unwrap(), &script(0), end);
+        assert_eq!(a.out.len(), b.out.len());
+        let (mut drums, mut pitched) = (0, 0);
+        for ((ta, ma), (tb, mb)) in a.out.iter().zip(&b.out) {
+            assert_eq!(ta, tb);
+            let ch = mb[0] & 0x0F;
+            if matches!(mb[0] & 0xF0, 0x80 | 0x90) && !kit[ch as usize] {
+                assert_eq!((ma[0], ma[1], ma[2]), (mb[0], shift_key(mb[1], -3), mb[2]));
+                pitched += 1;
+            } else {
+                assert_eq!(ma, mb);
+                drums += matches!(mb[0] & 0xF0, 0x90) as u32;
+            }
+        }
+        assert!(drums > 10 && pitched > 10, "drums {drums} pitched {pitched}");
+    }
+
+    /// A Master change mid-note: sounding notes keep their pitch and are released at it.
+    #[test]
+    fn master_change_mid_note_releases_old_pitch() {
+        let Some(p) = funky() else { return };
+        let bar = bar_ns(&p);
+        let script = [(0, Step::Chord(Chord::new(0, 0))), (bar / 3, Step::Transpose(Transpose::new(0, 7))), (bar * 2 + bar / 5, Step::Transpose(Transpose::new(-4, -12)))];
+        let (mut e, mut rec) = run(p, &script, bar * 3);
+        e.stop(&mut rec);
+        let mut on = std::collections::HashMap::<(u8, u8), i32>::new();
+        for (_, m) in &rec.out {
+            match m[0] & 0xF0 {
+                0x90 => *on.entry((m[0] & 0xF, m[1])).or_default() += 1,
+                0x80 => *on.entry((m[0] & 0xF, m[1])).or_default() -= 1,
+                _ => {}
+            }
+        }
+        assert!(on.values().all(|&n| n == 0), "{on:?}");
+    }
+
+    /// Stop Accompaniment follows a Keyboard transpose change with the band stopped.
+    #[test]
+    fn stop_accompaniment_follows_keyboard_transpose() {
+        let Some(p) = funky() else { return };
+        let mut e = Engine::new(p);
+        let mut rec = Recorder::default();
+        e.button(Button::SyncStart, 0, &mut rec);
+        e.button(Button::StopAcmp, 0, &mut rec);
+        e.set_chord(Chord::new(0, 0), 1, &mut rec);
+        rec.out.clear();
+        e.set_transpose(Transpose::new(-1, 2), 2, &mut rec);
+        // Chord is now B; the bass sounds B + 2 = C#.
+        assert!(rec.out.iter().any(|(_, m)| m[0] == 0x9A && m[1] % 12 == 1), "{:?}", rec.out);
+        assert_eq!(snap(&e).chord, Some(Chord::new(11, 0)));
     }
 }
 

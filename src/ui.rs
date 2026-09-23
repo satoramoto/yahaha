@@ -1,7 +1,7 @@
 //! `yahaha play`: device setup, terminal front panel, Launchkey LEDs. Runs on the main
 //! thread at normal priority; talks to the engine only through lock-free rings.
 
-use crate::engine::{id_of, Button, Engine, Prepared, Snapshot, NUM_SLOTS};
+use crate::engine::{id_of, Button, Engine, Prepared, Snapshot, Transpose, NUM_SLOTS};
 use crate::launchkey::{self, Led};
 use crate::live::{self, Cmd, Input, Shared, TAG_KEYS, TAG_PADS};
 use crate::midi::{self, Client};
@@ -33,6 +33,8 @@ pub struct Options {
     pub palette_leds: bool,
     /// 1-based left output channel for the synth (None = auto).
     pub audio_out: Option<u8>,
+    /// Initial Keyboard / Master transpose.
+    pub transpose: Transpose,
 }
 
 fn collect_styles(paths: &[PathBuf]) -> Vec<PathBuf> {
@@ -171,6 +173,15 @@ pub fn play(opts: Options) -> Result<()> {
             leds = Some(s);
         }
     }
+
+    // --- transpose ---
+    let mut transpose = opts.transpose;
+    let set_transpose = |t: Transpose, tx: &mut rtrb::Producer<Cmd>| {
+        shared.key_shift.store(t.keys(), Relaxed);
+        let _ = tx.push(Cmd::Transpose(t));
+        shared.wake.signal();
+    };
+    set_transpose(transpose, &mut ch.ui_tx);
 
     // --- engine thread ---
     let engine = Engine::new(prep);
@@ -363,6 +374,19 @@ pub fn play(opts: Options) -> Result<()> {
                         }
                         None
                     }
+                    // TRANSPOSE -/+: ; ' for Keyboard, : " (shifted) for Master, / resets both.
+                    KeyCode::Char(c) if ";':\"/".contains(c) => {
+                        let (kb, m) = (transpose.keyboard, transpose.master);
+                        transpose = match c {
+                            ';' => Transpose::new(kb - 1, m),
+                            '\'' => Transpose::new(kb + 1, m),
+                            ':' => Transpose::new(kb, m - 1),
+                            '"' => Transpose::new(kb, m + 1),
+                            _ => Transpose::default(),
+                        };
+                        set_transpose(transpose, &mut ch.ui_tx);
+                        None
+                    }
                     KeyCode::Char('h') => Some(Button::StopAcmp),
                     KeyCode::Char('\\') => {
                         let _ = ch.ui_tx.push(Cmd::Panic);
@@ -496,11 +520,22 @@ fn draw(
     };
     let next = s.and_then(|s| s.queued).map(|q| format!("next: {}", q.name())).unwrap_or_default();
     let chord = s.and_then(|s| s.chord).map(|c| c.name()).unwrap_or_else(|| "—".into());
+    let tr = s.map(|s| s.transpose).unwrap_or_default();
+    let fingered = match s.and_then(|s| s.played) {
+        Some(p) if tr.keyboard != 0 => format!("  (fingered {})", p.name()),
+        _ => String::new(),
+    };
+    let tr_st = if tr == Transpose::default() { dim } else { St::default().fg(Color::Yellow) };
     f.render_widget(
         Paragraph::new(vec![
             Line::from(vec![Span::styled(state, bold), Span::raw(format!("   {pos}   ")), Span::styled(next, St::default().fg(Color::Yellow))]),
             Line::raw(""),
-            Line::from(vec![Span::raw("  chord  "), Span::styled(chord, bold.fg(Color::Cyan))]),
+            Line::from(vec![
+                Span::raw("  chord  "),
+                Span::styled(chord, bold.fg(Color::Cyan)),
+                Span::styled(fingered, dim),
+                Span::styled(format!("     transpose  keyboard {:+} [; ']  master {:+} [: \"]  reset [/]", tr.keyboard, tr.master), tr_st),
+            ]),
         ])
         .block(Block::default().borders(Borders::ALL)),
         rows[1],
@@ -510,6 +545,7 @@ fn draw(
     let default_snap = Snapshot {
         running: false, sync_armed: true, sync_stop: false, auto_fill: true, cur: None, queued: None,
         pending_intro: None, main: 0, bar: 0, beat: 0, chord: None, bpm: 120.0, parts: 0xFF, gains: [127; 8], stop_acmp: false,
+        transpose: Transpose::default(), played: None,
     };
     let looks = launchkey::looks(s.as_ref().unwrap_or(&default_snap), &info.has);
     let pad_lines = |row: &[(u8, launchkey::Look)]| -> [Line<'static>; 3] {
@@ -686,6 +722,8 @@ pub fn screen_html(style: &Path, out: &Path) -> Result<()> {
         parts: 0xFF & !(1 << 5),
         gains: [127, 110, 96, 127, 80, 64, 127, 100],
         stop_acmp: false,
+        transpose: Transpose::new(2, 0),
+        played: Some(crate::theory::Chord { root: 7, ty: 10, bass: Some(5) }),
     };
     let mut term = ratatui::Terminal::new(TestBackend::new(150, 44))?;
     let si = synth::SynthInfo { name: "GeneralUser-GS".into(), sample_rate: 48000, buffer: Some(64), device: "Model 16".into(), channels: 14 };

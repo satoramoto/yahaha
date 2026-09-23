@@ -9,13 +9,13 @@
 //! non-blocking semaphore signal; the engine only sleeps on the semaphore with a timeout
 //! equal to its next deadline.
 
-use crate::engine::{Button, Engine, Prepared, Snapshot};
+use crate::engine::{shift_key, Button, Engine, Prepared, Snapshot, Transpose};
 use crate::launchkey;
 use crate::midi::{for_each_message, InputHandler};
 use crate::rt::{self, Histogram, PacketSink, Wakeup};
 use crate::theory::{Chord, Recognizer};
 use rtrb::{Consumer, Producer, RingBuffer};
-use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicU8, Ordering::*};
+use std::sync::atomic::{AtomicBool, AtomicI8, AtomicU32, AtomicU64, AtomicU8, Ordering::*};
 use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug)]
@@ -23,6 +23,7 @@ pub enum Cmd {
     Button(Button),
     ChordReleased,
     PartVolume(u8, u8),
+    Transpose(Transpose),
     Arm,
     Panic,
 }
@@ -33,6 +34,9 @@ pub struct Shared {
     pub wake: Wakeup,
     pub quit: AtomicBool,
     pub split: AtomicU8,
+    /// Keyboard + Master transpose: the shift applied to played notes. The engine gets
+    /// the individual values through `Cmd::Transpose`.
+    pub key_shift: AtomicI8,
     /// Engine wake lateness vs. its deadline.
     pub lateness: Histogram,
     /// CoreMIDI packet timestamp -> our callback.
@@ -56,6 +60,7 @@ impl Shared {
             wake: Wakeup::new(),
             quit: AtomicBool::new(false),
             split: AtomicU8::new(split),
+            key_shift: AtomicI8::new(0),
             lateness: Histogram::new(),
             input_lat: Histogram::new(),
             chord_lat: Histogram::new(),
@@ -113,9 +118,34 @@ pub const LH_CH: u8 = 1;
 // Input (CoreMIDI receive thread)
 // ---------------------------------------------------------------------------
 
+/// Where each held key sounded (channel and transposed note), so its note-off goes to the
+/// same place even if the split or transpose changed while it was down.
+pub struct Keys {
+    sounding: [Option<(u8, u8)>; 128],
+}
+
+impl Keys {
+    pub fn new() -> Keys {
+        Keys { sounding: [None; 128] }
+    }
+
+    /// Key down: the (channel, note) to sound, remembered for the release. A retrigger of a
+    /// key that is still sounding first returns the old note to release.
+    pub fn press(&mut self, key: u8, ch: u8, shift: i8) -> ((u8, u8), Option<(u8, u8)>) {
+        let out = (ch, shift_key(key, shift));
+        (out, self.sounding[key as usize & 127].replace(out))
+    }
+
+    /// Key up: the (channel, note) it sounded as, if any.
+    pub fn release(&mut self, key: u8) -> Option<(u8, u8)> {
+        self.sounding[key as usize & 127].take()
+    }
+}
+
 pub struct Input {
     shared: Arc<Shared>,
     rec: Recognizer,
+    keys: Keys,
     held: [bool; 128],
     zone_held: u32,
     current: Option<Chord>,
@@ -132,6 +162,7 @@ impl Input {
         Input {
             shared,
             rec,
+            keys: Keys::new(),
             held: [false; 128],
             zone_held: 0,
             current: None,
@@ -174,32 +205,33 @@ impl Input {
         let st = m[0] & 0xF0;
         match (st, m.len()) {
             (0x90, 3) if m[2] > 0 => {
-                let k = m[1];
-                if k <= split {
+                // Chords are recognized from the keys as fingered; the engine applies
+                // Keyboard transpose to the chord. The notes themselves sound transposed.
+                let k = m[1] & 0x7F;
+                let lh = k <= split;
+                let ((ch, note), prev) = self.keys.press(k, if lh { LH_CH } else { RH_CH }, self.shared.key_shift.load(Relaxed));
+                if let Some((pch, pnote)) = prev {
+                    self.out.push(&[0x80 | pch, pnote, 0]);
+                }
+                self.out.push(&[0x90 | ch, note, m[2]]);
+                if lh {
                     if !self.held[k as usize] {
                         self.held[k as usize] = true;
                         self.zone_held += 1;
                     }
-                    self.out.push(&[0x90 | LH_CH, k, m[2]]);
                     self.recompute();
-                } else {
-                    self.out.push(&[0x90 | RH_CH, k, m[2]]);
                 }
             }
             (0x80, 3) | (0x90, 3) => {
-                let k = m[1];
+                let k = m[1] & 0x7F;
+                if let Some((ch, note)) = self.keys.release(k) {
+                    self.out.push(&[0x80 | ch, note, 0]);
+                }
                 if self.held[k as usize] {
                     self.held[k as usize] = false;
                     self.zone_held = self.zone_held.saturating_sub(1);
-                    self.out.push(&[0x80 | LH_CH, k, 0]);
                     if self.zone_held == 0 && self.cmd.push(Cmd::ChordReleased).is_ok() {
                         self.signal = true;
-                    }
-                } else {
-                    self.out.push(&[0x80 | RH_CH, k, 0]);
-                    // Also release on the LH channel in case the split moved while held.
-                    if k <= split {
-                        self.out.push(&[0x80 | LH_CH, k, 0]);
                     }
                 }
             }
@@ -393,6 +425,7 @@ fn apply(engine: &mut Engine, cmd: Cmd, now: u64, out: &mut Out) {
         Cmd::ChordReleased => engine.chord_released(now, out),
         Cmd::Arm => engine.arm(out),
         Cmd::PartVolume(p, v) => engine.set_gain(p, v, out),
+        Cmd::Transpose(t) => engine.set_transpose(t, now, out),
         Cmd::Panic => {
             engine.stop(out);
             for ch in 0..16u8 {
@@ -422,4 +455,29 @@ pub fn channels(out: Out) -> Channels {
     let (old, old_rx) = RingBuffer::new(8);
     let (snaps, snap_rx) = RingBuffer::new(256);
     Channels { input_tx, ui_tx, style_tx, old_rx, snap_rx, io: EngineIo { input, ui, styles, old, snaps, out } }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A key is released at the pitch and channel it sounded at, whatever changed meanwhile.
+    #[test]
+    fn keys_release_where_they_sounded() {
+        let mut k = Keys::new();
+        assert_eq!(k.press(60, RH_CH, 2), ((RH_CH, 62), None));
+        assert_eq!(k.press(48, LH_CH, -12), ((LH_CH, 36), None));
+        // Transpose changes while both are held: the new press uses it, the releases do not.
+        assert_eq!(k.press(64, RH_CH, 5), ((RH_CH, 69), None));
+        assert_eq!(k.release(60), Some((RH_CH, 62)));
+        assert_eq!(k.release(48), Some((LH_CH, 36)));
+        assert_eq!(k.release(48), None);
+        // Retrigger without a release returns the old note to stop first.
+        assert_eq!(k.press(64, RH_CH, 0), ((RH_CH, 64), Some((RH_CH, 69))));
+        assert_eq!(k.release(64), Some((RH_CH, 64)));
+        // Out of MIDI range folds by octaves.
+        assert_eq!(k.press(127, RH_CH, 12).0, (RH_CH, 127));
+        assert_eq!(k.press(2, RH_CH, -12).0, (RH_CH, 2));
+        assert_eq!(k.press(125, RH_CH, 5).0, (RH_CH, 118));
+    }
 }
