@@ -731,9 +731,12 @@ mod tests {
     /// Everything the engine does with a rule and a chord, over every key.
     fn exercise(rule: &ChannelRule) {
         for c in every_chord(rule) {
-            let _ = plays(rule, c);
+            let p = plays(rule, c);
+            if c.ty == CANCEL {
+                assert_eq!(p, is_drum_part(rule.dest_ch));
+            }
             for k in 0..=127u8 {
-                let _ = transpose(k, rule, c);
+                assert!(transpose(k, rule, c).is_none_or(|n| n <= 127));
             }
             for base in (0..=120u8).step_by(12) {
                 let keys = [base, base + 4, base + 7];

@@ -553,10 +553,17 @@ fn parse_ctab(d: &[u8], sff2: bool) -> Result<ChannelRule> {
     for &x in &d[13..18] {
         cm = (cm << 8) | x as u64;
     }
+    let src_ch = d[0] & 0x0F;
+    // Accompaniment parts live on channels 9-16 (0-based 8-15); 1-8 belong to the keyboard
+    // and pad voices, so a malformed destination falls back to the source channel's part.
+    let dest_ch = match d[9] & 0x0F {
+        ch @ 8..=15 => ch,
+        _ => src_ch | 0x08,
+    };
     let mut rule = ChannelRule {
-        src_ch: d[0] & 0x0F,
+        src_ch,
         name,
-        dest_ch: d[9] & 0x0F,
+        dest_ch,
         editable: d[10] == 0,
         note_mute,
         chord_mute: cm & ((1u64 << 34) - 1),
@@ -776,7 +783,9 @@ fn build_style(
             .collect();
         // Round section length to whole bars.
         let tpb = ((ppq as u32 * 4 * timesig.0 as u32) / timesig.1.max(1) as u32).max(1);
-        let len = (((end - start) + tpb / 2) / tpb).max(1) * tpb;
+        // Saturating: tick accumulation saturates, so a malformed file can put `end` at u32::MAX.
+        let bars = ((end - start).saturating_add(tpb / 2) / tpb).clamp(1, u32::MAX / tpb);
+        let len = bars * tpb;
         sections.insert(id, Section { id, start, len, events: evs });
     }
 
@@ -829,13 +838,17 @@ mod tests {
         for seg in &style.casm {
             for r in &seg.rules {
                 assert!((r.src_type as usize) < NUM_TYPES, "src_type {} survived parsing", r.src_type);
+                assert!((8..16).contains(&r.dest_ch), "dest_ch {} survived parsing", r.dest_ch);
                 for ty in 0..=theory::CANCEL {
                     for root in 0..12 {
                         let c = Chord::new(root, ty);
-                        let _ = theory::plays(r, c);
+                        let plays = theory::plays(r, c);
+                        if ty == theory::CANCEL {
+                            assert_eq!(plays, theory::is_drum_part(r.dest_ch));
+                        }
                         let mut out = [None; 3];
                         for k in 0..=127u8 {
-                            let _ = theory::transpose(k, r, c);
+                            assert!(theory::transpose(k, r, c).is_none_or(|n| n <= 127));
                         }
                         theory::transpose_group(&[48, 52, 55], r, c, &mut out);
                     }
@@ -866,6 +879,42 @@ mod tests {
                 exercise(&s);
             }
         }
+    }
+
+    #[test]
+    fn dest_channel_stays_on_accompaniment_parts() {
+        for (dest, want) in [(8u8, 8u8), (15, 15), (0x1F, 15), (0, 11), (7, 11), (0xF3, 11)] {
+            let mut d = ctb2(2, 0);
+            d[9] = dest;
+            assert_eq!(parse_ctab(&d, true).unwrap().dest_ch, want, "dest byte {dest:#x}");
+        }
+        // Source channel below 9 too: stay on the matching accompaniment part.
+        let mut d = ctb2(2, 0);
+        d[0] = 2;
+        d[9] = 2;
+        assert_eq!(parse_ctab(&d, true).unwrap().dest_ch, 10);
+    }
+
+    #[test]
+    fn huge_deltas_do_not_overflow_section_length() {
+        // Main A marker, then 20 events each 0x0FFFFFFF ticks apart: the end tick saturates
+        // at u32::MAX and the bar rounding must not overflow.
+        let mut trk = vec![0x00, 0xFF, 0x06, 4];
+        trk.extend_from_slice(b"SFF2");
+        trk.extend_from_slice(&[0x00, 0xFF, 0x06, 6]);
+        trk.extend_from_slice(b"Main A");
+        trk.extend_from_slice(&[0x00, 0x9B, 60, 100]);
+        for _ in 0..20 {
+            trk.extend_from_slice(&[0xFF, 0xFF, 0xFF, 0x7F, 0x8B, 60, 0]);
+        }
+        trk.extend_from_slice(&[0x00, 0xFF, 0x2F, 0]);
+        let mut bytes = chunk(b"MThd", &[0, 0, 0, 1, 0, 96]);
+        bytes.extend(chunk(b"MTrk", &trk));
+        let s = parse(&bytes).unwrap();
+        let sec = &s.sections[&SectionId::Main(0)];
+        let tpb = 96 * 4;
+        assert!(sec.len >= tpb && sec.len % tpb == 0, "len {}", sec.len);
+        assert!(sec.len > u32::MAX - tpb, "len {} should cover the whole saturated span", sec.len);
     }
 
     #[test]
