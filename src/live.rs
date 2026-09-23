@@ -10,6 +10,7 @@
 //! equal to its next deadline.
 
 use crate::engine::{Button, Engine, Prepared, Snapshot};
+use crate::fingering::{self, Fingering};
 use crate::launchkey;
 use crate::midi::{for_each_message, InputHandler};
 use crate::rt::{self, Histogram, PacketSink, Wakeup};
@@ -22,6 +23,8 @@ use std::sync::Arc;
 pub enum Cmd {
     Button(Button),
     ChordReleased,
+    /// The fingering type changed: whether Sync Stop is allowed with it.
+    SyncStopAllowed(bool),
     PartVolume(u8, u8),
     Arm,
     Panic,
@@ -33,6 +36,8 @@ pub struct Shared {
     pub wake: Wakeup,
     pub quit: AtomicBool,
     pub split: AtomicU8,
+    /// Chord fingering type (`Fingering::to_u8`), read by the input thread on each chord.
+    pub fingering: AtomicU8,
     /// Engine wake lateness vs. its deadline.
     pub lateness: Histogram,
     /// CoreMIDI packet timestamp -> our callback.
@@ -56,6 +61,7 @@ impl Shared {
             wake: Wakeup::new(),
             quit: AtomicBool::new(false),
             split: AtomicU8::new(split),
+            fingering: AtomicU8::new(Fingering::FingeredOnBass.to_u8()),
             lateness: Histogram::new(),
             input_lat: Histogram::new(),
             chord_lat: Histogram::new(),
@@ -116,7 +122,10 @@ pub const LH_CH: u8 = 1;
 pub struct Input {
     shared: Arc<Shared>,
     rec: Recognizer,
+    /// Keys held in the chord section.
     held: [bool; 128],
+    /// Keys held anywhere (Full Keyboard fingering types).
+    held_all: [bool; 128],
     zone_held: u32,
     current: Option<Chord>,
     generation: u16,
@@ -133,6 +142,7 @@ impl Input {
             shared,
             rec,
             held: [false; 128],
+            held_all: [false; 128],
             zone_held: 0,
             current: None,
             generation: 0,
@@ -149,16 +159,9 @@ impl Input {
     }
 
     fn recompute(&mut self) {
-        let mut mask = 0u16;
-        let mut low = None;
-        for k in 0..128 {
-            if self.held[k] {
-                mask |= 1 << (k % 12);
-                low.get_or_insert(k as u8);
-            }
-        }
-        let Some(low) = low else { return };
-        if let Some(c) = self.rec.recognize(mask, low % 12) {
+        let mode = Fingering::from_u8(self.shared.fingering.load(Relaxed));
+        let held = if mode.full_keyboard() { &self.held_all } else { &self.held };
+        if let Some(c) = fingering::detect(&self.rec, mode, held, self.current) {
             if Some(c) != self.current {
                 self.current = Some(c);
                 self.generation = self.generation.wrapping_add(1);
@@ -175,6 +178,7 @@ impl Input {
         match (st, m.len()) {
             (0x90, 3) if m[2] > 0 => {
                 let k = m[1];
+                self.held_all[k as usize] = true;
                 if k <= split {
                     if !self.held[k as usize] {
                         self.held[k as usize] = true;
@@ -184,10 +188,14 @@ impl Input {
                     self.recompute();
                 } else {
                     self.out.push(&[0x90 | RH_CH, k, m[2]]);
+                    if Fingering::from_u8(self.shared.fingering.load(Relaxed)).full_keyboard() {
+                        self.recompute();
+                    }
                 }
             }
             (0x80, 3) | (0x90, 3) => {
                 let k = m[1];
+                self.held_all[k as usize] = false;
                 if self.held[k as usize] {
                     self.held[k as usize] = false;
                     self.zone_held = self.zone_held.saturating_sub(1);
@@ -391,6 +399,7 @@ fn apply(engine: &mut Engine, cmd: Cmd, now: u64, out: &mut Out) {
     match cmd {
         Cmd::Button(b) => engine.button(b, now, out),
         Cmd::ChordReleased => engine.chord_released(now, out),
+        Cmd::SyncStopAllowed(on) => engine.allow_sync_stop(on),
         Cmd::Arm => engine.arm(out),
         Cmd::PartVolume(p, v) => engine.set_gain(p, v, out),
         Cmd::Panic => {

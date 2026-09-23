@@ -257,6 +257,8 @@ pub struct Engine {
     running: bool,
     sync_armed: bool,
     sync_stop: bool,
+    /// Sync Stop is unavailable with the Full Keyboard fingering types.
+    sync_stop_allowed: bool,
     auto_fill: bool,
     main: u8,
     pending_intro: Option<u8>,
@@ -287,6 +289,7 @@ impl Engine {
             running: false,
             sync_armed: true,
             sync_stop: false,
+            sync_stop_allowed: true,
             auto_fill: true,
             main: 0,
             pending_intro: None,
@@ -470,6 +473,12 @@ impl Engine {
         }
     }
 
+    /// The fingering type allows Sync Stop or not; disallowing turns it off.
+    pub fn allow_sync_stop(&mut self, on: bool) {
+        self.sync_stop_allowed = on;
+        self.sync_stop &= on;
+    }
+
     /// Chord-zone keys all released (for Sync Stop).
     pub fn chord_released(&mut self, now: u64, sink: &mut impl Sink) {
         if self.sync_stop && self.running {
@@ -502,7 +511,7 @@ impl Engine {
                     self.sync_armed = !self.sync_armed;
                 }
             }
-            Button::SyncStop => self.sync_stop = !self.sync_stop,
+            Button::SyncStop => self.sync_stop = !self.sync_stop && self.sync_stop_allowed,
             Button::AutoFill => self.auto_fill = !self.auto_fill,
             Button::TogglePart(p) => {
                 self.parts ^= 1 << (p & 7);
