@@ -22,8 +22,8 @@
 //!   their interval (`infer_dyad`) and one is the major chord on it (1+8 if doubled).
 //! - **Full Keyboard**: the whole keyboard is read with On Bass rules (the lowest key is
 //!   the bass), with melody set aside (`full`). It needs three pitch classes, so a
-//!   melody alone never changes the chord. Sync Stop is unavailable (the engine
-//!   refuses it).
+//!   melody alone never changes the chord, and 1+5 and 1+8 never occur. Sync Stop is
+//!   unavailable (the engine refuses it).
 //! - **AI Full Keyboard**: Full Keyboard, else AI inference on the lowest two pitch
 //!   classes (single notes are melody and never change the chord). 9th, 11th and 13th
 //!   chords are reduced to the chord without the tension.
@@ -324,7 +324,10 @@ fn full_reading(rec: &Recognizer, s: Scan) -> Option<(Chord, bool)> {
 ///    bass) is the chord, and everything above the split is melody.
 /// 2. Otherwise the whole keyboard is read, dropping the highest key (the melody) while
 ///    the rest is no chord, or while the rest is a chord on a different root (C-E-G
-///    with a Db on top stays C, whatever the four notes spell).
+///    with a Db on top stays C, whatever the four notes spell). A top key that keeps
+///    the root is part of the chord (C-G | E-Bb is C7, so a same-root melody note over
+///    an incomplete left hand changes the chord type), and an inversion with the root
+///    on top reads as the chord below it (E-G-B-C is Em, not Cmaj7/E).
 /// 3. A chord over a bass note foreign to it (C/F#) counts only when no reading is a
 ///    plain chord or an inversion, unless the top key is needed for it: with F# in the
 ///    left hand and C-E-G in the right, G is a chord tone, not a melody note leaving
@@ -472,6 +475,10 @@ mod tests {
         assert_eq!(name(&r, m, &[36, 52], None), "E7"); // any dyad but a fifth: Single Finger
         assert_eq!(name(&r, m, &[43, 48], None), "C7"); // G below C
         assert_eq!(get(&r, m, &[48, 55], None), Some(Chord::new(0, ONE_FIVE))); // C-G: 1+5
+        // So G7 as G + a white key below needs a key other than the C a fifth below.
+        assert_eq!(name(&r, m, &[53, 55], None), "G7"); // F-G
+        assert_eq!(name(&r, m, &[50, 55], None), "G7"); // D-G
+        assert_eq!(name(&r, m, &[52, 55], None), "G7"); // E-G
         // No Cancel in Multi: C-Db-D is the Single Finger m7 shape on D.
         assert_eq!(name(&r, m, &[48, 49, 50], None), "Dm7");
     }
@@ -542,6 +549,13 @@ mod tests {
         assert_eq!(name(&r, f, &[60, 64, 67, 78], None), "C");
         // ...one that keeps it is part of the chord.
         assert_eq!(name(&r, f, &[60, 64, 67, 71], None), "Cmaj7");
+        // Rule 2's cost: a first-inversion maj7 with the root on top reads as the minor
+        // triad below it, because the top key moves the root (E-G-B-C: Em, A-C-E-F: Am).
+        assert_eq!(name(&r, f, &[64, 67, 71, 72], None), "Em");
+        assert_eq!(name(&r, f, &[57, 60, 64, 65], None), "Am");
+        // A left-hand shell with the upper structure in the right hand is the full chord:
+        // C-G | E-Bb is C7, so the top right-hand key cannot be assumed to be melody.
+        assert_eq!(name(&r, f, &[36, 43, 64, 70], None), "C7");
         assert_eq!(name(&r, f, &[72], Some(Chord::new(0, 0))), "-"); // melody alone
         assert_eq!(name(&r, f, &[48, 49, 50], None), "-"); // no Cancel
     }
@@ -559,7 +573,10 @@ mod tests {
         // LH dyad + RH melody: the dyad is inferred with the melody set aside.
         assert_eq!(name(&r, f, &[45, 48, 74], None), "Am");
         assert_eq!(name(&r, f, &[48, 52, 77], Some(Chord::new(9, 10))), "Am7"); // kept
-        assert_eq!(name(&r, f, &[50, 53, 76], c), "Dm"); // (D-F-C would be Dm7, a chord)
+        // D-F with E on top: D-F-E is no chord, so E is melody and D-F infers Dm.
+        assert_eq!(name(&r, f, &[50, 53, 76], c), "Dm");
+        // D-F with C on top is a chord (Dm7), so C is part of it.
+        assert_eq!(name(&r, f, &[50, 53, 72], c), "Dm7");
     }
 
     /// Full Keyboard types switch Sync Stop off and keep it off.
