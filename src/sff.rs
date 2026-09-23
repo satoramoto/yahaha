@@ -1047,5 +1047,14 @@ mod tests {
         assert_eq!(r.mid_lo, 50);
         assert!(r.zones[0].bass_on);
         assert!(!r.zones[1].bass_on && !r.zones[2].bass_on);
+        // Through transpose, over C/E: the left-hand C moves to the slash bass E, the
+        // chord-zone C stays exactly where it plays over plain C.
+        use crate::theory::{transpose, Chord};
+        let (c, c_over_e) = (Chord::new(0, 0), Chord { root: 0, ty: 0, bass: Some(4) });
+        let low = transpose(36, r, c_over_e).unwrap();
+        assert_eq!(low % 12, 4, "low zone C1 over C/E -> {low}");
+        assert_ne!(Some(low), transpose(36, r, c));
+        assert_eq!(transpose(60, r, c_over_e), transpose(60, r, c));
+        assert_eq!(transpose(60, r, c), Some(60));
     }
 }

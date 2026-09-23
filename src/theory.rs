@@ -522,19 +522,20 @@ fn chord_map_raw(d: u8, src_ty: u8, tgt_ty: u8, src_scale: &[u8; 7], tgt_scale: 
 /// Note Limit: octave-shift `n` into `lo..=hi`. A range of an octave or more always has
 /// room for every pitch class. A narrower range cannot hold all twelve, so a pitch class
 /// that has no octave inside it goes to the octave nearest the range (the lower one on a
-/// tie), which keeps it within a tritone of the limits. A reversed range is read as
-/// `hi..=lo`.
+/// tie), which keeps it within a tritone of the limits. At the edges of the MIDI range
+/// the nearest octave may not exist; the other one is taken so the pitch class survives.
+/// A reversed range is read as `hi..=lo`.
 #[inline]
 fn fold_into(mut n: i32, lo: u8, hi: u8) -> i32 {
     let (lo, hi) = (lo.min(hi) as i32, lo.max(hi) as i32);
     if n < lo {
         n += (lo - n + 11) / 12 * 12; // lowest octave at or above lo
-        if n > hi && lo - (n - 12) <= n - hi {
+        if n > hi && (lo - (n - 12) <= n - hi || n > 127) && n - 12 >= 0 {
             n -= 12;
         }
     } else if n > hi {
         n -= (n - hi + 11) / 12 * 12; // highest octave at or below hi
-        if n < lo && (n + 12) - hi < lo - n {
+        if n < lo && ((n + 12) - hi < lo - n || n < 0) && n + 12 <= 127 {
             n += 12;
         }
     }
@@ -1248,16 +1249,37 @@ mod tests {
         assert_eq!(fold_into(65, 60, 60), 65);
         assert_eq!(fold_into(55, 60, 60), 55);
         assert_eq!(fold_into(79, 60, 60), 55);
-        // The result is never more than a tritone outside the range.
-        for lo in 30..90u8 {
+        // The result keeps the pitch class, stays in 0..=127, and is never more than a
+        // tritone outside the range unless that octave would leave the MIDI range.
+        for lo in 0..=127u8 {
             for w in 0..11u8 {
+                let hi = lo.saturating_add(w).min(127);
                 for n in 0..128 {
-                    let out = fold_into(n, lo, lo + w);
-                    assert_eq!((out - n).rem_euclid(12), 0);
-                    assert!(out >= lo as i32 - 6 && out <= (lo + w) as i32 + 6, "{n} in {lo}..{} -> {out}", lo + w);
+                    let out = fold_into(n, lo, hi);
+                    assert_eq!((out - n).rem_euclid(12), 0, "{n} in {lo}..{hi} -> {out}");
+                    assert!((0..=127).contains(&out), "{n} in {lo}..{hi} -> {out}");
+                    let near = out >= lo as i32 - 6 && out <= hi as i32 + 6;
+                    assert!(near || out + 12 > 127 || out - 12 < 0, "{n} in {lo}..{hi} -> {out}");
                 }
             }
         }
+    }
+
+    /// At the MIDI range edges the nearest octave may not exist; the pitch class must
+    /// survive rather than being clamped into another note.
+    #[test]
+    fn fold_into_midi_edges() {
+        // Ab (68) into 120..127: 128 does not exist, so 116 rather than 127 (G).
+        assert_eq!(fold_into(68, 120, 127), 116);
+        // Bb (10) into 0..5: -2 does not exist, so 10 rather than 0 (C).
+        assert_eq!(fold_into(10, 0, 5), 10);
+        // Where the nearest octave exists it still wins.
+        assert_eq!(fold_into(60, 120, 127), 120);
+        assert_eq!(fold_into(55, 0, 5), 7);
+        // Through transpose: C8 under Ab major with a 120..127 limit plays Ab7, not G8.
+        let mut r = rule(Ntr::RootTrans, Ntt::Melody, 11, 120, 127);
+        r.src_type = 0;
+        assert_eq!(transpose(120, &r, Chord::new(8, 0)), Some(116));
     }
 
     #[test]
