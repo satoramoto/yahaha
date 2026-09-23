@@ -26,8 +26,6 @@ pub enum Cmd {
     ChordReleased,
     /// A Launchkey part fader (0..8) moved to a value (soft takeover in the engine).
     PartVolume(u8, u8),
-    /// The faders are on the Style page again, at these physical positions.
-    FadersAt([u8; 8]),
     /// Manual Bass in effect: mute the Style's Bass part.
     ManualBass(bool),
     Transpose(Transpose),
@@ -206,15 +204,20 @@ impl Sounded {
     }
 }
 
-/// What a key sounds as: on each keyboard part of its side of the split that is on (the
-/// Right parts layered, or Left), on the part's channel, moved by the transpose `shift`
-/// and the part's octave.
-pub fn sounds(parts: &Parts, left: bool, key: u8, shift: i8) -> Sounded {
+/// What a key sounds as, on each part's channel, moved by the transpose `shift` and the
+/// part's octave. Left of the split (`left`): the Left part when it sounds. With Left off,
+/// the Right parts play over the entire keyboard (OM p.48), except where the left section
+/// is the chord section alone (`chord_only`: Lower detection outside the Full Keyboard
+/// types, OM p.56). Right of the split: the Right parts that are on, layered.
+pub fn sounds(parts: &Parts, left: bool, chord_only: bool, key: u8, shift: i8) -> Sounded {
     let mut s = Sounded::default();
-    let side: &[usize] = if left { &[parts::LEFT] } else { &[parts::RIGHT1, parts::RIGHT2, parts::RIGHT3] };
+    let side: &[usize] = match (left, parts.left_sounds()) {
+        (true, true) => &[parts::LEFT],
+        (true, false) if chord_only => &[],
+        _ => &[parts::RIGHT1, parts::RIGHT2, parts::RIGHT3],
+    };
     for &p in side {
-        let on = if p == parts::LEFT { parts.left_sounds() } else { parts.is_on(p) };
-        if on {
+        if p == parts::LEFT || parts.is_on(p) {
             let oct = parts.octave[p].load(Relaxed).clamp(-2, 2);
             s.push(parts::CHANNEL[p], shift_key(key, shift + 12 * oct));
         }
@@ -344,12 +347,15 @@ impl Input {
                 // Keyboard transpose to the chord. The notes themselves sound transposed.
                 let k = m[1] & 0x7F;
                 // Lower: the chord section is the left hand. Upper: it is the right hand
-                // (above Split Point (Left)), and the left hand only plays the Left part.
+                // (above Split Point (Left)), and the left hand plays the Left part (or
+                // the Right parts, with Left off).
                 let left = k <= split;
                 let r = if left { R_LH } else { R_RH };
                 let chord = r == self.chord_side();
                 self.route[k as usize] = r;
-                let now = sounds(&self.shared.parts, left, k, self.shared.key_shift.load(Relaxed));
+                let full = !self.shared.upper.load(Relaxed) && Fingering::from_u8(self.shared.fingering.load(Relaxed)).full_keyboard();
+                let chord_only = !self.shared.upper.load(Relaxed) && !full;
+                let now = sounds(&self.shared.parts, left, chord_only, k, self.shared.key_shift.load(Relaxed));
                 // A retrigger (possibly after the split, transpose or parts changed): release
                 // where it sounded.
                 for (pch, pnote) in self.keys.press(k, now).iter() {
@@ -359,10 +365,7 @@ impl Input {
                     self.out.push(&[0x90 | ch, note, m[2]]);
                 }
                 // The Full Keyboard types (Lower only) read both hands.
-                if chord
-                    || (!self.shared.upper.load(Relaxed)
-                        && Fingering::from_u8(self.shared.fingering.load(Relaxed)).full_keyboard())
-                {
+                if chord || full {
                     self.recompute();
                 }
             }
@@ -383,13 +386,18 @@ impl Input {
                     }
                 }
             }
-            // Wheels, pedals, pressure: to every Right part, on or off, so a pedal release
-            // always reaches a note that is still ringing.
-            (0xB0 | 0xE0 | 0xD0 | 0xA0 | 0xC0, _) => {
+            // Volume and voice belong to the parts (their CC7 and program): the keyboard's
+            // own are dropped, so the port, the synth and the screen never disagree.
+            (0xB0, 3) if matches!(m[1], 0 | 7 | 32) => {}
+            (0xC0, _) => {}
+            // Wheels, pedals, pressure: to every keyboard part, on or off, so a pedal
+            // release always reaches a note that is still ringing. Sustain affects all
+            // notes played on the keyboard (RM, Assignable functions).
+            (0xB0 | 0xE0 | 0xD0 | 0xA0, _) => {
                 let mut msg = [0u8; 3];
                 msg[..m.len()].copy_from_slice(m);
-                for p in [parts::RIGHT1, parts::RIGHT2, parts::RIGHT3] {
-                    msg[0] = st | parts::CHANNEL[p];
+                for ch in parts::CHANNEL {
+                    msg[0] = st | ch;
                     self.out.push(&msg[..m.len()]);
                 }
             }
@@ -488,10 +496,9 @@ impl Input {
     fn fader_button(&mut self, i: u8) {
         let parts = &self.shared.parts;
         if i == 8 {
-            let (page, hw) = parts.toggle_fader_page();
-            if page == FaderPage::Style && self.cmd.push(Cmd::FadersAt(hw)).is_ok() {
-                self.signal = true;
-            }
+            // The engine rebinds the Style faders on its next wake (`Parts::take_rebind`).
+            parts.toggle_fader_page();
+            self.signal = true;
             return;
         }
         match parts.fader_page() {
@@ -564,11 +571,10 @@ pub struct EngineIo {
 }
 
 /// Send each keyboard part's volume as CC7 on its channel when it changed, to the port and
-/// the built-in synth alike. Under Manual Bass, Left's is the Style's Bass fader.
-fn sync_part_volumes(out: &mut Out, parts: &Parts, bass_fader: u8, last: &mut [u8; parts::COUNT]) {
-    parts.bass_vol.store(bass_fader, Relaxed);
+/// the built-in synth alike.
+fn sync_part_volumes(out: &mut Out, parts: &Parts, last: &mut [u8; parts::COUNT]) {
     for (p, sent) in last.iter_mut().enumerate() {
-        let v = parts.channel_volume(p);
+        let v = parts.volume[p].load(Relaxed);
         if *sent != v {
             *sent = v;
             out.push(&[0xB0 | parts::CHANNEL[p], 7, v]);
@@ -639,14 +645,15 @@ pub fn run_engine(mut engine: Engine, mut io: EngineIo, shared: Arc<Shared>) {
         // Read the fingering type and area here rather than taking a command for them, so
         // a full ring can never leave Sync Stop on in a Full Keyboard type.
         engine.allow_sync_stop(shared.sync_stop_allowed());
+        rebind_faders(&mut engine, &shared.parts);
         while let Ok(cmd) = io.input.pop() {
-            apply(&mut engine, cmd, now, &mut io.out);
+            apply(&mut engine, &shared.parts, cmd, now, &mut io.out);
         }
         while let Ok(cmd) = io.ui.pop() {
-            apply(&mut engine, cmd, now, &mut io.out);
+            apply(&mut engine, &shared.parts, cmd, now, &mut io.out);
         }
         engine.process(now, &mut io.out);
-        sync_part_volumes(&mut io.out, &shared.parts, engine.snapshot(now).volumes[2], &mut last_part_vol);
+        sync_part_volumes(&mut io.out, &shared.parts, &mut last_part_vol);
         let t1 = rt::now_ns();
         io.out.flush();
         let t2 = rt::now_ns();
@@ -663,13 +670,24 @@ pub fn run_engine(mut engine: Engine, mut io: EngineIo, shared: Arc<Shared>) {
     }
 }
 
-fn apply(engine: &mut Engine, cmd: Cmd, now: u64, out: &mut Out) {
+/// The faders went to the Style page: the Style parts' takeover starts from where the
+/// faders physically were.
+fn rebind_faders(engine: &mut Engine, parts: &Parts) {
+    if let Some(hw) = parts.take_rebind() {
+        engine.faders_at(hw);
+    }
+}
+
+fn apply(engine: &mut Engine, parts: &Parts, cmd: Cmd, now: u64, out: &mut Out) {
     match cmd {
         Cmd::Button(b) => engine.button(b, now, out),
         Cmd::ChordReleased => engine.chord_released(now, out),
         Cmd::Arm => engine.arm(out),
-        Cmd::PartVolume(p, v) => engine.hw_fader(p, v, out),
-        Cmd::FadersAt(hw) => engine.faders_at(hw),
+        Cmd::PartVolume(p, v) => {
+            // A page switch made before this move is seen with it (the ring push releases it).
+            rebind_faders(engine, parts);
+            engine.hw_fader(p, v, out)
+        }
         Cmd::ManualBass(on) => engine.set_manual_bass(on, out),
         Cmd::Transpose(t) => engine.set_transpose(t, now, out),
         Cmd::Panic => {
@@ -773,7 +791,7 @@ mod tests {
         parts.toggle(parts::LEFT);
         let mut k = Keys::new();
         let press = |k: &mut Keys, key: u8, left: bool, shift: i8| {
-            let now = sounds(&parts, left, key, shift);
+            let now = sounds(&parts, left, true, key, shift);
             (now, k.press(key, now))
         };
         assert_eq!(press(&mut k, 60, false, 2), (snd(&[(RH_CH, 62)]), snd(&[])));
@@ -792,30 +810,92 @@ mod tests {
         assert_eq!(press(&mut k, 125, false, 5).0, snd(&[(RH_CH, 118)]));
     }
 
-    /// The Right parts that are on sound together, each on its channel and octave; Left
-    /// sounds only when it is on (or under Manual Bass).
+    /// The Right parts that are on sound together, each on its channel and octave. Left of
+    /// the split: Left when it sounds (on, or Manual Bass); with Left off, the Right parts
+    /// (OM p.48) unless that section only gives the chord (OM p.56).
     #[test]
     fn right_parts_layer_and_left_follows_its_switch() {
         let parts = Parts::new();
-        assert_eq!(sounds(&parts, false, 60, 0), snd(&[(0, 60)]), "Right 1 alone at start");
-        assert_eq!(sounds(&parts, true, 40, 0), snd(&[]), "Left off: the left hand is silent");
+        assert_eq!(sounds(&parts, false, true, 60, 0), snd(&[(0, 60)]), "Right 1 alone at start");
+        assert_eq!(sounds(&parts, true, true, 40, 0), snd(&[]), "Left off, chord section: chords only");
+        assert_eq!(sounds(&parts, true, false, 40, 0), snd(&[(0, 40)]), "Left off: Right 1 over the whole keyboard");
         parts.toggle(parts::RIGHT2);
         parts.toggle(parts::RIGHT3);
         parts.octave[parts::RIGHT2].store(-1, Relaxed);
         parts.octave[parts::RIGHT3].store(2, Relaxed);
-        assert_eq!(sounds(&parts, false, 60, 1), snd(&[(0, 61), (2, 49), (3, 85)]));
+        assert_eq!(sounds(&parts, false, true, 60, 1), snd(&[(0, 61), (2, 49), (3, 85)]));
+        assert_eq!(sounds(&parts, true, false, 40, 0), snd(&[(0, 40), (2, 28), (3, 64)]), "layered left of the split too");
         parts.toggle(parts::RIGHT1);
-        assert_eq!(sounds(&parts, false, 60, 0), snd(&[(2, 48), (3, 84)]), "Right 1 off: its channel is silent");
+        assert_eq!(sounds(&parts, false, true, 60, 0), snd(&[(2, 48), (3, 84)]), "Right 1 off: its channel is silent");
         parts.set_manual_bass(true);
         parts.octave[parts::LEFT].store(-1, Relaxed);
-        assert_eq!(sounds(&parts, true, 40, 0), snd(&[(1, 28)]), "Manual Bass sounds the left hand");
+        assert_eq!(sounds(&parts, true, true, 40, 0), snd(&[(1, 28)]), "Manual Bass sounds the left hand");
         parts.set_manual_bass(false);
         parts.toggle(parts::LEFT);
-        assert_eq!(sounds(&parts, true, 40, 0), snd(&[(1, 28)]));
+        assert_eq!(sounds(&parts, true, true, 40, 0), snd(&[(1, 28)]));
+        assert_eq!(sounds(&parts, true, false, 40, 0), snd(&[(1, 28)]), "Left on: the split holds in every mode");
+    }
+
+    /// Through `Input`, with Left off: keys left of the split play the Right parts in Upper
+    /// detection and in the Full Keyboard types (OM p.48, p.51), and only give the chord in
+    /// Lower detection otherwise (OM p.56). The chord is read as before in every case.
+    #[test]
+    fn left_off_right_parts_cover_the_keyboard_unless_chord_section() {
+        let rig = |mode: Fingering, upper: bool| {
+            let shared = Arc::new(Shared::new(54));
+            shared.fingering.store(mode.to_u8(), Relaxed);
+            shared.upper.store(upper, Relaxed);
+            shared.manual_bass.store(false, Relaxed);
+            let (cmd, _cmd_rx) = RingBuffer::new(16);
+            let (synth, heard) = RingBuffer::new(64);
+            (Input::new(shared.clone(), Recognizer::new(), cmd, Out::new(PacketSink::new(rt::Target::Virtual(0)), Some(synth))), shared, heard)
+        };
+        let drain = |h: &mut Consumer<[u8; 3]>| std::iter::from_fn(|| h.pop().ok()).collect::<Vec<_>>();
+        for (mode, upper, sounds) in [
+            (Fingering::Fingered, true, true),
+            (Fingering::FullKeyboard, false, true),
+            (Fingering::AiFullKeyboard, false, true),
+            (Fingering::FingeredOnBass, false, false),
+            (Fingering::Fingered, false, false),
+        ] {
+            let (mut inp, shared, mut heard) = rig(mode, upper);
+            shared.parts.toggle(parts::RIGHT2);
+            inp.key_msg(&[0x90, 40, 90]);
+            let want = if sounds { vec![[0x90, 40, 90], [0x92, 40, 90]] } else { vec![] };
+            assert_eq!(drain(&mut heard), want, "{mode:?} upper={upper}");
+            inp.key_msg(&[0x80, 40, 0]);
+            let want = if sounds { vec![[0x80, 40, 0], [0x82, 40, 0]] } else { vec![] };
+            assert_eq!(drain(&mut heard), want, "{mode:?} upper={upper}: released where it sounded");
+            if !upper {
+                // The chord still comes from the left hand.
+                for k in [36, 40, 43] {
+                    inp.key_msg(&[0x90, k, 90]);
+                }
+                assert_eq!(chord(&shared).as_deref(), Some("C"), "{mode:?}");
+            }
+        }
+    }
+
+    /// The keyboard's own CC7, bank select and program changes never reach a part: its
+    /// volume and voice are the part's own (the CC7 principle). Other controllers go on.
+    #[test]
+    fn keyboard_volume_and_voice_messages_are_dropped() {
+        let shared = Arc::new(Shared::new(54));
+        let (cmd, _cmd_rx) = RingBuffer::new(16);
+        let (synth, mut heard) = RingBuffer::new(64);
+        let mut input = Input::new(shared.clone(), Recognizer::new(), cmd, Out::new(PacketSink::new(rt::Target::Virtual(0)), Some(synth)));
+        for m in [[0xB0, 7, 20], [0xB0, 0, 1], [0xB0, 32, 2]] {
+            input.key_msg(&m);
+        }
+        input.key_msg(&[0xC0, 40]);
+        assert!(heard.pop().is_err());
+        assert_eq!(shared.parts.volume[parts::RIGHT1].load(Relaxed), 100);
+        input.key_msg(&[0xB0, 1, 64]);
+        assert_eq!(std::iter::from_fn(|| heard.pop().ok()).count(), parts::COUNT, "mod wheel to every part");
     }
 
     /// Through `Input`: a held layered note is released on every part it started on, even
-    /// after the parts changed; pedals reach all three Right parts.
+    /// after the parts changed; pedals reach every part.
     #[test]
     fn layered_notes_release_where_they_started() {
         let shared = Arc::new(Shared::new(54));
@@ -833,8 +913,8 @@ mod tests {
         input.key_msg(&[0x80, 72, 0]);
         assert_eq!(sent(), vec![[0x80, 72, 0], [0x82, 72, 0]]);
         input.key_msg(&[0xB0, 64, 127]);
-        assert_eq!(sent(), vec![[0xB0, 64, 127], [0xB2, 64, 127], [0xB3, 64, 127]]);
-        // The left hand is silent while Left is off.
+        assert_eq!(sent(), vec![[0xB0, 64, 127], [0xB2, 64, 127], [0xB3, 64, 127], [0xB1, 64, 127]]);
+        // Lower detection, Left off: the left hand only gives the chord.
         input.key_msg(&[0x90, 40, 90]);
         assert!(sent().is_empty());
         input.key_msg(&[0x80, 40, 0]);
@@ -869,7 +949,7 @@ mod tests {
         let mut hw = [crate::engine::HW_UNKNOWN; 8];
         hw[1] = 64;
         hw[7] = 30;
-        assert!(matches!(cmds.pop(), Ok(Cmd::FadersAt(h)) if h == hw));
+        assert_eq!(parts.take_rebind(), Some(hw), "the engine hears where the faders are");
         input.pad_msg(&[0xB0, 6, 10]);
         assert!(matches!(cmds.pop(), Ok(Cmd::PartVolume(1, 10))));
         assert_eq!(parts.volume[parts::RIGHT2].load(Relaxed), 64, "Right 2 keeps its level");
@@ -884,6 +964,47 @@ mod tests {
         input.pad_msg(&[0xB0, 6, 63]);
         assert_eq!(parts.volume[parts::RIGHT2].load(Relaxed), 63);
         assert!(cmds.pop().is_err());
+    }
+
+    /// The Style-page rebind cannot be lost: with the command ring full, the engine still
+    /// rebinds before the first Style fader move it applies, so no part jumps.
+    #[test]
+    fn style_rebind_survives_a_full_ring() {
+        let p = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("corpus/MOX_v2/TickingAway.T162.sty");
+        if !p.exists() {
+            eprintln!("corpus missing; skipping");
+            return;
+        }
+        let mut engine = Engine::new(Box::new(Prepared::new(&crate::sff::Style::load(&p).unwrap())));
+        let mut out = Out::new(PacketSink::new(rt::Target::Virtual(0)), None);
+        let (mut input, shared, mut cmds, _acts) = pads_rig();
+        let parts = &shared.parts;
+        // Style page: fader 1 picks its part up and moves it to 90.
+        parts.set_fader_page(FaderPage::Style);
+        let v0 = engine.snapshot(0).volumes[0];
+        input.pad_msg(&[0xB0, 5, v0]);
+        input.pad_msg(&[0xB0, 5, 90]);
+        while let Ok(c) = cmds.pop() {
+            apply(&mut engine, parts, c, 0, &mut out);
+        }
+        rebind_faders(&mut engine, parts);
+        assert_eq!(engine.snapshot(0).volumes[0], 90);
+        // Panel page, fader 1 down to 10 (Right 1). Fill the ring, then back to Style.
+        input.pad_msg(&[0xB0, 45, 127]);
+        input.pad_msg(&[0xB0, 5, 10]);
+        while input.cmd.push(Cmd::Arm).is_ok() {}
+        input.pad_msg(&[0xB0, 45, 127]);
+        assert_eq!(parts.fader_page(), FaderPage::Style);
+        while let Ok(c) = cmds.pop() {
+            apply(&mut engine, parts, c, 0, &mut out);
+        }
+        // The next Style move arrives with the rebind still pending: no jump from 90 to 12.
+        input.pad_msg(&[0xB0, 5, 12]);
+        while let Ok(c) = cmds.pop() {
+            apply(&mut engine, parts, c, 0, &mut out);
+        }
+        assert_eq!(engine.snapshot(0).volumes[0], 90, "no jump");
+        assert_eq!(engine.snapshot(0).pickup & 1, 1, "fader 1 waits to reach its part");
     }
 
     /// Through `Input`: notes sound transposed on their split channel, the chord is recognized

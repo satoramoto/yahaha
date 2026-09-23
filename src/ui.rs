@@ -69,7 +69,7 @@ fn panel(shared: &Shared, info: &Loaded) -> Panel {
         ots_count: info.ots.len().min(4) as u8,
         ots_applied: parts.ots_applied.load(Relaxed),
         ots_link: parts.ots_link.load(Relaxed),
-        parts_on: parts.on_mask(),
+        parts_on: parts.sounding_mask(),
         selected: parts.selected() as u8,
     }
 }
@@ -82,11 +82,9 @@ fn recall_ots(shared: &Shared, ots: &crate::sff::Ots, number: u8) {
 }
 
 /// Switch the fader page; the engine rebinds the Style faders to where the hardware is.
-fn toggle_fader_page(shared: &Shared, ui_tx: &mut rtrb::Producer<Cmd>) {
-    let (page, hw) = shared.parts.toggle_fader_page();
-    if page == FaderPage::Style && ui_tx.push(Cmd::FadersAt(hw)).is_ok() {
-        shared.wake.signal();
-    }
+fn toggle_fader_page(shared: &Shared) {
+    shared.parts.toggle_fader_page();
+    shared.wake.signal();
 }
 
 /// Last unmapped Launchkey message, for the status line: "unmapped CC 103 = 127".
@@ -651,7 +649,7 @@ pub fn play(opts: Options) -> Result<()> {
                 Action::PartOnOff(p) => shared.parts.toggle(p as usize),
                 Action::SelectPart(p) => shared.parts.select(p as usize),
                 Action::PartVoice(d) => shared.parts.step_program(d as i32),
-                Action::ToggleFaderPage => toggle_fader_page(&shared, &mut ch.ui_tx),
+                Action::ToggleFaderPage => toggle_fader_page(&shared),
                 // Same path playing or stopped: the engine swaps the style in. With one
                 // style there is nowhere to go, so nothing reloads.
                 // Folder-then-name order, the browser's unfiltered list.
@@ -876,7 +874,7 @@ fn draw(
         let sel = kp.selected() == p;
         let oct = kp.octave[p].load(Relaxed);
         let mut v = vec![Span::styled(format!(" {}[F{}] ch {} ", if sel { "▶" } else { " " }, p + 1, parts::CHANNEL[p] + 1), if sel { bold } else { dim })];
-        v.extend(level(kp.channel_volume(p), on, !mb && kp.waiting(p)));
+        v.extend(level(kp.volume[p].load(Relaxed), on, kp.waiting(p)));
         v.push(Span::styled(format!("{:<8}", parts::NAMES[p]), if on { bold } else { dim }));
         v.push(Span::styled(
             format!(" {}{}", if mb { "bass: " } else { "" }, gm_name(kp.channel_program(p))),

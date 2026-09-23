@@ -14,7 +14,7 @@
 //! thread (OTS, keys) and the synth all read them; none of them waits.
 
 use crate::engine::{Takeover, HW_UNKNOWN};
-use std::sync::atomic::{AtomicBool, AtomicI8, AtomicU8, Ordering::Relaxed};
+use std::sync::atomic::{AtomicBool, AtomicI8, AtomicU8, Ordering::{Acquire, Relaxed, Release}};
 
 pub const RIGHT1: usize = 0;
 pub const RIGHT2: usize = 1;
@@ -53,12 +53,10 @@ pub struct Parts {
     pub selected: AtomicU8,
     /// A voice changed: the synth sends the parts' programs again.
     pub changed: AtomicBool,
-    /// Manual Bass in effect: the Left part sounds, on the Style's Bass voice and fader.
+    /// Manual Bass in effect: the Left part sounds, on the Style's Bass voice (OM p.51).
     pub manual_bass: AtomicBool,
     /// GM program for the current Style's Bass part (see `synth::style_bass_program`).
     pub bass_program: AtomicU8,
-    /// The Style's Bass part fader (its CC7): the Left part's volume under Manual Bass.
-    pub bass_vol: AtomicU8,
     /// Main A-D recall One Touch Settings 1-4.
     pub ots_link: AtomicBool,
     /// Which OTS was applied last (0 = none, 1..=4).
@@ -70,6 +68,12 @@ pub struct Parts {
     pub fader_hw: [AtomicU8; 8],
     /// Soft takeover: the Panel fader of each part controls its volume.
     picked: [AtomicBool; COUNT],
+    /// The faders went to the Style page: the engine rebinds the Style parts' takeover to
+    /// `rebind_hw` on its next wake (`take_rebind`). A flag rather than a command, so a full
+    /// ring can never lose it.
+    rebind: AtomicBool,
+    /// The physical fader positions when the faders went to the Style page.
+    rebind_hw: [AtomicU8; 8],
 }
 
 impl Default for Parts {
@@ -89,12 +93,13 @@ impl Parts {
             changed: AtomicBool::new(true),
             manual_bass: AtomicBool::new(false),
             bass_program: AtomicU8::new(33),
-            bass_vol: AtomicU8::new(100),
             ots_link: AtomicBool::new(false),
             ots_applied: AtomicU8::new(0),
             fader_page: AtomicU8::new(0),
             fader_hw: [const { AtomicU8::new(HW_UNKNOWN) }; 8],
             picked: [const { AtomicBool::new(false) }; COUNT],
+            rebind: AtomicBool::new(false),
+            rebind_hw: [const { AtomicU8::new(HW_UNKNOWN) }; 8],
         }
     }
 
@@ -110,6 +115,12 @@ impl Parts {
     /// The left hand sounds: Left is on, or Manual Bass plays the bass with it.
     pub fn left_sounds(&self) -> bool {
         self.is_on(LEFT) || self.manual_bass.load(Relaxed)
+    }
+
+    /// Bitmask of the parts that sound: `on_mask`, with Left lit under Manual Bass too.
+    /// What the LEDs and the screen show.
+    pub fn sounding_mask(&self) -> u8 {
+        self.on_mask() | (self.left_sounds() as u8) << LEFT
     }
 
     pub fn toggle(&self, part: usize) {
@@ -138,16 +149,6 @@ impl Parts {
             self.bass_program.load(Relaxed)
         } else {
             self.program[part].load(Relaxed)
-        }
-    }
-
-    /// The CC7 sent on the part's channel: its volume, or for Left under Manual Bass the
-    /// Style's Bass fader.
-    pub fn channel_volume(&self, part: usize) -> u8 {
-        if part == LEFT && self.manual_bass.load(Relaxed) {
-            self.bass_vol.load(Relaxed)
-        } else {
-            self.volume[part].load(Relaxed)
         }
     }
 
@@ -196,25 +197,38 @@ impl Parts {
     }
 
     /// Switch the fader page. The physical faders now control other values: each picks its
-    /// new value up only once it gets there. The Panel side is rebound here; for the Style
-    /// side the caller hands the returned fader positions to the engine (`Engine::faders_at`).
-    pub fn set_fader_page(&self, page: FaderPage) -> [u8; 8] {
+    /// new value up only once it gets there. The Panel side is rebound here; the Style side
+    /// by the engine (`take_rebind`, then `Engine::faders_at`).
+    pub fn set_fader_page(&self, page: FaderPage) {
         let hw = self.fader_hw.each_ref().map(|a| a.load(Relaxed));
-        if page == FaderPage::Panel {
-            for (p, picked) in self.picked.iter().enumerate() {
-                picked.store(Takeover::at(hw[p], self.volume[p].load(Relaxed)).picked(), Relaxed);
+        match page {
+            FaderPage::Panel => {
+                for (p, picked) in self.picked.iter().enumerate() {
+                    picked.store(Takeover::at(hw[p], self.volume[p].load(Relaxed)).picked(), Relaxed);
+                }
+            }
+            FaderPage::Style => {
+                for (a, h) in self.rebind_hw.iter().zip(hw) {
+                    a.store(h, Relaxed);
+                }
+                self.rebind.store(true, Release);
             }
         }
         self.fader_page.store(page as u8, Relaxed);
-        hw
     }
 
-    pub fn toggle_fader_page(&self) -> (FaderPage, [u8; 8]) {
+    pub fn toggle_fader_page(&self) -> FaderPage {
         let page = match self.fader_page() {
             FaderPage::Panel => FaderPage::Style,
             FaderPage::Style => FaderPage::Panel,
         };
-        (page, self.set_fader_page(page))
+        self.set_fader_page(page);
+        page
+    }
+
+    /// Engine thread: where the faders were when they last went to the Style page, once.
+    pub fn take_rebind(&self) -> Option<[u8; 8]> {
+        self.rebind.swap(false, Acquire).then(|| self.rebind_hw.each_ref().map(|a| a.load(Relaxed)))
     }
 
     /// Load a One Touch Setting into Right 1-3 and Left: voice, on/off, volume, octave.
@@ -226,7 +240,7 @@ impl Parts {
             }
             self.on[p].store(part.on, Relaxed);
             self.set_volume(p, part.volume);
-            self.octave[p].store(part.octave.clamp(-2, 2), Relaxed);
+            self.octave[p].store(part.octave, Relaxed);
         }
         self.selected.store(RIGHT1 as u8, Relaxed);
         self.ots_applied.store(number, Relaxed);
@@ -243,8 +257,8 @@ mod tests {
         assert_eq!(CHANNEL[RIGHT1], 0);
         assert_eq!(CHANNEL[LEFT], 1);
         assert_eq!((CHANNEL[RIGHT2], CHANNEL[RIGHT3]), (2, 3));
-        for p in 0..COUNT {
-            assert_eq!(part_of_channel(CHANNEL[p]), Some(p));
+        for (p, &ch) in CHANNEL.iter().enumerate() {
+            assert_eq!(part_of_channel(ch), Some(p));
         }
         assert_eq!(part_of_channel(4), None);
         let parts = Parts::new();
@@ -277,17 +291,17 @@ mod tests {
     }
 
     #[test]
-    fn manual_bass_gives_left_the_bass_voice_and_fader() {
+    fn manual_bass_gives_left_the_bass_voice() {
         let parts = Parts::new();
-        parts.volume[LEFT].store(40, Relaxed);
-        parts.bass_vol.store(90, Relaxed);
         parts.set_bass_program(35);
         assert!(!parts.left_sounds());
-        assert_eq!((parts.channel_program(LEFT), parts.channel_volume(LEFT)), (48, 40));
+        assert_eq!(parts.channel_program(LEFT), 48);
+        assert_eq!(parts.sounding_mask(), 0b0001);
         parts.set_manual_bass(true);
         assert!(parts.left_sounds(), "Manual Bass sounds the left hand with Left off");
-        assert_eq!((parts.channel_program(LEFT), parts.channel_volume(LEFT)), (35, 90));
-        assert_eq!(parts.channel_volume(RIGHT1), 100, "only Left is affected");
+        assert_eq!(parts.channel_program(LEFT), 35);
+        assert_eq!(parts.channel_program(RIGHT1), 0, "only Left is affected");
+        assert_eq!((parts.on_mask(), parts.sounding_mask()), (0b0001, 0b1001), "the LEDs show Left sounding");
     }
 
     #[test]
@@ -329,9 +343,13 @@ mod tests {
         assert!(mv(RIGHT2, 89));
         // On the Style page the fader goes to 10; back on Panel it must pick 89 up again.
         parts.set_fader_page(FaderPage::Style);
+        let mut hw = [HW_UNKNOWN; 8];
+        hw[RIGHT2] = 89;
+        assert_eq!(parts.take_rebind(), Some(hw), "the engine rebinds the Style faders once");
+        assert_eq!(parts.take_rebind(), None);
         parts.fader_hw[RIGHT2].store(10, Relaxed);
-        let (page, hw) = parts.toggle_fader_page();
-        assert_eq!((page, hw[RIGHT2]), (FaderPage::Panel, 10));
+        assert_eq!(parts.toggle_fader_page(), FaderPage::Panel);
+        assert_eq!(parts.take_rebind(), None, "nothing for the engine going to Panel");
         assert!(parts.waiting(RIGHT2));
         assert!(!mv(RIGHT2, 12), "no jump from 89 to 12");
         assert_eq!(parts.volume[RIGHT2].load(Relaxed), 89);
