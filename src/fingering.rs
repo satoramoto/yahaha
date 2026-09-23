@@ -325,8 +325,10 @@ fn full_reading(rec: &Recognizer, s: Scan) -> Option<(Chord, bool)> {
 /// 2. Otherwise the whole keyboard is read, dropping the highest key (the melody) while
 ///    the rest is no chord, or while the rest is a chord on a different root (C-E-G
 ///    with a Db on top stays C, whatever the four notes spell).
-/// 3. A chord over a bass note foreign to it counts only when no reading is a plain
-///    chord or an inversion.
+/// 3. A chord over a bass note foreign to it (C/F#) counts only when no reading is a
+///    plain chord or an inversion, unless the top key is needed for it: with F# in the
+///    left hand and C-E-G in the right, G is a chord tone, not a melody note leaving
+///    C(b5)/F#.
 ///
 /// Needs three pitch classes, so a melody alone never changes the chord.
 fn full(rec: &Recognizer, held: &[bool; 128], split: u8) -> Option<Chord> {
@@ -338,20 +340,20 @@ fn full(rec: &Recognizer, held: &[bool; 128], split: u8) -> Option<Chord> {
     let mut s = scan(held, 0, 128)?;
     while s.n >= 3 {
         let below = scan(held, 0, s.high as usize);
-        match full_reading(rec, s) {
-            Some((c, true)) => {
-                foreign.get_or_insert(c);
-            }
-            Some((c, false)) => {
-                let moves_root = below
-                    .filter(|b| b.n >= 3)
-                    .and_then(|b| full_reading(rec, b))
-                    .is_some_and(|(d, f)| !f && d.root != c.root);
-                if !moves_root {
-                    return Some(c);
+        if let Some((c, is_foreign)) = full_reading(rec, s) {
+            // Whether the reading without the top key is a plain chord on the same root.
+            let same_root = below
+                .filter(|b| b.n >= 3)
+                .and_then(|b| full_reading(rec, b))
+                .filter(|&(_, f)| !f)
+                .map(|(d, _)| d.root == c.root);
+            match (is_foreign, same_root) {
+                (false, Some(false)) => {} // the top key moves the root: melody
+                (false, _) | (true, Some(true)) => return Some(c),
+                (true, _) => {
+                    foreign.get_or_insert(c);
                 }
             }
-            None => {}
         }
         s = below?;
     }
@@ -556,7 +558,7 @@ mod tests {
         assert_eq!(name(&r, f, &[50, 53], c), "Dm");
         // LH dyad + RH melody: the dyad is inferred with the melody set aside.
         assert_eq!(name(&r, f, &[45, 48, 74], None), "Am");
-        assert_eq!(name(&r, f, &[48, 52, 78], Some(Chord::new(9, 10))), "Am7"); // kept
+        assert_eq!(name(&r, f, &[48, 52, 77], Some(Chord::new(9, 10))), "Am7"); // kept
         assert_eq!(name(&r, f, &[50, 53, 76], c), "Dm"); // (D-F-C would be Dm7, a chord)
     }
 
