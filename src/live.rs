@@ -480,4 +480,45 @@ mod tests {
         assert_eq!(k.press(2, RH_CH, -12).0, (RH_CH, 2));
         assert_eq!(k.press(125, RH_CH, 5).0, (RH_CH, 118));
     }
+
+    /// Through `Input`: notes sound transposed on their split channel, the chord is recognized
+    /// from the keys as fingered, and releases go where the notes sounded even after the split
+    /// and transpose move.
+    #[test]
+    fn input_transposes_notes_not_recognition() {
+        let shared = Arc::new(Shared::new(59));
+        let (cmd, mut cmd_rx) = RingBuffer::new(16);
+        let (synth, mut heard) = RingBuffer::new(64);
+        let out = Out::new(PacketSink::new(rt::Target::Virtual(0)), Some(synth));
+        let mut input = Input::new(shared.clone(), Recognizer::new(), cmd, out);
+        let mut sent = || std::iter::from_fn(|| heard.pop().ok()).collect::<Vec<_>>();
+
+        shared.key_shift.store(2, Relaxed);
+        for k in [48, 52, 55] {
+            input.key_msg(&[0x90, k, 100]);
+        }
+        input.key_msg(&[0x90, 72, 90]);
+        assert_eq!(sent(), vec![[0x91, 50, 100], [0x91, 54, 100], [0x91, 57, 100], [0x90, 74, 90]]);
+        let (c, _) = Chord::unpack(shared.chord.load(Relaxed)).expect("C E G recognized");
+        assert_eq!((c.root, c.ty), (0, 0), "fingered C major, not D");
+
+        // Split and transpose change while keys are down.
+        shared.key_shift.store(-3, Relaxed);
+        shared.split.store(80, Relaxed);
+        input.key_msg(&[0x80, 72, 0]);
+        for k in [48, 52] {
+            input.key_msg(&[0x90, k, 0]);
+        }
+        assert_eq!(sent(), vec![[0x80, 74, 0], [0x81, 50, 0], [0x81, 54, 0]]);
+        assert!(cmd_rx.pop().is_err(), "a chord key is still held");
+        input.key_msg(&[0x80, 55, 0]);
+        assert_eq!(sent(), vec![[0x81, 57, 0]]);
+        assert!(matches!(cmd_rx.pop(), Ok(Cmd::ChordReleased)));
+
+        // Same key again, now in the left zone with the new shift; a retrigger stops it first.
+        input.key_msg(&[0x90, 72, 80]);
+        input.key_msg(&[0x90, 72, 70]);
+        input.key_msg(&[0x80, 72, 0]);
+        assert_eq!(sent(), vec![[0x91, 69, 80], [0x81, 69, 0], [0x91, 69, 70], [0x81, 69, 0]]);
+    }
 }

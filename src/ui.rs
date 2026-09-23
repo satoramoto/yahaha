@@ -176,12 +176,19 @@ pub fn play(opts: Options) -> Result<()> {
 
     // --- transpose ---
     let mut transpose = opts.transpose;
-    let set_transpose = |t: Transpose, tx: &mut rtrb::Producer<Cmd>| {
+    // Played notes and the engine must agree, so the key shift only changes once the
+    // engine has the command. Returns false (nothing changed) if the ring is full.
+    let set_transpose = |t: Transpose, tx: &mut rtrb::Producer<Cmd>| -> bool {
+        if tx.push(Cmd::Transpose(t)).is_err() {
+            return false;
+        }
         shared.key_shift.store(t.keys(), Relaxed);
-        let _ = tx.push(Cmd::Transpose(t));
         shared.wake.signal();
+        true
     };
-    set_transpose(transpose, &mut ch.ui_tx);
+    if !set_transpose(transpose, &mut ch.ui_tx) {
+        transpose = Transpose::default();
+    }
 
     // --- engine thread ---
     let engine = Engine::new(prep);
@@ -377,14 +384,16 @@ pub fn play(opts: Options) -> Result<()> {
                     // TRANSPOSE -/+: ; ' for Keyboard, : " (shifted) for Master, / resets both.
                     KeyCode::Char(c) if ";':\"/".contains(c) => {
                         let (kb, m) = (transpose.keyboard, transpose.master);
-                        transpose = match c {
+                        let t = match c {
                             ';' => Transpose::new(kb - 1, m),
                             '\'' => Transpose::new(kb + 1, m),
                             ':' => Transpose::new(kb, m - 1),
                             '"' => Transpose::new(kb, m + 1),
                             _ => Transpose::default(),
                         };
-                        set_transpose(transpose, &mut ch.ui_tx);
+                        if set_transpose(t, &mut ch.ui_tx) {
+                            transpose = t;
+                        }
                         None
                     }
                     KeyCode::Char('h') => Some(Button::StopAcmp),
@@ -534,7 +543,7 @@ fn draw(
                 Span::raw("  chord  "),
                 Span::styled(chord, bold.fg(Color::Cyan)),
                 Span::styled(fingered, dim),
-                Span::styled(format!("     transpose  keyboard {:+} [; ']  master {:+} [: \"]  reset [/]", tr.keyboard, tr.master), tr_st),
+                Span::styled(format!("   transpose kbd {:+} master {:+}", tr.keyboard, tr.master), tr_st),
             ]),
         ])
         .block(Block::default().borders(Borders::ALL)),
@@ -685,7 +694,7 @@ fn draw(
 
     let mut help = vec![
         Line::from(Span::styled(
-            " space start/stop · 1-4 Main A-D (again = fill) · q w e intro · i o p ending · g break · t tap · -/= tempo · F1-F8 voice · F9 layer · \\ panic · esc quit",
+            " space start/stop · 1-4 Main A-D (again = fill) · q w e intro · i o p ending · g break · t tap · -/= tempo · F1-F8 voice · F9 layer · ; ' kbd transpose · : \" master · / reset · \\ panic · esc quit",
             dim,
         )),
         Line::from(Span::styled(

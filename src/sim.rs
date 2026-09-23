@@ -289,6 +289,67 @@ mod transpose {
         assert!(rec.out.iter().any(|(_, m)| m[0] == 0x9A && m[1] % 12 == 1), "{:?}", rec.out);
         assert_eq!(snap(&e).chord, Some(Chord::new(11, 0)));
     }
+
+    /// With the band stopped and the Stop Accompaniment notes already silenced, a Keyboard
+    /// change moves the remembered chord but does not sound it again.
+    #[test]
+    fn stop_accompaniment_silent_stays_silent() {
+        let Some(p) = funky() else { return };
+        let mut e = Engine::new(p);
+        let mut rec = Recorder::default();
+        e.button(Button::SyncStart, 0, &mut rec);
+        e.button(Button::StopAcmp, 0, &mut rec);
+        e.set_chord(Chord::new(0, 0), 1, &mut rec);
+        e.button(Button::StartStop, 2, &mut rec);
+        e.button(Button::StartStop, 3, &mut rec);
+        rec.out.clear();
+        e.set_transpose(Transpose::new(4, 0), 4, &mut rec);
+        assert!(!rec.out.iter().any(|(_, m)| m[0] & 0xF0 == 0x90), "{:?}", rec.out);
+        assert_eq!(snap(&e).chord, Some(Chord::new(4, 0)));
+    }
+
+    /// A part whose voice is a drum/SFX kit (bank MSB 126/127) outside the drum channels is
+    /// left alone by Master transpose, like the drum parts.
+    #[test]
+    fn master_transpose_skips_kit_voice_on_any_part() {
+        use crate::sff::{Ev, Section, SectionId, TimedEv};
+        let note = |tick, ch, on| TimedEv { tick, ev: if on { Ev::NoteOn { ch, key: 60, vel: 100 } } else { Ev::NoteOff { ch, key: 60 } } };
+        let style = Style {
+            name: "kit".into(),
+            format: String::new(),
+            ppq: 480,
+            tempo_us: 500_000,
+            timesig: (4, 4),
+            init: vec![
+                Ev::Cc { ch: 12, cc: 0, val: 0 },
+                Ev::Pc { ch: 12, prog: 0 },
+                Ev::Cc { ch: 13, cc: 0, val: 126 },
+                Ev::Pc { ch: 13, prog: 0 },
+            ],
+            sections: [(SectionId::Main(0), Section {
+                id: SectionId::Main(0),
+                start: 0,
+                len: 1920,
+                events: vec![note(0, 12, true), note(0, 13, true), note(480, 12, false), note(480, 13, false)],
+            })]
+            .into(),
+            casm: vec![],
+            ots: vec![],
+            other_chunks: vec![],
+        };
+        let p = Prepared::new(&style);
+        let kits: Vec<usize> = (0..16).filter(|&d| p.kit[d]).collect();
+        assert_eq!(kits, vec![8, 9, 13]);
+        let ons = |m: i8| {
+            let (_, rec) = run(Box::new(Prepared::new(&style)), &[(0, Step::Transpose(Transpose::new(0, m))), (0, Step::Chord(Chord::new(0, 0)))], 500_000_000);
+            rec.out.iter().filter(|(_, m)| m[0] & 0xF0 == 0x90).map(|(_, m)| (m[0] & 0xF, m[1])).collect::<Vec<_>>()
+        };
+        let (plain, moved) = (ons(0), ons(5));
+        assert_eq!(plain.len(), 2);
+        let key = |v: &[(u8, u8)], ch| v.iter().find(|n| n.0 == ch).unwrap().1;
+        assert_eq!(key(&moved, 12), key(&plain, 12) + 5);
+        assert_eq!(key(&moved, 13), key(&plain, 13));
+    }
 }
 
 #[cfg(test)]

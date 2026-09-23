@@ -517,8 +517,9 @@ impl Engine {
     }
 
     /// New transpose settings. They apply to notes started from now on; sounding notes keep
-    /// their pitch and are released at it. A Keyboard change moves the held chord at once,
-    /// so the band follows as if the same keys had been played in the new key.
+    /// their pitch until they end or the next chord change revoices them. A Keyboard change
+    /// moves the held chord at once, so the band follows as if the same keys had been played
+    /// in the new key. Stop Accompaniment notes move only if they are still sounding.
     pub fn set_transpose(&mut self, t: Transpose, now: u64, sink: &mut impl Sink) {
         let old = self.transpose;
         self.transpose = Transpose::new(t.keyboard, t.master);
@@ -530,7 +531,7 @@ impl Engine {
         self.chord = Some(chord);
         if self.running {
             self.revoice(chord, now, sink);
-        } else if self.stop_acmp {
+        } else if self.stop_acmp && self.sounding.iter().any(|n| n.active && n.src == STOP_ACMP_SRC) {
             self.sound_stop_acmp(chord, now, sink);
         }
     }
