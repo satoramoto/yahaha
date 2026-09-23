@@ -646,7 +646,11 @@ pub fn play(opts: Options) -> Result<()> {
                 Action::ToggleOtsLink => {
                     shared.parts.ots_link.fetch_xor(true, Relaxed);
                 }
-                Action::PartOnOff(p) => shared.parts.toggle(p as usize),
+                Action::PartOnOff(p) => {
+                    if !shared.parts.toggle(p as usize) {
+                        message = "Left plays the bass under Manual Bass: turn Manual Bass off [D] to switch Left".into();
+                    }
+                }
                 Action::SelectPart(p) => shared.parts.select(p as usize),
                 Action::PartVoice(d) => shared.parts.step_program(d as i32),
                 Action::ToggleFaderPage => toggle_fader_page(&shared),
@@ -872,9 +876,9 @@ fn draw(
         let on = if p == parts::LEFT { kp.left_sounds() } else { kp.is_on(p) };
         let mb = p == parts::LEFT && kp.manual_bass.load(Relaxed);
         let sel = kp.selected() == p;
-        let oct = kp.octave[p].load(Relaxed);
+        let oct = kp.octave_of(p);
         let mut v = vec![Span::styled(format!(" {}[F{}] ch {} ", if sel { "▶" } else { " " }, p + 1, parts::CHANNEL[p] + 1), if sel { bold } else { dim })];
-        v.extend(level(kp.volume[p].load(Relaxed), on, kp.waiting(p)));
+        v.extend(level(kp.volume(p), on, kp.waiting(p)));
         v.push(Span::styled(format!("{:<8}", parts::NAMES[p]), if on { bold } else { dim }));
         v.push(Span::styled(
             format!(" {}{}", if mb { "bass: " } else { "" }, gm_name(kp.channel_program(p))),

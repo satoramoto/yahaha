@@ -32,6 +32,14 @@ pub fn part_of_channel(ch: u8) -> Option<usize> {
     CHANNEL.iter().position(|&c| c == ch)
 }
 
+/// `Parts::level`: the volume bits and the pickup bit.
+const VOLUME: u8 = 0x7F;
+const PICKED: u8 = 0x80;
+
+fn pack(volume: u8, picked: bool) -> u8 {
+    volume & VOLUME | (picked as u8) << 7
+}
+
 /// What the Launchkey faders 1-8 control (the button under the master fader toggles it).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FaderPage {
@@ -45,8 +53,10 @@ pub struct Parts {
     /// GM program per part.
     pub program: [AtomicU8; COUNT],
     pub on: [AtomicBool; COUNT],
-    /// The part's volume: its CC7, sent unchanged on its channel.
-    pub volume: [AtomicU8; COUNT],
+    /// The part's volume (its CC7, sent unchanged on its channel) in bits 0-6, and in bit 7
+    /// whether its Panel fader controls it (soft takeover). One atomic, so a fader move and
+    /// an OTS recall on other threads can never mix one's volume with the other's pickup.
+    level: [AtomicU8; COUNT],
     /// Octave shift, -2..=2.
     pub octave: [AtomicI8; COUNT],
     /// The part the voice keys (9/0, Voice -/+ pads) edit.
@@ -66,8 +76,6 @@ pub struct Parts {
     /// Where each Launchkey fader 1-8 physically is (`HW_UNKNOWN` until it moves). Faders
     /// are shared by both pages, so a page switch needs this for soft takeover.
     pub fader_hw: [AtomicU8; 8],
-    /// Soft takeover: the Panel fader of each part controls its volume.
-    picked: [AtomicBool; COUNT],
     /// The faders went to the Style page: the engine rebinds the Style parts' takeover to
     /// `rebind_hw` on its next wake (`take_rebind`). A flag rather than a command, so a full
     /// ring can never lose it.
@@ -87,7 +95,7 @@ impl Parts {
         Parts {
             program: DEFAULT_PROGRAMS.map(AtomicU8::new),
             on: [true, false, false, false].map(AtomicBool::new),
-            volume: [const { AtomicU8::new(100) }; COUNT],
+            level: [const { AtomicU8::new(100) }; COUNT],
             octave: [const { AtomicI8::new(0) }; COUNT],
             selected: AtomicU8::new(RIGHT1 as u8),
             changed: AtomicBool::new(true),
@@ -97,7 +105,6 @@ impl Parts {
             ots_applied: AtomicU8::new(0),
             fader_page: AtomicU8::new(0),
             fader_hw: [const { AtomicU8::new(HW_UNKNOWN) }; 8],
-            picked: [const { AtomicBool::new(false) }; COUNT],
             rebind: AtomicBool::new(false),
             rebind_hw: [const { AtomicU8::new(HW_UNKNOWN) }; 8],
         }
@@ -123,8 +130,31 @@ impl Parts {
         self.on_mask() | (self.left_sounds() as u8) << LEFT
     }
 
-    pub fn toggle(&self, part: usize) {
+    /// Turn a part on or off. Refused for Left while Manual Bass is in effect (false): the
+    /// left hand sounds the bass then whatever Left's switch says, so a flip would change
+    /// nothing audible or visible.
+    pub fn toggle(&self, part: usize) -> bool {
+        if part & 3 == LEFT && self.manual_bass.load(Relaxed) {
+            return false;
+        }
         self.on[part & 3].fetch_xor(true, Relaxed);
+        true
+    }
+
+    /// The octave shift the part plays at. Under Manual Bass the left hand plays the Style's
+    /// Bass voice at the pitch it is played: Left's octave belongs to its own voice (OTS set
+    /// it +1/+2 for pads and strings) and is not applied to the bass.
+    pub fn octave_of(&self, part: usize) -> i8 {
+        if part == LEFT && self.manual_bass.load(Relaxed) {
+            0
+        } else {
+            self.octave[part].load(Relaxed).clamp(-2, 2)
+        }
+    }
+
+    /// The part's volume (its CC7).
+    pub fn volume(&self, part: usize) -> u8 {
+        self.level[part].load(Relaxed) & VOLUME
     }
 
     pub fn select(&self, part: usize) {
@@ -140,7 +170,7 @@ impl Parts {
         let p = self.selected();
         let v = (self.program[p].load(Relaxed) as i32 + delta).rem_euclid(128) as u8;
         self.program[p].store(v, Relaxed);
-        self.changed.store(true, Relaxed);
+        self.changed.store(true, Release);
     }
 
     /// The program the part's channel plays: under Manual Bass, Left plays the Style's Bass voice.
@@ -154,38 +184,40 @@ impl Parts {
 
     pub fn set_manual_bass(&self, on: bool) {
         self.manual_bass.store(on, Relaxed);
-        self.changed.store(true, Relaxed);
+        self.changed.store(true, Release);
     }
 
     /// A new Style is loaded: its Bass voice is what Manual Bass plays.
     pub fn set_bass_program(&self, prog: u8) {
         self.bass_program.store(prog, Relaxed);
-        self.changed.store(true, Relaxed);
+        self.changed.store(true, Release);
     }
 
     /// Set a part's volume from software (OTS): its Panel fader has to pick it up first.
     pub fn set_volume(&self, part: usize, v: u8) {
         let v = v.min(127);
-        self.volume[part].store(v, Relaxed);
         let hw = self.fader_hw[part].load(Relaxed);
-        self.picked[part].store(Takeover::at(hw, v).picked(), Relaxed);
+        self.level[part].store(pack(v, Takeover::at(hw, v).picked()), Relaxed);
     }
 
     /// Panel fader `part` moved from `prev` to `v` (input thread). Soft takeover as for the
     /// Style faders; true if it now controls the part and set its volume.
     pub fn hw_fader(&self, part: usize, prev: u8, v: u8) -> bool {
-        let mut t = Takeover::resume(prev, self.picked[part].load(Relaxed));
-        let ok = t.hardware(self.volume[part].load(Relaxed), v.min(127));
-        self.picked[part].store(t.picked(), Relaxed);
-        if ok {
-            self.volume[part].store(v.min(127), Relaxed);
-        }
+        let v = v.min(127);
+        let mut ok = false;
+        // Judged and stored against one reading of volume + pickup: if an OTS recall set
+        // the volume meanwhile, the move is judged again against the new level.
+        let _ = self.level[part].fetch_update(Relaxed, Relaxed, |l| {
+            let mut t = Takeover::resume(prev, l & PICKED != 0);
+            ok = t.hardware(l & VOLUME, v);
+            Some(pack(if ok { v } else { l & VOLUME }, t.picked()))
+        });
         ok
     }
 
     /// The part's Panel fader has moved but not yet picked the volume up.
     pub fn waiting(&self, part: usize) -> bool {
-        self.fader_hw[part].load(Relaxed) != HW_UNKNOWN && !self.picked[part].load(Relaxed)
+        self.fader_hw[part].load(Relaxed) != HW_UNKNOWN && self.level[part].load(Relaxed) & PICKED == 0
     }
 
     pub fn fader_page(&self) -> FaderPage {
@@ -203,8 +235,8 @@ impl Parts {
         let hw = self.fader_hw.each_ref().map(|a| a.load(Relaxed));
         match page {
             FaderPage::Panel => {
-                for (p, picked) in self.picked.iter().enumerate() {
-                    picked.store(Takeover::at(hw[p], self.volume[p].load(Relaxed)).picked(), Relaxed);
+                for (level, h) in self.level.iter().zip(hw) {
+                    let _ = level.fetch_update(Relaxed, Relaxed, |l| Some(pack(l & VOLUME, Takeover::at(h, l & VOLUME).picked())));
                 }
             }
             FaderPage::Style => {
@@ -244,7 +276,7 @@ impl Parts {
         }
         self.selected.store(RIGHT1 as u8, Relaxed);
         self.ots_applied.store(number, Relaxed);
-        self.changed.store(true, Relaxed);
+        self.changed.store(true, Release);
     }
 }
 
@@ -281,11 +313,11 @@ mod tests {
         assert_eq!(parts.program[RIGHT1].load(Relaxed), 80);
         assert_eq!(parts.program[RIGHT2].load(Relaxed), 94);
         assert_eq!(parts.program[LEFT].load(Relaxed), 52);
-        assert_eq!(parts.volume[LEFT].load(Relaxed), 40);
+        assert_eq!(parts.volume(LEFT), 40);
         assert_eq!(parts.selected(), RIGHT1);
         assert_eq!(parts.ots_applied.load(Relaxed), 1);
         for (i, o) in style.ots[0].parts.iter().enumerate() {
-            assert_eq!(parts.volume[i].load(Relaxed), o.volume);
+            assert_eq!(parts.volume(i), o.volume);
             assert_eq!(parts.octave[i].load(Relaxed), o.octave);
         }
     }
@@ -320,6 +352,57 @@ mod tests {
         assert_eq!(parts.on_mask(), 0b1101);
     }
 
+    /// Under Manual Bass the left hand plays the bass at the pitch played, whatever octave
+    /// an OTS gave Left, and Left's switch is refused (it would change nothing).
+    #[test]
+    fn manual_bass_ignores_left_octave_and_switch() {
+        let parts = Parts::new();
+        parts.octave[LEFT].store(1, Relaxed);
+        parts.octave[RIGHT1].store(1, Relaxed);
+        assert_eq!(parts.octave_of(LEFT), 1);
+        parts.set_manual_bass(true);
+        assert_eq!((parts.octave_of(LEFT), parts.octave_of(RIGHT1)), (0, 1));
+        assert!(!parts.toggle(LEFT));
+        assert!(!parts.is_on(LEFT));
+        assert!(parts.toggle(RIGHT2), "the Right parts still switch");
+        parts.set_manual_bass(false);
+        assert_eq!(parts.octave_of(LEFT), 1, "Left's own voice gets its octave back");
+        assert!(parts.toggle(LEFT));
+        assert!(parts.is_on(LEFT));
+    }
+
+    /// A fader moving on the input thread while an OTS recall sets the level on the UI
+    /// thread: the recall is never overwritten by a move judged against the old level.
+    #[test]
+    fn fader_move_never_overwrites_a_concurrent_recall() {
+        for _ in 0..200 {
+            let parts = std::sync::Arc::new(Parts::new());
+            parts.set_volume(RIGHT1, 10);
+            parts.fader_hw[RIGHT1].store(10, Relaxed);
+            parts.set_fader_page(FaderPage::Panel);
+            assert!(!parts.waiting(RIGHT1));
+            let stop = std::sync::Arc::new(AtomicBool::new(false));
+            let mover = {
+                let (parts, stop) = (parts.clone(), stop.clone());
+                std::thread::spawn(move || {
+                    let mut v = 5;
+                    while !stop.load(Relaxed) {
+                        v = if v >= 15 { 5 } else { v + 1 };
+                        let prev = parts.fader_hw[RIGHT1].swap(v, Relaxed);
+                        parts.hw_fader(RIGHT1, prev, v);
+                    }
+                })
+            };
+            std::thread::yield_now();
+            parts.set_volume(RIGHT1, 90);
+            std::thread::yield_now();
+            stop.store(true, Relaxed);
+            mover.join().unwrap();
+            assert_eq!(parts.volume(RIGHT1), 90, "a fader between 5 and 15 never reaches 90");
+            assert!(parts.waiting(RIGHT1));
+        }
+    }
+
     /// Panel faders: soft takeover after an OTS recall and across page switches.
     #[test]
     fn panel_faders_take_over_softly() {
@@ -332,14 +415,14 @@ mod tests {
         assert!(!mv(RIGHT2, 30));
         assert!(parts.waiting(RIGHT2));
         assert!(mv(RIGHT2, 110), "crossed 100: picked up");
-        assert_eq!(parts.volume[RIGHT2].load(Relaxed), 110);
+        assert_eq!(parts.volume(RIGHT2), 110);
         assert!(mv(RIGHT2, 60));
         assert!(!parts.waiting(RIGHT2));
         // OTS moves it: the fader waits for the new level.
         parts.set_volume(RIGHT2, 90);
         assert!(parts.waiting(RIGHT2));
         assert!(!mv(RIGHT2, 70));
-        assert_eq!(parts.volume[RIGHT2].load(Relaxed), 90);
+        assert_eq!(parts.volume(RIGHT2), 90);
         assert!(mv(RIGHT2, 89));
         // On the Style page the fader goes to 10; back on Panel it must pick 89 up again.
         parts.set_fader_page(FaderPage::Style);
@@ -352,7 +435,7 @@ mod tests {
         assert_eq!(parts.take_rebind(), None, "nothing for the engine going to Panel");
         assert!(parts.waiting(RIGHT2));
         assert!(!mv(RIGHT2, 12), "no jump from 89 to 12");
-        assert_eq!(parts.volume[RIGHT2].load(Relaxed), 89);
+        assert_eq!(parts.volume(RIGHT2), 89);
         // A fader already at its value on the new page keeps control.
         parts.fader_hw[RIGHT1].store(101, Relaxed);
         parts.set_fader_page(FaderPage::Panel);

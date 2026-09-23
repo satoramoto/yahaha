@@ -9,7 +9,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use rtrb::{Consumer, Producer, RingBuffer};
 use rustysynth::{SoundFont, Synthesizer, SynthesizerSettings};
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, AtomicU8, Ordering::Relaxed};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering::{Acquire, Relaxed}};
 use std::sync::Arc;
 
 use crate::parts::{self, Parts};
@@ -199,7 +199,8 @@ pub fn start(sf2: &Path, consumers: Vec<Consumer<Msg>>, out_pair: Option<u8>, pa
     let mut right2 = vec![0f32; 8192];
 
     let callback = move |out: &mut [f32], _: &cpal::OutputCallbackInfo| {
-        if parts.changed.swap(false, Relaxed) {
+        // Acquire pairs with the Release stores in `Parts`: the new programs are visible.
+        if parts.changed.swap(false, Acquire) {
             sync_player(&mut player_synth, &parts);
         }
         let master = ctl.master.load(Relaxed);
