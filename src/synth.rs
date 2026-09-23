@@ -224,6 +224,8 @@ pub fn gm_fallback(dest: u8, msb: u8, prog: u8) -> u8 {
 }
 
 /// GM program for the Style's Bass part voice, which Manual Bass moves onto the Left part.
+/// TODO: this is the voice from the Style's init setup only; a Bass program change inside a
+/// section is not followed yet (see docs/backlog.md, #5 follow-ups).
 pub fn style_bass_program(voice: Option<(u8, u8, u8)>) -> u8 {
     match voice {
         Some((msb, _, pc)) if msb < 126 => gm_fallback(10, msb, pc),

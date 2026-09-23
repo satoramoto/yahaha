@@ -595,7 +595,9 @@ fn draw(
     let parts = s.map(|s| s.parts).unwrap_or(0xFF);
     let mut lines = vec![];
     for p in 0..8u8 {
-        let on = parts & (1 << p) != 0;
+        // Manual Bass mutes the Style's Bass part in the engine (its voice moves to the left hand).
+        let manual_bass = p == 2 && shared.manual_bass();
+        let on = parts & (1 << p) != 0 && !manual_bass;
         let key = "zxcvbnm,".chars().nth(p as usize).unwrap();
         let g = s.map_or(127, |s| s.gains[p as usize]);
         let bar = "█".repeat((g as usize * 8).div_ceil(127)) + &"·".repeat(8 - (g as usize * 8).div_ceil(127));
@@ -604,6 +606,7 @@ fn draw(
             Span::styled(format!("{bar} "), if on { St::default().fg(Color::Green) } else { dim }),
             Span::styled(format!("{:<9}", PART_NAMES[p as usize]), if on { bold } else { dim }),
             Span::styled(format!(" {}", voice_label(8 + p, info.voices[8 + p as usize])), if on { St::default() } else { dim }),
+            Span::styled(if manual_bass { "  (muted: Manual Bass)" } else { "" }, St::default().fg(Color::Yellow)),
         ]));
     }
     f.render_widget(

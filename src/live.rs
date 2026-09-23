@@ -13,7 +13,7 @@ use crate::engine::{Button, Engine, Prepared, Snapshot};
 use crate::launchkey;
 use crate::midi::{for_each_message, InputHandler};
 use crate::rt::{self, Histogram, PacketSink, Wakeup};
-use crate::theory::{Chord, Recognizer, CANCEL};
+use crate::theory::{Chord, Recognizer, CANCEL, ONE_PLUS_EIGHT, ONE_PLUS_FIVE};
 use rtrb::{Consumer, Producer, RingBuffer};
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicU8, Ordering::*};
 use std::sync::Arc;
@@ -123,11 +123,11 @@ pub const TAG_PADS: usize = 2;
 pub const RH_CH: u8 = 0;
 pub const LH_CH: u8 = 1;
 
-/// Where a held key went at note-on, so its note-off follows it even if the split or
-/// the detection area changed while it was held.
+/// Which side of the split a held key went to at note-on, so its note-off follows it
+/// even if the split or the detection area changed while it was held. Whether a key is
+/// a chord key is not stored: it is decided by its side and the area at the time.
 const R_LH: u8 = 1;
 const R_RH: u8 = 2;
-const R_CHORD: u8 = 4;
 
 /// Fingered*, the only fingering in Upper detection mode: Fingered without 1+5, 1+8 or
 /// Chord Cancel, so melody fragments in the right hand (single notes, octaves, fifths,
@@ -135,8 +135,7 @@ const R_CHORD: u8 = 4;
 /// with fewer than three pitch classes (Data List p.44), so Fingered* needs three.
 /// As in Fingered, the bass is the root.
 pub fn fingered_star(mask: u16, c: Chord) -> Option<Chord> {
-    // Types 30 and 31 are 1+8 and 1+5.
-    if mask.count_ones() < 3 || matches!(c.ty, CANCEL | 30 | 31) {
+    if mask.count_ones() < 3 || matches!(c.ty, CANCEL | ONE_PLUS_EIGHT | ONE_PLUS_FIVE) {
         return None;
     }
     Some(Chord { bass: None, ..c })
@@ -150,7 +149,6 @@ pub struct Input {
     shared: Arc<Shared>,
     rec: Recognizer,
     route: [u8; 128],
-    zone_held: u32,
     current: Option<Chord>,
     generation: u16,
     cmd: Producer<Cmd>,
@@ -166,7 +164,6 @@ impl Input {
             shared,
             rec,
             route: [0; 128],
-            zone_held: 0,
             current: None,
             generation: 0,
             cmd,
@@ -181,11 +178,19 @@ impl Input {
         self.synth = ctl;
     }
 
+    /// The route bit of the chord section in the current area: the left hand in Lower,
+    /// the right hand in Upper.
+    #[inline]
+    fn chord_side(&self) -> u8 {
+        if self.shared.upper.load(Relaxed) { R_RH } else { R_LH }
+    }
+
     fn recompute(&mut self) {
+        let side = self.chord_side();
         let mut mask = 0u16;
         let mut low = None;
         for k in 0..128 {
-            if self.route[k] & R_CHORD != 0 {
+            if self.route[k] & side != 0 {
                 mask |= 1 << (k % 12);
                 low.get_or_insert(k as u8);
             }
@@ -215,14 +220,9 @@ impl Input {
                 // Lower: the chord section is the left hand. Upper: it is the right hand
                 // (above Split Point (Left)), and the left hand only plays the Left part.
                 let left = k <= split;
-                let chord = left != self.shared.upper.load(Relaxed);
-                let r = if left { R_LH } else { R_RH } | if chord { R_CHORD } else { 0 };
+                let r = if left { R_LH } else { R_RH };
+                let chord = r == self.chord_side();
                 let prev = self.route[k as usize];
-                if prev & R_CHORD == 0 && chord {
-                    self.zone_held += 1;
-                } else if prev & R_CHORD != 0 && !chord {
-                    self.zone_held = self.zone_held.saturating_sub(1);
-                }
                 // A repeated note-on after the split moved: release where it sounded before.
                 if prev & R_LH != 0 && !left {
                     self.out.push(&[0x80 | LH_CH, k, 0]);
@@ -245,11 +245,13 @@ impl Input {
                     if r & R_RH != 0 {
                         self.out.push(&[0x80 | RH_CH, k, 0]);
                     }
-                    if r & R_CHORD != 0 {
-                        self.zone_held = self.zone_held.saturating_sub(1);
-                        if self.zone_held == 0 && self.cmd.push(Cmd::ChordReleased).is_ok() {
-                            self.signal = true;
-                        }
+                    // Sync Stop: the last key of the current chord section went up.
+                    let side = self.chord_side();
+                    if r & side != 0
+                        && !self.route.iter().any(|&x| x & side != 0)
+                        && self.cmd.push(Cmd::ChordReleased).is_ok()
+                    {
+                        self.signal = true;
                     }
                 } else {
                     self.out.push(&[0x80 | RH_CH, k, 0]);
@@ -602,6 +604,52 @@ mod detection_area {
         assert!(!r.released(), "the right hand still holds the chord");
         r.off(&[72, 76, 79]);
         assert!(r.played().iter().all(|m| m[0] == 0x80 | RH_CH));
+        assert!(r.released());
+    }
+
+    /// A key's chord membership follows the current area, not the one it was pressed in.
+    #[test]
+    fn held_keys_join_the_chord_of_the_current_area() {
+        // Upper -> Lower with a right-hand melody note held: it is no longer a chord key.
+        let mut r = rig(true);
+        r.on(&[78]);
+        r.shared.upper.store(false, Relaxed);
+        r.on(&[45, 48, 52]);
+        assert_eq!(r.chord(), Some(Chord::new(9, 8)), "Am, not Am6 from the held F#");
+        r.off(&[45, 48, 52]);
+        assert!(r.released(), "the held right-hand key does not keep the chord section down");
+        r.off(&[78]);
+        assert!(!r.released());
+
+        // Upper -> Lower with left-hand keys held: they are chord keys straight away.
+        let mut r = rig(true);
+        r.on(&[36, 40]);
+        assert_eq!(r.chord(), None);
+        r.shared.upper.store(false, Relaxed);
+        r.on(&[43]);
+        assert_eq!(r.chord(), Some(Chord::new(0, 0)), "C from all three held keys");
+        r.off(&[36, 40]);
+        assert!(!r.released());
+        r.off(&[43]);
+        assert!(r.released());
+    }
+
+    /// Moving the split while a key is held: a repeated note-on moves the note across
+    /// (off where it sounded, on where it now belongs) and its note-off follows it.
+    #[test]
+    fn repeated_note_on_after_a_split_change_moves_the_note() {
+        let mut r = rig(false);
+        r.on(&[38, 41, 45]); // Dm below the split (54)
+        assert_eq!(r.chord(), Some(Chord::new(2, 8)));
+        r.played();
+        r.shared.split.store(44, Relaxed);
+        r.on(&[45]); // now above the split
+        assert_eq!(r.played(), vec![[0x80 | LH_CH, 45, 0], [0x90 | RH_CH, 45, 100]]);
+        r.off(&[45]);
+        assert_eq!(r.played(), vec![[0x80 | RH_CH, 45, 0]]);
+        assert!(!r.released(), "38 and 41 are still held in the chord section");
+        r.off(&[38, 41]);
+        assert_eq!(r.played(), vec![[0x80 | LH_CH, 38, 0], [0x80 | LH_CH, 41, 0]]);
         assert!(r.released());
     }
 }
