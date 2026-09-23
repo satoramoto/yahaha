@@ -23,8 +23,6 @@ use std::sync::Arc;
 pub enum Cmd {
     Button(Button),
     ChordReleased,
-    /// The fingering type changed: whether Sync Stop is allowed with it.
-    SyncStopAllowed(bool),
     PartVolume(u8, u8),
     Arm,
     Panic,
@@ -36,7 +34,8 @@ pub struct Shared {
     pub wake: Wakeup,
     pub quit: AtomicBool,
     pub split: AtomicU8,
-    /// Chord fingering type (`Fingering::to_u8`), read by the input thread on each chord.
+    /// Chord fingering type (`Fingering::to_u8`), read by the input thread on each chord
+    /// and by the engine thread on each wake (Sync Stop is refused in the Full types).
     pub fingering: AtomicU8,
     /// Engine wake lateness vs. its deadline.
     pub lateness: Histogram,
@@ -161,7 +160,8 @@ impl Input {
     fn recompute(&mut self) {
         let mode = Fingering::from_u8(self.shared.fingering.load(Relaxed));
         let held = if mode.full_keyboard() { &self.held_all } else { &self.held };
-        if let Some(c) = fingering::detect(&self.rec, mode, held, self.current) {
+        let split = self.shared.split.load(Relaxed);
+        if let Some(c) = fingering::detect(&self.rec, mode, held, split, self.current) {
             if Some(c) != self.current {
                 self.current = Some(c);
                 self.generation = self.generation.wrapping_add(1);
@@ -372,6 +372,9 @@ pub fn run_engine(mut engine: Engine, mut io: EngineIo, shared: Arc<Shared>) {
                 engine.set_chord(c, now, &mut io.out);
             }
         }
+        // Read the fingering type here rather than taking a command for it, so a full
+        // ring can never leave Sync Stop on in a Full Keyboard type.
+        engine.allow_sync_stop(Fingering::from_u8(shared.fingering.load(Relaxed)).allows_sync_stop());
         while let Ok(cmd) = io.input.pop() {
             apply(&mut engine, cmd, now, &mut io.out);
         }
@@ -399,7 +402,6 @@ fn apply(engine: &mut Engine, cmd: Cmd, now: u64, out: &mut Out) {
     match cmd {
         Cmd::Button(b) => engine.button(b, now, out),
         Cmd::ChordReleased => engine.chord_released(now, out),
-        Cmd::SyncStopAllowed(on) => engine.allow_sync_stop(on),
         Cmd::Arm => engine.arm(out),
         Cmd::PartVolume(p, v) => engine.set_gain(p, v, out),
         Cmd::Panic => {
@@ -431,4 +433,60 @@ pub fn channels(out: Out) -> Channels {
     let (old, old_rx) = RingBuffer::new(8);
     let (snaps, snap_rx) = RingBuffer::new(256);
     Channels { input_tx, ui_tx, style_tx, old_rx, snap_rx, io: EngineIo { input, ui, styles, old, snaps, out } }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// An Input on the default split whose MIDI output is never flushed, so it needs no
+    /// CoreMIDI endpoint.
+    fn input(mode: Fingering) -> (Input, Arc<Shared>) {
+        let shared = Arc::new(Shared::new(54));
+        shared.fingering.store(mode.to_u8(), Relaxed);
+        let (tx, _rx) = RingBuffer::new(16);
+        let out = Out::new(PacketSink::new(rt::Target::Virtual(0)), None);
+        (Input::new(shared.clone(), Recognizer::new(), tx, out), shared)
+    }
+
+    fn chord(shared: &Shared) -> Option<String> {
+        Chord::unpack(shared.chord.load(Relaxed)).map(|(c, _)| c.name())
+    }
+
+    #[test]
+    fn right_hand_ignored_outside_full_keyboard_types() {
+        for mode in [Fingering::FingeredOnBass, Fingering::Fingered, Fingering::AiFingered, Fingering::MultiFinger] {
+            let (mut inp, shared) = input(mode);
+            for k in [72, 76, 79] {
+                inp.key_msg(&[0x90, k, 100]);
+            }
+            assert_eq!(chord(&shared), None, "{mode:?}");
+            inp.key_msg(&[0x90, 70, 100]); // RH Bb: would make C7 if it counted
+            for k in [36, 40, 43] {
+                inp.key_msg(&[0x90, k, 100]);
+            }
+            assert_eq!(chord(&shared).as_deref(), Some("C"), "{mode:?}");
+        }
+    }
+
+    #[test]
+    fn full_keyboard_reads_both_hands_and_tracks_releases() {
+        let (mut inp, shared) = input(Fingering::FullKeyboard);
+        for k in [72, 76, 79] {
+            inp.key_msg(&[0x90, k, 100]);
+        }
+        assert_eq!(chord(&shared).as_deref(), Some("C")); // RH chord alone
+        inp.key_msg(&[0x90, 40, 100]);
+        assert_eq!(chord(&shared).as_deref(), Some("C/E")); // LH bass + RH chord
+        inp.key_msg(&[0x90, 76, 0]); // note-off as velocity 0
+        inp.key_msg(&[0x80, 79, 64]);
+        assert!(!inp.held_all[76] && !inp.held_all[79] && inp.held_all[72] && inp.held_all[40]);
+        inp.key_msg(&[0x80, 40, 0]);
+        assert!(!inp.held[40] && !inp.held_all[40]);
+        // RH A minor over the released keys: the old E and G are gone.
+        for k in [69, 76] {
+            inp.key_msg(&[0x90, k, 100]);
+        }
+        assert_eq!(chord(&shared).as_deref(), Some("Am"));
+    }
 }

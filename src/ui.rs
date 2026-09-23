@@ -126,7 +126,6 @@ pub fn play(opts: Options) -> Result<()> {
     }
 
     let mut ch = live::channels(live::Out::new(PacketSink::new(Target::Virtual(out_src)), feeds.engine));
-    let _ = ch.ui_tx.push(Cmd::SyncStopAllowed(opts.fingering.allows_sync_stop()));
     let mut input = Input::new(
         shared.clone(),
         Recognizer::new(),
@@ -372,7 +371,6 @@ pub fn play(opts: Options) -> Result<()> {
                     KeyCode::Char('f') => {
                         let f = Fingering::from_u8(shared.fingering.load(Relaxed)).next();
                         shared.fingering.store(f.to_u8(), Relaxed);
-                        let _ = ch.ui_tx.push(Cmd::SyncStopAllowed(f.allows_sync_stop()));
                         shared.wake.signal();
                         None
                     }
