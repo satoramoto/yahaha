@@ -318,6 +318,8 @@ impl MockSession {
                 sound_fonts: MOCK_SOUND_FONTS.iter().map(|f| f.to_string()).collect(),
                 sound_font_file: Some(MOCK_SOUND_FONTS[0].into()),
                 sound_font_loading: false,
+                default_sound_set: None,
+                auto_sound_set: Some(MOCK_SOUND_FONTS[0].into()),
             },
             preview: PreviewState::default(),
             chart: ChartState::default(),
@@ -341,6 +343,7 @@ impl MockSession {
             metronome: MetronomeState { on: false, volume: 90, bell: true, audible: true },
             plugins: mock_plugins(),
             sound_library: SoundLibraryState::default(),
+            param_locks: ParamLockState::default(),
         };
         let songs: Vec<(String, String)> = library.entries.iter().filter(|e| e.status == "ok").map(|e| (e.path.clone(), e.name.clone())).collect();
         let mut m = MockSession {
@@ -408,29 +411,53 @@ impl MockSession {
     fn plugin_cmd(&mut self, c: PluginCmd) {
         match c {
             PluginCmd::SetPartPlugin { part, id, .. } => {
-                let Some(e) = self.state.plugins.list.iter().find(|p| p.id == id).cloned() else {
-                    return self.message(format!("no instrument Audio Unit {id} is installed"), true);
-                };
-                let failed = e.last_error.clone();
-                self.state.keyboard_parts[(part & 3) as usize].plugin = Some(PartPlugin {
-                    id: e.id,
-                    name: e.name.clone(),
-                    manufacturer: e.manufacturer.clone(),
-                    status: if failed.is_some() { PluginStatus::Failed } else { PluginStatus::Playing },
-                    stage: None,
-                    error: failed.clone(),
-                    out_of_process: e.manufacturer != "Apple",
-                    cpu: if failed.is_some() { 0.0 } else { 0.012 },
-                    overruns: 0,
-                    editor: failed.is_none(),
-                });
-                if let Some(err) = failed {
-                    self.message(format!("{} didn't load: {err}", e.name), true);
-                }
+                self.sound.part_plugin(part as usize, true);
+                self.set_part_plugin(part as usize, id);
             }
-            PluginCmd::ClearPartPlugin { part } => self.state.keyboard_parts[(part & 3) as usize].plugin = None,
+            PluginCmd::ClearPartPlugin { part } => {
+                self.sound.part_plugin(part as usize, false);
+                self.state.keyboard_parts[(part & 3) as usize].plugin = None;
+            }
             PluginCmd::SavePartPluginState { .. } | PluginCmd::RescanPlugins => {}
         }
+    }
+
+    fn set_part_plugin(&mut self, part: usize, id: String) {
+        let Some(e) = self.state.plugins.list.iter().find(|p| p.id == id).cloned() else {
+            return self.message(format!("no instrument Audio Unit {id} is installed"), true);
+        };
+        let failed = e.last_error.clone();
+        self.state.keyboard_parts[part & 3].plugin = Some(PartPlugin {
+            id: e.id,
+            name: e.name.clone(),
+            manufacturer: e.manufacturer.clone(),
+            status: if failed.is_some() { PluginStatus::Failed } else { PluginStatus::Playing },
+            stage: None,
+            error: failed.clone(),
+            out_of_process: e.manufacturer != "Apple",
+            cpu: if failed.is_some() { 0.0 } else { 0.012 },
+            overruns: 0,
+            editor: failed.is_none(),
+        });
+        if let Some(err) = failed {
+            self.message(format!("{} didn't load: {err}", e.name), true);
+        }
+    }
+
+    /// The default sound set (#117): a font in the folder, or None for Auto.
+    fn set_default_sound_set(&mut self, file: Option<String>) {
+        if let Some(f) = &file
+            && !self.state.io.sound_fonts.contains(f)
+        {
+            return self.message(format!("no SoundFont {f} in the SoundFont folder"), true);
+        }
+        let io = &mut self.state.io;
+        io.default_sound_set = file.clone();
+        let Some(play) = file.or_else(|| io.auto_sound_set.clone()) else { return };
+        if let Some(s) = io.synth.as_mut() {
+            s.sound_font = play.trim_end_matches(".sf2").to_string();
+        }
+        io.sound_font_file = Some(play);
     }
 
     fn message(&mut self, text: impl Into<String>, error: bool) {
@@ -486,7 +513,19 @@ impl MockSession {
     pub fn send(&mut self, cmd: impl Into<AppCmd>) -> bool {
         let before = self.state.clone();
         self.cmd(cmd.into());
+        self.sync_part_plugins();
         self.bump(&before)
+    }
+
+    /// A keyboard part's own plugin patch plays its plugin (the session's
+    /// `sync_part_plugins`).
+    fn sync_part_plugins(&mut self) {
+        for (p, voice) in self.sound.part_plugins() {
+            match voice {
+                Some((id, _state)) => self.set_part_plugin(p, id),
+                None => self.state.keyboard_parts[p].plugin = None,
+            }
+        }
     }
 
     fn bump(&mut self, before: &AppState) -> bool {
@@ -1496,16 +1535,8 @@ impl MockSession {
             }
             AppCmd::Preview(PreviewCmd::StopAudition) => self.state.preview.audition = None,
             AppCmd::Library(LibraryCmd::RescanLibrary) => self.message("Style folders rescanned", false),
-            AppCmd::Settings(SettingsCmd::SetSoundFont { file }) => {
-                if self.state.io.sound_fonts.contains(&file) {
-                    if let Some(s) = self.state.io.synth.as_mut() {
-                        s.sound_font = file.trim_end_matches(".sf2").to_string();
-                    }
-                    self.state.io.sound_font_file = Some(file);
-                } else {
-                    self.message(format!("no SoundFont {file} in the SoundFont folder"), true);
-                }
-            }
+            AppCmd::Settings(SettingsCmd::SetSoundFont { file }) => self.set_default_sound_set(Some(file)),
+            AppCmd::Settings(SettingsCmd::SetDefaultSoundSet { file }) => self.set_default_sound_set(file),
             AppCmd::Settings(SettingsCmd::SetMidiInputs { all, names }) => {
                 let io = &mut self.state.io;
                 io.all_inputs = all;
@@ -1516,6 +1547,7 @@ impl MockSession {
             }
             AppCmd::Settings(SettingsCmd::SetPaletteLeds { on }) => self.state.pads.palette_leds = on,
             AppCmd::Chart(c) => self.chart_cmd(c),
+            AppCmd::ParamLock(ParamLockCmd::SetParamLock { item, on }) => self.state.param_locks.set(item, on),
             AppCmd::Registration(c) => {
                 let fx = self.regist.registration_cmd(c, &self.state);
                 self.run_regist(fx);
@@ -1537,6 +1569,13 @@ impl MockSession {
             }
             AppCmd::SoundLibrary(c) => {
                 let export = matches!(c, SoundLibraryCmd::ExportSoundLibrary { .. });
+                // A SoundFont patch picked over a Plugins-tab plugin ends that plugin.
+                if let SoundLibraryCmd::SetPartPatch { part, id: Some(id) } = &c
+                    && self.state.sound_library.patches.iter().any(|p| &p.patch.id == id && matches!(p.patch.source, PatchSource::SoundFont { .. }))
+                    && self.sound.own_plugin(*part as usize)
+                {
+                    self.state.keyboard_parts[(*part & 3) as usize].plugin = None;
+                }
                 match self.sound.cmd(&mut self.state, c) {
                     Some(e) => self.message(e, true),
                     None if export => self.message("Sound library exported to /Users/me/Documents/yahaha/sound-library-export.json", false),
@@ -1839,6 +1878,26 @@ mod tests {
         assert_eq!(m.state.style_settings.retrigger_rate, 16);
     }
 
+    /// A plugin patch on a keyboard part plays its plugin, as the session does (#109).
+    #[test]
+    fn a_plugin_patch_on_a_part_plays_its_plugin() {
+        let mut m = MockSession::new();
+        let r1 = |m: &MockSession| (m.state.keyboard_parts[0].patch.clone(), m.state.keyboard_parts[0].plugin.as_ref().map(|p| p.id.clone()));
+        let dls = Some("aumu dls  appl".to_string());
+        m.send(SoundLibraryCmd::SetPartPatch { part: 0, id: Some("keys-au".into()) });
+        assert_eq!(r1(&m), (Some("keys-au".into()), dls.clone()));
+        m.send(SoundLibraryCmd::SetPartPatch { part: 0, id: Some("stage-grand".into()) });
+        assert_eq!(r1(&m), (Some("stage-grand".into()), None));
+        m.send(SoundLibraryCmd::SetPartPatch { part: 0, id: Some("keys-au".into()) });
+        m.send(PluginCmd::SetPartPlugin { part: 0, id: "aumu dls  appl".into(), state: None });
+        assert_eq!(r1(&m), (None, dls.clone()), "a Plugins-tab plugin ends the patch");
+        m.send(SoundLibraryCmd::SetPartPatch { part: 0, id: Some("stage-grand".into()) });
+        assert_eq!(r1(&m), (Some("stage-grand".into()), None), "a SoundFont patch ends a Plugins-tab plugin");
+        m.send(SoundLibraryCmd::SetPartPatch { part: 0, id: Some("keys-au".into()) });
+        m.send(PartsCmd::SetPartVoice { part: 0, program: 0 });
+        assert_eq!(r1(&m), (None, None), "a GM voice ends the plugin patch");
+    }
+
     #[test]
     fn a_queued_main_takes_over_at_the_next_bar() {
         let mut m = MockSession::new();
@@ -2125,6 +2184,23 @@ mod tests {
         m.send(RegistrationCmd::SetFreeze { on: true });
         m.send(RegistrationCmd::RecallRegist { index: 5 });
         assert_eq!(m.state.harmony_arp, scrambled, "frozen");
+    }
+
+    /// As the session's Parameter Lock: a locked group keeps the player's setting through
+    /// a recall; the other groups are recalled.
+    #[test]
+    fn param_lock_keeps_locked_groups_through_a_recall() {
+        let mut m = MockSession::new();
+        m.send(ChordCmd::SetSplit { note: 60 });
+        m.send(ChordCmd::SetFingering { fingering: yahaha::fingering::Fingering::Fingered });
+        m.send(RegistrationCmd::MemorizeRegist { index: 4 });
+        m.send(ChordCmd::SetSplit { note: 50 });
+        m.send(ChordCmd::SetFingering { fingering: yahaha::fingering::Fingering::SingleFinger });
+        m.send(ParamLockCmd::SetParamLock { item: LockItem::SplitPoint, on: true });
+        assert!(m.state.param_locks.split_point && !m.state.param_locks.fingering_type);
+        m.send(RegistrationCmd::RecallRegist { index: 4 });
+        assert_eq!(m.state.chord.split, 50, "locked");
+        assert_eq!(m.state.chord.fingering, yahaha::fingering::Fingering::Fingered, "not locked");
     }
 
     /// Save As names files as the session does ("A:B" is "A_B") and, like the Mac's file

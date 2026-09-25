@@ -97,6 +97,7 @@ export function tipFor(cmd: AppCmd | null): TipKey {
     case 'stopAudition': return 'browser.preview_stop'
     case 'queueStyle': return 'browser.queue'
     case 'setSoundFont': return 'audio.soundfont'
+    case 'setDefaultSoundSet': return cmd.file === null ? 'audio.soundfont_auto' : 'audio.soundfont'
     case 'setMidiInputs': return cmd.all ? 'midi.merge_all' : 'midi.input'
     case 'setPaletteLeds': return 'midi.palette_leds'
     case 'rescanLibrary': return 'settings.rescan'
@@ -229,5 +230,6 @@ export function tipFor(cmd: AppCmd | null): TipKey {
     case 'browseSoundFont': return 'sound.soundfont'
     case 'importSoundLibrary': return 'sound.import'
     case 'exportSoundLibrary': return 'sound.export'
+    case 'setParamLock': return cmd.item === 'splitPoint' ? 'settings.param_lock_split_point' : 'settings.param_lock_fingering_type'
   }
 }
