@@ -8,8 +8,8 @@ const PAGE_IDS = [...displayPageTabs, ...fullPageTabs].map((tab) => tab.id)
 
 /**
  * The 36px bar on top of every page: "yahaha", the page nav (display pages, a hairline, full
- * pages), then the fixed 196px right area with the Launchkey status and the audio health. A white
- * 1px line underneath. The parent owns `chosen`; a click only calls `onchoose`.
+ * pages), then the fixed 196px right area with the Launchkey status and the audio health. The bold
+ * 2px header rule underneath. The parent owns `chosen`; a click only calls `onchoose`.
  */
 const meta = {
   title: 'Components/AppBar',

@@ -27,12 +27,9 @@
 <style>
   .name {
     flex: none;
-    font-family: var(--font-sans);
-    font-size: var(--text-44);
-    font-weight: var(--weight-light);
+    font: var(--type-display);
+    letter-spacing: var(--tracking-display);
     font-variant-numeric: tabular-nums;
-    line-height: var(--leading-44);
-    letter-spacing: var(--tracking-44);
     color: var(--hue);
     text-shadow: var(--glow);
     white-space: nowrap;

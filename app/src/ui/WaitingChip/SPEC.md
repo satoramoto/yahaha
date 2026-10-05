@@ -3,8 +3,11 @@
 > **Superseded look (Round 2 restyle, PR #550).** The outline is gone. The chip is plain text in
 > the hue: no border, no padding, transparent. `hue: 't'` (the default) draws in `--m`, the muted
 > grey of Round 2's next section; any other hue draws in its own token. `display` is 44 tall
-> (`--chip-height-display`), `--text-28` light with `--tracking-28`; `count` and `line` keep their
-> type and drop the 8px side padding. The line-height is the chip's height. Where it is used: only
+> (`--chip-height-display`). Type roles (Stage screen cleanup, PR #550): `count` is
+> `--type-readout` / `--tracking-readout`, `line` `--type-body` / `--tracking-body`, `display`
+> `--type-readout-lg` / `--tracking-readout-lg`, each followed by `font-variant-numeric:
+> tabular-nums`; the 8px side padding is gone. The line-height is the chip's height (`--chip-height`
+> or `--chip-height-display`, set after the shorthand). Where it is used: only
 > StyleLine mounts it, at `line` with `hue="a"` (the queued style). The count row is gone (its
 > count moved into the display's `BarBeat` row), and the display's next section is NowPlaying's own
 > text, so no screen uses `count` or `display` today. Where the sections below disagree, this note wins.
@@ -29,7 +32,7 @@ Every prop gets a JSDoc comment in the component.
 |---|---|---|---|
 | `label` | `string` | — | The text in the outline: a section's shown name ("Main C", "Intro II", "Break") or a style's name, drawn as given (not trimmed). Empty or only whitespace (`label.trim() === ''`): nothing is rendered (no empty outline, D7). |
 | `hue` | `'intro' \| 'main' \| 'ending' \| 'brk' \| 'fill' \| 'a' \| 't'` | `'t'` | The kit hue role of the border and the text: a section hue for a section, `a` for a queued style (the accent), `t` for a neutral waiting chip (kit › Faces, "or `--t`"). |
-| `size` | `'count' \| 'line' \| 'display'` | `'count'` | `count`: 26 tall, 18px light, padding 0 8 (the count row). `line`: 26 tall, 14px regular, padding 0 8, at most 200 wide with an ellipsis (the style line's queued style). `display`: 48 tall, 36px light, letter-spacing −1, padding 0 10 (the display's next section). |
+| `size` | `'count' \| 'line' \| 'display'` | `'count'` | `count`: 26 tall, `--type-readout` (the count row). `line`: 26 tall, `--type-body`, at most 200 wide with an ellipsis (the style line's queued style). `display`: 44 tall, `--type-readout-lg` (the display's next section). |
 
 ### Events
 
@@ -45,7 +48,7 @@ Every prop gets a JSDoc comment in the component.
 
 ### Visual rules
 
-- **Tokens used:** `--intro`, `--main`, `--ending`, `--brk`, `--fill`, `--a`, `--t`, `--radius`, `--line-width`, `--font-sans`, `--text-14`, `--text-18`, `--text-36`, `--weight-light`, `--weight-regular`, `--space-8`, `--space-10`, and the new tokens below.
+- **Tokens used:** `--intro`, `--main`, `--ending`, `--brk`, `--fill`, `--a`, `--m`, `--type-readout`, `--tracking-readout`, `--type-body`, `--tracking-body`, `--type-readout-lg`, `--tracking-readout-lg`, `--chip-height`, `--chip-height-display`, `--chip-max`. (The table below is the original contract PR's; its 36px tracking token and the old raw sizes are gone.)
 
 #### New tokens
 
@@ -56,7 +59,7 @@ Not in `app/src/ui/tokens/*` today. They land in the orchestrator's tokens contr
 | `--chip-height` | `26px` | `26px` | the chip's height at `count` and `line` (scale.css) |
 | `--chip-height-display` | `48px` | `48px` | the chip's height at `display` (scale.css) |
 | `--chip-max` | `200px` | `200px` | the `line` chip's maximum width, border included (scale.css) |
-| `--tracking-36` | `-1px` | `-1px` | letter-spacing of 36px light text (scale.css) |
+| `--type-*`, `--tracking-*` | | | the chip's text roles (scale.css): `readout`, `body` at `line`, `readout-lg` at `display` |
 | `--main` (changed, Stage C6) | unchanged (`--green-400` #4fd66a) | #1c8040 → **#19733a** (on `--g` 4.42 → 5.23; on `--btn` 4.60) | the Main hue's text on the ground; the light palette entry `--green-700` changes, so light `--ok` moves with it |
 | `--intro` (changed, Stage C6) | unchanged (`--gold-400` #bfb24e) | #857a1f → **#6e651a** (3.87 → 5.25; on `--btn` 4.62) | the Intro hue's text on the ground; light `--gold-700` changes |
 | `--brk` (changed, Stage C6) | #8f62a8 → **#986faf** (on black 4.48 → 5.23; on `--btn` 4.50) | unchanged (`--plum-600` #7a4a96) | the Break hue's text on the ground; dark `--plum-400` changes |
@@ -67,11 +70,11 @@ These are Stage.md C6's values, not this spec's own: C6 picks, per palette entry
 - **Face (every size):** transparent background; border `--line-width` solid in the hue (`var(--<hue>)`); radius `--radius` (4); text in the hue. No glow, no fill, no bar.
 - **Size:**
 
-  | Size | Height | Padding (top/bottom 0) | Line-height | Type | Letter-spacing | Width |
-  |---|---|---|---|---|---|---|
-  | `count` | `--chip-height` (26) | `--space-8` each side | `calc(var(--chip-height) - 2 * var(--line-width))` (24) | `--text-18`, `--weight-light` (300) | 0 | the label; never truncated |
-  | `line` | `--chip-height` (26) | `--space-8` each side | 24 (as `count`) | `--text-14`, `--weight-regular` (400) | 0 | the label, at most `--chip-max` (200, border included); longer: `overflow: hidden; text-overflow: ellipsis` |
-  | `display` | `--chip-height-display` (48) | `--space-10` each side | `calc(var(--chip-height-display) - 2 * var(--line-width))` (46) | `--text-36`, `--weight-light` (300) | `--tracking-36` (−1px) | the label; never truncated |
+  | Size | Height | Padding | Line-height | Type | Width |
+  |---|---|---|---|---|---|
+  | `count` | `--chip-height` (26) | 0 | `--chip-height` | `--type-readout` / `--tracking-readout` | the label; never truncated |
+  | `line` | `--chip-height` (26) | 0 | `--chip-height` | `--type-body` / `--tracking-body` | the label, at most `--chip-max` (200); longer: `overflow: hidden; text-overflow: ellipsis` |
+  | `display` | `--chip-height-display` (44) | 0 | `--chip-height-display` | `--type-readout-lg` / `--tracking-readout-lg` | the label; never truncated |
 
   Measured on the board: "Main C" at `count` is 75 × 26, at `display` 130 × 48.
 - **States drawn by:** one face; the hue is the only thing that changes. Empty or whitespace-only `label`: no element at all (the component renders nothing, not even a wrapper).
@@ -93,8 +96,8 @@ Title `Primitives/WaitingChip`, `layout: 'centered'`. Every story renders in dar
 
 | Story | Args | Shows | Crop | Play (interaction check) |
 |---|---|---|---|---|
-| `Board` | `{ label: 'Main C', hue: 'main', size: 'count' }` | an 18px light green "Main C", no outline | `Board-{dark,light}.png` (Stage 667,71 75×26; cut from the old outlined board, so it no longer matches) | the text "Main C" is in a span with `data-face="waiting"`, `data-hue="main"`, `data-size="count"`; no `button`, no focusable element |
-| `Display` | `{ label: 'Main C', hue: 't', size: 'display' }` | Round 2's next section: a 28px light, muted "Main C" | `Display-{dark,light}.png` (Stage 557,191 130×48; cut from the old outlined board, so it no longer matches) | — |
+| `Board` | `{ label: 'Main C', hue: 'main', size: 'count' }` | a green `--type-readout` "Main C", no outline | `Board-{dark,light}.png` (Stage 667,71 75×26; cut from the old outlined board, so it no longer matches) | the text "Main C" is in a span with `data-face="waiting"`, `data-hue="main"`, `data-size="count"`; no `button`, no focusable element |
+| `Display` | `{ label: 'Main C', hue: 't', size: 'display' }` | the next section: a muted `--type-readout-lg` "Main C" | `Display-{dark,light}.png` (Stage 557,191 130×48; cut from the old outlined board, so it no longer matches) | — |
 | `QueuedStyle` | `{ label: 'Coastal Highway', hue: 'a', size: 'line' }` | the style line's queued style in the accent | — (no board draws a queued style) | `data-hue="a"`, `data-size="line"`, text "Coastal Highway" |
 | `Empty` | `{ label: '', hue: 'main', size: 'count' }`, `parameters: { rendersNothing: true }` | nothing (no next) | — | no `[data-face]` in the story root |
 

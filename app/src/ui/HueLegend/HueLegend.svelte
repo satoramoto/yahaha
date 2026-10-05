@@ -32,10 +32,8 @@
     flex: none;
     align-items: center;
     gap: var(--space-12);
-    font-family: var(--font-sans);
-    font-size: var(--text-12);
-    font-weight: var(--weight-regular);
-    line-height: normal;
+    font: var(--type-small);
+    letter-spacing: var(--tracking-small);
     white-space: nowrap;
   }
   .item {

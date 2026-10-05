@@ -69,9 +69,10 @@
     cursor: pointer;
   }
   .head {
-    font-size: var(--text-12);
-    font-weight: var(--weight-regular);
-    color: var(--m);
+    font: var(--type-small);
+    letter-spacing: var(--tracking-small);
+    font-variant-numeric: tabular-nums;
+    color: var(--caption-ink);
   }
   .slot {
     color: var(--t);
@@ -82,8 +83,9 @@
     gap: var(--space-6);
     max-width: 100%;
     overflow: hidden;
-    font-size: var(--text-14);
-    line-height: var(--leading-16);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
+    line-height: var(--label-height);
     color: var(--t);
   }
   .rack:focus-visible {

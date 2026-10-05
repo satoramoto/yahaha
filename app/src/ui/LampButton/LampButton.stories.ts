@@ -3,10 +3,10 @@ import { expect, fireEvent, fn, userEvent, within } from 'storybook/test'
 import LampButton from './LampButton.svelte'
 
 /**
- * The on/off control the whole canvas uses: Accomp, Metronome, part On, Sound, Looper, drawn as
- * Round 2's lamp: the plain button face with a 2px bar under the label. Lit is the bright label
- * over the bar in its `hue`, glowing; off is a quieter label over a dim bar; armed is the label in
- * its hue over a dashed bar. Controlled: a click asks for `!on` through `ontoggle`.
+ * The on/off control the whole canvas uses: Accomp, Metronome, part On, Sound, Looper, in the
+ * state language. Off is a 1px outline and label in its `hue`, no fill; lit is a solid fill in the
+ * hue with the label in `--on-ink`; armed is a 2px ring over a faint fill of the hue; disabled is
+ * the `--absent` outline and label. Controlled: a click asks for `!on` through `ontoggle`.
  * A long press (or right-click) calls `onlongpress` / `onlongrelease` and never toggles.
  */
 const meta = {
@@ -45,7 +45,7 @@ export const Board: Story = {
   },
 }
 
-/** Lit: the white label (medium) over a white bar with its glow, and the small code (Round 2's Accomp). */
+/** Lit: the solid neutral fill, the label and the small code in `--on-ink`. */
 export const On: Story = {
   args: { label: 'Accomp', code: 'ACMP', on: true },
   play: async ({ canvasElement }) => {
@@ -77,7 +77,7 @@ export const Toggles: Story = {
   },
 }
 
-/** Shown, not pressable: dimmed label on the off face, 64 × 28 (a settings row's On/Off). */
+/** Shown, not pressable: the `--absent` outline and label, 64 × 28 (a settings row's On/Off). */
 export const Disabled: Story = {
   args: { label: 'Off', size: 'sm', width: 64, disabled: true, name: 'Manual Bass, works with Upper on' },
   play: async ({ canvasElement, args }) => {
@@ -97,12 +97,12 @@ export const Disabled: Story = {
   },
 }
 
-/** Off: the `--t2` label over the dim grey bar (Round 2's Metronome and Unison). */
+/** Off: a 1px neutral outline and label, no fill (Metronome, Unison). Off keeps its colour. */
 export const Off: Story = {
   args: { label: 'Metronome' },
 }
 
-/** A part lamp, lit: the white label over the bar in the part's hue, glowing (Round 2's Right 1 "On"). */
+/** A part lamp, lit: the solid fill in the part's hue (Right 1 "On"). */
 export const PartOn: Story = {
   args: { label: 'On', size: 'cell', on: true, hue: 'r1', name: 'Right 1 on' },
   parameters: { layout: 'padded' },
@@ -114,7 +114,7 @@ export const PartOnR2: Story = {
   parameters: { layout: 'padded' },
 }
 
-/** A part lamp, off: the muted label over the part's hue at 30% (Round 2's Right 3 "Off"). */
+/** A part lamp, off: the outline and label in the part's hue, no fill (Right 3 "Off"). */
 export const PartOff: Story = {
   args: { label: 'Off', size: 'cell', hue: 'r3', name: 'Right 3 off' },
   parameters: { layout: 'padded' },
@@ -126,37 +126,37 @@ export const LeftOn: Story = {
   parameters: { layout: 'padded' },
 }
 
-/** A function lamp, off: `--t2` label over the grey bar (Round 2's Harm/Arp, L Hold, Looper). */
+/** A function lamp, off: the `--m` outline and label (Harm/Arp, L Hold, Looper). */
 export const FunctionOff: Story = {
   args: { label: 'Harm/Arp', size: 'cell', hue: 'm' },
   parameters: { layout: 'padded' },
 }
 
-/** A function lamp, latched: a soft white bar with no glow (Round 2's Sound). */
+/** A function lamp, latched: the solid `--m` fill (Sound). */
 export const FunctionOn: Story = {
   args: { label: 'Sound', size: 'cell', hue: 'm', on: true },
   parameters: { layout: 'padded' },
 }
 
-/** The green running lamp (Round 2's Start / Stop bar). */
+/** The running lamp: the solid `--ok` fill (Start / Stop). */
 export const Running: Story = {
   args: { label: 'Start / Stop', on: true, hue: 'ok' },
 }
 
-/** The record lamp, lit: the bar in record red. */
+/** The record lamp, lit: the solid `--rec` fill. */
 export const Recording: Story = {
   args: { label: 'Looper', size: 'cell', on: true, rec: true, name: 'Looper, recording' },
   parameters: { layout: 'padded' },
 }
 
-/** Loop armed: the white label over a dashed white bar. */
+/** Loop armed: a 2px `--m` ring over a faint `--m` fill, the label in `--m`. */
 export const ArmedLoop: Story = {
   args: { label: 'Looper', size: 'cell', waiting: true, hue: 'm', name: 'Looper, loop armed' },
   parameters: { layout: 'padded' },
 }
 
 /**
- * Looper's Rec armed in the lamp row: the label in `--rec` over a dashed `--rec` bar. A click asks
+ * Looper's Rec armed in the lamp row: a 2px `--rec` ring over a faint `--rec` fill. A click asks
  * to toggle; the parent, not the click, lights it.
  */
 export const Armed: Story = {

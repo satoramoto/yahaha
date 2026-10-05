@@ -1,11 +1,27 @@
 # Button
 
-> **Superseded look (Round 2 restyle, PR #550).** The on face is no longer the lime `--lamp` fill.
-> It is the plain button face with the label in `--t`, medium, over a 2px white bar (`--t`, with
-> `--lamp-glow-t`), the same bar as LampButton's lit lamp: `--bar-bottom` above the bottom, inset
-> `--space-8` a side (`icon`: `--space-6`). Symbols in the on face follow the `--t` label. The
-> running `bar` (Start / Stop) glows with `--lamp-glow-ok`. Where the sections below disagree, this
-> note wins.
+> **The state language (Stage screen cleanup, PR #550).** The grey `--btn` tile, the lime on face,
+> the bars under the label and every weight change are gone. `hue` (default `t`, drawn as
+> `--neutral`; `lamp` draws `--lamp-line`) colours every face, set on the button as `--hue` and
+> `data-hue`:
+> - **Off (rest):** no fill, a 1px inset outline (`box-shadow: inset 0 0 0 var(--outline-width) var(--hue)`,
+>   so the size never changes), label and symbol in the hue. The caret's rest is the same neutral
+>   outline.
+> - **On, chosen:** a solid fill in the hue, label and symbol in `--on-ink`. No bar, no glow.
+>   `expanded` (with `popup`) draws the on face.
+> - **Waiting:** a 2px inset ring (`--outline-width-wait`) in the hue over a faint fill of it (a
+>   `::before` under the label at `--wait-fill-opacity`), label in the hue.
+> - **Disabled:** a 1px `--absent` outline and an `--absent` label, no fill, whatever the face;
+>   `data-contrast="dim"`.
+> - **`bar` (Start / Stop running, `band`):** `bar: true` is the on face in `--ok` (solid green,
+>   `--on-ink` label), with `data-bar` on the `<button>` and `data-hue="ok"`; `bar: false` or
+>   undefined draws the face the other props give. No span, no padding change.
+> - **Type:** every size's label is `font: var(--type-small); letter-spacing: var(--tracking-small)`
+>   then `font-variant-numeric: tabular-nums`. ▲ ▼ ▾ are `--glyph-sm`, ◀ ▶ `--glyph-md`, + − the
+>   label's own type. `compact` and `strong` are kept for compatibility (types unchanged) and change
+>   nothing. Corners are square (`--radius: 0`); `join` keeps its classes.
+>
+> Where the sections below disagree, this note wins.
 
 ## Identity (all stations)
 
@@ -27,17 +43,17 @@
 |---|---|---|---|
 | `label` | `string` | `''` | The word or character on the face ("Panic", "Stop", "1", "?"). May be empty when `symbol` is set. |
 | `symbol` | `'prev' \| 'next' \| 'up' \| 'down' \| 'plus' \| 'minus' \| 'caret' \| undefined` | — | A glyph after the label (or alone): `prev` ◀ (U+25C0), `next` ▶ (U+25B6), `up` ▲ (U+25B2), `down` ▼ (U+25BC), `plus` + (U+002B), `minus` − (U+2212), `caret` ▾ (U+25BE). Drawn per Visual rules, `aria-hidden`. |
-| `size` | `'icon' \| 'md' \| 'band' \| 'pair' \| 'cell' \| 'caret'` | `'md'` | `icon` 32 × 32, centred (◀ ▶ ▲ ▼, ?, One Touch 1–4). `md` 32 tall, 14px side padding, width from the label (Panic). `band` 88 × 32, label left-aligned, 8px side padding (the transport and tempo column). `pair` 41 × 32, centred, no padding, 13px (Reset, Fade, Fill ▲ ▼). `cell` 32 tall, fills its container's width, centred, 13px (Panel in the lamp row). `caret` 20 × 32, centred, the ▾ in `--m` (Metronome settings). |
-| `compact` | `boolean` | `false` | 13px label instead of 14 in `icon`, `md` and `band` (Style tempo, Start / Stop, Audition). `pair` and `cell` are always 13. |
-| `strong` | `boolean` | `false` | Label in `--t` at medium weight on the off face (Start / Stop). |
-| `bar` | `boolean \| undefined` | — | The running bar (Start / Stop), for `size: 'band'` only. Undefined: no bar and normal padding. `false`: the bar's room is kept (padding `0 4px 3px 8px`) but nothing drawn. `true`: the 2px `--ok` bar with the `--bg` glow is drawn. On any other size `bar` is ignored: no span, no padding change (D18). |
-| `on` | `boolean` | `false` | The lamp face: switched on (help mode's ?, Fade while fading or holding). |
-| `chosen` | `boolean` | `false` | The chosen face: the one picked from a set (the applied One Touch). |
-| `waiting` | `boolean` | `false` | The waiting face: queued or armed (Fade armed), outlined in `hue`. |
-| `hue` | `'t' \| 't2' \| 'm' \| 'a' \| 'lamp' \| 'rec' \| 'ok' \| 'r1' \| 'r2' \| 'r3' \| 'l' \| 'intro' \| 'main' \| 'ending' \| 'brk' \| 'fill'` | `'t2'` | The colour token (without `--`) of the waiting face's outline and label. Ignored by the other faces. |
+| `size` | `'icon' \| 'md' \| 'band' \| 'pair' \| 'cell' \| 'caret'` | `'md'` | `icon` 32 × 32, centred (◀ ▶ ▲ ▼, ?, One Touch 1–4). `md` 32 tall, 14px side padding, width from the label (Panic). `band` 88 × 32, label left-aligned, 8px side padding (the transport and tempo column). `pair` 41 × 32, centred, no padding (Reset, Fade, Fill ▲ ▼). `cell` 32 tall, fills its container's width, centred (Panel in the lamp row). `caret` 20 × 32, centred (Metronome settings). |
+| `compact` | `boolean` | `false` | Kept for compatibility; changes nothing (every label is `--type-small`). |
+| `strong` | `boolean` | `false` | Kept for compatibility; changes nothing (the rest label is already in its hue). |
+| `bar` | `boolean \| undefined` | — | Start / Stop running, for `size: 'band'` only. `true`: the on face in `--ok`, `data-bar` on the button. `false` or undefined: the face the other props give. On any other size `bar` is ignored (D18). |
+| `on` | `boolean` | `false` | The on face: switched on (help mode's ?, Fade while fading or holding), a solid fill in the hue. |
+| `chosen` | `boolean` | `false` | The chosen face: the one picked from a set (the applied One Touch), a solid fill in the hue. |
+| `waiting` | `boolean` | `false` | The waiting face: queued or armed (Fade armed), a 2px ring over a faint fill of the hue. |
+| `hue` | `'t' \| 't2' \| 'm' \| 'a' \| 'lamp' \| 'rec' \| 'ok' \| 'r1' \| 'r2' \| 'r3' \| 'l' \| 'intro' \| 'main' \| 'ending' \| 'brk' \| 'fill'` | `'t'` | The colour token (without `--`) of every face: the rest outline and label, the on and chosen fill, the waiting ring and fill. `t` draws `--neutral`, `lamp` `--lamp-line`. |
 | `pressed` | `boolean \| undefined` | — | Sets `aria-pressed` (`"true"` / `"false"`; a button that is a switch or a choice: ?, One Touch, Start / Stop, Fade). Undefined: no `aria-pressed` attribute (a plain action: Panic, Stop, ◀). Never changes the look. |
 | `popup` | `'dialog' \| 'menu' \| undefined` | — | Sets `aria-haspopup` (the caret opens a dialog). |
-| `expanded` | `boolean` | `false` | With `popup`: `aria-expanded`, and the caret's ▾ turns `--t` while open. Without `popup`: ignored, no `aria-expanded`. |
+| `expanded` | `boolean` | `false` | With `popup`: `aria-expanded`, and the on face while open. Without `popup`: ignored, no `aria-expanded`. |
 | `controls` | `string \| undefined` | — | Sets `aria-controls` (the id of the popover the caret opens). |
 | `join` | `'start' \| 'end' \| undefined` | — | Joined to a neighbour: `start` rounds only the left corners (`var(--radius) 0 0 var(--radius)`), `end` only the right (`0 var(--radius) var(--radius) 0`). Undefined: all four `--radius`. The caret is `join: 'end'`. |
 | `disabled` | `boolean` | `false` | Shown, not pressable (`aria-disabled="true"`, stays focusable; no `aria-disabled` attribute when enabled, L5): no `onpress`, `onhold` or long press. |
@@ -67,53 +83,34 @@ Face precedence when more than one is set: `chosen`, then `on`, then `waiting`, 
 
 ### Visual rules
 
-- **Tokens used:** `--btn`, `--t`, `--t2`, `--m`, `--d`, `--g`, `--lamp`, `--lamp-ink`, `--ok`, `--bg`, the hue tokens named by `hue`, `--focus`, `--radius`, `--font-sans`, `--text-9`, `--text-10`, `--text-12`, `--text-13`, `--text-14`, `--weight-light`, `--weight-regular`, `--weight-medium`, `--space-2`, `--space-4`, `--space-8`, `--space-14`, `--control-height`, `--line-width`, `--focus-offset`; the new tokens below (`--text-9`, `--text-10`, `--button-band-width`, `--button-pair-width`, `--caret-width`, `--bar-bottom`, `--bar-lift`, `--lamp-line`). Through the action: `--long-press`.
-
-#### New tokens
-
-Not in `app/src/ui/tokens/*` today; they land in the orchestrator's tokens contract PR before this component is built (L1). The component uses them by name and never hard-codes their values.
-
-| Token | Dark | Light | Used for |
-|---|---|---|---|
-| `--text-9` | `9px` | `9px` | ▲ ▼ after a label (Fill ▲) (`scale.css`) |
-| `--text-10` | `10px` | `10px` | the ▾ caret (`scale.css`) |
-| `--long-press` | `350ms` | `350ms` | the long-press time, through the action (`scale.css`) |
-| `--button-band-width` | `88px` | `88px` | `band` width (`scale.css`) |
-| `--button-pair-width` | `41px` | `41px` | `pair` width (`scale.css`) |
-| `--caret-width` | `20px` | `20px` | `caret` width (`scale.css`) |
-| `--bar-bottom` | `5px` | `5px` | the running bar's distance from the bottom (`scale.css`) |
-| `--bar-lift` | `3px` | `3px` | the bottom padding that keeps the bar's room in `band` (`scale.css`) |
-| `--lamp-line` | `var(--lime-400)` | `var(--lime-750)`, new palette step `#477b0c` | the waiting face in `hue: 'lamp'` (defined by LampButton's spec; the same token) |
-- **Box:** a native `<button type="button">`, `box-sizing: border-box`, no border, `margin: 0`, height `--control-height` (32) in every size, radius `--radius` (or `join`'s), `white-space: nowrap`, `line-height: normal`, no flex (the label, a space and the symbol are inline text, as the board draws them). Never wraps; no ellipsis.
+- **Tokens used:** `--neutral`, `--lamp-line`, `--ok`, the hue tokens named by `hue`, `--on-ink`, `--absent`, `--wait-fill-opacity`, `--outline-width`, `--outline-width-wait`, `--type-small`, `--tracking-small`, `--glyph-sm`, `--glyph-md`, `--focus`, `--radius`, `--space-8`, `--space-14`, `--control-height`, `--button-band-width`, `--button-pair-width`, `--caret-width`, `--line-width`, `--focus-offset`. Through the action: `--long-press`.
+- **Box:** a native `<button type="button">`, `box-sizing: border-box`, no border, `margin: 0`, height `--control-height` (32) in every size, radius `--radius` (or `join`'s), `white-space: nowrap`, no flex (the label, a space and the symbol are inline text, as the board draws them). `position: relative; isolation: isolate` so the waiting fill's `::before` sits at `z-index: -1` under the label. Never wraps; no ellipsis.
 - **Size:**
 
-  | Size | Width | Padding | Align | Label | Symbol alone |
-  |---|---|---|---|---|---|
-  | `icon` | `--control-height` (32) | 0 | centre | 14 (`compact` 13) | `--text-12` |
-  | `md` | from content | `0 var(--space-14)` | centre | 14 (`compact` 13) | `--text-12` |
-  | `band` | `--button-band-width` (88) | `0 var(--space-8)`; with `bar` defined `0 var(--space-4) var(--bar-lift) var(--space-8)` | left | 14 (`compact` 13) | `--text-12` |
-  | `pair` | `--button-pair-width` (41) | 0 | centre | 13 | `--text-12` |
-  | `cell` | 100% of its container, `min-width: 0` | 0 | centre | 13 | `--text-12` |
-  | `caret` | `--caret-width` (20) | 0 | centre | 13 | `--text-10` |
+  | Size | Width | Padding | Align |
+  |---|---|---|---|
+  | `icon` | `--control-height` (32) | 0 | centre |
+  | `md` | from content | `0 var(--space-14)` | centre |
+  | `band` | `--button-band-width` (88) | `0 var(--space-8)` | left |
+  | `pair` | `--button-pair-width` (41) | 0 | centre |
+  | `cell` | 100% of its container, `min-width: 0` | 0 | centre |
+  | `caret` | `--caret-width` (20) | 0 | centre |
 
-  "Symbol alone" applies to `prev`, `next`, `up`, `down` and `caret`. A lone `plus` or `minus` is at the label size of its row (14, `compact` 13; 13 in `pair` and `cell`), as after a label (D20).
-- **Symbol after a label:** one space, then the glyph in an `aria-hidden` `<span>`: `up` and `down` at `--text-9` (Fill ▲); `plus` and `minus` at the label's size; `prev`, `next` and `caret` at `--text-12`, `--text-12`, `--text-10`. The span is inline with `vertical-align: baseline` (the default) and no `line-height` of its own, so a smaller glyph sits on the label's baseline, as the board draws Fill ▲ (D21).
-- **Symbol weight:** `plus` and `minus` are always `--weight-light` (300), alone or after a label, in every face and with `strong`. Every other glyph has the label's weight: regular on the off face, medium in the on and chosen faces and with `strong`, regular in the waiting face (D20).
-- **Symbol colour:** the glyph takes the label's colour in every face (off `--t2`, or `--t` with `strong`; on `--lamp-ink`; chosen `--g`; waiting the hue; disabled `--d`). The one exception is `size: 'caret'` on the off face: ▾ in `--m`, `--t` while `expanded`. In the on, chosen and waiting faces the caret's ▾ follows the face like any glyph (`--lamp-ink`, `--g`, the hue), and `expanded` changes nothing there; disabled it is `--d` (D22).
-- **States drawn by** (`data-face` on the `<button>`):
-  - off (`off`): `--btn` fill; label `--t2`, regular. `strong`: `--t`, medium. `caret`: `--m` (`--t` while `expanded`).
-  - on (`on`): `--lamp` fill, `--lamp-ink` label, medium.
-  - chosen (`chosen`): `--t` fill, `--g` label, medium.
-  - waiting (`waiting`): transparent fill, a `--line-width` outline drawn as `box-shadow: inset 0 0 0 var(--line-width) var(--<hue>)` (D3), label `--<hue>`, regular (also with `strong`: `strong` acts only on the off face); `data-hue="<hue>"` on the button (only in this face). `hue: 'lamp'` draws in `--lamp-line`, not `--lamp` (D23); every other hue uses its own token.
-  - disabled: the face it would have, label and symbol `--d`, `cursor: default`; a `bar` keeps its `--ok` fill and glow (it shows the transport's state, not the button's); `data-face="disabled"` (whatever face it would have; `data-hue` stays when that face is waiting) and `data-contrast="dim"` on the `<button>` (D25, D26).
-  - the bar's room (`band` with `bar` defined): the bottom padding `--bar-lift` (3px) leaves a 29px content box, and the native `<button>` centres its one line of text in that box, so the label's line box sits 1.5px higher than in a plain `band` button. That is the whole mechanism (no `transform`, no `top` offset); it matches the `Running` crop (D17).
-  - bar (`bar` true, `band` only): an `aria-hidden` span with `data-bar`, `position: absolute` (the button is `position: relative`), left and right `--space-8`, bottom `--bar-bottom`, height `--space-2`, radius `calc(var(--space-2) / 2)`, `--ok` fill, `box-shadow: var(--bg)` (none in light). `bar` false or undefined: no span.
+- **Symbols:** one space after a label, then the glyph in an `aria-hidden` `<span>`, inline on the label's baseline with no `line-height` of its own (D21). ▲ ▼ ▾ are `font-size: var(--glyph-sm)`, ◀ ▶ `var(--glyph-md)`, alone or after a label; + − take the label's type. Every glyph takes the label's colour in every face, and no glyph changes weight (D20, D22 superseded).
+- **States drawn by** (`data-face` on the `<button>`; `--hue` the hue's colour):
+  - off (`off`): transparent, `box-shadow: inset 0 0 0 var(--outline-width) var(--hue)`, label `--hue`. The caret too.
+  - on (`on`; also `expanded` with `popup`, and `bar: true` in `band`): `background: var(--hue)`, label `--on-ink`.
+  - chosen (`chosen`): the same solid fill and `--on-ink` label.
+  - waiting (`waiting`): `box-shadow: inset 0 0 0 var(--outline-width-wait) var(--hue)` over a `::before` filling the box in `--hue` at `--wait-fill-opacity`; label `--hue`.
+  - disabled: transparent, a 1px `--absent` outline, label and symbol `--absent`, no waiting fill, `cursor: default`; `data-face="disabled"` and `data-contrast="dim"` on the `<button>` (D25, D26).
+  - running (`bar: true`, `band` only): the on face with `--hue` `--ok` (unless `chosen`), `data-hue="ok"` and `data-bar` on the `<button>`. `bar` false or undefined: no `data-bar`.
   - joined (`join`): radii only, in every face.
   - keyboard focus: `--line-width` outline in `--focus` at `--focus-offset` on `:focus-visible`; nothing on mouse focus.
   - No hover or pressed look; `cursor: pointer` when enabled (kit D35).
-- **Type:** DM Sans, sentence case as given, `font-variant-numeric: tabular-nums`; sizes per the table.
-- **Contrast (AA 4.5:1, `tokens/contrast.test.ts`):** existing rows `--t2` on `--btn`, `--m` on `--btn`, `--lamp-ink` on `--lamp`, `--t2` on `--g` (waiting in `--t2` over the ground). New rows, which land with the tokens contract PR (L1): `--g` on `--t` ("chosen label (Button)": 21:1 dark, 16.72:1 light) and `--t` on `--btn` ("strong label, open caret (Button)": 18.10:1 dark, 14.70:1 light); both pass with today's values. Disabled `--d` is exempt. A waiting face in a hue other than `t2` is the parent's row to list (`lamp` uses `--lamp-line`, whose row LampButton's spec adds).
-- **Motion:** none (the running bar is static; it comes and goes with `bar`).
+- **Test hooks:** `data-face` (`off`, `on`, `chosen`, `waiting`, `disabled`), `data-hue` (the hue drawn, in every face) and `data-bar` (running).
+- **Type:** `font: var(--type-small); letter-spacing: var(--tracking-small)` then `font-variant-numeric: tabular-nums`, sentence case as given, at every size and in every face.
+- **Contrast (AA 4.5:1, `tokens/contrast.test.ts`):** a rest label in its hue on `--g`, and `--on-ink` on each fill, are the token contract's rows. Disabled `--absent` is exempt.
+- **Motion:** none.
 
 ### Accessibility
 
@@ -129,31 +126,31 @@ Title `Primitives/Button`, `layout: 'centered'` unless the row says otherwise. E
 
 **Timing in plays (L4):** pointer events are `fireEvent.pointerDown` / `pointerUp` / `pointerCancel(button, { pointerId, button: 0, clientX: 0, clientY: 0 })` (jsdom 30 has `PointerEvent`; it has no pointer capture, so the component's guarded `setPointerCapture?.` call does nothing there). Plays use real time: "wait 500 ms" is `await new Promise((r) => setTimeout(r, 500))`, and a long press is awaited with `waitFor(…, { timeout: 1000 })`.
 
-Built so far (PR #550): `Board`, `Icon`, `BandOn`, `On`, `Chosen`, `Band`, `Waiting`, `Disabled`, `Hold` and `LongPress`. The other rows are not built yet.
+Built so far (PR #550): `Board`, `Icon`, `BandOn`, `On`, `Chosen`, `Band`, `Running`, `Stopped`, `Waiting`, `Disabled`, `Hold` and `LongPress`. The other rows are not built yet. The crops predate the state language (PR #550) and no longer match its faces.
 
 | Story | Args | Shows | Crop | Play (interaction check) |
 |---|---|---|---|---|
 | `Board` | `{ symbol: 'caret', size: 'caret', join: 'end', popup: 'dialog', expanded: false, name: 'Metronome settings', tip: 'metronome.settings' }` | the first Button in reading order on the Stage board: the Metronome caret, closed (D1) | `Board-{dark,light}.png` (Stage 1201,68 20×32) | the button named `Metronome settings` has `aria-haspopup="dialog"`, `aria-expanded="false"`, no `aria-pressed`, no `aria-disabled`, `data-face="off"`, `data-tip="metronome.settings"`; `tipAction` was called with the button and `'metronome.settings'`; click → `onpress` called once |
-| `CaretExpanded` | `Board` args with `expanded: true` | the caret while its popover is open: ▾ in `--t` | `CaretExpanded-{dark,light}.png` (Stage-Metronome 1201,68 20×32) | `aria-expanded` is `true` |
-| `Md` | `{ label: 'Panic', size: 'md', name: 'Panic: all notes off', tip: 'transport.panic' }` | the off face, padding 0 14, `--t2` label | `Md-{dark,light}.png` (Stage 1313,68 63×32) | click, then Space, then Enter → `onpress` called 3 times, each with no arguments; no `aria-pressed`, no `aria-disabled`; `data-tip="transport.panic"` |
-| `Icon` | `{ label: '?', size: 'icon', pressed: false, name: 'Help mode' }` | a 32 × 32 off button with a 14px character | `Icon-{dark,light}.png` (Stage 1384,68 32×32) | `aria-pressed` is `false`; `data-face="off"` |
-| `BandOn` | `{ label: 'Fade', size: 'band', on: true, pressed: true }` | a band button switched on (Fade while fading): the white label over a glowing white bar | — | — |
-| `On` | `{ label: '?', size: 'icon', on: true, pressed: true, name: 'Help mode' }` | the on face (help mode on): a white "?" over a glowing white bar | `On-{dark,light}.png` (Stage-Help 1384,68 32×32) | `aria-pressed` is `true`; `data-face="on"` |
-| `IconSymbol` | `{ symbol: 'prev', size: 'icon', name: 'Previous style (Track left)' }` | ◀ alone at 12px | `IconSymbol-{dark,light}.png` (Stage 49,129 32×32) | the button's accessible name is `Previous style (Track left)`; its text "◀" is inside an `aria-hidden` element |
-| `Chosen` | `{ label: '2', size: 'icon', chosen: true, pressed: true, name: 'One Touch 2, applied' }` | the white chosen block, medium label | `Chosen-{dark,light}.png` (Stage 483,129 32×32) | `data-face="chosen"`; `aria-pressed` `true` |
+| `CaretExpanded` | `Board` args with `expanded: true` | the caret while its popover is open: the on face | `CaretExpanded-{dark,light}.png` (Stage-Metronome 1201,68 20×32) | `aria-expanded` is `true` |
+| `Md` | `{ label: 'Panic', size: 'md', name: 'Panic: all notes off', tip: 'transport.panic' }` | the off face, padding 0 14, neutral outline and label | `Md-{dark,light}.png` (Stage 1313,68 63×32) | click, then Space, then Enter → `onpress` called 3 times, each with no arguments; no `aria-pressed`, no `aria-disabled`; `data-tip="transport.panic"` |
+| `Icon` | `{ label: '?', size: 'icon', pressed: false, name: 'Help mode' }` | a 32 × 32 button at rest | `Icon-{dark,light}.png` (Stage 1384,68 32×32) | `aria-pressed` is `false`; `data-face="off"` |
+| `BandOn` | `{ label: 'Fade', size: 'band', on: true, pressed: true }` | a band button switched on (Fade while fading): the solid neutral fill, `--on-ink` label | — | — |
+| `On` | `{ label: '?', size: 'icon', on: true, pressed: true, name: 'Help mode' }` | the on face (help mode on): the solid neutral fill, "?" in `--on-ink` | `On-{dark,light}.png` (Stage-Help 1384,68 32×32) | `aria-pressed` is `true`; `data-face="on"` |
+| `IconSymbol` | `{ symbol: 'prev', size: 'icon', name: 'Previous style (Track left)' }` | ◀ alone at `--glyph-md` | `IconSymbol-{dark,light}.png` (Stage 49,129 32×32) | the button's accessible name is `Previous style (Track left)`; its text "◀" is inside an `aria-hidden` element |
+| `Chosen` | `{ label: '2', size: 'icon', chosen: true, pressed: true, name: 'One Touch 2, applied' }` | the chosen face: the solid neutral fill, `--on-ink` label | `Chosen-{dark,light}.png` (Stage 483,129 32×32) | `data-face="chosen"`; `aria-pressed` `true` |
 | `Band` | `{ label: 'Stop', size: 'band', name: 'Stop (fade with hold)' }` | 88 × 32, label left at 8px | `Band-{dark,light}.png` (Stage 1328,514 88×32) | — |
-| `Running` | `{ label: 'Start / Stop', size: 'band', compact: true, strong: true, bar: true, pressed: true, name: 'Start / Stop, running', tip: 'transport.start_stop' }` | `--t` 13/500 label, centred in the 29px above the 3px bottom padding (1.5px above a plain band label), over the green bar | `Running-{dark,light}.png` (Stage 1328,476 88×32) | one `[data-bar]` element inside, `aria-hidden`; `aria-pressed` `true` |
-| `Stopped` | `Running` args with `bar: false, pressed: false, name: 'Start / Stop'` | the same label and padding, no bar | — (the board draws only running) | no `[data-bar]` element; `aria-pressed` `false` |
-| `BandSymbol` | `{ label: 'Tempo', symbol: 'plus', size: 'band', name: 'Tempo up (Scene Launch)', tip: 'tempo.up' }` | "Tempo" and a 14px light (300) + on the label's baseline | `BandSymbol-{dark,light}.png` (Stage 1328,686 88×32) | — |
-| `BandCompact` | `{ label: 'Style tempo', size: 'band', compact: true, name: 'Style tempo' }` | the 13px band label | `BandCompact-{dark,light}.png` (Stage 1328,762 88×32) | — |
-| `Pair` | `{ label: 'Reset', size: 'pair', name: 'Section reset' }` | 41 × 32, 13px centred | `Pair-{dark,light}.png` (Stage 1328,552 41×32) | — |
-| `PairSymbol` | `{ label: 'Fill', symbol: 'up', size: 'pair' }` | "Fill" and a 9px ▲ | `PairSymbol-{dark,light}.png` (Stage 1328,590 41×32) | the accessible name is `Fill up` (the default) |
-| `Waiting` | `{ label: 'Fade', size: 'pair', waiting: true, hue: 't2', pressed: false, name: 'Fade, armed', tip: 'transport.fade' }` | outlined in `--t2`, no fill | — (no board draws Fade armed) | `data-face="waiting"`, `data-hue="t2"` |
-| `FadeOn` | `{ label: 'Fade', size: 'pair', on: true, pressed: true, name: 'Fade, fading' }` | the lamp face in a pair | — (not drawn) | `data-face="on"` |
-| `Cell` | `{ label: 'Panel', size: 'cell', name: 'Fader page is Panel: click for Style' }`, `layout: 'padded'` | fills its container, 13px centred | — (the lamp row's cells are fractional widths) | — |
-| `Disabled` | `{ label: 'Audition', size: 'md', compact: true, disabled: true, name: 'Audition (stop the band first)' }` | `--d` label on the off face | `Disabled-{dark,light}.png` (LibrarySounds 1116,452 79×32) | `aria-disabled` `true`, `data-face="disabled"`, `data-contrast="dim"`; click and Enter → `onpress` not called; `fireEvent.pointerDown(button, { pointerId: 1, button: 0, clientX: 0, clientY: 0 })`, wait 500 ms (real time) → `onlongpress` and `onhold` not called |
-| `DisabledIcon` | `{ symbol: 'up', size: 'icon', disabled: true, name: 'Knob page up' }` | ▲ in `--d` (knob page 1) | — (the board draws it enabled, D1) | `aria-disabled` `true`, `data-face="disabled"` |
-| `JoinStart` | `{ label: 'Panic', size: 'md', join: 'start' }` | square right corners | — (no board instance) | — |
+| `Running` | `{ label: 'Start / Stop', size: 'band', compact: true, strong: true, bar: true, pressed: true, name: 'Start / Stop, running', tip: 'transport.start_stop' }` | the on face in `--ok`: solid green, `--on-ink` label | `Running-{dark,light}.png` (Stage 1328,476 88×32) | the button has `data-bar`, `data-face="on"`, `data-hue="ok"`; `aria-pressed` `true` |
+| `Stopped` | `Running` args with `bar: false, pressed: false, name: 'Start / Stop'` | the rest face: neutral outline and label | — (the board draws only running) | no `data-bar`; `data-face="off"`, `data-hue="t"`; `aria-pressed` `false` |
+| `BandSymbol` | `{ label: 'Tempo', symbol: 'plus', size: 'band', name: 'Tempo up (Scene Launch)', tip: 'tempo.up' }` | "Tempo" and a + on the label's baseline, in the label's type | `BandSymbol-{dark,light}.png` (Stage 1328,686 88×32) | — |
+| `BandCompact` | `{ label: 'Style tempo', size: 'band', compact: true, name: 'Style tempo' }` | the band label (`compact` changes nothing) | `BandCompact-{dark,light}.png` (Stage 1328,762 88×32) | — |
+| `Pair` | `{ label: 'Reset', size: 'pair', name: 'Section reset' }` | 41 × 32, centred | `Pair-{dark,light}.png` (Stage 1328,552 41×32) | — |
+| `PairSymbol` | `{ label: 'Fill', symbol: 'up', size: 'pair' }` | "Fill" and a `--glyph-sm` ▲ | `PairSymbol-{dark,light}.png` (Stage 1328,590 41×32) | the accessible name is `Fill up` (the default) |
+| `Waiting` | `{ label: 'Fade', size: 'pair', waiting: true, hue: 't2', pressed: false, name: 'Fade, armed', tip: 'transport.fade' }` | a 2px `--t2` ring over a faint `--t2` fill, label `--t2` | — (no board draws Fade armed) | `data-face="waiting"`, `data-hue="t2"` |
+| `FadeOn` | `{ label: 'Fade', size: 'pair', on: true, pressed: true, name: 'Fade, fading' }` | the on face in a pair | — (not drawn) | `data-face="on"` |
+| `Cell` | `{ label: 'Panel', size: 'cell', name: 'Fader page is Panel: click for Style' }`, `layout: 'padded'` | fills its container, centred | — (the lamp row's cells are fractional widths) | — |
+| `Disabled` | `{ label: 'Audition', size: 'md', compact: true, disabled: true, name: 'Audition (stop the band first)' }` | the `--absent` outline and label, no fill | `Disabled-{dark,light}.png` (LibrarySounds 1116,452 79×32) | `aria-disabled` `true`, `data-face="disabled"`, `data-contrast="dim"`; click and Enter → `onpress` not called; `fireEvent.pointerDown(button, { pointerId: 1, button: 0, clientX: 0, clientY: 0 })`, wait 500 ms (real time) → `onlongpress` and `onhold` not called |
+| `DisabledIcon` | `{ symbol: 'up', size: 'icon', disabled: true, name: 'Knob page up' }` | ▲ in `--absent` (knob page 1) | — (the board draws it enabled, D1) | `aria-disabled` `true`, `data-face="disabled"` |
+| `JoinStart` | `{ label: 'Panic', size: 'md', join: 'start' }` | the `join-start` class (corners are square anyway) | — (no board instance) | — |
 | `Hold` | `{ label: 'Tempo', symbol: 'plus', size: 'band', hold: true, name: 'Tempo up (Scene Launch)', tip: 'tempo.up' }` | — | — | (init `{ button: 0, clientX: 0, clientY: 0 }` plus the `pointerId` given) `pointerDown` pointer 1 → `onhold` called with `true`; `pointerDown` pointer 2 → no new call; `pointerUp` pointer 2 → no new call; `pointerUp` pointer 1 → `onhold` last called with `false`, 2 calls in all; a second `pointerUp` pointer 1 → still 2; `pointerDown` pointer 3, then `pointerCancel` pointer 3 → 4 calls, last `false`; `fireEvent.click(button, { detail: 1 })` → `onpress` not called; focus it and press Enter → `onpress` called once; `pointerDown` pointer 4, wait 500 ms (real time) → `onlongpress` not called; `pointerUp` pointer 4 |
 | `LongPress` | `{ label: 'Stop', size: 'band', tip: 'transport.stop' }` | — | — | `fireEvent.pointerDown(button, { pointerId: 1, button: 0, clientX: 0, clientY: 0 })`; `await waitFor(() => expect(onlongpress).toHaveBeenCalledTimes(1), { timeout: 1000 })` (real time); `fireEvent.pointerUp(button, { pointerId: 1, button: 0, clientX: 0, clientY: 0 })` → `onlongrelease` called once; `fireEvent.click(button)` → `onpress` not called; `userEvent.click(button)` → `onpress` called once; `fireEvent.contextMenu(button)` → `onlongpress` called 2 times in all |
 | `Focused` | `{ label: 'Panic', size: 'md' }`, `pseudo: { focusVisible: true }` | the focus ring | — | — |
@@ -185,7 +182,7 @@ Crop positions are `board x,y w×h` in the 1440×900 renders, the same box in da
 - **D2 · Icons are glyphs, not snippets.** Every icon the boards draw is a text glyph (◀ ▶ ▲ ▼ ▾ + −), so `symbol` is a fixed list with fixed sizes rather than a snippet; it stays a control, and a builder never guesses a size. `?` and the digits are plain labels.
 - **D3 · Waiting outline as an inset shadow.** The kit draws waiting as a 1px border; here it is `inset 0 0 0 1px`, so a Button keeps the same box in every face (an `md` button doesn't grow 2px when queued).
 - **D4 · `data-face` keeps the face when disabled.** Superseded by D25.
-- **D5 · New size tokens.** Axiom 2 needs the board's fixed sizes as tokens: `--button-band-width` 88px, `--button-pair-width` 41px, `--caret-width` 20px, `--bar-bottom` 5px, `--bar-lift` 3px (scale.css), besides the kit's `--text-9`, `--text-10` and `--long-press`.
+- **D5 · New size tokens.** Axiom 2 needs the board's fixed sizes as tokens: `--button-band-width` 88px, `--button-pair-width` 41px, `--caret-width` 20px and two running-bar offsets (scale.css), besides the kit's 9px and 10px glyph sizes and `--long-press`. (The bar offsets and glyph sizes are gone: D28.)
 - **D6 · The caret is a Button size.** Stage.md builds `MetronomeSplit` from LampButton and Button, so the 20 × 32 ▾ is `size: 'caret'` with its own `--m` colour (`--t` when open, as Stage-Metronome draws it), plus `popup` / `expanded` for its ARIA.
 - **D7 · Faces are props, not state.** Button has no pressed state of its own; `chosen`, `on`, `waiting` and `pressed` come from the parent (One Touch's `ots.applied`, help mode, `transport.fade`), with precedence chosen, on, waiting, off.
 - **D8 · `pressed` is separate from the face.** `aria-pressed` follows `pressed` only, so a chosen One Touch says "pressed" and a plain Panic says nothing; Start / Stop is `pressed` while running, as the board marks it.
@@ -193,7 +190,7 @@ Crop positions are `board x,y w×h` in the 1440×900 renders, the same box in da
 - **D10 · Start / Stop's bar.** `bar: false` keeps the bar's padding (`0 4px 3px 8px`), so the label doesn't move when the band starts or stops; undefined is a button with no bar at all.
 - **D11 · `hold` is a flag.** Every callback is a story action (axiom 7), so `onhold` is always passed in stories; the mode is `hold: true`, not the presence of `onhold`. It copies today's `HwButton` hold (pointer capture, keyboard click still presses) so `tempoHold.ts` works unchanged, and turns the long press off.
 - **D12 · Default names.** Without `name`, a symbol's word follows the label ("Fill up"); the parents still pass the board's longer names ("Fill Up: a fill, then the next Main up", "Previous style (Track left)").
-- **D13 · L1, new tokens.** `--text-9` 9px, `--text-10` 10px, `--long-press` 350ms, the five size tokens of D5 and LampButton's `--lamp-line`, plus the contrast rows `--g` on `--t` and `--t` on `--btn`, land in the orchestrator's tokens contract PR; this spec never edits `tokens/*`.
+- **D13 · L1, new tokens.** The 9px and 10px glyph sizes, `--long-press` 350ms, the five size tokens of D5 and LampButton's `--lamp-line`, plus the contrast rows `--g` on `--t` and `--t` on `--btn`, land in the orchestrator's tokens contract PR; this spec never edits `tokens/*`.
 - **D14 · L3, tooltip props.** Button takes `tip` (`data-tip`) and `tipAction` (`use:tipAction={tip}` when both are set); stories use real keys, and `metronome.settings` (the `Board` caret) is not in `tooltips.ts` today: it is a contract change (Stage.md C5), title "Metronome settings", body "Opens the metronome's settings: on/off, volume and the bell on beat 1." (the board's caret label).
 - **D15 · L5, `aria-disabled`.** Rendered `"true"` only when disabled, absent otherwise.
 - **D16 · L4, pointer capture.** The hold calls `node.setPointerCapture?.(pointerId)` (and `releasePointerCapture?.` when a hold ends early) inside `try`/`catch`, so synthetic events in jsdom, which has no pointer capture, and in plays don't throw.
@@ -208,5 +205,7 @@ Crop positions are `board x,y w×h` in the 1440×900 renders, the same box in da
 - **D25 · `data-face="disabled"` (review; replaces D4).** Stage.md › The base Button ("the face, or `disabled`"), Stage D49 and kit D41 all give a disabled control `data-face="disabled"`, and the kit's Absent pad does the same; one rule for every faced control, so Button and LampButton both render `disabled` while disabled (the drawing is still the face it would have, with a `--d` label). Tests read "disabled" from `data-face` or `aria-disabled`.
 - **D26 · Disabled carries `data-contrast="dim"` (review).** Stage.md › The base Button puts `data-contrast="dim"` on a disabled Button (its label is `--d`), so the screenshot tool's axe run skips it as D47 says; the `Disabled` play checks it.
 - **D27 · Prop names against Stage.md › The base Button (review).** Same behaviour, these names: Stage's `face: 'off' | 'on' | 'chosen' | 'waiting'` is the `on` / `chosen` / `waiting` booleans (precedence D7; a parent passes the one that is true); `variant` is `size`; `onclick(e)` is `onpress()`; `onpointerdown` / `onpointerup` (Tempo ±) are `hold` and `onhold(down)` (D11, D19), with the keyboard click still one `onpress` (Stage D62); the label snippet for Fill ▲ is `symbol` (D2); `current` (`aria-current`) is ChosenTabs' (`size: 'page'`), not Button's; `shift` / `onshiftclick` are the parent's: the parent already has the shift state as a prop and picks what `onpress` means (Panel's Shift-click, Stage D59), so Button needs neither; `tip: TipKey` applied by the component is `tip` plus `tipAction` (L3).
+
+- **D28 · The state language (owner, PR #550).** Superseded by it: D3 (the waiting outline is now a 2px inset ring over a faint fill), D5's bar offsets and glyph sizes (gone; glyphs use `--glyph-sm` / `--glyph-md`), D6's caret colours (the caret is a neutral outline at rest, the on face when open), D9 (`compact` changes nothing), D10, D17 and D18's padding (no bar room; `bar: true` is the `--ok` on face), D13's tokens, D20 and D22 (no weight changes; glyphs follow the label's colour), and D25's "drawing is the face it would have" (disabled is now the `--absent` outline and label, no fill). `hue`'s default is now `t`, and it colours every face.
 
 Follow-ups: kit.md › Dimmed text's carriers list doesn't name disabled controls (Button, LampButton, a ChosenTabs tab), though Stage.md › The base Button marks them `data-contrast="dim"`; the list needs that row. Stage.md row 3 and The base Button could adopt D27's names so the two read the same.

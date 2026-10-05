@@ -61,9 +61,8 @@
     border: 0;
     background: none;
     color: var(--m);
-    font-family: var(--font-sans);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     cursor: pointer;
@@ -72,8 +71,9 @@
     color: var(--t2);
   }
   .level {
-    font-size: var(--text-18);
-    font-weight: var(--weight-light);
+    font: var(--type-readout);
+    letter-spacing: var(--tracking-readout);
+    font-variant-numeric: tabular-nums;
     color: var(--a);
   }
   .sends:focus-visible {

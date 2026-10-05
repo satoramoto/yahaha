@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
-import { fn } from 'storybook/test'
+import { expect, fn, within } from 'storybook/test'
 import OneTouchPicker from './OneTouchPicker.svelte'
 
 /**
- * One Touch on the style line: "One Touch OTS" muted, then 1-4 as faceless light numbers, the
- * applied one in the accent over a 2px accent bar.
+ * One Touch on the style line: "One Touch OTS" as a caption, then 1-4 as a run of choices like
+ * tabs (no outlines): unchosen numbers in `--tab-rest`, the applied one on a 24 × 24 `--neutral`
+ * block in `--on-ink`, centred on the line.
  */
 const meta = {
   title: 'Primitives/OneTouchPicker',
@@ -23,8 +24,15 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** The board: One Touch 2 applied. */
-export const Board: Story = { args: { applied: 2 } }
+/** The board: One Touch 2 applied, on its chosen block. */
+export const Board: Story = {
+  args: { applied: 2 },
+  play: async ({ canvasElement }) => {
+    const buttons = within(canvasElement).getAllByRole('button')
+    await expect(buttons.map((b) => b.getAttribute('data-face'))).toEqual(['off', 'chosen', 'off', 'off'])
+    await expect(buttons[1]).toHaveAttribute('aria-pressed', 'true')
+  },
+}
 
-/** None applied: every number muted, no bar. */
+/** None applied: every number in `--tab-rest`, no block. */
 export const NoneApplied: Story = { args: { applied: 0 } }

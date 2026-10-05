@@ -1,7 +1,7 @@
 <!--
   ChosenTabs: a short run of choices side by side, the chosen one on a block standing on the row's
-  line: white for a first-level choice, grey (`tone="secondary"`) for a second-level one (the fader
-  layer). Every label sits on the row's one baseline (`--header-baseline`), so the chosen label is
+  line: --neutral for a first-level choice, --chosen-2 (`tone="secondary"`) for a second-level one
+  (the fader layer); unchosen labels are --tab-rest, with no outline (a run, not buttons). Every label sits on the row's one baseline (`--header-baseline`), so the chosen label is
   centred in its block and lines up with the row's other texts when the parent baseline-aligns them
   (GroupHeader, AppBar). `page` tabs are page navigation (buttons with aria-current, inside the parent's nav); `header` and
   `compact` tabs are a tablist with roving focus and automatic activation (the band's fader page
@@ -16,9 +16,9 @@
     tabs: TabItem[]
     /** The `id` of the chosen tab; `null` = none is chosen. A click never moves it: the parent does. */
     chosen?: string | null
-    /** `page` 14px on a 24px block, page navigation; `header` 13px on a 22px block, a tablist; `compact` as `header` with 8px sides. All are 35 tall: a 36px row minus its line. */
+    /** `page` on a 24px block, page navigation; `header` on a 22px block, a tablist; `compact` as `header` with 8px sides. Every size is the small control type, 34 tall: a 36px row minus its 2px rule. */
     size?: 'page' | 'header' | 'compact'
-    /** The chosen block: `primary` white with ground-coloured text; `secondary` grey with white text, for a second-level choice (the fader layer). */
+    /** The chosen block: `primary` the `--neutral` fill with `--on-ink` text; `secondary` the `--chosen-2` fill with `--chosen-2-ink` text, for a second-level choice (the fader layer). */
     tone?: 'primary' | 'secondary'
     /** The tablist's accessible name (`header`, `compact`). Ignored at `page` (the parent's nav carries it). */
     label?: string
@@ -153,26 +153,23 @@
   }
   .page {
     --tab-pad-side: var(--space-12);
-    --tab-font: var(--text-14);
     --tab-blk: var(--tab-block);
   }
   .header {
     --tab-pad-side: var(--space-10);
-    --tab-font: var(--text-13);
     --tab-blk: var(--tab-block-header);
   }
   .compact {
     --tab-pad-side: var(--space-8);
-    --tab-font: var(--text-13);
     --tab-blk: var(--tab-block-header);
   }
   .primary {
-    --tab-chosen: var(--t);
-    --tab-chosen-ink: var(--g);
+    --tab-chosen: var(--neutral);
+    --tab-chosen-ink: var(--on-ink);
   }
   .secondary {
-    --tab-chosen: var(--tab-block-2);
-    --tab-chosen-ink: var(--t);
+    --tab-chosen: var(--chosen-2);
+    --tab-chosen-ink: var(--chosen-2-ink);
   }
   /* The label sits on the row's baseline: the empty strut before it is as tall as the baseline is
      deep, and the strut's bottom is the baseline the label aligns to. */
@@ -187,12 +184,10 @@
     border: 0;
     border-radius: 0;
     background: transparent;
-    color: var(--m);
-    font-family: var(--font-sans);
-    font-size: var(--tab-font);
-    font-weight: var(--weight-regular);
+    color: var(--tab-rest);
+    font: var(--type-small);
+    letter-spacing: var(--tracking-small);
     font-variant-numeric: tabular-nums;
-    line-height: normal;
     white-space: nowrap;
     cursor: pointer;
   }
@@ -207,7 +202,7 @@
     color: var(--tab-chosen-ink);
   }
   .tab[aria-disabled='true'] {
-    color: var(--d);
+    color: var(--absent);
     cursor: default;
   }
   .tab:focus-visible {

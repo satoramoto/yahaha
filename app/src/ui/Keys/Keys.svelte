@@ -77,9 +77,10 @@
     padding-bottom: var(--keys-label-bottom);
     border-right: var(--line-width) solid var(--keyline);
     background: var(--key-white);
-    color: var(--d);
+    color: var(--key-label);
+    font: var(--type-small);
+    letter-spacing: var(--tracking-small);
     font-family: var(--font-mono);
-    font-size: var(--text-11);
     line-height: var(--keys-label-line);
   }
   .white.left {

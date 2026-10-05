@@ -85,19 +85,23 @@
     gap: var(--space-12);
   }
   .word {
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
-    color: var(--m);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
+    color: var(--caption-ink);
   }
   .bar {
-    font-size: var(--text-32);
-    font-weight: var(--weight-light);
-    line-height: var(--leading-24);
+    font: var(--type-readout-lg);
+    letter-spacing: var(--tracking-readout-lg);
+    font-variant-numeric: tabular-nums;
+    line-height: var(--bar-row-height);
     color: var(--t);
   }
   .of {
-    font-size: var(--text-18);
-    color: var(--m);
+    font: var(--type-readout);
+    letter-spacing: var(--tracking-readout);
+    font-variant-numeric: tabular-nums;
+    line-height: var(--bar-row-height);
+    color: var(--caption-ink);
   }
   .dots {
     margin-left: auto;

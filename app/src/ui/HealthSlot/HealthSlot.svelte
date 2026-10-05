@@ -77,11 +77,9 @@
     padding-left: var(--space-8);
     min-width: 0;
     color: var(--m);
-    font-family: var(--font-sans);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
     font-variant-numeric: tabular-nums;
-    line-height: normal;
   }
   .fill {
     flex: 1 1 auto;

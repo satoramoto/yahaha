@@ -113,9 +113,9 @@
   }
   .meta {
     margin-left: var(--space-4);
-    font-family: var(--font-sans);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
+    font-variant-numeric: tabular-nums;
     color: var(--m);
   }
   .ots {

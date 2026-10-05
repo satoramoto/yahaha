@@ -39,7 +39,7 @@ const FADERS =
   '<span data-mount="page" style="display: contents"></span>' +
   '<span aria-hidden="true" style="flex: none; align-self: flex-end; margin-bottom: var(--separator-lift); width: var(--line-width); height: var(--separator-length); background: var(--line)"></span>' +
   '<span style="display: flex; align-items: baseline">' +
-  '<span style="margin-right: var(--space-4); font-size: var(--text-14); font-weight: var(--weight-regular); color: var(--m)">Layer</span>' +
+  '<span style="margin-right: var(--space-4); font: var(--type-small); letter-spacing: var(--tracking-small); color: var(--caption-ink)">Layer</span>' +
   '<span data-mount="layer" style="display: contents"></span>' +
   '</span></span>'
 
@@ -47,8 +47,8 @@ const KNOBS = '<span data-mount="block" style="display: contents"></span>'
 
 const PADS =
   '<span style="display: contents">' +
-  '<span data-text="page" style="font-size: var(--text-14); font-weight: var(--weight-regular); color: var(--t)"></span>' +
-  '<span style="margin-left: var(--space-4); display: flex; align-items: baseline; gap: var(--space-12); font-size: var(--text-12); font-weight: var(--weight-regular)">' +
+  '<span data-text="page" style="font: var(--type-body); letter-spacing: var(--tracking-body); color: var(--value-ink)"></span>' +
+  '<span style="margin-left: var(--space-4); display: flex; align-items: baseline; gap: var(--space-12); font: var(--type-small); letter-spacing: var(--tracking-small)">' +
   HUES.map(
     ([word, hue]) =>
       `<span style="display: flex; align-items: baseline; gap: var(--space-6); color: var(--${hue})">` +
@@ -106,7 +106,7 @@ function children(args: Args) {
 }
 
 /**
- * The hairline row that names a group of controls and holds its page tabs or page counter.
+ * The row, a bright title over a bold rule, that names a group of controls and holds its page tabs or page counter.
  * The stories mount the real children (ChosenTabs, AccentBlock) into the `children` snippet;
  * their args are grouped by child in the Controls panel.
  */
@@ -170,9 +170,9 @@ const meta: Meta<Args> = {
 export default meta
 type Story = StoryObj<Args>
 
-/** The Faders header: title, Panel chosen, the separator, "Layer" and Vol chosen, over the hairline. */
+/** The Faders header: title, Panel chosen, the separator, "Layer" and Vol chosen, over the bold rule. */
 export const Board: Story = {
-  args: { title: 'Faders', width: 654, content: 'faders' },
+  args: { title: 'Faders', width: 646, content: 'faders' },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByRole('heading', { level: 2, name: 'Faders' })).toBeInTheDocument()
@@ -191,7 +191,7 @@ export const Board: Story = {
 
 /** Knobs, the violet "Style" page block, and "Page 1/6" at the right end. */
 export const Knobs: Story = {
-  args: { title: 'Knobs', width: 626, count: { label: 'Page', value: '1/6' }, content: 'knobs' },
+  args: { title: 'Knobs', width: 610, count: { label: 'Page', value: '1/6' }, content: 'knobs' },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByRole('heading', { name: 'Knobs' })).toBeInTheDocument()
@@ -203,7 +203,7 @@ export const Knobs: Story = {
 
 /** Pads, the "Sections" page name, the five-hue section legend, and "Bank 1/5" at the right end. */
 export const Pads: Story = {
-  args: { title: 'Pads', width: 626, count: { label: 'Bank', value: '1/5' }, content: 'pads' },
+  args: { title: 'Pads', width: 610, count: { label: 'Bank', value: '1/5' }, content: 'pads' },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByRole('heading', { name: 'Pads' })).toBeInTheDocument()

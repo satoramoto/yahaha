@@ -120,8 +120,8 @@
   .part {
     flex: none;
     width: var(--part-label-width);
-    font-size: var(--text-14);
-    font-weight: var(--weight-medium);
+    font: var(--type-title);
+    letter-spacing: var(--tracking-title);
     color: var(--hue);
   }
   .off .part {
@@ -136,14 +136,17 @@
   }
   .number {
     flex: none;
-    font-size: var(--text-12);
+    font: var(--type-small);
+    letter-spacing: var(--tracking-small);
+    font-variant-numeric: tabular-nums;
     color: var(--m);
   }
   .title {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: var(--text-14);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
     color: var(--t);
   }
   .off .number {

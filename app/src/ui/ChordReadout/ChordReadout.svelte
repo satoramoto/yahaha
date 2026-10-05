@@ -1,6 +1,6 @@
 <!--
   ChordReadout: the display's chord, the brightest thing on the screen. A "Chord" label, the
-  128px chord in the accent with its extension in thin weight, the row of notes each with its
+  128px light chord in the accent with its extension after it, the row of notes each with its
   interval beneath, and the fingering mode's word. Held (detection unsure, the band keeps the
   last chord): the chord dims to muted grey without its glow, with a small "held" beside it.
   A readout, not a control.
@@ -16,7 +16,7 @@
   type Props = {
     /** The chord before its extension ("Am", "C", "F♯m"). Empty: "—". */
     chord: string
-    /** The extension, drawn thin after the chord ("7", "maj7", "sus4"). */
+    /** The extension, drawn after the chord ("7", "maj7", "sus4"). */
     extension?: string
     /** The chord's notes, root first. */
     notes?: Note[]
@@ -64,41 +64,36 @@
   }
   .label {
     height: var(--label-height);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
-    line-height: var(--leading-16);
-    color: var(--m);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
+    line-height: var(--label-height);
+    color: var(--caption-ink);
   }
   .chord {
     margin-top: var(--space-4);
-    height: var(--leading-104);
-    font-size: var(--text-128);
-    font-weight: var(--weight-light);
-    line-height: var(--leading-104);
-    letter-spacing: var(--tracking-128);
+    height: var(--hero-height);
+    font: var(--type-hero);
+    letter-spacing: var(--tracking-hero);
+    font-variant-numeric: tabular-nums;
     color: var(--chord);
     text-shadow: var(--chord-glow);
     white-space: nowrap;
   }
   .chord[data-fit='4'] {
-    font-size: var(--text-chord-4);
-    letter-spacing: var(--tracking-chord-4);
+    font-size: var(--hero-4);
+    letter-spacing: var(--tracking-hero-4);
   }
   .chord[data-fit='5'] {
-    font-size: var(--text-chord-5);
-    letter-spacing: var(--tracking-chord-5);
+    font-size: var(--hero-5);
+    letter-spacing: var(--tracking-hero-5);
   }
   .chord[data-fit='6'] {
-    font-size: var(--text-chord-6);
-    letter-spacing: var(--tracking-chord-6);
+    font-size: var(--hero-6);
+    letter-spacing: var(--tracking-hero-6);
   }
   .chord[data-fit='8'] {
-    font-size: var(--text-chord-8);
-    letter-spacing: var(--tracking-chord-8);
-  }
-  .ext {
-    font-weight: var(--weight-thin);
-    letter-spacing: 0;
+    font-size: var(--hero-8);
+    letter-spacing: var(--tracking-hero-8);
   }
   .held .chord {
     color: var(--chord-held);
@@ -106,10 +101,9 @@
   }
   .held-word {
     margin-left: var(--space-8);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
-    letter-spacing: 0;
-    color: var(--m);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
+    color: var(--caption-ink);
     text-shadow: none;
   }
   .notes {
@@ -125,22 +119,25 @@
     flex-direction: column;
     align-items: center;
   }
+  /* The name and its interval share the 32px note row: 16px each. */
   .name {
-    font-size: var(--text-20);
-    font-weight: var(--weight-light);
-    line-height: var(--leading-18);
+    font: var(--type-readout);
+    letter-spacing: var(--tracking-readout);
+    line-height: var(--label-height);
     color: var(--t);
   }
   .interval {
-    font-size: var(--text-12);
-    line-height: var(--leading-14);
-    color: var(--m);
+    font: var(--type-small);
+    letter-spacing: var(--tracking-small);
+    font-variant-numeric: tabular-nums;
+    color: var(--caption-ink);
   }
   .fingering {
     margin-left: var(--space-4);
-    font-size: var(--text-14);
-    line-height: var(--leading-16);
-    color: var(--m);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
+    line-height: var(--label-height);
+    color: var(--caption-ink);
     white-space: nowrap;
   }
 </style>

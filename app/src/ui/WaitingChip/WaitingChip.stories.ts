@@ -21,7 +21,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** The count row's next section, tinted in the Main hue: an 18px light green "Main C". */
+/** The count row's next section, tinted in the Main hue: a green `--type-readout` "Main C". */
 export const Board: Story = {
   args: { label: 'Main C', hue: 'main', size: 'count' },
   play: async ({ canvasElement }) => {
@@ -34,7 +34,7 @@ export const Board: Story = {
   },
 }
 
-/** Round 2's next section on the display: a 28px light, muted "Main C" (neutral `t`). */
+/** The next section on the display: a muted `--type-readout-lg` "Main C" (neutral `t`). */
 export const Display: Story = {
   args: { label: 'Main C', hue: 't', size: 'display' },
 }

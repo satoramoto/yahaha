@@ -1,11 +1,12 @@
 <!--
-  GroupHeader: the hairline row that names a group of controls ("Faders", "Knobs", "Pads",
+  GroupHeader: the row that names a group of controls ("Faders", "Knobs", "Pads",
   "Transport", "Tempo"). The title is a real heading; what follows it (tabs, the knob page block,
   the pad page name and legend) is the parent's `children` snippet, rendered straight into the row;
-  the optional page counter sits at the right end. Not a control: no click, no focus of its own.
+  the optional page counter sits at the right end. A bright title over a bold full-width rule
+  (`--header-rule-width` in `--header-rule`); the parent leaves `--band-body-gap` below it. Not a control: no click, no focus of its own.
   Every text in the row sits on one baseline, `--header-baseline` from the top: the row aligns its
   items by baseline and an empty strut fixes where that baseline is, so the title, ChosenTabs'
-  labels (whose blocks then stand on the hairline), an AccentBlock and the counter share a line in
+  labels (whose blocks then stand on the rule), an AccentBlock and the counter share a line in
   every header, with or without tabs. A child that is a group of its own (a word and a tab run)
   shares the line when it aligns its items by baseline too.
 -->
@@ -17,13 +18,13 @@
     title: string
     /** A word that qualifies the title, drawn after it as " · {detail}" ("Faders · Reverb"). */
     detail?: string
-    /** The page counter at the right end: label in grey, value in white ("Page 1/6"). */
+    /** The page counter at the right end: label in `--caption-ink`, value in `--value-ink` ("Page 1/6"). */
     count?: { label: string; value: string }
     /** The heading level of the title. */
     level?: 2 | 3 | 4
     /** The id put on the heading, for the parent's `aria-labelledby`. */
     id?: string
-    /** A fixed width in px (the band's 654, 626, 88). Default: fills its container. */
+    /** A fixed width in px (the band's 646, 610, 88). Default: fills its container. */
     width?: number
     /** What follows the title; each top-level element is a flex item 12px after the one before. */
     children?: Snippet
@@ -50,10 +51,9 @@
     box-sizing: border-box;
     height: var(--group-header-height);
     padding: 0;
-    border-bottom: var(--line-width) solid var(--line);
+    border-bottom: var(--header-rule-width) solid var(--header-rule);
     white-space: nowrap;
     font-family: var(--font-sans);
-    font-variant-numeric: tabular-nums;
   }
   /* The strut: its bottom is the row's baseline. No width, and the negative margin cancels the
      gap after it, so the title still starts at the row's left edge. */
@@ -67,10 +67,9 @@
   .title {
     flex: none;
     margin: 0;
-    color: var(--m);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
-    line-height: normal;
+    color: var(--header-ink);
+    font: var(--type-title);
+    letter-spacing: var(--tracking-title);
   }
   .detail {
     color: var(--t);
@@ -78,12 +77,12 @@
   .count {
     flex: none;
     margin-left: auto;
-    color: var(--m);
-    font-size: var(--text-13);
-    font-weight: var(--weight-regular);
-    line-height: normal;
+    color: var(--caption-ink);
+    font: var(--type-small);
+    letter-spacing: var(--tracking-small);
+    font-variant-numeric: tabular-nums;
   }
   .value {
-    color: var(--t);
+    color: var(--value-ink);
   }
 </style>

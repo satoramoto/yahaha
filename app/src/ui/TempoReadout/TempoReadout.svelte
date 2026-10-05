@@ -23,21 +23,19 @@
     display: inline-flex;
     align-items: baseline;
     gap: var(--space-6);
-    height: var(--leading-40);
     font-family: var(--font-sans);
-    font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
+  /* The readout's 40px line sets the row's height. */
   .bpm {
-    font-size: var(--text-32);
-    font-weight: var(--weight-light);
-    line-height: var(--leading-40);
-    letter-spacing: var(--tracking-32);
+    font: var(--type-readout-lg);
+    letter-spacing: var(--tracking-readout-lg);
+    font-variant-numeric: tabular-nums;
     color: var(--t);
   }
   .unit {
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
-    color: var(--m);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
+    color: var(--caption-ink);
   }
 </style>

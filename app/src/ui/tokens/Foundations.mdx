@@ -24,8 +24,8 @@ export const tokens = (css, prefix = '') =>
     .filter((t) => t.name.startsWith(prefix))
 
 export const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(168px, 1fr))', gap: 'var(--space-12)', margin: 'var(--space-16) 0' }
-export const label = { fontSize: 'var(--text-12)', color: 'var(--m)', lineHeight: 1.4 }
-export const name = { fontFamily: 'var(--font-mono)', fontSize: 'var(--text-12)', color: 'var(--t)' }
+export const label = { font: 'var(--type-small)', color: 'var(--caption-ink)' }
+export const name = { font: 'var(--type-small)', fontFamily: 'var(--font-mono)', color: 'var(--t)' }
 
 export const isAmount = (value) =>
   // A number or percentage (an opacity, a mix amount): listed by Amounts, not drawn as a swatch.
@@ -77,24 +77,41 @@ export const Swatches = ({ css, glows = false }) => {
 
 export const Type = () => (
   <div style={{ margin: 'var(--space-16) 0' }}>
-    {tokens(scale, '--text-').map((t) => (
-      <div key={t.name} style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-16)', borderBottom: 'var(--line-width) solid var(--line)' }}>
-        <span style={{ ...name, width: 96, flex: 'none' }}>{t.name}</span>
-        <span style={{ fontFamily: 'var(--font-sans)', fontSize: `var(${t.name})`, color: 'var(--t)', whiteSpace: 'nowrap' }}>Main B · 120 · Accomp</span>
-      </div>
-    ))}
-    {tokens(scale, '--weight-').map((t) => (
-      <div key={t.name} style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-16)' }}>
-        <span style={{ ...name, width: 120, flex: 'none' }}>{t.name}</span>
-        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-18)', fontWeight: `var(${t.name})`, color: 'var(--t)' }}>Sunday Drive Pop 104</span>
+    {tokens(scale, '--type-').map((t) => (
+      <div key={t.name} style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-16)', padding: 'var(--space-8) 0', overflow: 'hidden' }}>
+        <span style={{ ...name, width: 160, flex: 'none' }}>{t.name}</span>
+        <span style={{ font: `var(${t.name})`, letterSpacing: `var(--tracking-${t.name.slice(7)})`, color: 'var(--t)', whiteSpace: 'nowrap' }}>{t.name === '--type-hero' ? 'Am7' : 'Main B 104 Accomp'}</span>
+        <span style={{ ...label, marginLeft: 'auto', flex: 'none' }}>{t.note}</span>
       </div>
     ))}
     {tokens(scale, '--font-').map((t) => (
       <div key={t.name} style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-16)' }}>
-        <span style={{ ...name, width: 120, flex: 'none' }}>{t.name}</span>
-        <span style={{ fontFamily: `var(${t.name})`, fontSize: 'var(--text-18)', color: 'var(--t)' }}>Pad 1 2 3 4 · C#m7</span>
+        <span style={{ ...name, width: 160, flex: 'none' }}>{t.name}</span>
+        <span style={{ font: 'var(--type-readout)', fontFamily: `var(${t.name})`, color: 'var(--t)' }}>Pad 1 2 3 4 · C#m7</span>
       </div>
     ))}
+  </div>
+)
+
+export const face = (state, hue) => {
+  const base = { position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 88, height: 'var(--control-height)', font: 'var(--type-small)', isolation: 'isolate' }
+  if (state === 'on') return { ...base, background: `var(${hue})`, color: 'var(--on-ink)' }
+  if (state === 'waiting') return { ...base, boxShadow: `inset 0 0 0 var(--outline-width-wait) var(${hue})`, color: `var(${hue})` }
+  if (state === 'disabled') return { ...base, boxShadow: 'inset 0 0 0 var(--outline-width) var(--absent)', color: 'var(--absent)' }
+  return { ...base, boxShadow: `inset 0 0 0 var(--outline-width) var(${hue})`, color: `var(${hue})` }
+}
+
+export const States = () => (
+  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, max-content)', gap: 'var(--space-12) var(--space-16)', margin: 'var(--space-16) 0' }}>
+    {['rest', 'on', 'waiting', 'disabled'].map((s) => <span key={s} style={label}>{s}</span>)}
+    {['--neutral', '--r1', '--main', '--ok'].map((hue) =>
+      ['rest', 'on', 'waiting', 'disabled'].map((s) => (
+        <span key={hue + s} style={face(s, hue)}>
+          {s === 'waiting' && <span style={{ position: 'absolute', inset: 0, zIndex: -1, background: `var(${hue})`, opacity: 'var(--wait-fill-opacity)' }} />}
+          {hue === '--neutral' ? 'Panic' : hue === '--ok' ? 'Start' : hue === '--main' ? 'Main A' : 'On'}
+        </span>
+      )),
+    )}
   </div>
 )
 
@@ -142,7 +159,15 @@ The raw colours. Only the theme files read them.
 
 ## Type
 
+Eight roles in six sizes (12, 14, 18, 32, 44, 128) and three weights. A component sets a role's `font` and its `--tracking-*`, nothing else.
+
 <Type />
+
+## State
+
+One treatment per state for every control. Rest: a 1px outline and label in the control's hue (`--neutral` when it has none). On, chosen, playing: a solid fill in the hue under `--on-ink`. Waiting: a 2px ring over a faint fill. Disabled or absent: `--absent`. Tabs and One Touch numbers have no rest outline, only the chosen fill.
+
+<States />
 
 ## Spacing
 
@@ -160,10 +185,10 @@ The raw colours. Only the theme files read them.
 
 The boards' fixed widths and heights.
 
-<Sizes prefix="--" names={['--button-band-width', '--button-pair-width', '--caret-width', '--bar-bottom', '--bar-lift', '--bar-height', '--tab-height-header', '--tab-block', '--tab-block-header', '--group-header-height', '--block-height', '--block-height-knob', '--chip-height', '--chip-height-display', '--chip-max']} />
+<Sizes prefix="--" names={['--button-band-width', '--button-pair-width', '--caret-width', '--header-rule-width', '--header-gap', '--outline-width', '--outline-width-wait', '--bar-height', '--tab-height-header', '--tab-block', '--tab-block-header', '--group-header-height', '--block-height', '--block-height-knob', '--chip-height', '--chip-height-display', '--chip-max']} />
 
-## Tracking and motion
+## Motion
 
-<Amounts css={scale} names={['--tracking-36', '--long-press']} />
+<Amounts css={scale} names={['--long-press']} />
 
 </Themed>

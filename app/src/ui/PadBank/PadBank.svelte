@@ -1,7 +1,8 @@
 <!--
   PadBank: the band's Pads section. A GroupHeader with the bank's name, its hue legend and the
-  bank counter; the bank ▲ ▼ buttons; and sixteen Pads in two rows of eight. Each pad carries
-  a 2px line in its family hue along its top edge (grey for utility pads). Holds no state: the flash phase comes in `lit`, presses go out by index.
+  bank counter; `--band-body-gap` below the header's rule, the bank ▲ ▼ buttons and sixteen Pads in
+  two rows of eight, each outlined in its own hue. Holds no state: the flash phase comes in `lit`,
+  presses go out by index.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -33,8 +34,6 @@
   }
 
   let { pads, bankName, count, legend = [], lit = true, tipAction, onbankup, onbankdown, onpress }: Props = $props()
-
-  const isUtil = (pad: PadItem | undefined) => pad === undefined || pad.family === 'util' || pad.family === 'start'
 </script>
 
 <section class="bank" aria-label="Pads">
@@ -50,11 +49,6 @@
     <div class="pads">
       {#each pads as pad, i (i)}
         <div class="cell">
-          <span
-            class="line"
-            style:--line-hue={isUtil(pad) ? 'var(--util)' : `var(--${pad.family})`}
-            aria-hidden="true"
-          ></span>
           <Pad
             label={pad.label}
             index={String(i + 1)}
@@ -80,9 +74,9 @@
     font-family: var(--font-sans);
   }
   .bank-name {
-    color: var(--t);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
+    color: var(--value-ink);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
   }
   .legend {
     display: flex;
@@ -111,17 +105,6 @@
     min-width: 0;
   }
   .cell {
-    position: relative;
     min-width: 0;
-  }
-  .line {
-    position: absolute;
-    z-index: 1;
-    top: 0;
-    right: 0;
-    left: 0;
-    height: var(--pad-line-height);
-    background: var(--line-hue);
-    pointer-events: none;
   }
 </style>

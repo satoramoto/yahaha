@@ -1,5 +1,15 @@
 # GroupHeader
 
+> **Section header, option C (PR #550; supersedes the hairline below).** The title is `--type-title`
+> (14 / 500) in `--header-ink`, and the row's bottom border is the bold full-width rule,
+> `var(--header-rule-width) solid var(--header-rule)`, inside the same 36px (`--group-header-height`,
+> rule included). The counter is `--type-small`: label in `--caption-ink`, value in `--value-ink`,
+> tabular numerals. Each caller leaves `--band-body-gap` (= `--header-gap`, 12px) below the rule.
+> Story markup uses only the type roles (`font: var(--type-X); letter-spacing: var(--tracking-X)`):
+> "Layer" and the legend in `--type-small` ("Layer" in `--caption-ink`), the pad page name in
+> `--type-body` in `--value-ink`. Where the text below says hairline, `--line` or `--m` for the
+> row, read this note.
+
 > **One baseline (PR #550).** The row aligns its items by baseline (`align-items: baseline`), and an
 > empty `::before` strut `--header-baseline` (28px) tall puts that baseline 28px from the top, so the
 > title, the ChosenTabs labels (their blocks then stand on the hairline), "Layer", an AccentBlock and
@@ -57,7 +67,7 @@ Every prop gets a JSDoc comment in the component.
 
 ### Visual rules
 
-- **Tokens used:** `--line`, `--line-width`, `--m`, `--t`, `--font-sans`, `--text-13`, `--text-14`, `--weight-regular`, `--space-12`, and the new token below.
+- **Tokens used:** `--header-rule`, `--header-rule-width`, `--header-ink`, `--header-baseline`, `--caption-ink`, `--value-ink`, `--t`, `--font-sans`, `--type-title`, `--tracking-title`, `--type-small`, `--tracking-small`, `--space-12`, and `--group-header-height`.
 
 #### New tokens
 
@@ -69,8 +79,8 @@ Not in `app/src/ui/tokens/*` today. It lands in the orchestrator's tokens contra
 
 - **Row:** a `div`, height `--group-header-height` (36), `box-sizing: border-box`, `border-bottom: var(--line-width) solid var(--line)` (so the content box is 35 tall), `display: flex`, `align-items: center`, gap `--space-12`, `white-space: nowrap`, `font-family: var(--font-sans)` (the snippet's text inherits it), no padding, no background, no `overflow` clipping (a tab's focus ring must not be cut, D6). Width: `width` px, else 100% of its container. No `data-face` or `data-hue`: nothing in the row's own drawing comes from state.
 - **Order in the row:** the heading; the `children` snippet's elements; then the counter, pushed to the right end with `margin-left: auto`.
-- **Heading:** an `h2` (or `h3`, `h4` by `level`), `margin: 0`, `flex: none`, `--text-14`, `--weight-regular`, `--m`, `line-height: normal`, with `id` when given. Its markup is exactly, on one template line with no whitespace between the parts: `<h2 {id}>{title}{#if detail}{' · '}<span class="detail">{detail}</span>{/if}</h2>`, so its text content (and accessible name) is exactly `title`, then " · " (space, U+00B7 middle dot, space), then `detail`: "Faders · Reverb". The " · " is a text node in `--m`; the detail `span` is `--t`, same size and weight; no gap but the two spaces (D10).
-- **Counter:** a `span`, `flex: none`, `margin-left: auto`, `--text-13`, `--weight-regular`, `--m`, `line-height: normal`: `{label}`, one space, then `<span>{value}</span>` in `--t`, on one template line (text content "Page 1/6"). Absent when `count` is undefined.
+- **Heading:** an `h2` (or `h3`, `h4` by `level`), `margin: 0`, `flex: none`, `--type-title`, `--header-ink`, with `id` when given. Its markup is exactly, on one template line with no whitespace between the parts: `<h2 {id}>{title}{#if detail}{' · '}<span class="detail">{detail}</span>{/if}</h2>`, so its text content (and accessible name) is exactly `title`, then " · " (space, U+00B7 middle dot, space), then `detail`: "Faders · Reverb". The " · " is a text node in `--m`; the detail `span` is `--t`, same size and weight; no gap but the two spaces (D10).
+- **Counter:** a `span`, `flex: none`, `margin-left: auto`, `--type-small` with tabular numerals, `--caption-ink`: `{label}`, one space, then `<span>{value}</span>` in `--value-ink`, on one template line (text content "Page 1/6"). Absent when `count` is undefined.
 - **Children:** drawn as given. A child taller than 35 would overflow the row; the band's tallest are ChosenTabs `size: 'header'` at 35, which then fill the content box and sit on the hairline (their 22px chosen block touches it).
 - **States drawn by:** only `detail` and `count` change what's drawn; no hover, focus or pressed look (it isn't a control).
 - **Type:** DM Sans, sentence case as given, tabular numerals (the counter's "1/6"); title 14 / 400, counter 13 / 400.
@@ -95,11 +105,11 @@ Every snippet is `createRawSnippet(() => ({ render: () => html, setup }))` where
 - **`content: 'faders'`** (`Board`, `FadersLayer`), the root holds three items in this order:
   1. host `page`: ChosenTabs `{ size: 'header', label: 'Fader page (master button)', tabs: faderPageTabs, chosen: args.pageChosen, onchoose: args.onchoosePage, tipAction: args.tipAction }`;
   2. the separator: `<span aria-hidden="true" style="flex: none; width: var(--line-width); height: var(--space-16); background: var(--line)"></span>`;
-  3. `<span style="display: flex; align-items: center">` holding `<span style="margin-right: var(--space-4); font-size: var(--text-14); font-weight: var(--weight-regular); color: var(--m)">Layer</span>` then host `layer`: ChosenTabs `{ size: 'header', label: 'Fader layer', tabs: layerTabs, chosen: args.layerChosen, onchoose: args.onchooseLayer, tipAction: args.tipAction }`.
+  3. `<span style="display: flex; align-items: center">` holding `<span style="margin-right: var(--space-4); font: var(--type-small); letter-spacing: var(--tracking-small); color: var(--caption-ink)">Layer</span>` then host `layer`: ChosenTabs `{ size: 'header', label: 'Fader layer', tabs: layerTabs, chosen: args.layerChosen, onchoose: args.onchooseLayer, tipAction: args.tipAction }`.
 - **`content: 'knobs'`** (`Knobs`): the root is itself the host (`<span data-mount="block" style="display: contents"></span>`): AccentBlock `{ label: args.knobPageLabel, size: 'knob' }` (as `span`, the default, so no `tip`).
 - **`content: 'pads'`** (`Pads`), the root holds two items:
-  1. the page name: `<span style="font-size: var(--text-14); font-weight: var(--weight-regular); color: var(--t)">{args.padPageName}</span>` ("Sections", regular 400 in `--t`, D12);
-  2. the legend: `<span style="margin-left: var(--space-4); display: flex; align-items: center; gap: var(--space-12); font-size: var(--text-12); font-weight: var(--weight-regular)">` holding five items in this order, each `<span style="display: flex; align-items: center; gap: var(--space-6); color: var(--<hue>)"><span aria-hidden="true" style="width: var(--space-10); height: var(--space-2); border-radius: var(--line-width); background: var(--<hue>)"></span>{word}</span>`: Intro `--intro`, Main `--main`, Ending `--ending`, Break `--brk`, Fill `--fill`.
+  1. the page name: `<span style="font: var(--type-body); letter-spacing: var(--tracking-body); color: var(--value-ink)">{args.padPageName}</span>` ("Sections", body in `--value-ink`, D12);
+  2. the legend: `<span style="margin-left: var(--space-4); display: flex; align-items: center; gap: var(--space-12); font: var(--type-small); letter-spacing: var(--tracking-small)">` holding five items in this order, each `<span style="display: flex; align-items: center; gap: var(--space-6); color: var(--<hue>)"><span aria-hidden="true" style="width: var(--space-10); height: var(--space-2); border-radius: var(--line-width); background: var(--<hue>)"></span>{word}</span>`: Intro `--intro`, Main `--main`, Ending `--ending`, Break `--brk`, Fill `--fill`.
 - **`content: 'none'`** (`Transport`, `Tempo`, `Level3`): no `children` passed at all.
 
 `padPageName` is never put into the HTML string: the markup holds the page-name span empty, marked `data-text="page"`, and `setup(root)` sets its `textContent` to `args.padPageName`.
@@ -152,7 +162,7 @@ Crop positions are `board x,y w×h` in the 1440×900 renders, the same box in th
 - **D10 · Heading text.** The heading is written on one template line with the separator as the text node `' · '`, so its accessible name is exactly "Faders · Reverb" with no stray whitespace; `FadersLayer` checks `textContent`.
 - **D11 · Snippet shape and controls.** Each story snippet is one `display: contents` root holding the items in the order above, the mounted children get their props from story args grouped by child with `table.category` (axiom 3), and the ChosenTabs get `onchoose` and `tipAction` as `fn()` actions and their tabs from ChosenTabs' fixtures (`faderPageTabs`, `layerTabs`), not inline arrays.
 - **D12 · "Sections" label.** The pad page name is a plain `span`, 14px regular (400) in `--t`, as the board draws it (no weight set, so 400); the legend is 12px regular.
-- **D13 · New token (L1).** `--group-header-height: 36px` lands in the tokens contract PR, since axiom 2 allows no literal sizes in a component; story markup likewise uses only `--space-*`, `--text-*`, `--weight-*`, `--line-width` and colour tokens.
+- **D13 · New token (L1).** `--group-header-height: 36px` lands in the tokens contract PR, since axiom 2 allows no literal sizes in a component; story markup likewise uses only `--space-*`, the type roles (`--type-*`, `--tracking-*`), `--line-width` and colour tokens.
 - **D14 · Pads fails axe until the tokens land (L2).** The legend's section-hue text uses WaitingChip's new hue-on-ground rows and changed values; `Pads` fails axe in both themes until the tokens contract PR lands.
 - **D15 · Legend hues are Stage C6's (review).** The values D14 borrowed from WaitingChip (#1c7e3f, #796f1c, #9063a9) passed on `--g` only; WaitingChip D11 now uses Stage C6's (light `--main` #19733a, `--intro` #6e651a, dark `--brk` #986faf), which pass on `--g` and `--btn`, so the legend reads the same tokens at the same values as every other spec.
 - **D16 · A primitive, title `Primitives/` (PR #550; replaces D9).** The component imports no other component of the library, so by axiom 11 it is a primitive and titled `Primitives/GroupHeader`. Its stories still mount ChosenTabs and AccentBlock as `children`.

@@ -193,9 +193,9 @@
   }
   .layer-word {
     margin-right: var(--space-4);
-    color: var(--m);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
+    color: var(--caption-ink);
+    font: var(--type-small);
+    letter-spacing: var(--tracking-small);
   }
   .body {
     display: flex;
@@ -236,10 +236,8 @@
   }
   .tag {
     color: var(--hue);
-    font-family: var(--font-sans);
-    font-size: var(--text-13);
-    font-weight: var(--weight-medium);
-    line-height: var(--space-16);
+    font: var(--type-small);
+    letter-spacing: var(--tracking-small);
   }
   .captions {
     height: var(--band-caption-height);
@@ -248,9 +246,9 @@
   }
   .caption {
     box-sizing: border-box;
-    color: var(--m);
-    font-size: var(--text-12);
-    line-height: var(--space-16);
+    color: var(--caption-ink);
+    font: var(--type-small);
+    letter-spacing: var(--tracking-small);
   }
   .parts {
     grid-column: 1 / 5;

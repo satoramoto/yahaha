@@ -68,10 +68,8 @@
     margin: 0;
     overflow: visible;
     background: transparent;
-    font-family: var(--font-sans);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
-    line-height: var(--space-20);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
     font-variant-numeric: tabular-nums;
   }
   .line {

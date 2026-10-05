@@ -116,7 +116,7 @@
   .buttons {
     display: flex;
     flex-direction: column;
-    gap: var(--space-6);
+    gap: var(--band-button-gap);
     margin-top: var(--band-body-gap);
   }
   .pair {

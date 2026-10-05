@@ -9,7 +9,7 @@ const AM7 = [
 ]
 
 /**
- * The display's chord: the "Chord" label, the 128px chord in the accent with its thin extension,
+ * The display's chord: the "Chord" label, the 128px light chord in the accent with its extension,
  * the notes with their intervals, and the fingering word. Held dims it to muted grey.
  */
 const meta = {

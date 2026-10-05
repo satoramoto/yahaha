@@ -7,8 +7,9 @@ import { displayPageTabs, faderPageTabs, fullPageTabs, layerTabs } from './Chose
 const ALL_IDS = [...new Set([displayPageTabs, fullPageTabs, faderPageTabs, layerTabs].flat().map((tab) => tab.id))]
 
 /**
- * A short run of choices side by side, the chosen one on a white block: the app's pages,
- * the fader page and the fader layer. The parent owns `chosen`; a click only calls `onchoose`.
+ * A short run of choices side by side, the chosen one on a solid block (`--neutral`, or
+ * `--chosen-2` for a second-level choice), the rest in `--tab-rest` with no outline: the app's
+ * pages, the fader page and the fader layer. The parent owns `chosen`; a click only calls `onchoose`.
  */
 const meta = {
   title: 'Primitives/ChosenTabs',
@@ -28,7 +29,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 /**
- * The app bar's first run: Stage on the 24px white block, Channel … Harm/Arp grey. Page tabs are
+ * The app bar's first run: Stage on the 24px block, Channel … Harm/Arp in `--tab-rest`. Page tabs are
  * buttons with `aria-current`; a click calls through and leaves `chosen` to the parent.
  */
 export const Board: Story = {
@@ -64,14 +65,14 @@ export const Board: Story = {
   },
 }
 
-/** The band header's fader page: Panel on the 22px white block (Round 2's Faders header). */
+/** The band header's fader page: Panel on the 22px `--neutral` block. */
 export const FaderPage: Story = {
   args: { tabs: faderPageTabs, chosen: faderPageTabs[0].id, label: 'Fader page (master button)' },
 }
 
 /**
- * The band header's fader layer: a tablist of five, Vol chosen on the grey second-level block
- * (`tone: 'secondary'`, Round 2's Layer tabs).
+ * The band header's fader layer: a tablist of five, Vol chosen on the `--chosen-2` second-level
+ * block (`tone: 'secondary'`).
  */
 export const Layers: Story = {
   args: { tabs: layerTabs, chosen: 'volume', label: 'Fader layer', tone: 'secondary' },
@@ -129,7 +130,7 @@ export const Arrows: Story = {
   },
 }
 
-/** A disabled tab: "Style" in `--d`, skipped by clicks and arrows. */
+/** A disabled tab: "Style" in `--absent`, skipped by clicks and arrows. */
 export const Disabled: Story = {
   args: {
     tabs: [faderPageTabs[0], { ...faderPageTabs[1], disabled: true }],

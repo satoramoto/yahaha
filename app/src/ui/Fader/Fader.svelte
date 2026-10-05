@@ -1,5 +1,5 @@
 <!--
-  Fader: one strip's 252px fader button, Push's mix meter. The level value sits at the top in the
+  Fader: one strip's fader button (`--fader-height`), Push's mix meter. The level value sits at the top in the
   strip's hue; two meter bars and a peak line show the sound; a 3px bracket in the hue with a cap
   tick shows the set level and outranks the meter. When the hardware fader is away from the set
   level, a dashed ghost line marks where it is and ↕ says "move it through". Kinds: `part`,
@@ -194,10 +194,11 @@
     right: 0;
     left: 0;
     height: var(--fader-value-height);
-    line-height: var(--fader-value-height);
     color: var(--hue);
-    font-size: var(--text-18);
-    font-weight: var(--weight-light);
+    font: var(--type-readout);
+    letter-spacing: var(--tracking-readout);
+    font-variant-numeric: tabular-nums;
+    line-height: var(--fader-value-height);
     text-align: center;
     white-space: nowrap;
   }
@@ -288,8 +289,8 @@
     top: 0;
     left: 0;
     color: var(--m);
-    font-size: var(--text-13);
-    line-height: var(--text-13);
+    font: var(--type-small);
+    letter-spacing: var(--tracking-small);
   }
   .fader:focus-visible {
     outline: var(--line-width) solid var(--focus);

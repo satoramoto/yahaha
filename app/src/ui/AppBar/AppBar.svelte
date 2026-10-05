@@ -2,7 +2,7 @@
   AppBar: the 36px bar on top of every page. "yahaha" at the left; the page nav (the display pages,
   a hairline, the full pages) pushed right; then the fixed right area: a hairline, the Launchkey
   status and the audio health at the right edge, so the tabs sit at the same x on every page. A
-  white 1px line underneath. Controlled: `chosen` names the page; a click only calls onchoose.
+  bold 2px header rule underneath, as on the band's section headers. Controlled: `chosen` names the page; a click only calls onchoose.
   Every text ("yahaha", the tab labels, Launchkey, the health text) sits on one baseline,
   `--header-baseline` from the top, as in GroupHeader; the chosen block stands on the white line.
 -->
@@ -89,7 +89,7 @@
     gap: var(--space-8);
     box-sizing: border-box;
     height: var(--bar-height);
-    border-bottom: var(--line-width) solid var(--t);
+    border-bottom: var(--header-rule-width) solid var(--header-rule);
     background: var(--g);
     color: var(--t);
     font-family: var(--font-sans);
@@ -107,10 +107,8 @@
     margin-right: calc(-1 * var(--space-8));
   }
   .name {
-    font-size: var(--text-18);
-    line-height: var(--app-name-line);
-    font-weight: var(--weight-medium);
-    letter-spacing: var(--tracking-18);
+    font: var(--type-name);
+    letter-spacing: var(--tracking-name);
     white-space: nowrap;
   }
   nav {
@@ -136,8 +134,8 @@
     display: block;
     margin-left: var(--space-8);
     color: var(--m);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
     white-space: nowrap;
   }
   .dot {

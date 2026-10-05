@@ -1,8 +1,8 @@
 <!--
-  OneTouchPicker: One Touch on the style line, drawn the way the display draws a readout: "One
-  Touch" and its small code "OTS" muted, then the numbers 1-4 as faceless buttons in light 18px
-  numbers. The applied one is the accent with a 2px accent bar beneath; the rest are muted. A
-  click asks for that One Touch through `onapply` and changes nothing itself.
+  OneTouchPicker: One Touch on the style line: "One Touch" and its small code "OTS" as a caption,
+  then the numbers 1-4, a run of one-of-many choices like ChosenTabs (no outlines). Unchosen
+  numbers are --tab-rest; the applied one stands on a 24 × 24 --neutral block, centred on the line,
+  in --on-ink. A click asks for that One Touch through `onapply` and changes nothing itself.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -56,6 +56,7 @@
       class:applied={n === applied}
       aria-pressed={n === applied}
       aria-label={n === applied ? `One Touch ${n}, applied (Shift + pad ${n + 8})` : `Apply One Touch ${n} (Shift + pad ${n + 8})`}
+      data-face={n === applied ? 'chosen' : 'off'}
       data-tip="ots.{n}"
       use:tipOn={`ots.${n}`}
       onclick={() => onapply?.(n)}>{n}</button
@@ -69,8 +70,6 @@
     align-items: center;
     flex: none;
     height: var(--control-height);
-    font-family: var(--font-sans);
-    font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
   .label {
@@ -78,42 +77,31 @@
     align-items: baseline;
     gap: var(--space-6);
     margin-right: var(--space-4);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
-    color: var(--m);
-  }
-  .code {
-    font-size: var(--text-12);
+    color: var(--caption-ink);
+    font: var(--type-small);
+    letter-spacing: var(--tracking-small);
   }
   .number {
-    position: relative;
     width: var(--ots-number-width);
     height: var(--control-height);
     margin: 0;
-    padding: 0 0 var(--bar-lift);
+    padding: 0;
     border: 0;
     border-radius: var(--radius);
     background: none;
-    font-family: inherit;
-    font-size: var(--text-18);
-    font-weight: var(--weight-light);
-    color: var(--m);
+    color: var(--tab-rest);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
+    font-variant-numeric: tabular-nums;
     cursor: pointer;
   }
   .number:hover {
-    color: var(--t2);
+    color: var(--t);
   }
+  /* Applied: a chosen block, --ots-block square, centred on the line. */
   .number.applied {
-    color: var(--a);
-  }
-  .number.applied::after {
-    content: '';
-    position: absolute;
-    left: var(--ots-bar-inset);
-    right: var(--ots-bar-inset);
-    bottom: var(--bar-bottom);
-    height: var(--bar-line);
-    background: var(--a);
+    background: linear-gradient(var(--neutral), var(--neutral)) center / var(--ots-block) var(--ots-block) no-repeat;
+    color: var(--on-ink);
   }
   .number:focus-visible {
     outline: var(--line-width) solid var(--focus);

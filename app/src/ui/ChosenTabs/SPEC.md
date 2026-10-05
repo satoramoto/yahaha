@@ -1,11 +1,16 @@
 # ChosenTabs
 
-> **Round 2 restyle (PR #550).** Every size is 35px tall (`--tab-height-header`). The label sits on
+> **The state language (Stage screen cleanup, PR #550).** Every size is 34px tall
+> (`--tab-height-header`: a 36px header row minus its 2px rule). The label sits on
 > `--header-baseline` (28px from the top) through an empty `::before` strut, not on a top padding,
 > so it is centred in its block and shares one baseline with the row's other texts. Page tabs pad
-> 12px a side. `tone: 'primary' | 'secondary'` (default primary): primary is the white block with
-> `--g` text; secondary is `--tab-block-2` (Round 2's `#3a3a3a`) with `--t` text, for a second-level
-> choice (the fader layer). Where the sections below disagree, this note wins.
+> 12px a side. A run of one-of-many choices, not buttons: no rest outline. Unchosen labels are
+> `--tab-rest`. `tone: 'primary' | 'secondary'` (default primary): primary is the `--neutral` block
+> with `--on-ink` text; secondary is `--chosen-2` with `--chosen-2-ink`, for a second-level choice
+> (the fader layer). Disabled labels are `--absent`. Every size's label is
+> `font: var(--type-small); letter-spacing: var(--tracking-small)` then
+> `font-variant-numeric: tabular-nums`, regular in every state. Where the sections below disagree,
+> this note wins.
 
 ## Identity (all stations)
 
@@ -57,40 +62,37 @@ A click or key on a disabled tab calls nothing (the click handler returns early 
 
 ### Visual rules
 
-- **Tokens used:** `--t`, `--g`, `--m`, `--d`, `--focus`, `--font-sans`, `--text-13`, `--text-14`, `--weight-regular`, `--space-8`, `--space-10`, `--line-width`, `--focus-offset`, and the new tokens below.
+- **Tokens used:** `--neutral`, `--on-ink`, `--chosen-2`, `--chosen-2-ink`, `--tab-rest`, `--absent`, `--focus`, `--type-small`, `--tracking-small`, `--space-8`, `--space-10`, `--space-12`, `--tab-height-header`, `--header-baseline`, `--tab-block`, `--tab-block-header`, `--line-width`, `--focus-offset`.
 
-#### New tokens
-
-Not in `app/src/ui/tokens/*` today. They land in the orchestrator's tokens contract PR (in `scale.css`) before this component is built; the builder uses them by name and never hard-codes the value (L1). Neither this component's PR nor PageTabs adds them.
-
-| Token | Dark | Light | Used for |
-|---|---|---|---|
-| `--bar-height` | `36px` | `36px` | the `page` tab height (the app bar's height; AppBar and PageTabs use it too) |
-| `--tab-height-header` | `35px` | `35px` | the `header` and `compact` tab height (the 36px band header row minus its 1px hairline) |
-| `--tab-block` | `24px` | `24px` | the chosen block's height at `page` |
-| `--tab-block-header` | `22px` | `22px` | the chosen block's height at `header` and `compact` |
-| `--space-11` | `11px` | `11px` | the top padding at `header` and `compact` |
+| Token | Value | Used for |
+|---|---|---|
+| `--tab-height-header` | `calc(var(--bar-height) - var(--header-rule-width))` (34px) | every tab's height |
+| `--header-baseline` | `28px` | the label's baseline from the tab's top (the `::before` strut) |
+| `--tab-block` | `24px` | the chosen block's height at `page` |
+| `--tab-block-header` | `22px` | the chosen block's height at `header` and `compact` |
+| `--tab-rest` | dark `--t2`, light `--t2` | an unchosen label |
+| `--chosen-2` / `--chosen-2-ink` | the theme's second-level fill and its ink | the `secondary` block and label |
 
 - **The run:** a `div`, one row (`display: flex; align-items: stretch`), `flex: none`, no gap between tabs, no wrap, no background, no border. Its height is the tab height; its width the sum of the tabs.
 - **Size:** every tab is a `<button type="button">`, `box-sizing: border-box`, border 0, radius 0, margin 0, `white-space: nowrap`, the label centred horizontally and set by the top padding:
 
   | Size | Height | Padding (top, sides, bottom) | Label | Chosen block |
   |---|---|---|---|---|
-  | `page` | `--bar-height` (36) | `--space-10`, `--space-10`, 0 | `--text-14` | `--tab-block` (24) |
-  | `header` | `--tab-height-header` (35) | `--space-11`, `--space-10`, 0 | `--text-13` | `--tab-block-header` (22) |
-  | `compact` | `--tab-height-header` (35) | `--space-11`, `--space-8`, 0 | `--text-13` | `--tab-block-header` (22) |
+  | `page` | `--tab-height-header` (34) | 0, `--space-12`, 0 (label on the strut) | `--type-small` | `--tab-block` (24) |
+  | `header` | `--tab-height-header` (34) | 0, `--space-10`, 0 | `--type-small` | `--tab-block-header` (22) |
+  | `compact` | `--tab-height-header` (34) | 0, `--space-8`, 0 | `--type-small` | `--tab-block-header` (22) |
 
   Width: the label plus the side padding (measured on the boards: Stage at `page` 57, Panel at `header` 52, Vol at `compact` 34).
 - **States drawn by:**
-  - not chosen: no fill (transparent), label `--m`.
-  - chosen: the white block on the bottom of the tab, `background: linear-gradient(var(--t), var(--t)) left bottom / 100% <block> no-repeat`, with `<block>` from the size table; label `--g`. The label keeps `--weight-regular` (D3), so choosing never moves the tabs. Above the block the tab stays transparent; in the app bar the block's bottom pixel row is the row of the bar's 1px `--t` line (drawn by AppBar, not here).
-  - disabled: label `--d`, cursor `default`, on either face (chosen and disabled: the white block with a `--d` label).
+  - not chosen: no fill (transparent), no outline, label `--tab-rest`.
+  - chosen: the block on the bottom of the tab, `background: linear-gradient(<fill>, <fill>) left bottom / 100% <block> no-repeat`, with `<block>` from the size table and `<fill>` `--neutral` (primary) or `--chosen-2` (secondary); label `--on-ink` or `--chosen-2-ink`. The label keeps its weight (D3), so choosing never moves the tabs. Above the block the tab stays transparent.
+  - disabled: label `--absent`, cursor `default`, on either face (chosen and disabled: the block with an `--absent` label).
   - keyboard focus (`:focus-visible`): a `--line-width` outline in `--focus`, `--focus-offset` outside the whole tab button (all 36 or 35 px of it, not only the block); nothing on mouse focus.
   - No hover, pressed, underline, bar or glow.
-- **Type:** DM Sans (`--font-sans`), `--weight-regular` in every state, `line-height: normal`, the label as given (sentence case), tabular numerals.
+- **Type:** `font: var(--type-small); letter-spacing: var(--tracking-small)` then `font-variant-numeric: tabular-nums`, at every size and in every state, the label as given (sentence case).
 - **Cursor:** `pointer` on enabled tabs, `default` on disabled ones.
 - **Test hooks:** each tab carries `data-face="chosen"` (the chosen one) or `data-face="off"` (the rest), or `data-face="disabled"` with `data-contrast="dim"` when its item is disabled, chosen or not (D20); the run carries `data-size` (`page | header | compact`).
-- **Contrast (AA 4.5:1, `tokens/contrast.test.ts`):** new row (lands with the tokens contract PR, L1): `--g` on `--t`, "chosen tab label on its block (ChosenTabs)" (21 dark, 16.72 light, both pass). Existing row: `--m` on `--g` (a tab not chosen). Disabled `--d` is exempt.
+- **Contrast (AA 4.5:1, `tokens/contrast.test.ts`):** `--on-ink` on `--neutral`, `--chosen-2-ink` on `--chosen-2` and `--tab-rest` on `--g` are the token contract's rows. Disabled `--absent` is exempt.
 - **Not checkable in jsdom:** the block (a gradient background), its height, the label colours and the tab widths; the cropped stories and `npm run shots -- ChosenTabs` cover them.
 - **Motion:** none.
 
@@ -122,11 +124,11 @@ Title `Primitives/ChosenTabs`, `layout: 'centered'`. Every story renders in dark
 
 | Story | Args | Shows | Crop | Play (interaction check) |
 |---|---|---|---|---|
-| `Board` | `{ tabs: displayPageTabs, chosen: 'stage', size: 'page' }` | the app bar's first run: Stage in the 24px white block, Channel … Harm/Arp grey | `Board-{dark,light}.png` (Stage 527,24 530×36; see below) | 7 buttons named Stage … Harm/Arp in order; no `tablist`, no `tab`; "Stage" has `aria-current="page"` and `data-face="chosen"`, the other 6 no `aria-current` and `data-face="off"`; "Stage" has `data-tip="view.stage"`; `tipAction` was called with ("Stage" button, `'view.stage'`) among its calls; no button has a `tabindex` attribute; click "Effects" → `onchoose` called with `'effects'`, and "Stage" still has `aria-current="page"` (the parent owns `chosen`); click "Stage" → called with `'stage'` (D6); focus "Looper" (`.focus()`), press Enter → called with `'looper'`; press Space → called with `'looper'` again; 4 calls in all |
-| `FaderPage` | `{ tabs: faderPageTabs, chosen: 'panel', label: 'Fader page (master button)' }` | the band header's Panel \| Style, Panel on the 22px white block (Round 2's Faders header) | `FaderPage-{dark,light}.png` (Stage 80,432 102×35) | — |
-| `Layers` | `{ tabs: layerTabs, chosen: 'volume', label: 'Fader layer', tone: 'secondary' }` | Vol chosen of five layers, on the grey second-level block (Round 2's Layer tabs) | `Layers-{dark,light}.png` (Stage 246,432 259×35) | tabs named "Volume", "Pan", "Reverb send", "Chorus send", "Delay send"; "Volume" selected |
-| `Arrows` | `{ tabs: layerTabs, chosen: 'volume', label: 'Fader layer' }` | the layer tabs, Vol on the white (primary) block | — | first, `const spy = fn()` and `window.addEventListener('keydown', spy)` (bubble phase, no options: the app's `<svelte:window onkeydown>` listens there too); the rest of the play runs in `try { … } finally { window.removeEventListener('keydown', spy) }` so the listener never outlives the story. Focus "Volume" (`.focus()`); press → → `onchoose('pan')`, "Pan" has focus and `tabindex="0"`, "Volume" `tabindex="-1"` and still `aria-selected="true"` (the story never moves `chosen`, D13); press End → `onchoose('delay')`, "Delay send" focused; press → → wraps: `onchoose('volume')`; press ← → `onchoose('delay')`; press Home → `onchoose('volume')`; press Home again → no new call (focus stays); 5 calls in all; `spy` was never called |
-| `Disabled` | `{ tabs: [faderPageTabs[0], { ...faderPageTabs[1], disabled: true }], chosen: 'panel', label: 'Fader page (master button)' }` | "Style" in `--d` | — (no board draws it) | "Style" has `aria-disabled="true"`, `data-face="disabled"`, `data-contrast="dim"` and `tabindex="-1"`; "Panel" has no `aria-disabled` attribute and `data-face="chosen"`; click "Style" → `onchoose` not called; focus "Panel", press → → focus stays on "Panel" (the only enabled tab) and `onchoose` is not called |
+| `Board` | `{ tabs: displayPageTabs, chosen: 'stage', size: 'page' }` | the app bar's first run: Stage on the 24px `--neutral` block, Channel … Harm/Arp in `--tab-rest` | `Board-{dark,light}.png` (Stage 527,24 530×36; see below) | 7 buttons named Stage … Harm/Arp in order; no `tablist`, no `tab`; "Stage" has `aria-current="page"` and `data-face="chosen"`, the other 6 no `aria-current` and `data-face="off"`; "Stage" has `data-tip="view.stage"`; `tipAction` was called with ("Stage" button, `'view.stage'`) among its calls; no button has a `tabindex` attribute; click "Effects" → `onchoose` called with `'effects'`, and "Stage" still has `aria-current="page"` (the parent owns `chosen`); click "Stage" → called with `'stage'` (D6); focus "Looper" (`.focus()`), press Enter → called with `'looper'`; press Space → called with `'looper'` again; 4 calls in all |
+| `FaderPage` | `{ tabs: faderPageTabs, chosen: 'panel', label: 'Fader page (master button)' }` | the band header's Panel \| Style, Panel on the 22px `--neutral` block | `FaderPage-{dark,light}.png` (Stage 80,432 102×35) | — |
+| `Layers` | `{ tabs: layerTabs, chosen: 'volume', label: 'Fader layer', tone: 'secondary' }` | Vol chosen of five layers, on the `--chosen-2` second-level block | `Layers-{dark,light}.png` (Stage 246,432 259×35) | tabs named "Volume", "Pan", "Reverb send", "Chorus send", "Delay send"; "Volume" selected |
+| `Arrows` | `{ tabs: layerTabs, chosen: 'volume', label: 'Fader layer' }` | the layer tabs, Vol on the `--neutral` (primary) block | — | first, `const spy = fn()` and `window.addEventListener('keydown', spy)` (bubble phase, no options: the app's `<svelte:window onkeydown>` listens there too); the rest of the play runs in `try { … } finally { window.removeEventListener('keydown', spy) }` so the listener never outlives the story. Focus "Volume" (`.focus()`); press → → `onchoose('pan')`, "Pan" has focus and `tabindex="0"`, "Volume" `tabindex="-1"` and still `aria-selected="true"` (the story never moves `chosen`, D13); press End → `onchoose('delay')`, "Delay send" focused; press → → wraps: `onchoose('volume')`; press ← → `onchoose('delay')`; press Home → `onchoose('volume')`; press Home again → no new call (focus stays); 5 calls in all; `spy` was never called |
+| `Disabled` | `{ tabs: [faderPageTabs[0], { ...faderPageTabs[1], disabled: true }], chosen: 'panel', label: 'Fader page (master button)' }` | "Style" in `--absent` | — (no board draws it) | "Style" has `aria-disabled="true"`, `data-face="disabled"`, `data-contrast="dim"` and `tabindex="-1"`; "Panel" has no `aria-disabled` attribute and `data-face="chosen"`; click "Style" → `onchoose` not called; focus "Panel", press → → focus stays on "Panel" (the only enabled tab) and `onchoose` is not called |
 
 Not built yet: stories for the second page run (Library, Settings, none chosen), a layer other than Vol, every tab disabled (D15), none chosen, a tablist with no `label` (D16), `compact` (its `Compact` crop, Channel 246,600 238×35, is already cut) and the focus ring.
 
@@ -154,7 +156,7 @@ Crop positions are `board x,y w×h` in the 1440×900 renders, the same box in th
 - **D8 · Captions and separators outside.** The band's visible "Layer" word sits inside the board's tablist and the app bar's separator inside its `nav`; here both are the parent's (FaderBank draws "Layer" 4px before the tabs, PageTabs D1 draws the separator), so a run holds only tabs.
 - **D9 · Tooltips.** The library can't import `use:tip`, so each tab carries its key as `data-tip` and the wiring may pass the action in as `tipAction`; this keeps Stage.md Check 15 (every interactive element has a `data-tip`) true for tabs.
 - **D10 · `compact` size.** The half band's 8px-padded layer tabs (Channel board) are a third size here, so FaderBank's half variant (#501) needs no new primitive.
-- **D11 · New tokens (L1).** `--bar-height`, `--tab-height-header`, `--tab-block`, `--tab-block-header` and `--space-11` (values under New tokens) and the `--g` on `--t` contrast row land in the orchestrator's tokens contract PR, not in this component's or PageTabs' PR.
+- **D11 · New tokens (L1).** `--bar-height`, `--tab-height-header`, `--tab-block`, `--tab-block-header` and `--space-11` and the `--g` on `--t` contrast row landed in the orchestrator's tokens contract PR. The state language (PR #550) replaced the colours with `--neutral` / `--on-ink`, `--chosen-2` / `--chosen-2-ink`, `--tab-rest` and `--absent`, and the type with `--type-small`.
 - **D12 · `nav.channel` is a contract change (L3).** The Channel page tab's key doesn't exist in `tooltips.ts`; rather than borrow `mixer.channel` (a strip control), the tab uses the new key Stage.md C5 already names: `nav.channel`, title "Channel", body "Shows the Channel page: one part's sound, mix and inserts. Press again to go back to Stage.", `app_keys: ['alt+n']`, `launchkey: null`. The fixtures use it; until C5 lands the story still renders (`data-tip` is just a string here).
 - **D13 · The `0` follows focus.** In a tablist the `tabindex="0"` follows the focused tab (internal `active`, reset to `chosen` when `chosen` changes or focus leaves the run), so arrows work the same whether or not the parent updates `chosen` at once, and Tab back into the run lands on the chosen tab.
 - **D14 · Space and Enter are the native click.** The component never handles Space or Enter itself, so each press is exactly one `click` and one `onchoose`; the app's window handler already skips Space and Enter on a button.

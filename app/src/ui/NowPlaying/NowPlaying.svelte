@@ -1,6 +1,6 @@
 <!--
   NowPlaying: the display's middle, in glance order. The chord on the left; on the right the
-  playing section (44px in its hue), "next" and the next section in 28px muted text, and when the
+  playing section (44px in its hue), "next" and the next section in 32px muted text, and when the
   fill lands; under them the bar and beat with the section's bar lines, then the tempo with the
   Running light. A readout, not a control.
 -->
@@ -100,44 +100,42 @@
     display: flex;
     align-items: center;
     gap: var(--space-8);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
-    color: var(--m);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
+    color: var(--caption-ink);
   }
   .sections {
     margin-top: var(--space-4);
-    height: var(--leading-44);
+    height: var(--chip-height-display);
     display: flex;
     align-items: baseline;
     gap: var(--space-16);
     white-space: nowrap;
   }
   .word {
-    font-size: var(--text-13);
-    font-weight: var(--weight-regular);
-    color: var(--m);
+    font: var(--type-small);
+    letter-spacing: var(--tracking-small);
+    color: var(--caption-ink);
   }
   .next {
-    font-size: var(--text-28);
-    font-weight: var(--weight-light);
-    line-height: var(--leading-44);
-    letter-spacing: var(--tracking-28);
+    font: var(--type-readout-lg);
+    letter-spacing: var(--tracking-readout-lg);
     color: var(--m);
   }
   .fill {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
     color: var(--m);
   }
   .count {
     margin-top: var(--bar-row-gap);
   }
+  /* The tempo row is the readout's 40px line. */
   .tempo {
     margin-top: var(--tempo-gap);
-    height: var(--leading-40);
     display: flex;
     align-items: baseline;
     white-space: nowrap;
@@ -148,8 +146,8 @@
     display: flex;
     align-items: center;
     gap: var(--space-8);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
+    font: var(--type-body);
+    letter-spacing: var(--tracking-body);
     color: var(--m);
   }
   .state.running {
