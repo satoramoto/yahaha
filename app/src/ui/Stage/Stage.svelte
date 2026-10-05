@@ -16,10 +16,19 @@
   import StatusLine from '../StatusLine/StatusLine.svelte'
   import TransportColumn from '../TransportColumn/TransportColumn.svelte'
 
-  type Callbacks = 'tipAction' | `on${string}`
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   type Any = Component<any>
-  type Data<C extends Any> = Omit<ComponentProps<C>, Callbacks>
+  /** A region's data: its props without `tipAction` and the `on…` callbacks (a data prop such as `oneTouch` stays). */
+  type DataOf<P> = {
+    [K in keyof P as K extends 'tipAction'
+      ? never
+      : K extends `on${string}`
+        ? NonNullable<P[K]> extends (...args: never[]) => unknown
+          ? never
+          : K
+        : K]: P[K]
+  }
+  type Data<C extends Any> = DataOf<ComponentProps<C>>
   type On<C extends Any, K extends keyof ComponentProps<C>> = Pick<ComponentProps<C>, K>
 
   type Props = {

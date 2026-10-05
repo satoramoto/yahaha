@@ -1,5 +1,12 @@
 # Button
 
+> **Superseded look (Round 2 restyle, PR #550).** The on face is no longer the lime `--lamp` fill.
+> It is the plain button face with the label in `--t`, medium, over a 2px white bar (`--t`, with
+> `--lamp-glow-t`), the same bar as LampButton's lit lamp: `--bar-bottom` above the bottom, inset
+> `--space-8` a side (`icon`: `--space-6`). Symbols in the on face follow the `--t` label. The
+> running `bar` (Start / Stop) glows with `--lamp-glow-ok`. Where the sections below disagree, this
+> note wins.
+
 ## Identity (all stations)
 
 - **Kind:** primitive
@@ -122,13 +129,16 @@ Title `Primitives/Button`, `layout: 'centered'` unless the row says otherwise. E
 
 **Timing in plays (L4):** pointer events are `fireEvent.pointerDown` / `pointerUp` / `pointerCancel(button, { pointerId, button: 0, clientX: 0, clientY: 0 })` (jsdom 30 has `PointerEvent`; it has no pointer capture, so the component's guarded `setPointerCapture?.` call does nothing there). Plays use real time: "wait 500 ms" is `await new Promise((r) => setTimeout(r, 500))`, and a long press is awaited with `waitFor(…, { timeout: 1000 })`.
 
+Built so far (PR #550): `Board`, `Icon`, `BandOn`, `On`, `Chosen`, `Band`, `Waiting`, `Disabled`, `Hold` and `LongPress`. The other rows are not built yet.
+
 | Story | Args | Shows | Crop | Play (interaction check) |
 |---|---|---|---|---|
 | `Board` | `{ symbol: 'caret', size: 'caret', join: 'end', popup: 'dialog', expanded: false, name: 'Metronome settings', tip: 'metronome.settings' }` | the first Button in reading order on the Stage board: the Metronome caret, closed (D1) | `Board-{dark,light}.png` (Stage 1201,68 20×32) | the button named `Metronome settings` has `aria-haspopup="dialog"`, `aria-expanded="false"`, no `aria-pressed`, no `aria-disabled`, `data-face="off"`, `data-tip="metronome.settings"`; `tipAction` was called with the button and `'metronome.settings'`; click → `onpress` called once |
 | `CaretExpanded` | `Board` args with `expanded: true` | the caret while its popover is open: ▾ in `--t` | `CaretExpanded-{dark,light}.png` (Stage-Metronome 1201,68 20×32) | `aria-expanded` is `true` |
 | `Md` | `{ label: 'Panic', size: 'md', name: 'Panic: all notes off', tip: 'transport.panic' }` | the off face, padding 0 14, `--t2` label | `Md-{dark,light}.png` (Stage 1313,68 63×32) | click, then Space, then Enter → `onpress` called 3 times, each with no arguments; no `aria-pressed`, no `aria-disabled`; `data-tip="transport.panic"` |
 | `Icon` | `{ label: '?', size: 'icon', pressed: false, name: 'Help mode' }` | a 32 × 32 off button with a 14px character | `Icon-{dark,light}.png` (Stage 1384,68 32×32) | `aria-pressed` is `false`; `data-face="off"` |
-| `On` | `{ label: '?', size: 'icon', on: true, pressed: true, name: 'Help mode' }` | the lamp face (help mode on) | `On-{dark,light}.png` (Stage-Help 1384,68 32×32) | `aria-pressed` is `true`; `data-face="on"` |
+| `BandOn` | `{ label: 'Fade', size: 'band', on: true, pressed: true }` | a band button switched on (Fade while fading): the white label over a glowing white bar | — | — |
+| `On` | `{ label: '?', size: 'icon', on: true, pressed: true, name: 'Help mode' }` | the on face (help mode on): a white "?" over a glowing white bar | `On-{dark,light}.png` (Stage-Help 1384,68 32×32) | `aria-pressed` is `true`; `data-face="on"` |
 | `IconSymbol` | `{ symbol: 'prev', size: 'icon', name: 'Previous style (Track left)' }` | ◀ alone at 12px | `IconSymbol-{dark,light}.png` (Stage 49,129 32×32) | the button's accessible name is `Previous style (Track left)`; its text "◀" is inside an `aria-hidden` element |
 | `Chosen` | `{ label: '2', size: 'icon', chosen: true, pressed: true, name: 'One Touch 2, applied' }` | the white chosen block, medium label | `Chosen-{dark,light}.png` (Stage 483,129 32×32) | `data-face="chosen"`; `aria-pressed` `true` |
 | `Band` | `{ label: 'Stop', size: 'band', name: 'Stop (fade with hold)' }` | 88 × 32, label left at 8px | `Band-{dark,light}.png` (Stage 1328,514 88×32) | — |

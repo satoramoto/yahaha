@@ -1,14 +1,23 @@
 # WaitingChip
 
+> **Superseded look (Round 2 restyle, PR #550).** The outline is gone. The chip is plain text in
+> the hue: no border, no padding, transparent. `hue: 't'` (the default) draws in `--m`, the muted
+> grey of Round 2's next section; any other hue draws in its own token. `display` is 44 tall
+> (`--chip-height-display`), `--text-28` light with `--tracking-28`; `count` and `line` keep their
+> type and drop the 8px side padding. The line-height is the chip's height. Where it is used: only
+> StyleLine mounts it, at `line` with `hue="a"` (the queued style). The count row is gone (its
+> count moved into the display's `BarBeat` row), and the display's next section is NowPlaying's own
+> text, so no screen uses `count` or `display` today. Where the sections below disagree, this note wins.
+
 ## Identity (all stations)
 
 - **Kind:** primitive
 - **Built from:** —
 - **Purpose:** Names what comes next (the next section, a style waiting for the bar line) in an outline, so it reads as "coming" rather than "playing".
 - **Boards:**
-  - `Stage-Dark.dc.html:110` (the count row's next section "Main C", 26 tall, 18px), `:166` (the display's next section "Main C", 48 tall, 36px); light: `Stage-Light.dc.html:86`, `:142`.
+  - `Stage-Dark.dc.html:110` (the old count row's next section "Main C", 26 tall, 18px; the count row is now gone), `:166` (the display's next section "Main C", 48 tall, 36px); light: `Stage-Light.dc.html:86`, `:142`.
   - The `line` size (the style line's queued style) is drawn on no board; its values are Stage.md › Style line, "Queued style".
-- **Not this component's job:** no store, no API, no Tauri. Not a control: it has no click, focus or tooltip. It doesn't decide what is next, map a section name to its Genos name or to a hue (kit › Section names, Hue roles: the parent passes `label` and `hue`), or hide itself from screen readers (the count row's parts are `aria-hidden` by the CountRow). Not the waiting face of a button or a pad (Fade armed, Looper armed, a queued pad): those are Button, LampButton and Pad.
+- **Not this component's job:** no store, no API, no Tauri. Not a control: it has no click, focus or tooltip. It doesn't decide what is next, map a section name to its Genos name or to a hue (kit › Section names, Hue roles: the parent passes `label` and `hue`), or hide itself from screen readers (a parent that wants it hidden wraps it in `aria-hidden`). Not the waiting face of a button or a pad (Fade armed, Looper armed, a queued pad): those are Button, LampButton and Pad.
 
 ## API (Component station)
 
@@ -76,7 +85,7 @@ These are Stage.md C6's values, not this spec's own: C6 picks, per palette entry
 
 - **Role and name:** none: a plain `<span>` whose text is read in place. No `aria-label`, no role, not focusable. When ellipsized (`line`), the full label is still the span's text, so assistive tech reads it whole.
 - **Keyboard:** none.
-- **Tooltip id:** none (not a control; the parent's readout carries its own, e.g. `display.position` on the count row).
+- **Tooltip id:** none (not a control; the parent's readout carries its own, e.g. StyleLine's).
 
 ## Stories (Story station)
 
@@ -84,16 +93,12 @@ Title `Primitives/WaitingChip`, `layout: 'centered'`. Every story renders in dar
 
 | Story | Args | Shows | Crop | Play (interaction check) |
 |---|---|---|---|---|
-| `Board` | `{ label: 'Main C', hue: 'main', size: 'count' }` | the count row's next section: 1px green outline, 18px green "Main C" | `Board-{dark,light}.png` (Stage 667,71 75×26) | the text "Main C" is in a span with `data-face="waiting"`, `data-hue="main"`, `data-size="count"`; no `button`, no focusable element |
-| `Display` | `{ label: 'Main C', hue: 'main', size: 'display' }` | the display's next section, 48 tall, 36px | `Display-{dark,light}.png` (Stage 557,191 130×48) | `data-size="display"` |
+| `Board` | `{ label: 'Main C', hue: 'main', size: 'count' }` | an 18px light green "Main C", no outline | `Board-{dark,light}.png` (Stage 667,71 75×26; cut from the old outlined board, so it no longer matches) | the text "Main C" is in a span with `data-face="waiting"`, `data-hue="main"`, `data-size="count"`; no `button`, no focusable element |
+| `Display` | `{ label: 'Main C', hue: 't', size: 'display' }` | Round 2's next section: a 28px light, muted "Main C" | `Display-{dark,light}.png` (Stage 557,191 130×48; cut from the old outlined board, so it no longer matches) | — |
 | `QueuedStyle` | `{ label: 'Coastal Highway', hue: 'a', size: 'line' }` | the style line's queued style in the accent | — (no board draws a queued style) | `data-hue="a"`, `data-size="line"`, text "Coastal Highway" |
-| `LongStyle` | `{ label: 'Another Very Long Style Name That Keeps Going', hue: 'a', size: 'line' }` | capped at 200px, ending in an ellipsis | — (no board; Inspect judges the cap and the ellipsis) | the span's text is the whole label |
-| `IntroArmed` | `{ label: 'Intro II', hue: 'intro', size: 'display' }` | stopped with Intro II armed (Stage.md D4) | — | `data-hue="intro"` |
-| `Break` | `{ label: 'Break', hue: 'brk', size: 'count' }` | the Break next, in its violet | — | `data-hue="brk"` |
-| `Fill` | `{ label: 'Fill', hue: 'fill', size: 'count' }` | a fill next, in its grey-blue | — | `data-hue="fill"` |
-| `Ending` | `{ label: 'Ending I', hue: 'ending', size: 'count' }` | an ending next, in its red | — | `data-hue="ending"` |
-| `Empty` | `{ label: '', hue: 'main', size: 'count' }` | nothing (no next) | — | no `[data-face="waiting"]` in the story root |
-| `Blank` | `{ label: '   ', hue: 'main', size: 'count' }` | nothing (a whitespace-only label counts as empty, D7) | — | no `[data-face="waiting"]` in the story root |
+| `Empty` | `{ label: '', hue: 'main', size: 'count' }`, `parameters: { rendersNothing: true }` | nothing (no next) | — | no `[data-face]` in the story root |
+
+The long, whitespace-only and other-hue cases (D5, D7) have no story yet.
 
 Crop positions are `board x,y w×h` in the 1440×900 renders, the same box in the dark and light render. No `Focused` story: the chip isn't focusable.
 

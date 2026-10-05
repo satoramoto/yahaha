@@ -46,3 +46,26 @@ export const stageStopped = {
   status: { text: 'Style queued: it starts at the next Start', seq: 1 },
   keys: { ...boardKeys, heldLeft: [], heldRight: [] },
 } satisfies ComponentProps<typeof Stage>
+
+/**
+ * The Playground's fader values per layer: Vol has all nine strips, the other layers strips 1–4
+ * (the parts). Pan is 0–127 with 64 centre.
+ */
+export const stageLayerValues: Record<string, number[]> = {
+  volume: panelStrips.map((strip) => strip.level),
+  pan: [64, 40, 88, 64],
+  reverb: reverbStrips.slice(0, 4).map((strip) => strip.level),
+  chorus: [12, 0, 0, 8],
+  delay: [0, 0, 0, 0],
+}
+
+/** The styles the Playground's ◀ ▶ step through. */
+export const stageStyles = [
+  { styleName: 'Sunday Drive Pop', category: 'Pop', timeSignature: '4/4' },
+  { styleName: 'Coastal Highway', category: 'Rock', timeSignature: '4/4' },
+  { styleName: 'Ballad Night', category: 'Ballad', timeSignature: '4/4' },
+  { styleName: 'Waltz for Two', category: 'Ballroom', timeSignature: '3/4' },
+]
+
+/** The style's own tempo, which Style tempo goes back to. */
+export const stageStyleTempo = 104

@@ -9,8 +9,8 @@
 
 ## Identity (all stations)
 
-- **Kind:** complex (D9)
-- **Built from:** ChosenTabs, AccentBlock. Only its stories and crops mount them: the component itself imports neither and takes what follows the title as one `children` snippet, which each parent fills with its own children.
+- **Kind:** primitive (D16; was complex, D9)
+- **Built from:** — (its stories and crops mount ChosenTabs and AccentBlock as children): the component itself imports neither and takes what follows the title as one `children` snippet, which each parent fills with its own children.
 - **Purpose:** The hairline row that names a group of controls ("Faders", "Knobs", "Pads", "Transport", "Tempo") and holds the group's page tabs or page counter.
 - **Boards:**
   - `Stage-Dark.dc.html:224` (Faders, with the fader page and layer tabs), `:292` (Knobs, with the page block and "Page 1/6"), `:320` (Pads, with "Sections", the legend and "Bank 1/5"), `:361` (Transport), `:379` (Tempo, 20px under the transport buttons); light: `Stage-Light.dc.html:200`, `:268`, `:296`, `:337`, `:355`.
@@ -86,7 +86,7 @@ Not in `app/src/ui/tokens/*` today. It lands in the orchestrator's tokens contra
 
 ## Stories (Story station)
 
-Title `Components/GroupHeader`, `layout: 'centered'`. Every story renders in dark and light (the toolbar theme). No `Focused` story: it isn't focusable (a tab inside it is ChosenTabs' to show).
+Title `Primitives/GroupHeader` (D16), `layout: 'centered'`. Every story renders in dark and light (the toolbar theme). No `Focused` story: it isn't focusable (a tab inside it is ChosenTabs' to show).
 
 **Snippet args (D7, D11).** `GroupHeader.stories.ts` imports `ChosenTabs`, `AccentBlock` and ChosenTabs' fixtures `faderPageTabs` and `layerTabs` (from `app/src/ui/ChosenTabs/ChosenTabs.fixtures.ts`, so the tabs carry their `tip` keys), plus `createRawSnippet`, `mount` and `unmount` from `svelte`. The meta's `render(args)` returns `{ Component: GroupHeader, props }` where `props` holds only GroupHeader's own props (`title`, `detail`, `count`, `level`, `id`, `width`) plus `children`, built from the story's `content` arg and the child args below; the child args never reach GroupHeader.
 
@@ -123,20 +123,18 @@ Every story sets every arg above (the defaults), so a control always exists; onl
 
 | Story | Args (besides the defaults above) | Shows | Crop | Play (interaction check) |
 |---|---|---|---|---|
-| `Board` | `{ title: 'Faders', width: 654, content: 'faders' }` | the Faders header: title, Panel chosen, the separator, "Layer" and Vol chosen, over the hairline | `Board-{dark,light}.png` (Stage 24,432 654×36) | a heading level 2 named "Faders"; two tablists, "Fader page (master button)" and "Fader layer"; tab "Panel" has `data-tip="mixer.page"`; no text "Page" or "Bank"; click tab "Style" → `onchoosePage` called once with `'style'`; click tab "Pan" → `onchooseLayer` called once with `'pan'` |
-| `FadersLayer` | `{ title: 'Faders', detail: 'Reverb', width: 654, content: 'faders', layerChosen: 'reverb' }` | "Faders · Reverb" with Reverb in `--t`, and the Reverb tab chosen | `FadersLayer-{dark,light}.png` (Effects 24,432 654×36) | a heading level 2 named "Faders · Reverb" whose `textContent` is exactly `'Faders · Reverb'`; the tab "Reverb send" has `aria-selected="true"` |
+| `Board` | `{ title: 'Faders', width: 654, content: 'faders' }` | the Faders header: title, Panel chosen, the separator, "Layer" and Vol chosen on the grey `secondary` block, over the hairline | `Board-{dark,light}.png` (Stage 24,432 654×36) | a heading level 2 named "Faders"; two tablists, "Fader page (master button)" and "Fader layer"; tab "Panel" has `data-tip="mixer.page"`; no text "Page" or "Bank"; click tab "Style" → `onchoosePage` called once with `'style'`; click tab "Pan" → `onchooseLayer` called once with `'pan'` |
 | `Knobs` | `{ title: 'Knobs', width: 626, count: { label: 'Page', value: '1/6' }, content: 'knobs' }` | Knobs, the violet "Style" block, "Page 1/6" at the right end | `Knobs-{dark,light}.png` (Stage 690,432 626×36) | a heading named "Knobs"; an element with `data-face="accent"` and text "Style"; the text "Page 1/6" is in the canvas, with "1/6" in its own element |
 | `Pads` | `{ title: 'Pads', width: 626, count: { label: 'Bank', value: '1/5' }, content: 'pads' }` | Pads, "Sections", the five-hue legend, "Bank 1/5" | `Pads-{dark,light}.png` (Stage 690,590 626×36) | a heading named "Pads"; the text "Sections"; the words Intro, Main, Ending, Break, Fill in that order; the text "Bank 1/5" |
-| `Transport` | `{ title: 'Transport', width: 88, content: 'none' }` | the title alone over the hairline | `Transport-{dark,light}.png` (Stage 1328,432 88×36) | a heading named "Transport"; the row has no other text |
-| `Tempo` | `{ title: 'Tempo', width: 88, content: 'none' }` | the second header of the transport column | `Tempo-{dark,light}.png` (Stage 1328,642 88×36) | a heading named "Tempo" |
-| `Level3` | `{ title: 'Transport', level: 3, id: 'band-transport', width: 88, content: 'none' }` | the same look at another heading level | — (same pixels as `Transport`) | a heading level 3 named "Transport" with `id="band-transport"` |
+
+Not built yet: stories for "Faders · Reverb" (`detail`, D10; its `FadersLayer` crop, Effects 24,432 654×36, is already cut), the title alone (`Transport` and `Tempo` crops, Stage 1328,432 and 1328,642 88×36, are cut) and another heading `level`.
 
 Crop positions are `board x,y w×h` in the 1440×900 renders, the same box in the dark and light render. Every cropped story's screenshot includes its children, so `npm run shots -- GroupHeader` also compares the ChosenTabs and AccentBlock it mounts; those must be built first (Stage's build order has them before GroupHeader).
 
 ## Done when (Inspect station)
 
 - Every story in the table exists, renders in dark and light, and its play passes (`npx vitest run src/ui`).
-- `npm run shots -- GroupHeader` passes for the six cropped stories (score at most 0.02, or the Inspect agent judges any difference to be render noise), and axe finds no violation on any story once the tokens contract PR has landed (L2). Until then `Pads` is expected to fail axe in both themes (the legend: light Intro 3.87 and Main 4.42, dark Break 4.48); every other story passes today.
+- `npm run shots -- GroupHeader` passes for the cropped stories (score at most 0.02, or the Inspect agent judges any difference to be render noise), and axe finds no violation on any story once the tokens contract PR has landed (L2). Until then `Pads` is expected to fail axe in both themes (the legend: light Intro 3.87 and Main 4.42, dark Break 4.48); every other story passes today.
 - Only listed tokens are used; no inline colours, no literal sizes in the component or in the story markup.
 - svelte-check and lint pass on the folder.
 
@@ -144,16 +142,17 @@ Crop positions are `board x,y w×h` in the 1440×900 renders, the same box in th
 
 - **D1 · One snippet, two props.** What every header has (title, the " · " detail, the right-hand page counter) is props; what differs per group (tabs, page block, page name, legend) is the one `children` snippet, so no header needs a second slot.
 - **D2 · The title is a heading.** It is an `h2` by default (`level` changes it, `id` lets the parent's `section` use `aria-labelledby`), so the band's groups are headings to a screen reader; the board's plain `span` gave no structure.
-- **D3 · Centre, not stretch.** The row always uses `align-items: center`; the board's Faders row uses `stretch`, but its 35-tall tabs fill the 35px content box either way, so the pixels are the same and one rule covers every header.
+- **D3 · Centre, not stretch.** Superseded by the one-baseline note at the top (PR #550). The row always uses `align-items: center`; the board's Faders row uses `stretch`, but its 35-tall tabs fill the 35px content box either way, so the pixels are the same and one rule covers every header.
 - **D4 · Children are flex items.** The snippet renders straight into the row, so each of its top-level elements gets the 12px gap, as the board's Faders, Knobs and Pads rows space their items.
 - **D5 · Height token.** Superseded by D13: the 36px height is the new token `--group-header-height`, not a literal.
 - **D6 · No clipping.** The row doesn't hide overflow, so a focused tab's ring (2px outside the tab) isn't cut at the hairline; the band's widths are fixed and the content fits.
 - **D7 · Stories mount the real children.** The cropped stories mount ChosenTabs and AccentBlock into `display: contents` hosts from `createRawSnippet`, since the crops show them and copying their markup would test a fake; the legend and "Sections" are PadBank's own markup, copied as given above.
 - **D8 · Counter as a prop.** "Page 1/6" and "Bank 1/5" are one `count` prop (13px, label `--m`, value `--t`, at the right end) rather than snippet content, since both banks draw it identically.
-- **D9 · Kind complex, title `Components/`.** Its stories and crops are built from ChosenTabs and AccentBlock, so it is listed as complex (Built from both) and titled `Components/GroupHeader`, though the component itself imports neither and only renders `children`.
+- **D9 · Kind complex, title `Components/` (now a primitive, D16).** Its stories and crops are built from ChosenTabs and AccentBlock, so it is listed as complex (Built from both) and titled `Components/GroupHeader`, though the component itself imports neither and only renders `children`.
 - **D10 · Heading text.** The heading is written on one template line with the separator as the text node `' · '`, so its accessible name is exactly "Faders · Reverb" with no stray whitespace; `FadersLayer` checks `textContent`.
 - **D11 · Snippet shape and controls.** Each story snippet is one `display: contents` root holding the items in the order above, the mounted children get their props from story args grouped by child with `table.category` (axiom 3), and the ChosenTabs get `onchoose` and `tipAction` as `fn()` actions and their tabs from ChosenTabs' fixtures (`faderPageTabs`, `layerTabs`), not inline arrays.
 - **D12 · "Sections" label.** The pad page name is a plain `span`, 14px regular (400) in `--t`, as the board draws it (no weight set, so 400); the legend is 12px regular.
 - **D13 · New token (L1).** `--group-header-height: 36px` lands in the tokens contract PR, since axiom 2 allows no literal sizes in a component; story markup likewise uses only `--space-*`, `--text-*`, `--weight-*`, `--line-width` and colour tokens.
 - **D14 · Pads fails axe until the tokens land (L2).** The legend's section-hue text uses WaitingChip's new hue-on-ground rows and changed values; `Pads` fails axe in both themes until the tokens contract PR lands.
 - **D15 · Legend hues are Stage C6's (review).** The values D14 borrowed from WaitingChip (#1c7e3f, #796f1c, #9063a9) passed on `--g` only; WaitingChip D11 now uses Stage C6's (light `--main` #19733a, `--intro` #6e651a, dark `--brk` #986faf), which pass on `--g` and `--btn`, so the legend reads the same tokens at the same values as every other spec.
+- **D16 · A primitive, title `Primitives/` (PR #550; replaces D9).** The component imports no other component of the library, so by axiom 11 it is a primitive and titled `Primitives/GroupHeader`. Its stories still mount ChosenTabs and AccentBlock as `children`.

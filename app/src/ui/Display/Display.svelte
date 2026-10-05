@@ -13,15 +13,24 @@
 
   type StyleLineProps = ComponentProps<typeof StyleLine>
   type SoundRowProps = ComponentProps<typeof SoundRow>
-  type Callbacks = 'tipAction' | `on${string}`
+  /** A region's data: its props without `tipAction` and the `on…` callbacks (a data prop such as `oneTouch` stays). */
+  type Data<P> = {
+    [K in keyof P as K extends 'tipAction'
+      ? never
+      : K extends `on${string}`
+        ? NonNullable<P[K]> extends (...args: never[]) => unknown
+          ? never
+          : K
+        : K]: P[K]
+  }
 
   type Props = {
     /** The style line: style, category, time signature, queued style, One Touch, sends. */
-    styleLine: Omit<StyleLineProps, Callbacks>
+    styleLine: Data<StyleLineProps>
     /** Now playing: the chord, the sections, the tempo and Running. */
     nowPlaying: ComponentProps<typeof NowPlaying>
     /** The sound row: the rack and the four parts. */
-    soundRow: Omit<SoundRowProps, Callbacks>
+    soundRow: Data<SoundRowProps>
     /** The app's tooltip action (`use:tip`), applied to every control. */
     tipAction?: Action<HTMLElement, string>
     /** ◀: the previous style. */

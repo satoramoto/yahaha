@@ -83,7 +83,13 @@
   /** Applies the parent's tooltip action to a name button that has a key. */
   const tipped: Action<HTMLElement, string | undefined> = (node, key) => {
     if (!tipAction || key === undefined) return
-    return tipAction(node, key)
+    const handle = tipAction(node, key)
+    return {
+      update: (next) => {
+        if (next !== undefined) handle?.update?.(next)
+      },
+      destroy: () => handle?.destroy?.(),
+    }
   }
 </script>
 

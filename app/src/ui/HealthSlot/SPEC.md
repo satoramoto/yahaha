@@ -1,5 +1,10 @@
 # HealthSlot
 
+> **One baseline (PR #550).** The slot no longer has its own 35px height or centres its text: the
+> slot and its button align by baseline (`align-items: baseline`) and the slot is as tall as its
+> text, so the parent (AppBar) puts the text on the header baseline (`--header-baseline`, 28px)
+> with every other text in the bar. Where the sections below say 35px or centred, this note wins.
+
 ## Identity (all stations)
 
 - **Kind:** primitive
