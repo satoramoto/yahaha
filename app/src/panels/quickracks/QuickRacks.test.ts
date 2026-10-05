@@ -8,9 +8,11 @@ import { flushSync } from 'svelte'
 import { afterEach, describe, expect, it } from 'vitest'
 import App from '../../App.svelte'
 import { BINDINGS } from '../../lib/keys'
+import { NAV } from '../../lib/nav'
 import { MockSession } from '../../lib/api/mock'
 import { quickLook } from '../../lib/api/quick-racks'
 import { app, ui } from '../../lib/store.svelte'
+import KnobRackPanel from '../knobracks/KnobRackPanel.svelte'
 import Launchkey from '../launchkey/Launchkey.svelte'
 import QuickBar from './QuickBar.svelte'
 
@@ -48,8 +50,9 @@ afterEach(() => {
 })
 
 describe('Quick Racks bar', () => {
-  it('replaces the Registration bar on the stage, in the Quick Racks row (panels/knobracks)', () => {
-    render(App, { props: { session: new MockSession({ demo: true, manual: true }) } })
+  it('replaces the Registration bar, in the Quick Racks row (panels/knobracks)', () => {
+    app.attach(new MockSession({ demo: true, manual: true }))
+    render(KnobRackPanel)
     flushSync()
     const bar = q<HTMLElement>(STAGE)
     expect(document.querySelector('section[aria-label="Registration"]')).toBeNull()
@@ -123,6 +126,9 @@ describe('Quick Racks bar', () => {
 
   it('a waiting Store whose save needs sound names asks them in the Rack drawer, then saves and stores', async () => {
     const s = setup()
+    // The Quick Racks row isn't routed in the Stage shell any more: render it first, then
+    // App, whose Rack drawer opens over the Stage.
+    render(KnobRackPanel)
     render(App, { props: { session: s } })
     s.send({ type: 'listPluginPresets', id: 'au:aumu Smp7 Fake' })
     s.send({ type: 'setPartPluginPreset', part: 0, id: 'aumu Smp7 Fake', preset: 'f:1' })
@@ -146,6 +152,8 @@ describe('Quick Racks bar', () => {
 
   it('a button loads its rack; with unsaved changes the Rack drawer opens and asks: Keep editing, Discard and switch, Save first', async () => {
     const s = setup()
+    // The row first, then App for the Rack drawer over the Stage (as above).
+    render(KnobRackPanel)
     render(App, { props: { session: s } })
     s.send({ type: 'setPartVoice', part: 0, program: 40 })
     await storeAs(0, 'Strings')
@@ -349,7 +357,7 @@ describe('Quick Racks in the mock', () => {
 })
 
 describe('Library › Racks', () => {
-  it('opens from nav "Quick Racks" and loads your racks (double-click), labelled with their Quick Rack button', async () => {
+  it('opens from nav "Quick Racks" (Alt+R) and loads your racks (double-click), labelled with their Quick Rack button', async () => {
     const s = setup()
     render(App, { props: { session: s } })
     s.send({ type: 'toggleQuickRackStore' })
@@ -358,8 +366,10 @@ describe('Library › Racks', () => {
     s.send({ type: 'newRack' })
     s.send({ type: 'setPartVoice', part: 0, program: 3 })
     flushSync()
-    const nav = [...document.querySelectorAll('nav.quick-nav button')].find((b) => b.textContent!.trim() === 'Quick Racks')!
-    await click(nav)
+    // The quick-nav strip isn't routed in the Stage shell any more; its Alt key still is.
+    expect(NAV.find((n) => n.label === 'Quick Racks')!.key).toBe('alt+r')
+    await fireEvent.keyDown(window, { key: 'r', code: 'KeyR', altKey: true })
+    flushSync()
     expect(ui.view).toBe('library')
     expect(ui.libraryTab).toBe('racks')
     const rack = tipped('library.rack_row')

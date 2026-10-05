@@ -5,6 +5,8 @@ import { cleanup, fireEvent, render } from '@testing-library/svelte'
 import { flushSync, tick } from 'svelte'
 import { afterEach, describe, expect, it } from 'vitest'
 import App from '../../App.svelte'
+import { NAV } from '../../lib/nav'
+import Header from '../header/Header.svelte'
 import { MockSession } from '../../lib/api/mock'
 import type { SoundCatalog } from '../../lib/api/types'
 import { app, ui } from '../../lib/store.svelte'
@@ -60,15 +62,20 @@ afterEach(() => {
 describe('Stage | Library', () => {
   it('the header switch shows Library in place of the stage; Back to Stage and Esc return', async () => {
     await setup()
-    expect(q('.stage')).toBeTruthy()
-    await click(tipped('view.library')[0])
+    // The old header isn't routed in the Stage shell any more: render it beside App.
+    // (The Stage's own page tabs carry `view.library` too: pick the header's switch.)
+    render(Header)
+    flushSync()
+    const toLibrary = () => q('[role="group"][aria-label="View"] [data-tip="view.library"]')
+    expect(q('.stage-slot')).toBeTruthy()
+    await click(toLibrary())
     expect(ui.view).toBe('library')
-    expect(q('.stage')).toBeNull()
+    expect(q('.stage-slot')).toBeNull()
     expect(q('section[aria-label="Library"]')).toBeTruthy()
-    expect(tipped('view.library')[0].getAttribute('aria-pressed')).toBe('true')
+    expect(toLibrary()!.getAttribute('aria-pressed')).toBe('true')
     await click(tipped('library.back')[0])
     expect(ui.view).toBe('stage')
-    await click(tipped('view.library')[0])
+    await click(toLibrary())
     await fireEvent.keyDown(window, { key: 'Escape' })
     flushSync()
     expect(ui.view).toBe('stage')
@@ -96,9 +103,11 @@ describe('Stage | Library', () => {
     expect(ui.view).toBe('stage')
   })
 
-  it('the nav strip has Library, not Sounds or Sound Library; Alt+Y opens the Style map', async () => {
+  it('the nav list has Library, not Sounds or Sound Library; Alt+Y opens the Style map', async () => {
     await setup()
-    const labels = all('nav.quick-nav button').map((b) => b.textContent!.trim())
+    // The quick-nav strip isn't routed in the Stage shell any more; its list (lib/nav.ts)
+    // still drives the Alt keys.
+    const labels = NAV.filter((n) => !n.hidden).map((n) => n.label)
     expect(labels[0]).toBe('Library')
     expect(labels).not.toContain('Sounds')
     expect(labels).not.toContain('Sound Library')

@@ -5,7 +5,7 @@ import { isTipKey } from '../../help/tooltips'
 import { MockSession } from '../../lib/api/mock'
 import type { AppCmd, PartPlugin, PluginEntry } from '../../lib/api/types'
 import { app, ui } from '../../lib/store.svelte'
-import App from '../../App.svelte'
+import MixerRow from '../mixer/MixerRow.svelte'
 import { pluginBadge, pluginTip } from '../mixer/voice'
 import { inProcessPending, pluginStatusLine } from '../parts/parts'
 import { rackName, soundBadge, soundLabel, targetLabel } from './rack'
@@ -445,7 +445,9 @@ describe('Stage: sound names on the part strips', () => {
 
   it('names each part\'s sound on its strip, the bar names the rack; a click opens the picker', async () => {
     const session = new MockSession({ manual: true, demo: false })
-    render(App, { props: { session } })
+    // The mixer row isn't routed in the Stage shell any more: render it on its own.
+    app.attach(session)
+    render(MixerRow)
     flushSync()
     expect(names().map((b) => b.textContent)).toEqual(session.state.keyboardParts.map((p) => p.voiceName))
     expect(rackHead()).toContain('Rack: Untitled rack')

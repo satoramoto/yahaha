@@ -16,7 +16,8 @@ export class DropoutWatch {
   /** The notice is up. */
   show = $state(false)
   /** When recent dropouts were seen (ms), at most `HINT_COUNT` of them. */
-  private times: number[] = []
+  /** Reactive, for `recent()`: call `observe` untracked from an effect (it reads and writes it). */
+  private times = $state.raw<number[]>([])
   /** The count and buffer size last seen (null: nothing seen yet). */
   private last: number | null = null
   private buffer: number | null = null
@@ -46,6 +47,12 @@ export class DropoutWatch {
     if (!this.show && this.times.length >= HINT_COUNT && now >= this.snoozedUntil && (bufferFrames ?? 0) < MAX_BUFFER) {
       this.show = true
     }
+  }
+
+  /** Dropouts seen in the `HINT_WINDOW_MS` before `now` (ms), 0–`HINT_COUNT`: the Stage's
+   * health slot reads this (it ignores the snooze, which is the old notice's). */
+  recent(now: number): number {
+    return this.times.filter((t) => now - t <= HINT_WINDOW_MS).length
   }
 
   /** Put the notice away for `SNOOZE_MS`. */

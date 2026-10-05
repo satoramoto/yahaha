@@ -242,15 +242,15 @@ button {
 
 /* The help footer (lib/tooltip/HelpFooter): a fixed height, so the stage above it never
    shifts on hover; taller in help mode. --help-footer-space is the room it takes at the
-   bottom of the window (height + the shell's bottom padding + a gap): drawers and the
-   browser end above it. */
+   bottom of the window (the shell has no padding or gap around it, Stage.md D53): drawers
+   and the browser end above it. */
 :root {
   --help-footer-h: 3rem;
   --help-footer-h-help: 7.25rem;
-  --help-footer-space: calc(var(--help-footer-h) + 0.6rem + 0.6rem);
+  --help-footer-space: var(--help-footer-h);
 }
 [data-help='on'] {
-  --help-footer-space: calc(var(--help-footer-h-help) + 0.6rem + 0.6rem);
+  --help-footer-space: var(--help-footer-h-help);
 }
 
 /* Help mode: every control with a tooltip gets a faint marker. */

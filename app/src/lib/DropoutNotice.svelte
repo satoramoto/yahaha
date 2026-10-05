@@ -5,6 +5,7 @@
   buffer size clears it.
 -->
 <script lang="ts">
+  import { untrack } from 'svelte'
   import { nav } from '../panels/settings/nav.svelte'
   import { dropouts } from './dropouts.svelte'
   import { app, ui } from './store.svelte'
@@ -12,7 +13,7 @@
 
   $effect(() => {
     const s = app.state.io.synth
-    dropouts.observe(s ? { dropouts: s.dropouts ?? 0, bufferFrames: s.bufferFrames } : null, Date.now())
+    untrack(() => dropouts.observe(s ? { dropouts: s.dropouts ?? 0, bufferFrames: s.bufferFrames } : null, Date.now()))
   })
 
   const openAudio = () => {

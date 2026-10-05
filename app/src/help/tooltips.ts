@@ -629,28 +629,28 @@ const catalog = {
   // ── One Touch Settings ──────────────────────────────────────────────────
   'ots.1': {
     title: 'OTS 1',
-    body: 'A sound setup for your own hands that the style\'s author picked to suit it: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it swaps your keyboard sounds (or loads the rack of yours chosen for it), and the band doesn\'t change. Dark if the style has none.',
+    body: 'A sound setup for your own hands that the style\'s author picked to suit it: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it applies it at once, swapping your keyboard sounds (or loading the rack of yours chosen for it), and the band doesn\'t change. Dark if the style has none.',
     genos: 'ONE TOUCH SETTING 1',
     keys: ['shift+1'],
     launchkey: pad(P2, 'bottom', 1),
   },
   'ots.2': {
     title: 'OTS 2',
-    body: 'The style\'s second suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it swaps your keyboard sounds, and the band doesn\'t change. If you chose one of your racks for it (OTS rack), that rack loads instead.',
+    body: 'The style\'s second suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it applies it at once, swapping your keyboard sounds, and the band doesn\'t change. If you chose one of your racks for it (OTS rack), that rack loads instead.',
     genos: 'ONE TOUCH SETTING 2',
     keys: ['shift+2'],
     launchkey: pad(P2, 'bottom', 2),
   },
   'ots.3': {
     title: 'OTS 3',
-    body: 'The style\'s third suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it swaps your keyboard sounds, and the band doesn\'t change. If you chose one of your racks for it (OTS rack), that rack loads instead.',
+    body: 'The style\'s third suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it applies it at once, swapping your keyboard sounds, and the band doesn\'t change. If you chose one of your racks for it (OTS rack), that rack loads instead.',
     genos: 'ONE TOUCH SETTING 3',
     keys: ['shift+3'],
     launchkey: pad(P2, 'bottom', 3),
   },
   'ots.4': {
     title: 'OTS 4',
-    body: 'The style\'s fourth suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it swaps your keyboard sounds, and the band doesn\'t change. If you chose one of your racks for it (OTS rack), that rack loads instead.',
+    body: 'The style\'s fourth suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it applies it at once, swapping your keyboard sounds, and the band doesn\'t change. If you chose one of your racks for it (OTS rack), that rack loads instead.',
     genos: 'ONE TOUCH SETTING 4',
     keys: ['shift+4'],
     launchkey: pad(P2, 'bottom', 4),
@@ -673,28 +673,28 @@ const catalog = {
   // ── Keyboard parts ──────────────────────────────────────────────────────
   'part.right1.on': {
     title: 'Right 1 on/off',
-    body: 'Turns Right 1 on or off. Right parts that are on sound together, which is how you layer voices. On its mixer strip, press and hold On to swap its sound: the knobs are Right 1\'s (knob 1 its sound, 2–8 its mix) until you click On again.',
+    body: 'Turns Right 1 on or off. Right parts that are on sound together, which is how you layer voices. On screen, press and hold its part lamp to swap its sound: the knobs are Right 1\'s (knob 1 its sound, 2–8 its mix) until you click the lamp again.',
     genos: 'PART ON/OFF RIGHT 1',
     keys: ['5'],
     launchkey: 'Panel fader page: button under fader 1',
   },
   'part.right2.on': {
     title: 'Right 2 on/off',
-    body: 'Turns Right 2 on or off. Turn on Right 1 and Right 2 together to layer, for example piano and strings. On its mixer strip, press and hold On to swap its sound: the knobs are Right 2\'s (knob 1 its sound, 2–8 its mix) until you click On again.',
+    body: 'Turns Right 2 on or off. Turn on Right 1 and Right 2 together to layer, for example piano and strings. On screen, press and hold its part lamp to swap its sound: the knobs are Right 2\'s (knob 1 its sound, 2–8 its mix) until you click the lamp again.',
     genos: 'PART ON/OFF RIGHT 2',
     keys: ['6'],
     launchkey: 'Panel fader page: button under fader 2',
   },
   'part.right3.on': {
     title: 'Right 3 on/off',
-    body: 'Turns Right 3 on or off, a third layer for the right hand. On its mixer strip, press and hold On to swap its sound: the knobs are Right 3\'s (knob 1 its sound, 2–8 its mix) until you click On again.',
+    body: 'Turns Right 3 on or off, a third layer for the right hand. On screen, press and hold its part lamp to swap its sound: the knobs are Right 3\'s (knob 1 its sound, 2–8 its mix) until you click the lamp again.',
     genos: 'PART ON/OFF RIGHT 3',
     keys: ['7'],
     launchkey: 'Panel fader page: button under fader 3',
   },
   'part.left.on': {
     title: 'Left on/off',
-    body: 'Turns the Left voice on or off: your left hand plays it below the split. It can\'t be turned off while Manual Bass is on. On its mixer strip, press and hold On to swap its sound: the knobs are Left\'s (knob 1 its sound, 2–8 its mix) until you click On again.',
+    body: 'Turns the Left voice on or off: your left hand plays it below the split. It can\'t be turned off while Manual Bass is on. On screen, press and hold its part lamp to swap its sound: the knobs are Left\'s (knob 1 its sound, 2–8 its mix) until you click the lamp again.',
     genos: 'PART ON/OFF LEFT',
     keys: ['8', 'l'],
     launchkey: 'Panel fader page: button under fader 4; Shift + Pad Bank ▲',
@@ -1029,7 +1029,7 @@ const catalog = {
   // ── Mixer ───────────────────────────────────────────────────────────────
   'mixer.page': {
     title: 'Fader page: Panel / Style',
-    body: 'Switches what the Launchkey faders control: Panel is your four keyboard parts, Style is the band\'s eight parts. The button lights blue on Panel, green on Style.',
+    body: 'Switches what the Launchkey faders control: Panel is your four keyboard parts, Style is the band\'s eight parts. The button lights blue on Panel, green on Style; with Shift it steps to the next fader layer instead.',
     genos: 'Mixer tabs (Panel / Style)',
     keys: ['F9'],
     launchkey: 'Button under the master fader',
@@ -1784,7 +1784,7 @@ const catalog = {
   },
   'metronome.settings': {
     title: 'Metronome settings',
-    body: 'Opens the metronome\'s settings: on/off, the click\'s volume and the bell on beat 1.',
+    body: 'The metronome\'s settings (the click\'s volume and the bell on beat 1) will open here in a popover; for now the caret does nothing.',
     genos: 'Menu › Metronome',
     keys: [],
     launchkey: null,
@@ -1881,7 +1881,7 @@ const catalog = {
   },
   'looper.on_off': {
     title: 'Chord Looper ON/OFF',
-    body: 'Loops the recorded chords from the next bar line, feeding them to the band as if you played them, so both hands are free. While it loops your chords are ignored; press again to stop it at once. Arming a loop turns chart mode off.',
+    body: 'Loops the recorded chords from the next bar line, feeding them to the band as if you played them, so both hands are free. While it loops your chords are ignored; press again to stop it at once. A long press is Loop rec: it records the chords you play from the next bar line.',
     genos: 'CHORD LOOPER [ON/OFF]',
     keys: ['^'],
     launchkey: 'Panel fader page: button under fader 8 (green while looping)',
@@ -2035,8 +2035,8 @@ const catalog = {
     launchkey: null,
   },
   'mixer.strip.select': {
-    title: 'Mixer strip',
-    body: 'Selects this part: its strip lights up. A keyboard part (Right 1–3, Left) also becomes the part you edit, as the Launchkey\'s part buttons do.',
+    title: 'Part name',
+    body: 'Opens Channel for this part: on the Stage, it selects the part and shows the Channel tab (coming soon). A keyboard part (Right 1–3, Left) also becomes the part you edit, as the Launchkey\'s part buttons do.',
     genos: 'Mixer › channel',
     keys: [],
     launchkey: null,
@@ -2139,7 +2139,7 @@ const catalog = {
   },
   'launchkey.fader_rack': {
     title: 'Rack fader',
-    body: 'The loaded rack\'s controller map gives this Panel fader something other than its part\'s level: moving it sets what its label says (a pan or send, Harmony/Arp on from halfway up, the split point, a volume). Set it in the Rack panel\'s Controller map.',
+    body: 'The loaded rack\'s controller map gives this Panel fader something other than its part\'s level: moving it sets what its label says (a pan or send, Harmony/Arp on from halfway up, the split point, a volume). Set it in the Rack\'s Controller map; on the Stage, click the fader\'s name to open the Rack.',
     genos: null,
     keys: [],
     launchkey: 'Panel fader page: faders 1–4',
@@ -2179,7 +2179,7 @@ const catalog = {
   },
   'stage.rack_name': {
     title: 'Rack',
-    body: 'The loaded rack\'s name, with ● while it has changes you haven\'t saved. On the Panel fader page the faders play its keyboard parts.',
+    body: 'The loaded rack\'s name, with ● while it has changes you haven\'t saved. On the Panel fader page the faders play its keyboard parts. Click it to open the Rack.',
     genos: null,
     keys: [],
     launchkey: null,
@@ -2866,7 +2866,7 @@ const catalog = {
   },
   'nav.quick': {
     title: 'Quick Racks',
-    body: 'Opens Library on its Racks tab: your racks to load, each with the Quick Rack button that holds it in the bank on view. Press again to go back to Stage.',
+    body: 'Shows the Quick Racks page, coming soon: your racks to load, each on its Quick Rack button. Until then Alt+R opens Library on its Racks tab.',
     genos: 'REGISTRATION MEMORY',
     keys: [],
     app_keys: ['alt+r'],
@@ -2874,7 +2874,7 @@ const catalog = {
   },
   'nav.rack': {
     title: 'Rack',
-    body: 'Opens the Rack: what\'s under your hands (the four keyboard parts with their sounds and mix, the split, Harmony/Arp, transpose) and the style\'s One Touch Settings. Press again to close.',
+    body: 'Opens the Rack: what\'s under your hands (the four keyboard parts with their sounds and mix, the split, Harmony/Arp, transpose) and the style\'s One Touch Settings. On the Stage, click the rack readout; Alt+O opens or closes it anywhere.',
     genos: 'Voice Setting, ONE TOUCH SETTING',
     keys: [],
     app_keys: ['alt+o'],
@@ -2882,7 +2882,7 @@ const catalog = {
   },
   'nav.multipad': {
     title: 'Multi Pads',
-    body: 'Opens the Multi Pads drawer. Press again to close.',
+    body: 'Shows the Multi Pads page, coming soon. Until then Alt+P, or the Multi Pad strip\'s name on the Stage, opens the Multi Pads drawer.',
     genos: 'MULTI PAD CONTROL',
     keys: [],
     app_keys: ['alt+p'],
@@ -2890,7 +2890,7 @@ const catalog = {
   },
   'nav.effects': {
     title: 'Effects',
-    body: 'Opens the Effects screen: the Reverb, Chorus and Delay cards (type, settings, return and the band\'s and pads\' sends) and the style\'s inserts. Press again to close.',
+    body: 'Shows the Effects page, coming soon: the Reverb, Chorus and Delay (type, settings, return and sends) and the style\'s inserts. Until then Alt+E, the band sends or the Master strip\'s name on the Stage open the Effects drawer.',
     genos: 'Mixer (Effect)',
     keys: [],
     app_keys: ['alt+e'],
@@ -2898,7 +2898,7 @@ const catalog = {
   },
   'nav.channel': {
     title: 'Channel',
-    body: 'Shows the Channel page: one part\'s sound, mix and inserts. Press again to go back to Stage.',
+    body: 'Shows the Channel page for the selected part, coming soon: its sound, mix and inserts. A part\'s name on the Stage selects that part and shows this page.',
     genos: null,
     keys: [],
     launchkey: null,
@@ -2913,7 +2913,7 @@ const catalog = {
   },
   'nav.looper': {
     title: 'Chord Looper',
-    body: 'Opens the Chord Looper. Press again to close.',
+    body: 'Shows the Chord Looper page, coming soon. Until then Alt+L opens the Chord Looper drawer.',
     genos: 'Menu › Chord Looper',
     keys: [],
     app_keys: ['alt+l'],
@@ -2929,7 +2929,7 @@ const catalog = {
   },
   'nav.harmony': {
     title: 'Harmony/Arp',
-    body: 'Opens the Keyboard Harmony and Arpeggio panel. Press again to close.',
+    body: 'Shows the Harmony/Arp page, coming soon. Until then Alt+H opens the Keyboard Harmony and Arpeggio drawer.',
     genos: 'HARMONY/ARPEGGIO',
     keys: [],
     app_keys: ['alt+h'],
@@ -2945,7 +2945,7 @@ const catalog = {
   },
   'nav.settings': {
     title: 'Settings',
-    body: 'Opens the settings. Press again to close.',
+    body: 'Shows the Settings page, coming soon. Until then Alt+T opens the settings, and the audio health on the Stage opens them on Audio.',
     genos: null,
     keys: [],
     app_keys: ['alt+t'],
@@ -3144,7 +3144,7 @@ const catalog = {
   },
   'launchkey.fader_sound': {
     title: 'Part sound',
-    body: 'The sound this keyboard part plays: ● when its plugin has unsaved edits, ⚠ when its plugin is missing. Click to open Library › Sounds with this part as the target.',
+    body: 'The sound this keyboard part plays: ● when its plugin has unsaved edits, ⚠ when its plugin is missing. Click to pick another: for now that opens Library › Sounds loading into this part.',
     genos: 'Voice name (Home screen)',
     keys: [],
     launchkey: null,
@@ -3278,7 +3278,7 @@ const catalog = {
   // ── Library (panels/library): the page next to Stage ────────────────────
   'view.stage': {
     title: 'Stage',
-    body: 'Shows the stage: the lead sheet, the Launchkey and the keys. Esc in Library comes back here too.',
+    body: 'Shows the Stage: the display (style, chord, tempo, One Touch Settings), the band of faders, knobs, pads and transport, and the keys. Esc on another page comes back here.',
     genos: null,
     keys: [],
     app_keys: ['alt+b'],
@@ -3286,7 +3286,7 @@ const catalog = {
   },
   'view.library': {
     title: 'Library',
-    body: 'Shows Library in place of the stage: racks, sounds, instruments and the style map. The band and the drawers keep working while it is open.',
+    body: 'Shows the Library page, coming soon: racks, sounds, instruments and the style map. Until then Alt+B opens today\'s Library, and a part\'s sound on the Stage opens it on Sounds for that part.',
     genos: 'Voice Selection',
     keys: [],
     app_keys: ['alt+b'],
@@ -4015,7 +4015,7 @@ const catalog = {
   },
   'part.swap': {
     title: 'Swap sound',
-    body: 'Hold a part\'s Panel fader button and turn knob 1 to step that part\'s sound by number, live, keeping its mix; knobs 2–8 are its mix. Let go to keep the sound (dialling back is the cancel); a hold that turns no knob is a tap, which turns the part on or off. On screen, press and hold a keyboard part\'s On on its mixer strip: swap stays on when you let go, so you can turn the knobs here, and a click on that On ends it.',
+    body: 'Hold a part\'s Panel fader button and turn knob 1 to step that part\'s sound by number, live, keeping its mix; knobs 2–8 are its mix. Let go to keep the sound (dialling back is the cancel); a hold that turns no knob is a tap, which turns the part on or off. On screen, press and hold a keyboard part\'s lamp under its fader: swap stays on when you let go, so you can turn the knobs here, and a click on that lamp ends it.',
     genos: null,
     keys: [],
     launchkey: 'Panel fader page: hold the button under fader 1–4 and turn knob 1',
