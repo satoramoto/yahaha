@@ -17,6 +17,8 @@ import { tips } from '../lib/tooltip/tip.svelte'
 import { nav as soundNav } from '../panels/sound/nav.svelte'
 import { libraryNav } from '../panels/library/nav.svelte'
 import { channelNav } from '../panels/channel/nav.svelte'
+import { PAGES } from '../panels/stage/model'
+import { stagePage } from '../panels/stage/page.svelte'
 import { TIPS, isTipKey } from './tooltips'
 
 export const INTERACTIVE = [
@@ -154,16 +156,10 @@ const STATES: [string, Setup][] = [
     click('rack.map')
   }],
   ['rack drawer, Right 2 loading a plugin',(s) => ((ui.rack = true), s.send({ type: 'setPartPlugin', part: 1, id: 'aumu samp appl', state: null }))],
-  ['mixer details open', () => (ui.mixer = true)],
-  ['mixer details, a plugin part', (s) => ((ui.mixer = true), s.send({ type: 'setPartPlugin', part: 0, id: 'aumu dls  appl', state: null }), s.advance(1000))],
   ['effects screen open', () => (ui.effects = true)],
   ['effects screen, an added send, send 1 set by the rack', (s) => (
     (ui.effects = true), s.send({ type: 'addSend', kind: 'phaser' }), s.send({ type: 'setRackSendOverride', send: 0, on: true })
   )],
-  ['channel view, a keyboard part with an insert', (s) => (
-    s.send({ type: 'addSend', kind: 'room' }), s.send({ type: 'setStripInsertKind', strip: 1, slot: 1, kind: 'compressor' }), channelNav.show(1)
-  )],
-  ['channel view, a Style part', () => channelNav.show(6)],
   ['effects screen, delay free time, no inserts', (s) => (
     (ui.effects = true),
     s.send({ type: 'setEffectParam', block: 'variation', param: 'delaySync', value: 0 }),
@@ -173,15 +169,8 @@ const STATES: [string, Setup][] = [
   ['harmony drawer open', () => (ui.harmony = true)],
   ['harmony drawer, arpeggio on, Fixed velocity', (s) => ((ui.harmony = true), s.send({ type: 'setArpPattern', index: 2 }), s.send({ type: 'setArpVelocity', mode: 'fixed', velocity: 90 }), s.send({ type: 'toggleHarmonyArp' }))],
   ['harmony drawer, Echo type', (s) => ((ui.harmony = true), s.send({ type: 'setHarmonyType', index: 20 }))],
-  ['mixer details, the Master editor open', () => {
-    ui.mixer = true
-    flushSync()
-    click('fx.master_edit')
-  }],
-  ['mixer details open, Style tab',(s) => ((ui.mixer = true), s.send({ type: 'setFaderPage', page: 'style' }))],
   ['charts drawer, nothing imported', () => (ui.charts = true)],
   ['charts drawer, a playlist, chart mode playing', (s) => ((ui.charts = true), s.send({ type: 'importCharts', text: 'irealb://demo' }), s.send({ type: 'setChartMode', on: true }))],
-  ['chart in the lead-sheet band', (s) => (s.send({ type: 'importCharts', text: 'irealb://demo' }), s.send({ type: 'setChartMode', on: true }))],
   ['Quick Racks Store armed', (s) => s.send({ type: 'toggleQuickRackStore' })],
   ['Quick Racks: a stored button (clear), pad page 2', (s) => (storeRack(s, 0, 'Ballad'), s.send({ type: 'setPadPage', page: 'racks' }))],
   ['Quick Racks bar: Store waiting for a never-saved rack', (s) => (s.send({ type: 'toggleQuickRackStore' }), s.send({ type: 'pressQuickRack', slot: 2 }))],
@@ -234,6 +223,12 @@ const STATES: [string, Setup][] = [
   ['audio dropout notice', (s) => s.dropouts(5)],
   ['Shift layer on', () => (ui.shiftLatched = true)],
   ['Shift layer on, fader page Style', (s) => ((ui.shiftLatched = true), s.send({ type: 'toggleFaderPage' }))],
+  // The Stage (panels/stage): its fader layers, the status line, the lamp layers.
+  ['Stage, fader layer Reverb', (s) => s.send({ type: 'setFaderLayer', layer: 'reverb' })],
+  ['Stage, fader layer Pan', (s) => s.send({ type: 'setFaderLayer', layer: 'pan' })],
+  ['Stage, a refused command on the status line', (s) => s.send({ type: 'setChartMode', on: true })],
+  ['Stage, the swap layer held on Right 2', (s) => s.send({ type: 'setLayer', layer: { type: 'swap', part: 1 } })],
+  ['Stage, Sound latched', (s) => s.send({ type: 'setLayer', layer: { type: 'sound' } })],
 ]
 
 // Other files leave hover and focus state in the shared tooltip module (isolate: false).
@@ -264,6 +259,7 @@ afterEach(() => {
   ui.shiftLatched = false
   tips.help = false
   tips.setFloating(false)
+  stagePage.page = 'stage'
 })
 
 describe('tooltip coverage', () => {
@@ -276,6 +272,21 @@ describe('tooltip coverage', () => {
       flushSync()
       const found = document.body.querySelectorAll(INTERACTIVE).length
       expect(found, 'the app rendered no controls at all').toBeGreaterThan(10)
+      expect(untipped(document.body)).toEqual([])
+    })
+  }
+
+  // Every page tab that isn't built yet: "Coming soon" under the app bar, whose controls (the
+  // page tabs, the health slot) and the help footer's are all there is.
+  for (const page of PAGES.filter((p) => p !== 'stage')) {
+    it(`every interactive element has a catalog tooltip: page tab ${page}, Coming soon`, () => {
+      const session = new MockSession({ demo: true, manual: true })
+      render(App, { props: { session } })
+      stagePage.page = page
+      session.advance(16)
+      flushSync()
+      expect(document.body.textContent).toContain('Coming soon')
+      expect(document.querySelectorAll('nav[aria-label="Pages"] button')).toHaveLength(PAGES.length)
       expect(untipped(document.body)).toEqual([])
     })
   }

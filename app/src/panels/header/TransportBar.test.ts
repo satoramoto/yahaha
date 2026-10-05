@@ -4,9 +4,9 @@
 import { cleanup, fireEvent, render } from '@testing-library/svelte'
 import { flushSync } from 'svelte'
 import { afterEach, describe, expect, it } from 'vitest'
-import App from '../../App.svelte'
 import { MockSession } from '../../lib/api/mock'
 import { app } from '../../lib/store.svelte'
+import Header from './Header.svelte'
 import TransportBar from './TransportBar.svelte'
 
 function setup() {
@@ -19,11 +19,15 @@ function setup() {
 const q = <T extends Element = HTMLButtonElement>(sel: string) => document.querySelector<T>(sel)!
 const bar = () => q<HTMLElement>('section[aria-label="Transport"]')
 
-afterEach(() => cleanup())
+afterEach(() => {
+  cleanup()
+  app.detach()
+})
 
 describe('transport section', () => {
   it('is in the app bar itself, not a row of its own', () => {
-    render(App, { props: { session: new MockSession({ demo: true, manual: true }) } })
+    app.attach(new MockSession({ demo: true, manual: true }))
+    render(Header)
     flushSync()
     expect(document.querySelectorAll('section[aria-label="Transport"]')).toHaveLength(1)
     const bar = document.querySelector('header.bar')!

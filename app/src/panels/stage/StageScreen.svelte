@@ -16,6 +16,7 @@
   import { TempoHold } from '../../lib/tempoHold'
   import { tip, tips } from '../../lib/tooltip/tip.svelte'
   import { rangeFor } from '../keystrip/keyboard'
+  import { openRackDrawerOnPrompt } from '../quickracks/rackPromptDrawer.svelte'
   import { nav as settingsNav } from '../settings/nav.svelte'
   import Stage from '../../ui/Stage/Stage.svelte'
   import { stageActions, type OpenTarget } from './actions'
@@ -58,6 +59,10 @@
     const t = setInterval(() => (nowMs = Date.now()), 1000)
     return () => clearInterval(t)
   })
+
+  // ── A rack prompt (unsaved changes, sound names: an OTS, a Quick Rack from the Launchkey)
+  // opens the Rack drawer, where it is asked, as the old Quick Racks row did.
+  openRackDrawerOnPrompt()
 
   // ── Tempo − / + held
   const tempoHold = new TempoHold((cmd) => app.send(cmd))

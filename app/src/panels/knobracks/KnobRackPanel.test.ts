@@ -1,25 +1,29 @@
-// The stage's Quick Racks row: the bank pager, eight rack buttons in eight columns and
-// Store, between the mixer row and the keyboard strip, one row tall. Every control here
-// sends its command (checked on the session's send, not only on the state it leaves).
+// The Quick Racks row (KnobRackPanel): the bank pager, eight rack buttons in eight columns
+// and Store, one row tall. It isn't routed in the Stage shell any more (App.svelte), so it's
+// rendered on its own here. Every control here sends its command (checked on the session's
+// send, not only on the state it leaves).
 
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { cleanup, fireEvent, render } from '@testing-library/svelte'
 import { flushSync } from 'svelte'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import App from '../../App.svelte'
 import { MockSession } from '../../lib/api/mock'
 import type { AppCmd } from '../../lib/api/types'
-import { ui } from '../../lib/store.svelte'
+import { app, clock, ui } from '../../lib/store.svelte'
+import KeyStrip from '../keystrip/KeyStrip.svelte'
+import KnobRackPanel from './KnobRackPanel.svelte'
 
 afterEach(() => {
   cleanup()
+  clock.stop()
+  app.detach()
   ui.rack = false
 })
 
 const PANEL = 'section[aria-label="Quick Racks"]'
 
-/** The stage on a mock session, with every command it sends recorded. */
+/** The row on a mock session, with every command it sends recorded. */
 function stage(opts: { demo?: boolean } = {}) {
   const m = new MockSession({ ...opts, manual: true })
   const sent: AppCmd[] = []
@@ -28,7 +32,9 @@ function stage(opts: { demo?: boolean } = {}) {
     sent.push(cmd)
     send(cmd)
   })
-  render(App, { props: { session: m } })
+  app.attach(m)
+  clock.start()
+  render(KnobRackPanel)
   flushSync()
   const panel = document.querySelector<HTMLElement>(PANEL)!
   const at = <T extends Element = HTMLButtonElement>(sel: string) => panel.querySelector<T>(sel)!
@@ -44,7 +50,7 @@ function stage(opts: { demo?: boolean } = {}) {
 }
 
 describe('Quick Racks row layout', () => {
-  it('puts rack n in column n + 1, the pager on the left cheek and Store on the right, between the mixer row and the keyboard strip', () => {
+  it('puts rack n in column n + 1, the pager on the left cheek and Store on the right; the keyboard strip holds none of it', () => {
     const { panel } = stage({ demo: true })
     const slots = [...panel.querySelectorAll<HTMLElement>('.slot')]
     expect(slots).toHaveLength(8)
@@ -55,10 +61,9 @@ describe('Quick Racks row layout', () => {
     for (const key of ['quick.bank_prev', 'quick.bank', 'quick.bank_next', 'quick.store']) {
       expect(panel.querySelector(`[data-tip="${key}"]`), key).not.toBeNull()
     }
-    const mixer = document.querySelector<HTMLElement>('section[aria-label="Mixer"]')!
+    render(KeyStrip)
+    flushSync()
     const strip = document.querySelector<HTMLElement>('section[aria-label="Keyboard"]')!
-    expect(mixer.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(panel.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(strip.querySelector('[data-tip^="quick."]')).toBeNull()
   })
 
