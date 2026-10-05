@@ -64,6 +64,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Bar and beat** | Where the band is: bar, and a light per beat. The section playing now and the one queued next are shown alongside, and for a fill the Main it lands on (⤷). The first press picks the fill; later presses before it ends only change where it lands, and its own Main again repeats it. | — | — | — |
 | **Chord** | The chord the style is following. When Keyboard transpose is not zero, the chord as you fingered it is shown small underneath. | Chord (Home display, Style area) | — | — |
 | **Status line** | The last message: a loaded style, an error, or a Launchkey note or CC nothing is mapped to, which tells you what a button really sends. | — | — | — |
+| **Band sends** | How much of the band (the eight Style parts) goes to the reverb, the chorus and the delay. A dash means the engine hasn't sent it yet. Click to open Effects, where each effect has its band send. | — | — | — |
 
 ## Style
 
@@ -473,6 +474,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Metronome** | A click on every beat, with the band while it plays and on its own at the tempo while stopped. It sounds on the built-in synth only and never goes out on the MIDI port. | Menu › Metronome › On/Off | `.` | — |
 | **Metronome volume** | The click's own level (0–127). The synth's master volume applies on top of it. | Menu › Metronome › Volume | — | — |
 | **Bell on beat 1** | A higher bell instead of the click on the first beat of each bar. | Menu › Metronome › Bell Sound | — | — |
+| **Metronome settings** | Opens the metronome's settings: on/off, the click's volume and the bell on beat 1. | Menu › Metronome | — | — |
 
 ## Style Dynamics
 
@@ -660,6 +662,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Rack** | Opens the Rack: what's under your hands (the four keyboard parts with their sounds and mix, the split, Harmony/Arp, transpose) and the style's One Touch Settings. Press again to close. | Voice Setting, ONE TOUCH SETTING | `Alt+O` (terminal: ) | — |
 | **Multi Pads** | Opens the Multi Pads drawer. Press again to close. | MULTI PAD CONTROL | `Alt+P` (terminal: ) | — |
 | **Effects** | Opens the Effects screen: the Reverb, Chorus and Delay cards (type, settings, return and the band's and pads' sends) and the style's inserts. Press again to close. | Mixer (Effect) | `Alt+E` (terminal: ) | — |
+| **Channel** | Shows the Channel page: one part's sound, mix and inserts. Press again to go back to Stage. | — | — | — |
 | **Mixer details** | Shows the mixer row's details: its bar (fader page and layer, metronome, Track Mute, Style and Multi Pad volume, CPU) and, on every strip, its Chorus send, EQ, insert and CPU. Press again to hide them. | Mixer | `Alt+M` (terminal: ) | — |
 | **Chord Looper** | Opens the Chord Looper. Press again to close. | Menu › Chord Looper | `Alt+L` (terminal: ) | — |
 | **Charts** | Opens the iReal Pro chart player. Press again to close. | — | `Alt+C` (terminal: ) | — |
@@ -772,6 +775,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
+| **Audio health** | How the audio is doing: "Audio" when all is well, "Audio off" when the built-in synth isn't running. A keyboard part whose plugin failed ("R3 failed") opens its Channel when clicked. Dropouts in the last 30 seconds ("2 dropouts", with "buffer 256?" when the buffer is under 1024) or the synth's CPU at 70% or more ("CPU 74%") open the audio settings, where a larger buffer gives each block more time. | — | — | — |
 | **Help mode** | Grows the help footer to show the whole entry, and keeps the last control you hovered or tabbed to there while you try it. Controls keep working. | — | `?` | — |
 | **Pop-up tips** | Also shows each entry in a pop-up next to the control, as well as in the help footer. Off by default, because a pop-up covers the controls while you play. | — | — | — |
 | **Light / dark** | Switches between the dark stage theme and a light one. | — | — | — |
