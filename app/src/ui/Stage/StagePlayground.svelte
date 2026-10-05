@@ -8,8 +8,9 @@
   Pads, deterministic: stopped, a Main (or Break) becomes the playing section at once, and an Intro
   or Ending arms (press again to disarm). Running, a section pad is queued (`next`); press the queued
   pad again and it lands (`playing`); a landed Ending plays out and the band stops. Start (pad 16 or
-  the transport) turns an armed pad into the playing section and queues the Main that was playing.
-  Stop clears whatever was queued or armed. Sync Start, Auto Fill and Sync Stop toggle.
+  the section row) turns an armed pad into the playing section and queues the Main that was
+  playing. Stop clears whatever was queued or armed. Sync Start (pad 4 and the section row's lamp
+  are one switch), Auto Fill and Sync Stop toggle. The other pad banks' pads toggle.
 -->
 <script lang="ts">
   import type { ComponentProps } from 'svelte'
@@ -18,7 +19,7 @@
   import type { KnobItem } from '../KnobBank/types'
   import type { PadItem } from '../PadBank/types'
   import Stage from './Stage.svelte'
-  import { stageLayerValues, stageStyles, stageStyleTempo } from './Stage.fixtures'
+  import { stageKnobPages, stageLayerValues, stagePadBanks, stageStyles, stageStyleTempo } from './Stage.fixtures'
 
   type Props = ComponentProps<typeof Stage>
   type Hue = NonNullable<Props['display']['nowPlaying']['hue']>
@@ -41,12 +42,6 @@
   const PAD_WORDS: Partial<Record<PadItem['state'], string>> = { playing: 'playing', next: 'queued', armed: 'armed' }
 
   const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
-  /** Steps a counter like "2/6" round its range. */
-  function cycle(count: string, delta: number): string {
-    const [n, m] = count.split('/').map(Number)
-    if (!m) return count
-    return `${((n - 1 + delta + m) % m) + 1}/${m}`
-  }
 
   // ---- App bar and section row
   let chosen = $derived(p.appBar.chosen ?? null)
@@ -123,9 +118,12 @@
     p.faders.functionLamps.map((lamp) => ({ ...lamp, on: functionOn[lamp.id] ?? lamp.on })),
   )
 
-  // ---- Knobs
-  let knobs = $derived(p.knobs.knobs.map((knob) => ({ ...knob })))
-  let knobCount = $derived(p.knobs.count)
+  // ---- Knobs: the chosen page, and each page's knobs (the prop's on its page, the fixture's elsewhere)
+  let knobPage = $derived(p.knobs.page ?? 0)
+  let knobSets = $derived(
+    stageKnobPages.map((set, i) => (i === (p.knobs.page ?? 0) ? p.knobs.knobs : set).map((knob) => ({ ...knob }))),
+  )
+  let knobs = $derived(knobSets[knobPage] ?? p.knobs.knobs)
 
   function stepKnob(knob: KnobItem, delta: number): KnobItem {
     if (knob.unused) return knob
@@ -144,8 +142,8 @@
   }
 
   // ---- Transport, tempo, display
-  let running = $derived(p.transport.running ?? false)
-  let fading = $derived(p.transport.fading ?? false)
+  let running = $derived(p.sectionRow.running ?? p.transport?.running ?? false)
+  let fading = $derived(p.sectionRow.fading ?? p.transport?.fading ?? false)
   let bpm = $derived(p.display.nowPlaying.bpm)
   let styleIndex = $derived(stageStyles.findIndex((style) => style.styleName === p.display.styleLine.styleName))
   let oneTouch = $derived(p.display.styleLine.oneTouch ?? 0)
@@ -159,9 +157,10 @@
     ),
   )
 
-  // ---- Pads
+  // ---- Pads: bank 0 (Sections) is the stateful one; the other banks' pads toggle
+  let padBank = $derived(p.pads.bank ?? 0)
   let pads = $derived(p.pads.pads.map((pad) => ({ ...pad })))
-  let padCount = $derived(p.pads.count)
+  let otherPads = $derived(stagePadBanks.map((bank) => bank.pads.map((pad) => ({ ...pad }))))
 
   const isSection = (pad: PadItem) => SECTIONS.has(pad.family)
   const plain = (label: string) => label.replace(NBSP, ' ')
@@ -188,11 +187,25 @@
   }
 
   function pressPad(index: number) {
+    if (padBank !== 0) {
+      const pad = otherPads[padBank]?.[index]
+      if (!pad || pad.state === 'dark') return
+      otherPads = otherPads.map((bank, b) =>
+        b === padBank
+          ? bank.map((it, i) => (i === index ? { ...it, state: it.state === 'playing' ? 'idle' : 'playing' } : it))
+          : bank,
+      )
+      return
+    }
     const pad = pads[index]
     if (!pad || pad.state === 'dark') return
     if (pad.family === 'start') return running ? stop() : start()
     if (pad.family === 'util') {
       if (plain(pad.label) === 'Tap') return
+      if (plain(pad.label) === 'Sync Start') {
+        section = { ...section, syncStart: !section.syncStart }
+        return
+      }
       pads = pads.map((it, i) => (i === index ? { ...it, state: it.state === 'playing' ? 'idle' : 'playing' } : it))
       return
     }
@@ -219,7 +232,10 @@
   }
 
   let padsShown: PadItem[] = $derived(
-    pads.map((pad) => {
+    padBank !== 0 ? (otherPads[padBank] ?? []) : pads.map((pad) => {
+      if (pad.family === 'util' && plain(pad.label) === 'Sync Start') {
+        return { ...pad, state: section.syncStart ? 'playing' : 'idle' }
+      }
       if (pad.family === 'start') {
         const word = running ? 'running' : 'stopped'
         return {
@@ -264,13 +280,41 @@
 <Stage
   {...p}
   appBar={{ ...p.appBar, chosen }}
-  sectionRow={section}
+  sectionRow={{ ...section, running, fading }}
   {display}
   faders={{ ...p.faders, page, layer, strips, partLamps, functionLamps }}
-  knobs={{ ...p.knobs, knobs: knobsShown, count: knobCount }}
-  pads={{ ...p.pads, pads: padsShown, count: padCount }}
-  transport={{ running, fading }}
+  knobs={{ ...p.knobs, knobs: knobsShown, page: knobPage }}
+  pads={{
+    ...p.pads,
+    pads: padsShown,
+    bank: padBank,
+    legend: padBank === 0 ? p.pads.legend : (stagePadBanks[padBank]?.legend ?? []),
+  }}
   {status}
+  onsyncstart={(on) => {
+    p.onsyncstart?.(on)
+    section = { ...section, syncStart: on }
+  }}
+  onreset={() => {
+    p.onreset?.()
+    status = { ...status, text: 'Section reset: back to bar 1', error: false, seq: (status.seq ?? 0) + 1 }
+  }}
+  onfillup={() => {
+    p.onfillup?.()
+    status = { ...status, text: 'Fill ▲: a fill, then the next Main up', error: false, seq: (status.seq ?? 0) + 1 }
+  }}
+  onfilldown={() => {
+    p.onfilldown?.()
+    status = { ...status, text: 'Fill ▼: a fill, then the next Main down', error: false, seq: (status.seq ?? 0) + 1 }
+  }}
+  onknobpage={(index) => {
+    p.onknobpage?.(index)
+    knobPage = index
+  }}
+  onpadbank={(index) => {
+    p.onpadbank?.(index)
+    padBank = index
+  }}
   onchoose={(id) => {
     p.onchoose?.(id)
     chosen = id
@@ -335,28 +379,15 @@
     if (id in partOn) partOn = { ...partOn, [id]: on }
     else functionOn = { ...functionOn, [id]: on }
   }}
-  onpageup={() => {
-    p.onpageup?.()
-    knobCount = cycle(knobCount, -1)
-  }}
-  onpagedown={() => {
-    p.onpagedown?.()
-    knobCount = cycle(knobCount, 1)
-  }}
   onstep={(index, delta) => {
     p.onstep?.(index, delta)
     const knob = knobs[index]
     if (!knob) return
     if (knob.code === 'Tempo') bpm = clamp(bpm + delta, TEMPO_MIN, TEMPO_MAX)
-    else knobs = knobs.map((it, i) => (i === index ? stepKnob(it, delta) : it))
-  }}
-  onbankup={() => {
-    p.onbankup?.()
-    padCount = cycle(padCount, -1)
-  }}
-  onbankdown={() => {
-    p.onbankdown?.()
-    padCount = cycle(padCount, 1)
+    else
+      knobSets = knobSets.map((set, s) =>
+        s === knobPage ? set.map((it, i) => (i === index ? stepKnob(it, delta) : it)) : set,
+      )
   }}
   onpadpress={(index) => {
     p.onpadpress?.(index)

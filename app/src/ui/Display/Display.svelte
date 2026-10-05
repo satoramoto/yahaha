@@ -13,6 +13,7 @@
 
   type StyleLineProps = ComponentProps<typeof StyleLine>
   type SoundRowProps = ComponentProps<typeof SoundRow>
+  type NowPlayingProps = ComponentProps<typeof NowPlaying>
   /** A region's data: its props without `tipAction` and the `on…` callbacks (a data prop such as `oneTouch` stays). */
   type Data<P> = {
     [K in keyof P as K extends 'tipAction'
@@ -28,7 +29,7 @@
     /** The style line: style, category, time signature, queued style, One Touch, sends. */
     styleLine: Data<StyleLineProps>
     /** Now playing: the chord, the sections, the tempo and Running. */
-    nowPlaying: ComponentProps<typeof NowPlaying>
+    nowPlaying: Data<NowPlayingProps>
     /** The sound row: the rack and the four parts. */
     soundRow: Data<SoundRowProps>
     /** The app's tooltip action (`use:tip`), applied to every control. */
@@ -43,6 +44,12 @@
     ononetouch?: StyleLineProps['ononetouch']
     /** The sends: opens Effects. */
     onsends?: StyleLineProps['onsends']
+    /** Tempo + held (`true`) and released (`false`); from the keyboard, a press calls with `true` then `false`. */
+    ontempoup?: NowPlayingProps['ontempoup']
+    /** Tempo − held and released, as `ontempoup`. */
+    ontempodown?: NowPlayingProps['ontempodown']
+    /** Style tempo: back to the style's own tempo. */
+    onstyletempo?: NowPlayingProps['onstyletempo']
     /** The rack: opens the Rack page. */
     onrack?: SoundRowProps['onrack']
     /** A part's short name: opens Channel. */
@@ -61,6 +68,9 @@
     onbrowse,
     ononetouch,
     onsends,
+    ontempoup,
+    ontempodown,
+    onstyletempo,
     onrack,
     onpart,
     onsound,
@@ -71,7 +81,7 @@
   <div class="art"><DisplayArt /></div>
   <div class="content">
     <StyleLine {...styleLine} {tipAction} {onprev} {onnext} {onbrowse} {ononetouch} {onsends} />
-    <div class="now"><NowPlaying {...nowPlaying} /></div>
+    <div class="now"><NowPlaying {...nowPlaying} {tipAction} {ontempoup} {ontempodown} {onstyletempo} /></div>
     <div class="sounds"><SoundRow {...soundRow} {tipAction} {onrack} {onpart} {onsound} /></div>
   </div>
 </section>

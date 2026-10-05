@@ -9,12 +9,13 @@
   /* Palette */
   --grey-24: #3d3d3d; /* a knob ring's rest, a white key */
 
-  /* Band layout: four sections (Faders, Knobs over Pads, Transport over Tempo), each under a
-     GroupHeader; 24px between the columns (--band-gap) and 28px between stacked sections. */
+  /* Band layout: two columns, Faders and Knobs over Pads, each section under a GroupHeader; 24px
+     between the columns (--band-gap) and 28px between stacked sections. The transport lives in
+     the section row, so the two columns share the whole 1392px: 702 + 24 + 666. */
   --band-height: 368px;
-  --band-faders-width: 646px;
-  --band-middle-width: 610px; /* knobs and pads */
-  --band-transport-width: 88px;
+  --band-faders-width: 702px;
+  --band-middle-width: 666px; /* knobs and pads */
+  --band-transport-width: 88px; /* TransportColumn, kept but not on the Stage */
   --band-body-gap: var(--header-gap); /* header to controls */
   --band-section-gap: 28px; /* between stacked sections: knobs to the pads header, transport to tempo */
   --band-pads-gap: var(--band-section-gap);
@@ -60,9 +61,6 @@
   /* Pad */
   --pad-size: 66px;
   --pad-gap: 6px;
-  --pad-index-top: 5px;
-  --pad-index-right: 7px;
-  --pad-step-pad: 18px; /* the bank ▲ ▼ column's top and bottom padding */
 
   /* Hue legend */
   --legend-swatch-width: 10px;

@@ -1,8 +1,10 @@
 <!--
-  OneTouchPicker: One Touch on the style line: "One Touch" and its small code "OTS" as a caption,
-  then the numbers 1-4, a run of one-of-many choices like ChosenTabs (no outlines). Unchosen
-  numbers are --tab-rest; the applied one stands on a 24 × 24 --neutral block, centred on the line,
-  in --on-ink. A click asks for that One Touch through `onapply` and changes nothing itself.
+  OneTouchPicker: One Touch on the style line: "One Touch" and its code "OTS" as a caption, then
+  the numbers 1-4 in the one tab style (the same tokens as ChosenTabs, no outlines): each number a
+  --type-text label with --tab-pad-side sides, plain --tab-rest at rest; the applied one on a solid
+  --neutral block, --tab-block tall and as wide as the tab, centred on the 32px line, in --on-ink.
+  The caption is the same size as the numbers (--type-text), in --caption-ink. A click asks for
+  that One Touch through `onapply` and changes nothing itself.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -14,7 +16,7 @@
     count?: number
     /** The words before the numbers. */
     label?: string
-    /** The small code after the words. */
+    /** The code after the words, the same size and colour as them. */
     code?: string
     /** The group's accessible name. Default: says which is applied and the Launchkey's Shift + pads 9 to 12. */
     name?: string
@@ -78,29 +80,26 @@
     gap: var(--space-6);
     margin-right: var(--space-4);
     color: var(--caption-ink);
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
   }
+  /* The one tab style (ChosenTabs' tokens): a plain label, no outline, no hover look. */
   .number {
-    width: var(--ots-number-width);
     height: var(--control-height);
     margin: 0;
-    padding: 0;
+    padding: 0 var(--tab-pad-side);
     border: 0;
     border-radius: var(--radius);
     background: none;
     color: var(--tab-rest);
-    font: var(--type-body);
-    letter-spacing: var(--tracking-body);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
     cursor: pointer;
   }
-  .number:hover {
-    color: var(--t);
-  }
-  /* Applied: a chosen block, --ots-block square, centred on the line. */
+  /* Applied: the chosen block, --tab-block tall and the tab's width, centred on the line. */
   .number.applied {
-    background: linear-gradient(var(--neutral), var(--neutral)) center / var(--ots-block) var(--ots-block) no-repeat;
+    background: linear-gradient(var(--neutral), var(--neutral)) center / 100% var(--tab-block) no-repeat;
     color: var(--on-ink);
   }
   .number:focus-visible {

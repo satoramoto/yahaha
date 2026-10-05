@@ -1,9 +1,12 @@
 <!--
   GroupHeader: the row that names a group of controls ("Faders", "Knobs", "Pads",
   "Transport", "Tempo"). The title is a real heading; what follows it (tabs, the knob page block,
-  the pad page name and legend) is the parent's `children` snippet, rendered straight into the row;
-  the optional page counter sits at the right end. A bright title over a bold full-width rule
-  (`--header-rule-width` in `--header-rule`); the parent leaves `--band-body-gap` below it. Not a control: no click, no focus of its own.
+  the pad page name) is the parent's `children` snippet, rendered straight into the row; the
+  optional `end` snippet (THE place a header's hue legend goes, so every header with a legend
+  places it the same way) and then the optional page counter sit at the right end. A bright
+  `--type-strong` title over a bold full-width rule (`--header-rule-width` in `--header-rule`);
+  one size on the line: the title, the tabs and the counter are all 13px, differing by weight and
+  colour. The parent leaves `--band-body-gap` below it. Not a control: no click, no focus of its own.
   Every text in the row sits on one baseline, `--header-baseline` from the top: the row aligns its
   items by baseline and an empty strut fixes where that baseline is, so the title, ChosenTabs'
   labels (whose blocks then stand on the rule), an AccentBlock and the counter share a line in
@@ -28,9 +31,11 @@
     width?: number
     /** What follows the title; each top-level element is a flex item 12px after the one before. */
     children?: Snippet
+    /** What sits at the row's right end, before the counter: the header's hue legend, if it has one. */
+    end?: Snippet
   }
 
-  let { title, detail, count, level = 2, id, width, children }: Props = $props()
+  let { title, detail, count, level = 2, id, width, children, end }: Props = $props()
 </script>
 
 <div class="row" style:width={width === undefined ? '100%' : `${width}px`}>
@@ -38,6 +43,9 @@
     >{title}{#if detail} · <span class="detail">{detail}</span>{/if}</svelte:element
   >
   {@render children?.()}
+  {#if end}
+    <span class="end">{@render end()}</span>
+  {/if}
   {#if count}
     <span class="count">{count.label} <span class="value">{count.value}</span></span>
   {/if}
@@ -68,19 +76,30 @@
     flex: none;
     margin: 0;
     color: var(--header-ink);
-    font: var(--type-title);
-    letter-spacing: var(--tracking-title);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
   }
   .detail {
     color: var(--t);
+  }
+  /* The right end: `end` (the legend), then the counter; whichever comes first takes the slack. */
+  .end {
+    display: flex;
+    flex: none;
+    align-items: baseline;
+    gap: var(--space-12);
+    margin-left: auto;
   }
   .count {
     flex: none;
     margin-left: auto;
     color: var(--caption-ink);
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
+  }
+  .end ~ .count {
+    margin-left: 0;
   }
   .value {
     color: var(--value-ink);

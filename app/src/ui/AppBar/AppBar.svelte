@@ -3,8 +3,11 @@
   a hairline, the full pages) pushed right; then the fixed right area: a hairline, the Launchkey
   status and the audio health at the right edge, so the tabs sit at the same x on every page. A
   bold 2px header rule underneath, as on the band's section headers. Controlled: `chosen` names the page; a click only calls onchoose.
-  Every text ("yahaha", the tab labels, Launchkey, the health text) sits on one baseline,
-  `--header-baseline` from the top, as in GroupHeader; the chosen block stands on the white line.
+  The same header family as the band's GroupHeaders, one size on the line: "yahaha" in
+  `--type-strong` (the title role), the page tabs in the one tab style, the Launchkey status in
+  `--type-text`. Every text ("yahaha", the tab labels, Launchkey, the health text) sits on one
+  baseline, `--header-baseline` from the top, as in GroupHeader; the chosen block stands on the
+  white line.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -107,8 +110,8 @@
     margin-right: calc(-1 * var(--space-8));
   }
   .name {
-    font: var(--type-name);
-    letter-spacing: var(--tracking-name);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
     white-space: nowrap;
   }
   nav {
@@ -134,8 +137,8 @@
     display: block;
     margin-left: var(--space-8);
     color: var(--m);
-    font: var(--type-body);
-    letter-spacing: var(--tracking-body);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     white-space: nowrap;
   }
   .dot {

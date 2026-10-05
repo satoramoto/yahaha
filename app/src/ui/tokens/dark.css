@@ -36,16 +36,15 @@
      - rest (off): no fill, a 1px outline in the control's hue, the label in that hue;
      - on, chosen, playing: a solid fill in the hue, the label in --on-ink;
      - waiting (queued, armed): a 2px ring in the hue over a faint fill of it (--wait-fill-opacity);
-     - disabled, absent: a 1px --absent outline and an --absent label.
-     A neutral control's hue is --neutral. Tabs and One Touch numbers are a run, not buttons: they
-     have no rest outline, only the chosen fill. */
+     - disabled, absent: a 1px outline and the label in the control's own hue at reduced strength
+       (--absent-mix of it over the ground, state.css), never grey.
+     A neutral control's hue is --neutral; no control is grey. Tabs and One Touch numbers are a
+     run, not buttons: they have no rest outline, only the chosen --neutral block. */
   --neutral: var(--t); /* a control without a hue of its own */
   --on-ink: var(--black); /* the label on any solid fill */
-  --absent: var(--d); /* a disabled or absent control's outline and label */
+  --absent-mix: 40%; /* how much of its hue an absent control keeps over the ground */
   --tab-rest: var(--t2); /* an unchosen tab or One Touch number */
   --wait-fill-opacity: 0.16; /* the waiting fill: the hue at this opacity */
-  --chosen-2: var(--grey-23); /* the second-level chosen fill (the fader layer) */
-  --chosen-2-ink: var(--t);
 
   /* Text roles */
   --caption-ink: var(--m); /* captions, small codes, units, a row's leading word */

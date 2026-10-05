@@ -2,7 +2,8 @@
   SoundCell: one part's cell on the display's sound row, Push's track-name row. The part's short
   name in its hue (a button that opens Channel), then its sound (a button that opens the quick
   sound list): the voice number muted, the name in text, and the part's marks after it, passed in
-  as `marks`. An off part dims: its name to `--d`, its sound to muted.
+  as `marks`. One size across the cell: the part's name `strong`, the number and sound `text`.
+  An off part dims: its name to `--d`, its sound to muted.
 -->
 <script lang="ts">
   import type { Snippet } from 'svelte'
@@ -120,8 +121,8 @@
   .part {
     flex: none;
     width: var(--part-label-width);
-    font: var(--type-title);
-    letter-spacing: var(--tracking-title);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
     color: var(--hue);
   }
   .off .part {
@@ -136,8 +137,8 @@
   }
   .number {
     flex: none;
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
     color: var(--m);
   }
@@ -145,8 +146,8 @@
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    font: var(--type-body);
-    letter-spacing: var(--tracking-body);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     color: var(--t);
   }
   .off .number {

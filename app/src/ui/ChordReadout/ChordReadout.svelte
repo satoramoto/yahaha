@@ -1,8 +1,9 @@
 <!--
   ChordReadout: the display's chord, the brightest thing on the screen. A "Chord" label, the
-  128px light chord in the accent with its extension after it, the row of notes each with its
-  interval beneath, and the fingering mode's word. Held (detection unsure, the band keeps the
-  last chord): the chord dims to muted grey without its glow, with a small "held" beside it.
+  hero chord in the accent with its extension after it at the same size, the row of notes (13px,
+  each name `strong` with its interval `text` beneath), and the fingering mode's word. Held
+  (detection unsure, the band keeps the last chord): the chord dims to muted grey without its
+  glow, with a `text` "held" on its baseline.
   A readout, not a control.
 -->
 <script lang="ts">
@@ -64,8 +65,8 @@
   }
   .label {
     height: var(--label-height);
-    font: var(--type-body);
-    letter-spacing: var(--tracking-body);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     line-height: var(--label-height);
     color: var(--caption-ink);
   }
@@ -101,8 +102,8 @@
   }
   .held-word {
     margin-left: var(--space-8);
-    font: var(--type-body);
-    letter-spacing: var(--tracking-body);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     color: var(--caption-ink);
     text-shadow: none;
   }
@@ -119,23 +120,24 @@
     flex-direction: column;
     align-items: center;
   }
-  /* The name and its interval share the 32px note row: 16px each. */
+  /* The name and its interval share the 32px note row: two 13px lines of 16px each, the name
+     `strong` over the interval `text`. */
   .name {
-    font: var(--type-readout);
-    letter-spacing: var(--tracking-readout);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
     line-height: var(--label-height);
     color: var(--t);
   }
   .interval {
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
     color: var(--caption-ink);
   }
   .fingering {
     margin-left: var(--space-4);
-    font: var(--type-body);
-    letter-spacing: var(--tracking-body);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     line-height: var(--label-height);
     color: var(--caption-ink);
     white-space: nowrap;

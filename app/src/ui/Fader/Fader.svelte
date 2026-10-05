@@ -195,8 +195,8 @@
     left: 0;
     height: var(--fader-value-height);
     color: var(--hue);
-    font: var(--type-readout);
-    letter-spacing: var(--tracking-readout);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
     font-variant-numeric: tabular-nums;
     line-height: var(--fader-value-height);
     text-align: center;
@@ -289,8 +289,8 @@
     top: 0;
     left: 0;
     color: var(--m);
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
   }
   .fader:focus-visible {
     outline: var(--line-width) solid var(--focus);

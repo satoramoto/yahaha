@@ -10,7 +10,7 @@
     label: string
     /** The text's colour: `t` neutral, drawn in the muted grey (Round 2's next section); a section hue, or `a` for a queued style, tints it. */
     hue?: 'intro' | 'main' | 'ending' | 'brk' | 'fill' | 'a' | 't'
-    /** `count` 26 tall, `--type-readout` (count row); `line` 26 tall, `--type-body`, at most 200 wide (style line); `display` 44 tall, `--type-readout-lg` (display). */
+    /** `count` `--chip-height` (32) tall, `--type-text` (count row); `line` the same, at most 200 wide (style line); `display` 44 tall, `--type-display` (display). */
     size?: 'count' | 'line' | 'display'
   }
 
@@ -37,8 +37,8 @@
     border: 0;
     background: transparent;
     color: var(--hue);
-    font: var(--type-readout);
-    letter-spacing: var(--tracking-readout);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
     line-height: var(--chip-height);
     white-space: nowrap;
@@ -49,15 +49,11 @@
     max-width: var(--chip-max);
     overflow: hidden;
     text-overflow: ellipsis;
-    font: var(--type-body);
-    letter-spacing: var(--tracking-body);
-    font-variant-numeric: tabular-nums;
-    line-height: var(--chip-height);
   }
   .display {
     height: var(--chip-height-display);
-    font: var(--type-readout-lg);
-    letter-spacing: var(--tracking-readout-lg);
+    font: var(--type-display);
+    letter-spacing: var(--tracking-display);
     font-variant-numeric: tabular-nums;
     line-height: var(--chip-height-display);
   }

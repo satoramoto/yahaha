@@ -1,5 +1,6 @@
 <!--
-  BarBeat: the display's count, under the playing section. "Bar 3/4" in light numbers with the
+  BarBeat: the display's count, under the playing section. "Bar 3/4": "Bar" in caption text on the
+  baseline of "3/4", a large hero value in one size whose "/4" differs by colour only; the
   beat dots at the right (past beats filled grey, the current one in the section hue with its
   glow, beats to come a grey ring), and beneath them one line per bar of the section: past bars
   grey, the current bar filling in the hue, bars to come dark. The parent passes the moment;
@@ -81,29 +82,27 @@
   .row {
     height: var(--bar-row-height);
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: var(--space-12);
   }
   .word {
-    font: var(--type-body);
-    letter-spacing: var(--tracking-body);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     color: var(--caption-ink);
   }
+  /* The number's line is the row's height, so the hero value sits in the 24px row. */
   .bar {
-    font: var(--type-readout-lg);
-    letter-spacing: var(--tracking-readout-lg);
+    font: var(--type-large);
+    letter-spacing: var(--tracking-large);
     font-variant-numeric: tabular-nums;
     line-height: var(--bar-row-height);
     color: var(--t);
   }
   .of {
-    font: var(--type-readout);
-    letter-spacing: var(--tracking-readout);
-    font-variant-numeric: tabular-nums;
-    line-height: var(--bar-row-height);
     color: var(--caption-ink);
   }
   .dots {
+    align-self: center;
     margin-left: auto;
     display: flex;
     gap: var(--space-10);

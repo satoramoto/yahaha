@@ -143,8 +143,8 @@
   .label,
   .code {
     height: var(--knob-label-height);
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
     line-height: var(--knob-label-height);
   }
@@ -160,15 +160,13 @@
   .value {
     height: var(--knob-value-height);
     color: var(--a);
-    font: var(--type-readout);
-    letter-spacing: var(--tracking-readout);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
     font-variant-numeric: tabular-nums;
     line-height: var(--knob-value-height);
   }
   .unit {
     margin-left: var(--space-2);
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
   }
   .ring {
     display: block;

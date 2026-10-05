@@ -1,8 +1,9 @@
 <!--
   Button: does one thing when pressed (Panic, Stop, a page step, a One Touch), in the state
   language: at rest a 1px outline and label in its hue, no fill; on or chosen a solid fill in the
-  hue with the label in --on-ink; waiting a 2px ring over a faint fill of the hue; disabled the
-  --absent outline and label. Every face comes from props (precedence chosen, on, waiting, off);
+  hue with the label in --on-ink; waiting a 2px ring over a faint fill of the hue; disabled a 1px
+  outline and the label in its own hue at reduced strength (--absent-<hue>), no fill. No button is
+  grey: the deprecated `t2` and `m` draw exactly as the neutral `t`. Every face comes from props (precedence chosen, on, waiting, off);
   it holds no state of its own. Glyphs are the fixed
   `symbol` list. Long press comes from the shared longpress action; `hold` reports pointer down
   and up through onhold for the parent's repeat (Tempo ±). No timers.
@@ -49,7 +50,7 @@
     chosen?: boolean
     /** The waiting face: queued or armed, a 2px ring over a faint fill of `hue`. */
     waiting?: boolean
-    /** The colour token (without `--`) of every face: the rest outline and label, the on and chosen fill, the waiting ring. `t` draws in `--neutral`, `lamp` in `--lamp-line`. */
+    /** The colour token (without `--`) of every face: the rest outline and label, the on and chosen fill, the waiting ring; disabled draws the same hue at reduced strength. `t` draws in `--neutral`, `lamp` in `--lamp-line`. `t2` and `m` are deprecated aliases of `t` and draw exactly as it: no button is grey. */
     hue?: Hue
     /** Sets `aria-pressed` for a switch or a choice. Undefined: no `aria-pressed`. Never changes the look. */
     pressed?: boolean
@@ -130,9 +131,11 @@
   let open = $derived(popup !== undefined && expanded)
   /** The face as drawn: chosen, then on (switched on, running or open), then waiting, then off. */
   let face = $derived(chosen ? 'chosen' : on || running || open ? 'on' : waiting ? 'waiting' : 'off')
-  /** The hue drawn: running is green unless chosen. */
-  let drawn = $derived<Hue>(running && !chosen ? 'ok' : hue)
+  /** The hue drawn: running is green unless chosen; the deprecated grey `t2` and `m` are the neutral `t`. */
+  let drawn = $derived<Hue>(running && !chosen ? 'ok' : hue === 't2' || hue === 'm' ? 't' : hue)
   let hueColour = $derived(drawn === 't' ? 'var(--neutral)' : drawn === 'lamp' ? 'var(--lamp-line)' : `var(--${drawn})`)
+  /** The disabled outline and label: the drawn hue at reduced strength. */
+  let absentColour = $derived(`var(--absent-${drawn === 't' ? 'neutral' : drawn})`)
   let accessibleName = $derived(name ?? [label, symbol ? WORDS[symbol] : ''].filter(Boolean).join(' '))
 
   let node: HTMLButtonElement | undefined = $state()
@@ -203,6 +206,7 @@
   class:join-end={join === 'end'}
   class:disabled
   style:--hue={hueColour}
+  style:--hue-absent={absentColour}
   data-face={disabled ? 'disabled' : face}
   data-hue={drawn}
   data-bar={running ? '' : undefined}
@@ -241,8 +245,8 @@
     background: transparent;
     box-shadow: inset 0 0 0 var(--outline-width) var(--hue);
     color: var(--hue);
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
     text-align: center;
     white-space: nowrap;
@@ -305,11 +309,12 @@
     background: var(--hue);
     opacity: var(--wait-fill-opacity);
   }
-  /* Disabled: the --absent outline and label, no fill, whatever the face. */
+  /* Disabled: a 1px outline and the label in the hue at reduced strength (--hue-absent), no fill,
+     whatever the face. */
   .btn.disabled {
     background: transparent;
-    box-shadow: inset 0 0 0 var(--outline-width) var(--absent);
-    color: var(--absent);
+    box-shadow: inset 0 0 0 var(--outline-width) var(--hue-absent);
+    color: var(--hue-absent);
     cursor: default;
   }
   .btn.disabled::before {

@@ -54,8 +54,8 @@
     flex: none;
     gap: var(--space-8);
     white-space: nowrap;
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     color: var(--m);
   }
   .strip {

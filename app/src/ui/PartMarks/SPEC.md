@@ -49,8 +49,8 @@ Its users and the props they pass, from `keyboardParts[i]` (Stage › Sounds row
 
 ### Visual rules
 
-- **Tokens used:** `--t`, `--warn`, `--ending`, `--m`, `--type-small`, `--tracking-small`, `--space-4`, `--space-8`. All exist in `app/src/ui/tokens/*` today: no new tokens and no new contrast rows (L1).
-- **Root:** a `span`, `display: inline-flex`, `align-items: center`, `flex: none`, gap `--space-8` (`cell`) or `--space-4` (`strip`), `white-space: nowrap`, `aria-hidden="true"`. The root carries the type, so the words never inherit the parent's 14px: `font: var(--type-small); letter-spacing: var(--tracking-small); color: var(--m)` (D8; the type role, PR #550). When `visibleMarks` is empty the component renders **nothing** (no root element), so the parent's flex gap adds no space after the name.
+- **Tokens used:** `--t`, `--warn`, `--ending`, `--m`, `--type-text`, `--tracking-text`, `--space-4`, `--space-8`. All exist in `app/src/ui/tokens/*` today: no new tokens and no new contrast rows (L1).
+- **Root:** a `span`, `display: inline-flex`, `align-items: center`, `flex: none`, gap `--space-8` (`cell`) or `--space-4` (`strip`), `white-space: nowrap`, `aria-hidden="true"`. The root carries the type, so the words never inherit the parent's type: `font: var(--type-text); letter-spacing: var(--tracking-text); color: var(--m)` (D8; the type role). When `visibleMarks` is empty the component renders **nothing** (no root element), so the parent's flex gap adds no space after the name.
 - **Marks**, each a child of the root with `flex: none` and `data-mark="<mark>"`, in `visibleMarks` order:
   - **edited:** a `span`, 5 × 5, `border-radius: 50%`, `background: var(--t)`. `data-hue="t"`.
   - **missing:** an inline `svg`, the ⚠. Geometry as attributes, colour and stroke in the component's CSS (D9):
@@ -72,11 +72,11 @@ Its users and the props they pass, from `keyboardParts[i]` (Stage › Sounds row
     ```css
     .fail { fill: none; stroke: var(--ending); stroke-width: 1.5; stroke-linecap: round; }
     ```
-  - **off:** a `span` with the text "off", taking the root's type and colour (`--type-small`, `--m`; the root centres it on the parent's row). `data-hue="m"`.
+  - **off:** a `span` with the text "off", taking the root's type and colour (`--type-text`, `--m`; the root centres it on the parent's row). `data-hue="m"`.
   - **bass:** a `span` with the text "bass", the same as "off". `data-hue="m"`.
-- **Size:** the root's width is its marks plus the gaps; its height is the tallest mark (5, 12, or the 12px text's normal line height, about 16).
+- **Size:** the root's width is its marks plus the gaps; its height is the tallest mark (5, 12, or the 13px text's 16px line height).
 - **States drawn by:** which marks are present (above). No hover or focus look: the root isn't a control; the parent's button carries cursor and focus.
-- **Type:** DM Sans, 12px, weight 400, lower case as written, set on the root (above). No `font-variant-numeric`: the marks hold no digits, so the root doesn't set it.
+- **Type:** `--type-text` (DM Sans 13px, weight 400, 16px line), lower case as written, set on the root (above). No `font-variant-numeric`: the marks hold no digits, so the root doesn't set it.
 - **Contrast (AA 4.5:1, `tokens/contrast.test.ts`):** `--m` on `--g` ("off", "bass" on the ground; the pair exists). The dot and the glyphs are graphics whose meaning is also in the parent's `aria-label`; `--t`, `--warn` and `--ending` on `--g` are each 3:1 or more in both themes.
 - **Motion:** none.
 
@@ -120,6 +120,6 @@ Crop positions are `board x,y w×h` in the 1440×900 renders, the same box in th
 - **D4 · No titles.** The board's `title="Sound edited"` on the dot is dropped: the marks are `aria-hidden` and the parent's tooltip and `aria-label` explain them; a native title would be a second, untranslated tooltip.
 - **D5 · Own dot, not StatusDot.** The 5px edited dot is drawn here with the same values as StatusDot `size: 'sm'`, so PartMarks stays a primitive with no children (Stage's Components row 8).
 - **D6 · `size` is only the gap.** The strip and the cell draw the same marks at the same size; only the gap differs (4 on the strip's name button, 8 in the sound cell), and the strip never passes `off` or `bass` (kit › FaderStrip: keyboard parts' dot, ⚠ and ✕ only).
-- **D7 · Text line height.** Superseded (PR #550): "off" and "bass" take `--type-small`'s 16px line height; the root still centres them on the parent's row.
-- **D8 · Type on the root.** The font tokens and `--m` sit on the root span, not on each word, so "off" and "bass" can't pick up the parent button's 14px or its colour; there are no digits, so no tabular numerals.
+- **D7 · Text line height.** Superseded (PR #550): "off" and "bass" take `--type-text`'s 16px line height; the root still centres them on the parent's row.
+- **D8 · Type on the root.** The font tokens and `--m` sit on the root span, not on each word, so "off" and "bass" can't pick up the parent button's type or its colour; there are no digits, so no tabular numerals.
 - **D9 · SVG geometry in attributes, paint in CSS.** Paths, `viewBox` and size are attributes; `fill`, `stroke`, `stroke-width` and the joins are CSS on the svg (presentation attributes can't take `var()`), and the ⚠'s `circle` overrides them with `fill: var(--warn); stroke: none`. StatusLine draws its ⚠ the same way.

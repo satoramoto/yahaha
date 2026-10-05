@@ -1,8 +1,11 @@
 <!--
-  SectionRow: the toolbar between the app bar and the display. Accomp at the left; the helpers at
-  the right: Metronome joined with its ▾ settings caret, Unison, Panic and help mode's ?. The
-  count (bar, beat, sections) lives on the display, not here. Every switch is controlled: a press
-  only calls back.
+  SectionRow: the toolbar between the app bar and the display. The transport at the left, in this
+  order: Start / Stop (wider, first; the same control as pad 16, solid green while running),
+  Accomp, Sync Start, Reset, Fill ▲, Fill ▼ and Fade. The helpers at the right: Metronome joined
+  with its ▾ settings caret, Unison, Panic and help mode's ?. Every control is in the state
+  language at `--control-height`: a 1px outline and label in its hue at rest, a solid fill when
+  on. The count (bar, beat, sections) lives on the display, not here. Every switch is controlled:
+  a press only calls back.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -10,8 +13,14 @@
   import LampButton from '../LampButton/LampButton.svelte'
 
   type Props = {
+    /** The style is running: Start / Stop is solid green and aria-pressed. */
+    running?: boolean
     /** Accompaniment (ACMP) on. */
     accomp?: boolean
+    /** Sync Start armed: the style starts with the first chord. */
+    syncStart?: boolean
+    /** A fade in or out is under way: Fade is lit. */
+    fading?: boolean
     /** The metronome on. */
     metronome?: boolean
     /** The metronome's settings popover is open (the caret's ▾ turns `--t`). */
@@ -24,8 +33,20 @@
     help?: boolean
     /** The app's tooltip action (`use:tip`), applied to every control. */
     tipAction?: Action<HTMLElement, string>
+    /** Called when Start / Stop is pressed. */
+    onstartstop?: () => void
     /** Called with the state asked for when Accomp is pressed. */
     onaccomp?: (on: boolean) => void
+    /** Called with the state asked for when Sync Start is pressed. */
+    onsyncstart?: (on: boolean) => void
+    /** Called when Reset is pressed (restart the section from its first bar). */
+    onreset?: () => void
+    /** Called when Fill ▲ is pressed. */
+    onfillup?: () => void
+    /** Called when Fill ▼ is pressed. */
+    onfilldown?: () => void
+    /** Called when Fade is pressed. */
+    onfade?: () => void
     /** Called with the state asked for when Metronome is pressed. */
     onmetronome?: (on: boolean) => void
     /** Called when the metronome's ▾ caret is pressed (opens or closes its settings). */
@@ -39,14 +60,23 @@
   }
 
   let {
+    running = false,
     accomp = false,
+    syncStart = false,
+    fading = false,
     metronome = false,
     metronomeOpen = false,
     metronomeControls,
     unison = false,
     help = false,
     tipAction,
+    onstartstop,
     onaccomp,
+    onsyncstart,
+    onreset,
+    onfillup,
+    onfilldown,
+    onfade,
     onmetronome,
     onmetronomesettings,
     onunison,
@@ -55,9 +85,48 @@
   }: Props = $props()
 </script>
 
-<div class="row" role="toolbar" aria-label="Switches and helpers">
-  <LampButton label="Accomp" code="ACMP" hue="t" on={accomp} tip="transport.acmp" {tipAction} ontoggle={onaccomp} />
-  <span class="helpers">
+<div class="row" role="toolbar" aria-label="Transport, switches and helpers">
+  <span class="group" role="group" aria-label="Transport">
+    <span class="start-stop">
+      <LampButton
+        label="Start / Stop"
+        size="cell"
+        hue={running ? 'ok' : 't'}
+        on={running}
+        name={running ? 'Start / Stop, running (Play). The same control as pad 16' : 'Start / Stop, stopped (Play). The same control as pad 16'}
+        tip="transport.start_stop"
+        {tipAction}
+        ontoggle={() => onstartstop?.()}
+      />
+    </span>
+    <LampButton label="Accomp" name="Accomp (ACMP)" hue="t" on={accomp} tip="transport.acmp" {tipAction} ontoggle={onaccomp} />
+    <LampButton label="Sync Start" hue="t" on={syncStart} tip="transport.sync_start" {tipAction} ontoggle={onsyncstart} />
+    <Button
+      label="Reset"
+      name="Section reset: restart the section from its first bar"
+      tip="transport.section_reset"
+      {tipAction}
+      onpress={onreset}
+    />
+    <Button
+      label="Fill"
+      symbol="up"
+      name="Fill Up: a fill, then the next Main up (at Main D, its own fill)"
+      tip="transport.fill_up"
+      {tipAction}
+      onpress={onfillup}
+    />
+    <Button
+      label="Fill"
+      symbol="down"
+      name="Fill Down: a fill, then the next Main down (at Main A, its own fill)"
+      tip="transport.fill_down"
+      {tipAction}
+      onpress={onfilldown}
+    />
+    <Button label="Fade" on={fading} pressed={fading} name="Fade in/out" tip="transport.fade" {tipAction} onpress={onfade} />
+  </span>
+  <span class="group helpers">
     <span class="joined" role="group" aria-label="Metronome">
       <LampButton
         label="Metronome"
@@ -105,11 +174,19 @@
     height: var(--control-height);
     white-space: nowrap;
   }
-  .helpers {
-    margin-left: auto;
+  .group {
     display: flex;
     align-items: center;
     gap: var(--space-8);
+  }
+  .helpers {
+    margin-left: auto;
+  }
+  .start-stop {
+    display: flex;
+    flex: none;
+    width: var(--start-stop-width);
+    height: var(--control-height);
   }
   .joined {
     display: flex;

@@ -77,8 +77,8 @@
     padding-left: var(--space-8);
     min-width: 0;
     color: var(--m);
-    font: var(--type-body);
-    letter-spacing: var(--tracking-body);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
   }
   .fill {

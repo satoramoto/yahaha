@@ -1,11 +1,14 @@
 <!--
-  ChosenTabs: a short run of choices side by side, the chosen one on a block standing on the row's
-  line: --neutral for a first-level choice, --chosen-2 (`tone="secondary"`) for a second-level one
-  (the fader layer); unchosen labels are --tab-rest, with no outline (a run, not buttons). Every label sits on the row's one baseline (`--header-baseline`), so the chosen label is
-  centred in its block and lines up with the row's other texts when the parent baseline-aligns them
-  (GroupHeader, AppBar). `page` tabs are page navigation (buttons with aria-current, inside the parent's nav); `header` and
-  `compact` tabs are a tablist with roving focus and automatic activation (the band's fader page
-  and layer). Controlled: it draws `chosen` as given and only calls onchoose; the parent moves it.
+  ChosenTabs: the one tab style, for every one-of-many choice in a header (the app's pages, the
+  fader page, the fader layer, the knob page, the pad bank). A short run of plain --type-text
+  labels in --tab-rest with no outline (a run, not buttons), --tab-pad-side a side; the chosen one
+  on a solid --neutral block, --tab-block tall, standing on the row's bottom (the rule), its label
+  in --on-ink. Every label sits on the row's one baseline (`--header-baseline`), so the chosen
+  label is centred in its block and lines up with the row's other texts when the parent
+  baseline-aligns them (GroupHeader, AppBar). Every size draws identically; `size` sets only the
+  kind: `page` tabs are page navigation (buttons with aria-current, inside the parent's nav),
+  `header` and `compact` tabs a tablist with roving focus and automatic activation. Controlled: it
+  draws `chosen` as given and only calls onchoose; the parent moves it.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -16,10 +19,8 @@
     tabs: TabItem[]
     /** The `id` of the chosen tab; `null` = none is chosen. A click never moves it: the parent does. */
     chosen?: string | null
-    /** `page` on a 24px block, page navigation; `header` on a 22px block, a tablist; `compact` as `header` with 8px sides. Every size is the small control type, 34 tall: a 36px row minus its 2px rule. */
+    /** The kind: `page` is page navigation (buttons with aria-current); `header` and `compact` are a tablist with roving focus. Every size draws the same: `--type-text`, `--tab-pad-side` sides, 34 tall (a 36px row minus its 2px rule), a `--tab-block` chosen block. */
     size?: 'page' | 'header' | 'compact'
-    /** The chosen block: `primary` the `--neutral` fill with `--on-ink` text; `secondary` the `--chosen-2` fill with `--chosen-2-ink` text, for a second-level choice (the fader layer). */
-    tone?: 'primary' | 'secondary'
     /** The tablist's accessible name (`header`, `compact`). Ignored at `page` (the parent's nav carries it). */
     label?: string
     /** The app's tooltip action (`use:tip`), applied to every tab whose item has a `tip`. */
@@ -28,7 +29,7 @@
     onchoose?: (id: string) => void
   }
 
-  let { tabs, chosen = null, size = 'header', tone = 'primary', label, tipAction, onchoose }: Props = $props()
+  let { tabs, chosen = null, size = 'header', label, tipAction, onchoose }: Props = $props()
 
   const isList = $derived(size !== 'page')
 
@@ -91,9 +92,8 @@
 
 {#if isList}
   <div
-    class="run {size} {tone}"
+    class="run"
     data-size={size}
-    data-tone={tone}
     role="tablist"
     aria-label={label || undefined}
     aria-orientation="horizontal"
@@ -123,7 +123,7 @@
     {/each}
   </div>
 {:else}
-  <div class="run {size} {tone}" data-size={size} data-tone={tone}>
+  <div class="run" data-size={size}>
     {#each tabs as tab (tab.id)}
       <button
         type="button"
@@ -151,26 +151,6 @@
     align-items: stretch;
     flex-wrap: nowrap;
   }
-  .page {
-    --tab-pad-side: var(--space-12);
-    --tab-blk: var(--tab-block);
-  }
-  .header {
-    --tab-pad-side: var(--space-10);
-    --tab-blk: var(--tab-block-header);
-  }
-  .compact {
-    --tab-pad-side: var(--space-8);
-    --tab-blk: var(--tab-block-header);
-  }
-  .primary {
-    --tab-chosen: var(--neutral);
-    --tab-chosen-ink: var(--on-ink);
-  }
-  .secondary {
-    --tab-chosen: var(--chosen-2);
-    --tab-chosen-ink: var(--chosen-2-ink);
-  }
   /* The label sits on the row's baseline: the empty strut before it is as tall as the baseline is
      deep, and the strut's bottom is the baseline the label aligns to. */
   .tab {
@@ -185,8 +165,8 @@
     border-radius: 0;
     background: transparent;
     color: var(--tab-rest);
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     cursor: pointer;
@@ -198,8 +178,8 @@
     height: var(--header-baseline);
   }
   .chosen {
-    background: linear-gradient(var(--tab-chosen), var(--tab-chosen)) left bottom / 100% var(--tab-blk) no-repeat;
-    color: var(--tab-chosen-ink);
+    background: linear-gradient(var(--neutral), var(--neutral)) left bottom / 100% var(--tab-block) no-repeat;
+    color: var(--on-ink);
   }
   .tab[aria-disabled='true'] {
     color: var(--absent);

@@ -77,7 +77,7 @@ It returns a `Health`, where `label` is `Audio health: fine` for row 6 and `Audi
 
 ### Visual rules
 
-- **Tokens used:** `--m`, `--ending`, `--focus`, `--type-body`, `--tracking-body`, `--space-8`, `--line-width`, `--focus-offset`.
+- **Tokens used:** `--m`, `--ending`, `--focus`, `--type-text`, `--tracking-text`, `--space-8`, `--line-width`, `--focus-offset`.
 - **Structure:** the root is a `<span class="slot">` with `data-hue` = `hue` and no role: `position: relative`, `box-sizing: border-box`, `display: flex; align-items: center; justify-content: flex-end` (the text sits at the right edge), height 34px (the app bar's 36px less its 2px header rule, `--tab-height-header`; D5), `padding-left: var(--space-8)`, `min-width: 0`, width `width` px (inline `style:width`) or `flex: 1 1 auto` in its container, `color: var(--m)` or `var(--ending)` from `hue`, no background (the app bar's ground shows through). Inside it, in order:
   1. the live region: `<span role="status" class="hidden-word">{label}</span>`, visually hidden (scoped CSS: `position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap`, the same rule as `app.css`'s `.visually-hidden`, which the library can't rely on), so it takes no room. Its text is `label` (`Audio health: fine`, `Audio health: CPU 74%`); a change of text is what a screen reader announces (D13).
   2. with a target: one `<button type="button">`: `display: flex; align-items: center` (so the inner span is a flex item and its ellipsis works), margin 0, padding 0, border 0, background transparent, `color: inherit`, `font: inherit`, `max-width: 100%`, `min-width: 0`, cursor `pointer`, holding the text in a `<span>` with `overflow: hidden; text-overflow: ellipsis; white-space: nowrap`.
@@ -90,7 +90,7 @@ It returns a `Health`, where `label` is `Audio health: fine` for row 6 and `Audi
   - too long: ellipsis (the buffer hint in the 92px of text room the app bar's 100px slot has, D4).
   - keyboard focus (`:focus-visible` on the button): a `--line-width` solid outline in `--focus`, `--focus-offset` outside the button. Nothing on mouse focus.
   - No hover or pressed look (kit: Hover, press and cursor).
-- **Type:** `--type-body` (DM Sans 14 regular, 20px line) with `--tracking-body`, sentence case as listed, `font-variant-numeric: tabular-nums` (so "CPU 74%" doesn't jitter as the number changes).
+- **Type:** `--type-text` (DM Sans 13 regular, 16px line) with `--tracking-text`, sentence case as listed, `font-variant-numeric: tabular-nums` (so "CPU 74%" doesn't jitter as the number changes).
 - **Contrast (AA 4.5:1, `tokens/contrast.test.ts`):** `--m` on `--g` (exists); `--ending` on `--g` is a **new row** ("health slot trouble (HealthSlot)"; 4.96:1 dark, #c45a5a on #000000; 5.20:1 light, #a84444 on #f2f1ee), which passes with today's values and lands in the orchestrator's tokens contract PR before the build (L1). Every token used exists today: no new tokens.
 - **Motion:** none. The text changes when the props change; no blink, no timer.
 

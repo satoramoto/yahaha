@@ -1,6 +1,7 @@
 <!--
-  TempoReadout: the display's tempo, "104 BPM": the number in 32px light text, the unit muted
-  beside it on the same baseline. A readout, not a control.
+  TempoReadout: the display's tempo, "104 BPM": the number a large hero value, the unit in text
+  beside it on the number's baseline, differing by size, colour and weight. A readout, not a
+  control.
 -->
 <script lang="ts">
   type Props = {
@@ -26,16 +27,16 @@
     font-family: var(--font-sans);
     white-space: nowrap;
   }
-  /* The readout's 40px line sets the row's height. */
+  /* The number's 40px line sets the row's height. */
   .bpm {
-    font: var(--type-readout-lg);
-    letter-spacing: var(--tracking-readout-lg);
+    font: var(--type-large);
+    letter-spacing: var(--tracking-large);
     font-variant-numeric: tabular-nums;
     color: var(--t);
   }
   .unit {
-    font: var(--type-body);
-    letter-spacing: var(--tracking-body);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     color: var(--caption-ink);
   }
 </style>

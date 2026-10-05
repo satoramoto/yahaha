@@ -1,11 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
-import { fn } from 'storybook/test'
+import { expect, fn, userEvent, within } from 'storybook/test'
 import KnobBank from './KnobBank.svelte'
-import { styleKnobPage, styleKnobs } from './KnobBank.fixtures'
+import { knobPages, styleKnobs } from './KnobBank.fixtures'
 
 /**
- * The band's Knobs section: the knob page's accent block and counter, the page ▲ ▼ buttons and
- * eight Knobs. Every change is a callback carrying the knob's position.
+ * The band's Knobs section: the knob page tabs after the title, and eight Knobs across the whole
+ * column. A tab choice is a callback with the page's index; every knob change carries the knob's
+ * position.
  */
 const meta = {
   title: 'Components/KnobBank',
@@ -13,23 +14,32 @@ const meta = {
   parameters: { layout: 'centered' },
   args: {
     knobs: styleKnobs,
-    pageLabel: styleKnobPage.label,
-    count: styleKnobPage.count,
+    pages: knobPages,
+    page: 0,
     tipAction: fn(),
-    onpageup: fn(),
-    onpagedown: fn(),
+    onpage: fn(),
     onpress: fn(),
     onstep: fn(),
   },
   argTypes: {
     knobs: { control: 'object' },
-    pageLabel: { control: 'text' },
-    count: { control: 'text' },
+    pages: { control: 'object' },
+    page: { control: { type: 'number', min: 0, max: knobPages.length - 1, step: 1 } },
   },
 } satisfies Meta<typeof KnobBank>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** The board: knob page 1 of 6, Style; knob 7 unused. */
-export const Board: Story = {}
+/** The board: the Style page chosen; knob 7 unused. A tab click asks for that page's index. */
+export const Board: Story = {
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByRole('tab', { name: 'Style' })).toHaveAttribute('aria-selected', 'true')
+    await userEvent.click(canvas.getByRole('tab', { name: 'Reverb' }))
+    await expect(args.onpage).toHaveBeenCalledWith(3)
+  },
+}
+
+/** The Reverb page chosen. */
+export const ReverbPage: Story = { args: { page: 3 } }

@@ -4,7 +4,8 @@ import Button from './Button.svelte'
 
 const NONE = 'none'
 const SIZES = ['icon', 'md', 'band', 'pair', 'cell', 'caret']
-const HUES = ['t', 't2', 'm', 'a', 'lamp', 'rec', 'ok', 'r1', 'r2', 'r3', 'l', 'intro', 'main', 'ending', 'brk', 'fill']
+/** The hues that draw a distinct look (the deprecated `t2` and `m` draw as `t`, so they're left out). */
+const HUES = ['t', 'a','lamp', 'rec', 'ok', 'r1', 'r2', 'r3', 'l', 'intro', 'main', 'ending', 'brk', 'fill']
 const SYMBOLS = ['prev', 'next', 'up', 'down', 'plus', 'minus', 'caret']
 /** A select whose first option is `none` (undefined), so the control can go back to "no value". */
 const optional = (options: string[]) => ({ control: 'select' as const, options: [NONE, ...options], mapping: { [NONE]: undefined } })
@@ -19,7 +20,8 @@ const threeWay = {
  * The plain button: does one thing when pressed (Panic, Stop, a page step, a One Touch), and shows
  * when that thing is chosen, switched on or waiting, in the state language: at rest a 1px outline
  * and label in its `hue`, no fill; on or chosen a solid fill in the hue, label in `--on-ink`;
- * waiting a 2px ring over a faint fill of the hue; disabled the `--absent` outline and label.
+ * waiting a 2px ring over a faint fill of the hue; disabled a 1px outline and the label in its own
+ * hue at reduced strength, no fill. No button is grey.
  * Every face is a prop; the parent acts on `onpress`, `onhold`, `onlongpress` and `onlongrelease`.
  */
 const meta = {
@@ -156,13 +158,12 @@ export const Stopped: Story = {
   },
 }
 
-/** The waiting face: Fade armed, a 2px `--t2` ring over a faint `--t2` fill, the label in `--t2`. */
+/** The waiting face: Fade armed, a 2px neutral ring over a faint neutral fill, the label in `--neutral`. */
 export const Waiting: Story = {
   args: {
     label: 'Fade',
     size: 'pair',
     waiting: true,
-    hue: 't2',
     pressed: false,
     name: 'Fade, armed',
     tip: 'transport.fade',
@@ -170,11 +171,11 @@ export const Waiting: Story = {
   play: async ({ canvasElement }) => {
     const button = within(canvasElement).getByRole('button', { name: 'Fade, armed' })
     await expect(button).toHaveAttribute('data-face', 'waiting')
-    await expect(button).toHaveAttribute('data-hue', 't2')
+    await expect(button).toHaveAttribute('data-hue', 't')
   },
 }
 
-/** Shown, not pressable: the `--absent` outline and label, no fill. No press, hold or long press. */
+/** Shown, not pressable: the neutral hue at reduced strength (`--absent-neutral`) for the outline and label, no fill. No press, hold or long press. */
 export const Disabled: Story = {
   args: { label: 'Audition', size: 'md', compact: true, disabled: true, name: 'Audition (stop the band first)' },
   play: async ({ canvasElement, args }) => {
@@ -191,6 +192,20 @@ export const Disabled: Story = {
     await fireEvent.pointerUp(button, pointer(1))
     await expect(args.onlongpress).not.toHaveBeenCalled()
     await expect(args.onhold).not.toHaveBeenCalled()
+  },
+}
+
+/**
+ * A hued button, absent: disabled draws its own hue at reduced strength (here `--absent-fill`) for
+ * the outline, label and glyph, no fill; fainter than the rest face, never grey.
+ */
+export const DisabledHue: Story = {
+  args: { label: 'Fill', symbol: 'up', size: 'pair', hue: 'fill', disabled: true, name: 'Fill up (none in this style)' },
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getByRole('button', { name: 'Fill up (none in this style)' })
+    await expect(button).toHaveAttribute('data-face', 'disabled')
+    await expect(button).toHaveAttribute('data-hue', 'fill')
+    await expect(button).toHaveAttribute('data-contrast', 'dim')
   },
 }
 

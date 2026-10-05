@@ -68,8 +68,8 @@
     margin: 0;
     overflow: visible;
     background: transparent;
-    font: var(--type-body);
-    letter-spacing: var(--tracking-body);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
   }
   .line {

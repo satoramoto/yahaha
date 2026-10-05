@@ -15,25 +15,22 @@
   --weight-regular: 400;
   --weight-medium: 500;
 
-  /* The type scale: eight text roles in six sizes (12, 14, 18, 32, 44 and the chord's 128) and
-     three weights. Each role is a `font` shorthand (weight, size / line height, family) with its
-     tracking beside it. A component sets both, `font: var(--type-small)` and
-     `letter-spacing: var(--tracking-small)`, and nothing else about its type (a mono digit adds
-     `font-family: var(--font-mono)`; digits that line up add `font-variant-numeric: tabular-nums`
-     after the shorthand, which resets it). No raw sizes, weights or tracking in components. */
-  --type-small: var(--weight-regular) 12px / 16px var(--font-sans); /* control labels (buttons, lamps, tabs, pads), captions, codes, units, legends, digits */
-  --tracking-small: 0;
-  --type-body: var(--weight-regular) 14px / 20px var(--font-sans); /* display words, sound names, the status line */
-  --tracking-body: 0;
-  --type-title: var(--weight-medium) 14px / 20px var(--font-sans); /* a section header's title, part tags */
-  --tracking-title: 0;
-  --type-name: var(--weight-medium) 18px / 24px var(--font-sans); /* the app name and the style name */
-  --tracking-name: -0.2px;
-  --type-readout: var(--weight-light) 18px / 24px var(--font-sans); /* values: knobs, faders, sends, One Touch, chord notes, the bar's "/4" */
-  --tracking-readout: 0;
-  --type-readout-lg: var(--weight-light) 32px / 40px var(--font-sans); /* tempo, the bar number, the next section */
-  --tracking-readout-lg: -0.5px;
-  --type-display: var(--weight-light) 44px / 44px var(--font-sans); /* the playing section */
+  /* The type scale: one text size for everything you read or press, and three large sizes for the
+     display's hero values only. One line or row uses one size: a label and its value differ by
+     colour and weight, never by size; only a hero value is large, and its small label ("next",
+     "BPM", "Bar") is `text` on the value's baseline. Each role is a `font` shorthand (weight,
+     size / line height, family) with its tracking beside it. A component sets both,
+     `font: var(--type-text)` and `letter-spacing: var(--tracking-text)`, and nothing else about
+     its type (a mono digit adds `font-family: var(--font-mono)`; digits that line up add
+     `font-variant-numeric: tabular-nums` after the shorthand, which resets it). No raw sizes,
+     weights or tracking in components. */
+  --type-text: var(--weight-regular) 13px / 16px var(--font-sans); /* every label, tab, caption, code, unit, word and sound name, and the hero values' small labels */
+  --tracking-text: 0;
+  --type-strong: var(--weight-medium) 13px / 16px var(--font-sans); /* the same size, stronger: header titles, the app and style names, part tags, values (knobs, faders, sends, chord notes) */
+  --tracking-strong: 0;
+  --type-large: var(--weight-light) 32px / 40px var(--font-sans); /* hero values: the tempo and the bar */
+  --tracking-large: -0.5px;
+  --type-display: var(--weight-light) 44px / 44px var(--font-sans); /* hero values: the playing and the next section */
   --tracking-display: -1.5px;
   --type-hero: var(--weight-light) 128px / 104px var(--font-sans); /* the chord; its step-down sizes are in stage-display.css */
   --tracking-hero: -6px;
@@ -67,9 +64,13 @@
      a fixed gap before what it heads. */
   --header-rule-width: 2px;
   --header-gap: 12px; /* from the rule down to the section's controls */
-  --tab-height-header: calc(var(--bar-height) - var(--header-rule-width)); /* a tab at any size: a 36px header row (or the app bar) minus its rule */
-  --tab-block: 24px; /* the chosen block at page size */
-  --tab-block-header: 22px; /* the chosen block at header and compact size */
+  /* The one tab style, for every one-of-many choice (page, fader page, layer, knob page, pad bank,
+     One Touch): a plain --tab-rest label at rest, the chosen one on a --neutral block in --on-ink.
+     Same type, side padding and block everywhere; in a header the block stands on the rule, on a
+     plain line (One Touch) it is centred. */
+  --tab-height-header: calc(var(--bar-height) - var(--header-rule-width)); /* a header tab: a 36px header row (or the app bar) minus its rule */
+  --tab-pad-side: var(--space-10); /* a tab's side padding */
+  --tab-block: 24px; /* the chosen block's height */
   --group-header-height: 36px; /* a group header row, hairline included */
   /* The one text baseline of a 36px header row (the app bar, a group header), from the row's top.
      Every text in the row sits on it, and a chosen block's label sits on it too, so the label is
@@ -79,9 +80,9 @@
   /* The state language's lines: every clickable control's rest outline, and the waiting ring. */
   --outline-width: 1px; /* rest (off) and disabled */
   --outline-width-wait: 2px; /* waiting: queued or armed */
-  --block-height: 26px; /* the accent block on the style line */
-  --block-height-knob: 22px; /* the accent block in the knob header */
-  --chip-height: 26px; /* a waiting chip at count and line size */
+  --block-height: var(--control-height); /* the accent block on the style line: as tall as ◀ ▶ */
+  --block-height-knob: var(--tab-block); /* the accent block at header size */
+  --chip-height: var(--control-height); /* a waiting chip at count and line size: as tall as the line's controls */
   --chip-height-display: 44px; /* a waiting chip at display size: the section line's height */
   --chip-max: 200px; /* a line chip's maximum width, border included */
 

@@ -1,10 +1,11 @@
 <!--
-  FaderBank: the band's Faders section. A GroupHeader with the fader page and layer tabs; nine
-  strips, each a Fader over its name button with PartMarks; the "Part on/off" and "Functions"
-  caption row; and one 32px lamp row: the part lamps under faders 1–4 (their bar in the part's
-  hue), the Launchkey function lamps under 5–8 (a grey bar), and the Panel page button
-  under 9 (no bar). The layer tabs use the secondary (grey) chosen block. Holds no state: every change is a
-  callback with the strip's or lamp's id.
+  FaderBank: the band's Faders section. A GroupHeader with the title, the fader page tabs, a
+  separator, the "Layer" word and the layer tabs, every text 13px and every tab in the one header
+  tab style; nine strips, each a Fader over its name button with PartMarks (an off part's name in
+  its hue's absent face); the "Part on/off" and "Functions" caption row; and one 32px lamp row:
+  the part lamps under faders 1–4 (in the part's hue), the Launchkey function lamps under 5–8
+  (neutral), and the Panel page button under 9. Holds no state: every change is a callback with
+  the strip's or lamp's id.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -79,6 +80,9 @@
 
   const isPart = (strip: FaderStrip) => strip.kind === 'part' || strip.kind === 'off'
   const isLive = (strip: FaderStrip) => strip.kind !== 'off' && strip.kind !== 'parked'
+  /** An off strip's name colour: its hue's absent face (`t2` and `t` have none of their own: neutral). */
+  const absent = (hue: FaderStrip['hue']) =>
+    hue === 't' || hue === 't2' ? 'var(--absent-neutral)' : `var(--absent-${hue})`
 
   /** Applies the parent's tooltip action to a name button that has a key. */
   const tipped: Action<HTMLElement, string | undefined> = (node, key) => {
@@ -114,7 +118,7 @@
     <Separator />
     <span class="layer">
       <span class="layer-word">Layer</span>
-      <ChosenTabs size="header" tone="secondary" label="Fader layer" tabs={layerTabs} chosen={layer} {tipAction} onchoose={onchooseLayer} />
+      <ChosenTabs size="header" label="Fader layer" tabs={layerTabs} chosen={layer} {tipAction} onchoose={onchooseLayer} />
     </span>
   </GroupHeader>
 
@@ -145,7 +149,7 @@
             <button
               type="button"
               class="name"
-              style:--hue={isLive(strip) ? `var(--${strip.hue})` : 'var(--d)'}
+              style:--hue={isLive(strip) ? `var(--${strip.hue})` : absent(strip.hue)}
               aria-label={strip.openName ?? strip.tag}
               data-tip={strip.openTip}
               use:tipped={strip.openTip}
@@ -194,8 +198,8 @@
   .layer-word {
     margin-right: var(--space-4);
     color: var(--caption-ink);
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
   }
   .body {
     display: flex;
@@ -236,8 +240,8 @@
   }
   .tag {
     color: var(--hue);
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
   }
   .captions {
     height: var(--band-caption-height);
@@ -247,8 +251,8 @@
   .caption {
     box-sizing: border-box;
     color: var(--caption-ink);
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
   }
   .parts {
     grid-column: 1 / 5;

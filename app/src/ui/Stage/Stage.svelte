@@ -1,7 +1,9 @@
 <!--
-  Stage: the Stage page at 1440 × 900. A thin layout of components: the app bar, the section row,
-  the display, the hardware band (faders; knobs above pads; transport), the status line in the gap
-  above the keys, and the keys. Each region takes its data as one object; callbacks pass through.
+  Stage: the Stage page at 1440 × 900. A thin layout of components: the app bar, the section row
+  (the transport at its left, the helpers at its right), the display (with Tempo − / + and Style
+  tempo on its tempo line), the hardware band (faders; knobs above pads), the status line in the
+  gap above the keys, and the keys. Each region takes its data as one object; callbacks pass
+  through.
 -->
 <script lang="ts">
   import type { Component, ComponentProps } from 'svelte'
@@ -14,7 +16,7 @@
   import PadBank from '../PadBank/PadBank.svelte'
   import SectionRow from '../SectionRow/SectionRow.svelte'
   import StatusLine from '../StatusLine/StatusLine.svelte'
-  import TransportColumn from '../TransportColumn/TransportColumn.svelte'
+  import type TransportColumn from '../TransportColumn/TransportColumn.svelte'
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   type Any = Component<any>
@@ -34,18 +36,18 @@
   type Props = {
     /** The app bar: pages, Launchkey, audio health. */
     appBar: Data<typeof AppBar>
-    /** The section row: Accomp, the count, the helpers. */
+    /** The section row: the transport (running, Accomp, Sync Start, fading) and the helpers. */
     sectionRow: Data<typeof SectionRow>
-    /** The display: style line, now playing, sound row. */
+    /** The display: style line, now playing (with the tempo controls), sound row. */
     display: Data<typeof Display>
     /** The band's faders: strips, page and layer tabs, lamps. */
     faders: Data<typeof FaderBank>
-    /** The band's knobs and their page. */
+    /** The band's knobs and their page tabs. */
     knobs: Data<typeof KnobBank>
-    /** The band's pads and their bank. */
+    /** The band's pads and their bank tabs. */
     pads: Data<typeof PadBank>
-    /** The band's transport column. */
-    transport: Data<typeof TransportColumn>
+    /** Deprecated: the transport column left the Stage. Its `running` and `fading` still feed the section row when `sectionRow` doesn't set them. */
+    transport?: Data<typeof TransportColumn>
     /** The status line above the keys (empty when `text` is null). */
     status: Data<typeof StatusLine>
     /** The keys: range, split, held notes. */
@@ -54,11 +56,42 @@
     tipAction?: Action<HTMLElement, string>
     /** A knob was clicked (KnobBank `onpress`). */
     onknobpress?: ComponentProps<typeof KnobBank>['onpress']
+    /** A knob page tab was chosen (KnobBank `onpage`, with its index). */
+    onknobpage?: ComponentProps<typeof KnobBank>['onpage']
     /** A pad was pressed (PadBank `onpress`). */
     onpadpress?: ComponentProps<typeof PadBank>['onpress']
+    /** A pad bank tab was chosen (PadBank `onbank`, with its index). */
+    onpadbank?: ComponentProps<typeof PadBank>['onbank']
   } & On<typeof AppBar, 'onchoose' | 'onhealth'> &
-    On<typeof SectionRow, 'onaccomp' | 'onmetronome' | 'onmetronomesettings' | 'onunison' | 'onpanic' | 'onhelp'> &
-    On<typeof Display, 'onprev' | 'onnext' | 'onbrowse' | 'ononetouch' | 'onsends' | 'onrack' | 'onpart' | 'onsound'> &
+    On<
+      typeof SectionRow,
+      | 'onstartstop'
+      | 'onaccomp'
+      | 'onsyncstart'
+      | 'onreset'
+      | 'onfillup'
+      | 'onfilldown'
+      | 'onfade'
+      | 'onmetronome'
+      | 'onmetronomesettings'
+      | 'onunison'
+      | 'onpanic'
+      | 'onhelp'
+    > &
+    On<
+      typeof Display,
+      | 'onprev'
+      | 'onnext'
+      | 'onbrowse'
+      | 'ononetouch'
+      | 'onsends'
+      | 'onrack'
+      | 'onpart'
+      | 'onsound'
+      | 'ontempoup'
+      | 'ontempodown'
+      | 'onstyletempo'
+    > &
     On<
       typeof FaderBank,
       | 'onchoosePage'
@@ -72,22 +105,14 @@
     > &
     On<typeof KnobBank, 'onpageup' | 'onpagedown' | 'onstep'> &
     On<typeof PadBank, 'onbankup' | 'onbankdown'> &
-    On<
-      typeof TransportColumn,
-      | 'onstartstop'
-      | 'onstop'
-      | 'onstoplong'
-      | 'onreset'
-      | 'onfade'
-      | 'onfillup'
-      | 'onfilldown'
-      | 'ontempoup'
-      | 'ontempodown'
-      | 'onstyletempo'
-    > &
+    /** Deprecated: Stop and its hold left with the transport column; accepted, unused. */
+    On<typeof TransportColumn, 'onstop' | 'onstoplong'> &
     On<typeof StatusLine, 'onclear'>
 
   let p: Props = $props()
+
+  const running = $derived(p.sectionRow.running ?? p.transport?.running)
+  const fading = $derived(p.sectionRow.fading ?? p.transport?.fading)
 </script>
 
 <div class="screen">
@@ -95,8 +120,16 @@
   <div class="row">
     <SectionRow
       {...p.sectionRow}
+      {running}
+      {fading}
       tipAction={p.tipAction}
+      onstartstop={p.onstartstop}
       onaccomp={p.onaccomp}
+      onsyncstart={p.onsyncstart}
+      onreset={p.onreset}
+      onfillup={p.onfillup}
+      onfilldown={p.onfilldown}
+      onfade={p.onfade}
       onmetronome={p.onmetronome}
       onmetronomesettings={p.onmetronomesettings}
       onunison={p.onunison}
@@ -116,6 +149,9 @@
       onrack={p.onrack}
       onpart={p.onpart}
       onsound={p.onsound}
+      ontempoup={p.ontempoup}
+      ontempodown={p.ontempodown}
+      onstyletempo={p.onstyletempo}
     />
   </div>
   <div class="band">
@@ -132,38 +168,11 @@
       onpagebutton={p.onpagebutton}
     />
     <div class="middle">
-      <KnobBank
-        {...p.knobs}
-        tipAction={p.tipAction}
-        onpageup={p.onpageup}
-        onpagedown={p.onpagedown}
-        onpress={p.onknobpress}
-        onstep={p.onstep}
-      />
+      <KnobBank {...p.knobs} tipAction={p.tipAction} onpage={p.onknobpage} onpress={p.onknobpress} onstep={p.onstep} />
       <div class="pads">
-        <PadBank
-          {...p.pads}
-          tipAction={p.tipAction}
-          onbankup={p.onbankup}
-          onbankdown={p.onbankdown}
-          onpress={p.onpadpress}
-        />
+        <PadBank {...p.pads} tipAction={p.tipAction} onbank={p.onpadbank} onpress={p.onpadpress} />
       </div>
     </div>
-    <TransportColumn
-      {...p.transport}
-      tipAction={p.tipAction}
-      onstartstop={p.onstartstop}
-      onstop={p.onstop}
-      onstoplong={p.onstoplong}
-      onreset={p.onreset}
-      onfade={p.onfade}
-      onfillup={p.onfillup}
-      onfilldown={p.onfilldown}
-      ontempoup={p.ontempoup}
-      ontempodown={p.ontempodown}
-      onstyletempo={p.onstyletempo}
-    />
   </div>
   <StatusLine {...p.status} tipAction={p.tipAction} onclear={p.onclear} />
   <Keys {...p.keys} />

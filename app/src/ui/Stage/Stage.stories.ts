@@ -10,8 +10,33 @@ const on = (category: string, names: string[]) =>
 
 const CALLBACKS: Record<string, string[]> = {
   AppBar: ['onchoose', 'onhealth'],
-  SectionRow: ['onaccomp', 'onmetronome', 'onmetronomesettings', 'onunison', 'onpanic', 'onhelp'],
-  Display: ['onprev', 'onnext', 'onbrowse', 'ononetouch', 'onsends', 'onrack', 'onpart', 'onsound'],
+  SectionRow: [
+    'onstartstop',
+    'onaccomp',
+    'onsyncstart',
+    'onreset',
+    'onfillup',
+    'onfilldown',
+    'onfade',
+    'onmetronome',
+    'onmetronomesettings',
+    'onunison',
+    'onpanic',
+    'onhelp',
+  ],
+  Display: [
+    'onprev',
+    'onnext',
+    'onbrowse',
+    'ononetouch',
+    'onsends',
+    'onrack',
+    'onpart',
+    'onsound',
+    'ontempoup',
+    'ontempodown',
+    'onstyletempo',
+  ],
   FaderBank: [
     'onchoosePage',
     'onchooseLayer',
@@ -22,28 +47,19 @@ const CALLBACKS: Record<string, string[]> = {
     'onlamprelease',
     'onpagebutton',
   ],
-  KnobBank: ['onpageup', 'onpagedown', 'onknobpress', 'onstep'],
-  PadBank: ['onbankup', 'onbankdown', 'onpadpress'],
-  TransportColumn: [
-    'onstartstop',
-    'onstop',
-    'onstoplong',
-    'onreset',
-    'onfade',
-    'onfillup',
-    'onfilldown',
-    'ontempoup',
-    'ontempodown',
-    'onstyletempo',
-  ],
+  KnobBank: ['onknobpage', 'onknobpress', 'onstep'],
+  PadBank: ['onpadbank', 'onpadpress'],
   StatusLine: ['onclear'],
+  // Accepted so the wiring branch still type-checks; nothing on the Stage calls them now.
+  Unused: ['onstop', 'onstoplong', 'onpageup', 'onpagedown', 'onbankup', 'onbankdown'],
 }
 
 const actions = Object.fromEntries(Object.values(CALLBACKS).flatMap((names) => names.map((name) => [name, fn()])))
 
 /**
- * The Stage page at the app's 1440 × 900: the app bar, the section row, the display, the hardware
- * band (faders; knobs above pads; transport), the status line and the keys. Each region's data is
+ * The Stage page at the app's 1440 × 900: the app bar, the section row (transport at its left), the
+ * display (tempo controls on its tempo line), the hardware band (faders; knobs above pads), the
+ * status line and the keys. Each region's data is
  * one object control; every callback is an action, grouped under its component.
  */
 const meta = {
@@ -58,7 +74,6 @@ const meta = {
     faders: { control: 'object', table: { category: 'FaderBank' } },
     knobs: { control: 'object', table: { category: 'KnobBank' } },
     pads: { control: 'object', table: { category: 'PadBank' } },
-    transport: { control: 'object', table: { category: 'TransportColumn' } },
     status: { control: 'object', table: { category: 'StatusLine' } },
     keys: { control: 'object', table: { category: 'Keys' } },
     ...Object.assign({}, ...Object.entries(CALLBACKS).map(([category, names]) => on(category, names))),
@@ -83,16 +98,19 @@ export const Stopped: Story = {
  *
  * - Page tabs, fader page and layer tabs, and the Panel page button switch; on a layer other than
  *   Vol, strips 1–4 show that layer's values ("Rev 40", "Pan L24"), each layer keeping its own.
- * - Faders drag, knobs turn (the Tempo knob is the tempo), lamps toggle: Accomp, Metronome (and its
- *   ▾), Unison, ?, the part lamps (an Off part dims its strip and sound) and the function lamps.
+ * - The knob page tabs switch the eight knobs (each page keeps its own values); the pad bank tabs
+ *   switch the sixteen pads (Sections is the stateful one; the other banks' pads toggle).
+ * - Faders drag, knobs turn (the Tempo knob is the tempo), lamps toggle: Accomp, Sync Start (the
+ *   same switch as pad 4), Metronome (and its ▾), Unison, ?, the part lamps (an Off part dims its
+ *   strip and sound) and the function lamps.
  * - Pads, no timers: stopped, a Main or Break plays at once, an Intro or Ending arms. Running, a
  *   section pad is queued (NEXT); press it again and it lands; a landed Ending stops the band. Start
  *   plays the armed pad and queues the Main that was playing; Stop clears what was queued or armed.
- *   Sync Start, Auto Fill and Sync Stop toggle.
- * - Start / Stop (pad 16 or the transport) and Stop swap the display between the board and the
- *   stopped display; Fade toggles; Tempo + and − step the tempo, Style tempo goes back to 104.
- * - One Touch applies, ◀ ▶ step through a few styles, Panic writes a status line, a click clears it,
- *   and the knob page and pad bank ▲ ▼ step their counters.
+ *   Auto Fill and Sync Stop toggle.
+ * - Start / Stop (the section row's or pad 16) swaps the display between the board and the stopped
+ *   display; Fade toggles; Reset and Fill ▲ ▼ write a status line; Tempo − and + on the display step
+ *   the tempo, Style tempo goes back to 104.
+ * - One Touch applies, ◀ ▶ step through a few styles, Panic writes a status line, a click clears it.
  */
 export const Playground: Story = {
   render: (args) => ({ Component: StagePlayground, props: args }),

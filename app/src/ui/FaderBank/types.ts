@@ -40,7 +40,7 @@ export type BankLamp = {
   label: string
   /** Lit. */
   on: boolean
-  /** The lamp bar's colour token: the part hue for a part lamp, `m` (grey) for a function. */
+  /** The lamp's colour token: the part hue for a part lamp, `t` (neutral) for a function. `m` is a deprecated alias of `t`. */
   hue?: 't' | 'r1' | 'r2' | 'r3' | 'l' | 'ok' | 'm'
   /** The accessible name ("Right 1 on. Long press: swap mode …"). */
   name?: string

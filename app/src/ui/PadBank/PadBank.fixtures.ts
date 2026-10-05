@@ -37,5 +37,8 @@ export const sectionLegend: LegendItem[] = [
   { label: 'Fill', hue: 'fill' },
 ]
 
-/** The board's bank name and counter. */
+/** The pad banks, one header tab each. */
+export const padBanks = ['Sections', 'Quick Racks', 'Chord', 'Multi Pads', 'Setup']
+
+/** The board's bank name and its old counter (PadBank no longer draws the counter). */
 export const sectionBank = { name: 'Sections', count: '1/5' }

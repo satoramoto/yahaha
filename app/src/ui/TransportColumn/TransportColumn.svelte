@@ -1,5 +1,6 @@
 <!--
-  TransportColumn: the band's 88px right column. Transport: Start / Stop (the same control as pad
+  TransportColumn: no longer on the Stage (the transport moved to SectionRow, the top row); kept
+  in the library as the earlier band's 88px right column. Transport: Start / Stop (the same control as pad
   16, with its green running bar), Stop, Reset, Fade (full rows, as Round 2 draws them), and the
   Fills pair. Tempo: the + and − pair under the Tempo header (repeat while held) and Style tempo,
   so the column fits the band's 368px. Holds no state and no timers: the parent

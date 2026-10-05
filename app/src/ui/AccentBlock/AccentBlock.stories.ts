@@ -24,7 +24,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** The style name: the violet block, `--type-name` label, square corners; a click opens the Browser. */
+/** The style name: the violet block, `--type-strong` label, square corners; a click opens the Browser. */
 export const Board: Story = {
   args: {
     label: 'Sunday Drive Pop',

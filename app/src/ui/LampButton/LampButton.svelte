@@ -2,8 +2,9 @@
   LampButton: the canvas's on/off control (Accomp, Metronome, part On, Sound, Looper), in the state
   language. Off is no fill, a 1px outline and the label in its hue (off keeps its colour); on is a
   solid fill in the hue with the label and code in --on-ink; waiting (armed) is a 2px ring over a
-  faint fill of the hue; record draws on and waiting in record red; disabled is the --absent
-  outline and label. Fully controlled: the face and aria-pressed follow `on` alone, and a click
+  faint fill of the hue; record draws on and waiting in record red; disabled is a 1px outline and
+  the label in the lamp's own hue at reduced strength (its --absent-<hue>), no fill. No lamp is
+  grey: the deprecated `m` draws exactly as the neutral `t`. Fully controlled: the face and aria-pressed follow `on` alone, and a click
   only asks for `!on` through ontoggle. Long press (and right-click) comes from the shared
   longpress action and never toggles.
 -->
@@ -16,7 +17,7 @@
     label: string
     /** Lit (solid fill in its hue) or off. Controlled: a click asks for `!on` through `ontoggle` and changes nothing itself. */
     on?: boolean
-    /** The hue of every face: `t` neutral (Accomp, Metronome), a part (`r1` `r2` `r3` `l`), `ok` green (Start / Stop), `m` grey (a function lamp). */
+    /** The hue of every face: `t` neutral (Accomp, Metronome, the function lamps), a part (`r1` `r2` `r3` `l`), `ok` green (Start / Stop); disabled draws the same hue at reduced strength. `m` is a deprecated alias of `t` and draws exactly as it: no lamp is grey. */
     hue?: 't' | 'r1' | 'r2' | 'r3' | 'l' | 'ok' | 'm'
     /** Small code after the label, e.g. `ACMP`. */
     code?: string
@@ -67,6 +68,8 @@
 
   /** The face as drawn: on (or record) > waiting > off. */
   let face = $derived(on ? (rec ? 'record' : 'on') : waiting ? 'waiting' : 'off')
+  /** The hue drawn: record red when `rec` and not off; the deprecated grey `m` is the neutral `t`. */
+  let drawn = $derived(rec && face !== 'off' ? 'rec' : hue === 'm' ? 't' : hue)
 
   /** Applies the parent's tooltip action when both it and a key are given. */
   const tipped: Action<HTMLElement, string | undefined> = (node, key) => {
@@ -95,7 +98,7 @@
   class:disabled
   style:width={width === undefined ? undefined : `${width}px`}
   data-face={disabled ? 'disabled' : face}
-  data-hue={rec && face !== 'off' ? 'rec' : hue}
+  data-hue={drawn}
   data-contrast={disabled ? 'dim' : undefined}
   data-tip={tip}
   aria-pressed={on}
@@ -109,9 +112,11 @@
 </button>
 
 <style>
-  /* Each hue sets --hue: the rest outline and label, the on fill, the waiting ring and fill. */
+  /* Each hue sets --hue (the rest outline and label, the on fill, the waiting ring and fill) and
+     --hue-absent (the disabled outline and label: the same hue at reduced strength). */
   .lamp {
     --hue: var(--neutral);
+    --hue-absent: var(--absent-neutral);
     position: relative;
     isolation: isolate;
     display: inline-flex;
@@ -127,32 +132,35 @@
     background: transparent;
     box-shadow: inset 0 0 0 var(--outline-width) var(--hue);
     color: var(--hue);
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     cursor: pointer;
   }
-  .lamp[data-hue='m'] {
-    --hue: var(--m);
-  }
   .lamp[data-hue='r1'] {
     --hue: var(--r1);
+    --hue-absent: var(--absent-r1);
   }
   .lamp[data-hue='r2'] {
     --hue: var(--r2);
+    --hue-absent: var(--absent-r2);
   }
   .lamp[data-hue='r3'] {
     --hue: var(--r3);
+    --hue-absent: var(--absent-r3);
   }
   .lamp[data-hue='l'] {
     --hue: var(--l);
+    --hue-absent: var(--absent-l);
   }
   .lamp[data-hue='ok'] {
     --hue: var(--ok);
+    --hue-absent: var(--absent-ok);
   }
   .lamp[data-hue='rec'] {
     --hue: var(--rec);
+    --hue-absent: var(--absent-rec);
   }
   .sm {
     height: var(--control-height-compact);
@@ -207,11 +215,11 @@
     opacity: var(--wait-fill-opacity);
   }
 
-  /* Disabled: the --absent outline and label, no fill, whatever the face. */
+  /* Disabled: a 1px outline and the label in the hue at reduced strength, no fill, whatever the face. */
   .lamp.disabled {
     background: transparent;
-    box-shadow: inset 0 0 0 var(--outline-width) var(--absent);
-    color: var(--absent);
+    box-shadow: inset 0 0 0 var(--outline-width) var(--hue-absent);
+    color: var(--hue-absent);
     cursor: default;
   }
   .lamp.disabled::before {

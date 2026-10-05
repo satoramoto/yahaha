@@ -12,5 +12,8 @@ export const styleKnobs: KnobItem[] = [
   { label: 'Tempo', code: 'Tempo', value: '104', fraction: 0.27 },
 ]
 
-/** The board's knob page block and counter. */
+/** The knob pages, one header tab each. */
+export const knobPages = ['Style', 'Rack', 'Pan', 'Reverb', 'Chorus', 'Delay']
+
+/** The board's knob page name and its old counter (KnobBank no longer draws the counter). */
 export const styleKnobPage = { label: 'Style', count: '1/6' }

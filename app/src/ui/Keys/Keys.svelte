@@ -78,8 +78,8 @@
     border-right: var(--line-width) solid var(--keyline);
     background: var(--key-white);
     color: var(--key-label);
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-family: var(--font-mono);
     line-height: var(--keys-label-line);
   }

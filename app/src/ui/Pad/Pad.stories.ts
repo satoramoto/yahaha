@@ -3,10 +3,11 @@ import { expect, fn, within } from 'storybook/test'
 import Pad from './Pad.svelte'
 
 /**
- * One band pad in the state language: caption bottom left and index top right in its hue, inside a
- * 1px outline of it. Faces: idle (the outline), dark (absent), playing and running (solid fill,
- * `--on-ink` words), next and armed (2px ring, faint fill, NEXT or ARMED). `lit` is the flash phase
- * of next and armed.
+ * One band pad in the state language: the label centred in the pad in its hue, inside a 1px outline
+ * of it; no pad number on the face (`index` only feeds the default accessible name). Faces: idle
+ * (the outline), dark (absent: the pad's own hue at reduced strength, no fill), playing and running
+ * (solid fill, `--on-ink` label), next and armed (2px ring, faint fill, the label in `--t`, a small
+ * NEXT or ARMED tag at the top). `lit` is the flash phase of next and armed.
  */
 const meta = {
   title: 'Primitives/Pad',
@@ -36,23 +37,41 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** Main B on the board, playing: a solid fill of the Main hue, the words in `--on-ink`. */
-export const Board: Story = { args: { name: 'Main B, playing' } }
+/** Main B on the board, playing: a solid fill of the Main hue, the label centred in `--on-ink`. */
+export const Board: Story = {
+  args: { name: 'Main B, playing' },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByText('Main B')).toBeInTheDocument()
+    await expect(canvas.queryByText('10')).toBeNull()
+  },
+}
 
 /** An idle section pad: Intro I in its hue, inside a 1px outline of it, on no fill. */
 export const Idle: Story = { args: { label: 'Intro I', index: '1', family: 'intro', state: 'idle' } }
 
-/** A pad the style lacks: Intro III, outline and words in `--absent`. */
+/**
+ * A pad the style lacks: Intro III, a 1px outline and the label in the Intro hue at reduced
+ * strength (`--absent-intro`), no fill: a faded yellow pad, fainter than `Idle`, never grey.
+ */
 export const Dark: Story = {
   args: { label: 'Intro III', index: '3', family: 'intro', state: 'dark', name: 'Intro III (not in this style)' },
   play: async ({ canvasElement }) => {
     const pad = within(canvasElement).getByRole('button', { name: 'Intro III (not in this style)' })
-    await expect(pad).toHaveAttribute('data-hue', 'absent')
+    await expect(pad).toHaveAttribute('data-hue', 'absent-intro')
     await expect(pad).toHaveAttribute('data-contrast', 'dim')
   },
 }
 
-/** Queued: Main C, a 2px ring and a faint fill of the hue, NEXT in place of the index. */
+/** An absent utility pad: the neutral hue at reduced strength (`--absent-neutral`). */
+export const DarkUtility: Story = {
+  args: { label: 'Auto Fill', index: '12', family: 'util', state: 'dark', name: 'Auto Fill (unavailable)' },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button')).toHaveAttribute('data-hue', 'absent-neutral')
+  },
+}
+
+/** Queued: Main C, a 2px ring and a faint fill of the hue, a small NEXT tag at the top; the label stays centred. */
 export const Next: Story = {
   args: { label: 'Main C', index: '11', state: 'next', name: 'Main C, queued after bar 4 (flashing)' },
   play: async ({ canvasElement }) => {
@@ -75,7 +94,7 @@ export const Armed: Story = {
   args: { label: 'Ending I', index: '5', family: 'ending', state: 'armed', name: 'Ending I, armed (pulsing)' },
 }
 
-/** A utility pad: Sync Start, neutral outline and words. */
+/** A utility pad: Sync Start, neutral outline and label. */
 export const Utility: Story = {
   args: { label: 'Sync Start', index: '4', family: 'util', state: 'idle' },
   play: async ({ canvasElement }) => {
@@ -83,7 +102,7 @@ export const Utility: Story = {
   },
 }
 
-/** A lit utility pad: Auto Fill on, a solid neutral fill with `--on-ink` words. */
+/** A lit utility pad: Auto Fill on, a solid neutral fill with the label in `--on-ink`. */
 export const UtilityOn: Story = { args: { label: 'Auto Fill', index: '12', family: 'util', state: 'playing' } }
 
 /** Start / Stop running: a solid `--ok` fill. */

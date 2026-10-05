@@ -6,7 +6,8 @@ import LampButton from './LampButton.svelte'
  * The on/off control the whole canvas uses: Accomp, Metronome, part On, Sound, Looper, in the
  * state language. Off is a 1px outline and label in its `hue`, no fill; lit is a solid fill in the
  * hue with the label in `--on-ink`; armed is a 2px ring over a faint fill of the hue; disabled is
- * the `--absent` outline and label. Controlled: a click asks for `!on` through `ontoggle`.
+ * a 1px outline and the label in the lamp's own hue at reduced strength, no fill. No lamp is grey:
+ * the deprecated `m` hue draws exactly as the neutral `t`. Controlled: a click asks for `!on` through `ontoggle`.
  * A long press (or right-click) calls `onlongpress` / `onlongrelease` and never toggles.
  */
 const meta = {
@@ -24,7 +25,7 @@ const meta = {
     rec: { control: 'boolean' },
     waiting: { control: 'boolean' },
     size: { control: 'select', options: ['md', 'sm', 'cell'] },
-    hue: { control: 'select', options: ['t', 'r1', 'r2', 'r3', 'l', 'ok', 'm'] },
+    hue: { control: 'select', options: ['t', 'r1', 'r2', 'r3', 'l', 'ok'] },
     join: { control: 'select', options: ['none', 'start', 'end'], mapping: { none: undefined } },
     width: { control: 'number' },
   },
@@ -77,7 +78,7 @@ export const Toggles: Story = {
   },
 }
 
-/** Shown, not pressable: the `--absent` outline and label, 64 × 28 (a settings row's On/Off). */
+/** Shown, not pressable: the neutral hue at reduced strength (`--absent-neutral`) for the outline and label, 64 × 28 (a settings row's On/Off). */
 export const Disabled: Story = {
   args: { label: 'Off', size: 'sm', width: 64, disabled: true, name: 'Manual Bass, works with Upper on' },
   play: async ({ canvasElement, args }) => {
@@ -126,15 +127,30 @@ export const LeftOn: Story = {
   parameters: { layout: 'padded' },
 }
 
-/** A function lamp, off: the `--m` outline and label (Harm/Arp, L Hold, Looper). */
+/**
+ * A part lamp, absent: disabled draws Right 1's own blue at reduced strength (`--absent-r1`) for
+ * the outline and label, no fill, clearly fainter than `PartOff`, never grey.
+ */
+export const PartDisabled: Story = {
+  args: { label: 'On', size: 'cell', hue: 'r1', disabled: true, name: 'Right 1 on (no sound loaded)' },
+  parameters: { layout: 'padded' },
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getByRole('button', { name: 'Right 1 on (no sound loaded)' })
+    await expect(button).toHaveAttribute('data-face', 'disabled')
+    await expect(button).toHaveAttribute('data-hue', 'r1')
+    await expect(button).toHaveAttribute('data-contrast', 'dim')
+  },
+}
+
+/** A function lamp, off: the neutral outline and label (Harm/Arp, L Hold, Looper). */
 export const FunctionOff: Story = {
-  args: { label: 'Harm/Arp', size: 'cell', hue: 'm' },
+  args: { label: 'Harm/Arp', size: 'cell' },
   parameters: { layout: 'padded' },
 }
 
-/** A function lamp, latched: the solid `--m` fill (Sound). */
+/** A function lamp, latched: the solid neutral fill, the label in `--on-ink` (Sound). */
 export const FunctionOn: Story = {
-  args: { label: 'Sound', size: 'cell', hue: 'm', on: true },
+  args: { label: 'Sound', size: 'cell', on: true },
   parameters: { layout: 'padded' },
 }
 
@@ -149,9 +165,9 @@ export const Recording: Story = {
   parameters: { layout: 'padded' },
 }
 
-/** Loop armed: a 2px `--m` ring over a faint `--m` fill, the label in `--m`. */
+/** Loop armed: a 2px neutral ring over a faint neutral fill, the label in `--neutral`. */
 export const ArmedLoop: Story = {
-  args: { label: 'Looper', size: 'cell', waiting: true, hue: 'm', name: 'Looper, loop armed' },
+  args: { label: 'Looper', size: 'cell', waiting: true, name: 'Looper, loop armed' },
   parameters: { layout: 'padded' },
 }
 

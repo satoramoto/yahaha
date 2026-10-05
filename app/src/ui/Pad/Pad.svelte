@@ -1,12 +1,15 @@
 <!--
-  Pad: one band pad (`--pad-size` square), in the state language. The caption at the bottom left
-  and the pad's index top right in mono, both in the pad's hue, on a transparent face inside a 1px
-  inset outline of that hue. Faces: idle (the outline), dark (the style lacks it: the outline and
-  words in `--absent`), playing and running (a solid fill of the hue, the words in `--on-ink`),
-  next and armed (waiting: a 2px ring and a faint fill of the hue, "NEXT" or "ARMED" in place of the
-  index). Next and armed flash: the parent passes the phase in `lit`; unlit drops the fill and
-  falls back to the 1px outline. Utility pads are neutral (`--neutral`, solid when on); Start / Stop
-  goes solid `--ok` when running. Outlines are inset box-shadows, so the size never changes.
+  Pad: one band pad (`--pad-size` square), in the state language. The label is centred in the pad,
+  horizontally and vertically (it wraps at word boundaries, each line centred), in the pad's hue,
+  on a transparent face inside a 1px inset outline of that hue. No pad number on the face. Faces:
+  idle (the outline), dark (the style lacks it: a 1px outline and the label in the pad's own hue at
+  reduced strength, `--absent-<family>`, no fill: an absent Intro reads as a faded yellow pad),
+  playing and running (a solid fill of the hue, the label in `--on-ink`), next and armed (waiting: a
+  2px ring and a faint fill of the hue, the label in `--t`, and a small "NEXT" or "ARMED" tag at the
+  top, placed absolutely so the label stays centred). Next and armed flash: the parent passes the
+  phase in `lit`; unlit drops the fill and falls back to the 1px outline. Utility pads are neutral
+  (`--neutral`, solid when on); Start / Stop goes solid `--ok` when running. Outlines are inset
+  box-shadows, so the size never changes.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -14,13 +17,13 @@
   type Family = 'intro' | 'main' | 'ending' | 'brk' | 'fill' | 'util' | 'start'
 
   type Props = {
-    /** The caption ("Main B", "Sync Start"). Tie a numeral to its word with a no-break space. */
+    /** The label, centred in the pad ("Main B", "Sync Start"); it wraps at word boundaries. Tie a numeral to its word with a no-break space. */
     label: string
-    /** The pad's number on the Launchkey, top right ("1" … "16"). Replaced by NEXT or ARMED. */
+    /** The pad's number on the Launchkey ("1" … "16"). Not drawn; it only goes into the default accessible name. */
     index?: string
     /** The family: a section hue, `util` (neutral) or `start` (Start / Stop, `--ok` when running). */
     family?: Family
-    /** The face. */
+    /** The face. `dark` (absent) draws the family's hue at reduced strength. */
     state?: 'idle' | 'dark' | 'playing' | 'next' | 'armed' | 'running'
     /** The flash phase of `next` and `armed`: false drops the fill and draws the 1px outline. */
     lit?: boolean
@@ -47,14 +50,13 @@
   }: Props = $props()
 
   let util = $derived(family === 'util' || family === 'start')
-  /** The hue token: `--absent` for a dark pad, else the family's, `--neutral` for utilities and
-      `--ok` for a running Start / Stop. */
-  let hue = $derived(
-    state === 'dark' ? 'absent' : family === 'start' && state === 'running' ? 'ok' : util ? 'neutral' : family,
-  )
+  /** The hue token: the family's (`neutral` for utilities, `ok` for a running Start / Stop); a dark
+      pad takes the same hue's absent token (`absent-intro`, `absent-neutral`). */
+  let base = $derived(family === 'start' && state === 'running' ? 'ok' : util ? 'neutral' : family)
+  let hue = $derived(state === 'dark' ? `absent-${base}` : base)
   /** The glow token's hue: the neutral glow is the white one. */
-  let glow = $derived(hue === 'neutral' ? 't' : hue)
-  let corner = $derived(state === 'next' ? 'NEXT' : state === 'armed' ? 'ARMED' : index)
+  let glow = $derived(base === 'neutral' ? 't' : base)
+  let tag = $derived(state === 'next' ? 'NEXT' : state === 'armed' ? 'ARMED' : '')
   let solid = $derived(state === 'playing' || state === 'running')
   let waiting = $derived(state === 'next' || state === 'armed')
 
@@ -87,7 +89,7 @@
   onclick={() => onpress?.()}
   use:tipped={tip}
 >
-  <span class="index" aria-hidden="true">{corner}</span>
+  {#if tag}<span class="tag" aria-hidden="true">{tag}</span>{/if}
   <span class="label">{label}</span>
 </button>
 
@@ -95,37 +97,40 @@
   .pad {
     position: relative;
     display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    align-items: flex-start;
+    align-items: center;
+    justify-content: center;
     box-sizing: border-box;
     width: var(--pad-size);
     min-width: 0;
     height: var(--pad-size);
     margin: 0;
-    padding: 0 var(--space-4) var(--space-12);
+    padding: 0 var(--space-4);
     border: none;
     border-radius: var(--radius);
     background: transparent;
     box-shadow: inset 0 0 0 var(--outline-width) var(--hue);
     color: var(--hue);
-    font-family: var(--font-sans);
-    text-align: left;
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
+    text-align: center;
     cursor: pointer;
   }
+  /* The label: centred lines, wrapping only at word boundaries. */
   .label {
     position: relative;
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    min-width: 0;
+    overflow-wrap: normal;
+    word-break: normal;
   }
-  .index {
+  /* NEXT / ARMED: small, at the top, out of the flow so the label stays centred. */
+  .tag {
     position: absolute;
-    top: var(--pad-index-top);
-    right: var(--pad-index-right);
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
+    top: var(--space-4);
+    right: 0;
+    left: 0;
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
+    text-align: center;
   }
 
   .solid {
@@ -136,7 +141,8 @@
     color: var(--on-ink);
   }
 
-  /* Waiting: the 2px ring over a faint fill of the hue, drawn beneath the words. */
+  /* Waiting: the 2px ring over a faint fill of the hue, drawn beneath the words; the label in --t
+     so it reads on the faint fill in both themes, the tag in the hue. */
   .waiting {
     box-shadow: inset 0 0 0 var(--outline-width-wait) var(--hue);
   }

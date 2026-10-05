@@ -4,7 +4,8 @@ import BarBeat from './BarBeat.svelte'
 const HUES = ['intro', 'main', 'ending', 'brk', 'fill']
 
 /**
- * The display's count under the playing section: "Bar 3/4", the beat dots, and one line per bar
+ * The display's count under the playing section: "Bar 3/4" ("Bar" in text on the baseline of the
+ * large "3/4", the "/4" muted), the beat dots, and one line per bar
  * with the current bar filling in the section hue. 490 wide, now playing's section column.
  */
 const meta = {

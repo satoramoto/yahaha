@@ -35,6 +35,13 @@ export const nowPlayingBoard = {
   running: true,
 } satisfies ComponentProps<typeof NowPlaying>
 
+/** The board with Ending III next and a fill text too long for the line. */
+export const nowPlayingLongFill = {
+  ...nowPlayingBoard,
+  next: 'Ending III',
+  fill: 'fill lands after bar 4, then Ending III',
+} satisfies ComponentProps<typeof NowPlaying>
+
 /** Stopped on Main A with the last chord (Cmaj7) held, nothing next. */
 export const nowPlayingStopped = {
   chord: {

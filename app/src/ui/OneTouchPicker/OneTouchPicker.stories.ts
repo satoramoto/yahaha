@@ -3,9 +3,10 @@ import { expect, fn, within } from 'storybook/test'
 import OneTouchPicker from './OneTouchPicker.svelte'
 
 /**
- * One Touch on the style line: "One Touch OTS" as a caption, then 1-4 as a run of choices like
- * tabs (no outlines): unchosen numbers in `--tab-rest`, the applied one on a 24 × 24 `--neutral`
- * block in `--on-ink`, centred on the line.
+ * One Touch on the style line: "One Touch OTS" as a caption in `--caption-ink`, the same 13px
+ * `--type-text` as the numbers, then 1-4 in the one tab style (ChosenTabs' tokens, no outlines):
+ * unchosen numbers in `--tab-rest`, the applied one on a `--neutral` block `--tab-block` tall in
+ * `--on-ink`, centred on the 32px line.
  */
 const meta = {
   title: 'Primitives/OneTouchPicker',
@@ -34,5 +35,5 @@ export const Board: Story = {
   },
 }
 
-/** None applied: every number in `--tab-rest`, no block. */
+/** None applied: every number a plain `--tab-rest` label, no block. */
 export const NoneApplied: Story = { args: { applied: 0 } }

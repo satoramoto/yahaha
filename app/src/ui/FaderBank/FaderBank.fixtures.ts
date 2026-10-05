@@ -165,16 +165,16 @@ export const partLamps: BankLamp[] = [
 
 /** The Launchkey function lamps under faders 5–8 on the board (Round 2): Sound latched, the rest off. */
 export const functionLamps: BankLamp[] = [
-  { id: 'harmArp', label: 'Harm/Arp', on: false, hue: 'm', tip: 'harmony.switch', name: 'Harmony/Arpeggio on/off' },
+  { id: 'harmArp', label: 'Harm/Arp', on: false, hue: 't', tip: 'harmony.switch', name: 'Harmony/Arpeggio on/off' },
   {
     id: 'sound',
     label: 'Sound',
     on: true,
-    hue: 'm',
+    hue: 't',
     long: true,
     tip: 'launchkey.sound',
     name: 'Sound: hold and the pads become Quick Racks. A click latches it until the next pad tap; click again or press fader button 6 to close',
   },
-  { id: 'leftHold', label: 'L Hold', on: false, hue: 'm', tip: 'detection.left_hold', name: 'Left Hold on/off' },
-  { id: 'looper', label: 'Looper', on: false, hue: 'm', long: true, tip: 'looper.rec', name: 'Chord Looper on/off. Long press: Loop rec' },
+  { id: 'leftHold', label: 'L Hold', on: false, hue: 't', tip: 'detection.left_hold', name: 'Left Hold on/off' },
+  { id: 'looper', label: 'Looper', on: false, hue: 't', long: true, tip: 'looper.rec', name: 'Chord Looper on/off. Long press: Loop rec' },
 ]

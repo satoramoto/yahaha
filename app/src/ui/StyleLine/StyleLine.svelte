@@ -1,8 +1,9 @@
 <!--
   StyleLine: the display's top line. The style is "the device": ◀ its name in the accent block ▶
   (the name opens the Browser), its category and time signature, a style waiting for the bar
-  line, then One Touch 1-4 (faceless light numbers, the applied one in the accent) and the band's
-  sends.
+  line, then One Touch 1-4 (the applied one chosen) and the band's sends. One line, one size and
+  one height: every text on it is the 13px text size, and ◀, the name block, ▶ and the One Touch
+  row are all the 32px control height, centred on the line.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -98,6 +99,8 @@
      --style-name-max it ends in the block's ellipsis. */
   .name {
     display: flex;
+    align-items: center;
+    height: var(--control-height);
     flex: none;
     max-width: var(--style-name-max);
   }
@@ -113,17 +116,20 @@
   }
   .meta {
     margin-left: var(--space-4);
-    font: var(--type-body);
-    letter-spacing: var(--tracking-body);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
     color: var(--m);
   }
   .ots {
     display: flex;
+    align-items: center;
+    height: var(--control-height);
     margin-left: auto;
   }
   .sends {
     display: flex;
+    align-items: center;
     margin-left: var(--space-16);
   }
 </style>

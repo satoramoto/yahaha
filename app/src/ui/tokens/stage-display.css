@@ -34,8 +34,9 @@
   /* Style line */
   --send-height: 24px;
   --style-name-max: 240px; /* the style's accent block; a longer name ends in an ellipsis */
-  --ots-number-width: 24px; /* one One Touch number: the 24px smallest target */
-  --ots-block: 24px; /* the applied number's chosen block: 24 × 24, centred on the line */
+
+  /* Section row: Start / Stop leads the transport group, wider than its neighbours */
+  --start-stop-width: 120px;
 
   /* The bar row: "Bar 3/4", the beat dots and the bar segments */
   --bar-row-height: 24px;

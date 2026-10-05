@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
 import TempoReadout from './TempoReadout.svelte'
 
-/** The display's tempo: 32px light number, the unit muted beside it. */
+/** The display's tempo: the number a large hero value, the unit in text on its baseline. */
 const meta = {
   title: 'Primitives/TempoReadout',
   component: TempoReadout,

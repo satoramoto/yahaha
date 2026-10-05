@@ -1,6 +1,6 @@
 <!--
-  RackCell: the rack readout at the head of the display's sound row: "Rack · A1" small and muted
-  over the rack's name, with its marks (the modified dot) after the name, passed in as `mark`.
+  RackCell: the rack readout at the head of the display's sound row: "Rack · A1" in the caption
+  colour over the rack's name in `--t`, both `--type-text`, with its marks (the modified dot) after the name, passed in as `mark`.
   One flat button with no face; a click opens the Rack page.
 -->
 <script lang="ts">
@@ -69,8 +69,8 @@
     cursor: pointer;
   }
   .head {
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
     color: var(--caption-ink);
   }
@@ -83,8 +83,8 @@
     gap: var(--space-6);
     max-width: 100%;
     overflow: hidden;
-    font: var(--type-body);
-    letter-spacing: var(--tracking-body);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     line-height: var(--label-height);
     color: var(--t);
   }

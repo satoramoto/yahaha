@@ -1,7 +1,8 @@
 <!--
   SendReadout: the band's effect sends on the style line, "Band Reverb 40 Chorus 12 Delay 0":
-  a muted lead word, each send's name in secondary text and its 0-127 level in light accent
-  numbers. One flat button with no face; a click opens Effects.
+  a muted lead word, each send's name in secondary text and its 0-127 level in accent numbers,
+  all one size (the words `text`, the levels `strong`). One flat button with no face; a click
+  opens Effects.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -61,8 +62,8 @@
     border: 0;
     background: none;
     color: var(--m);
-    font: var(--type-body);
-    letter-spacing: var(--tracking-body);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     cursor: pointer;
@@ -71,8 +72,8 @@
     color: var(--t2);
   }
   .level {
-    font: var(--type-readout);
-    letter-spacing: var(--tracking-readout);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
     font-variant-numeric: tabular-nums;
     color: var(--a);
   }

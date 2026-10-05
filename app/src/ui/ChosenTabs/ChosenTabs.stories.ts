@@ -7,9 +7,11 @@ import { displayPageTabs, faderPageTabs, fullPageTabs, layerTabs } from './Chose
 const ALL_IDS = [...new Set([displayPageTabs, fullPageTabs, faderPageTabs, layerTabs].flat().map((tab) => tab.id))]
 
 /**
- * A short run of choices side by side, the chosen one on a solid block (`--neutral`, or
- * `--chosen-2` for a second-level choice), the rest in `--tab-rest` with no outline: the app's
- * pages, the fader page and the fader layer. The parent owns `chosen`; a click only calls `onchoose`.
+ * The one tab style for every one-of-many choice in a header: a short run of `--type-text` labels,
+ * the chosen one on a solid `--neutral` block (`--tab-block` tall) in `--on-ink`, the rest in
+ * `--tab-rest` with no outline: the app's pages, the fader page and layer, the knob page, the pad
+ * bank. Every `size` draws the same; it sets only the kind (page navigation or a tablist). The
+ * parent owns `chosen`; a click only calls `onchoose`.
  */
 const meta = {
   title: 'Primitives/ChosenTabs',
@@ -20,7 +22,6 @@ const meta = {
     tabs: { control: 'object' },
     chosen: { control: 'select', options: [null, ...ALL_IDS] },
     size: { control: 'inline-radio', options: ['page', 'header', 'compact'] },
-    tone: { control: 'inline-radio', options: ['primary', 'secondary'] },
     label: { control: 'text' },
   },
 } satisfies Meta<typeof ChosenTabs>
@@ -29,7 +30,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 /**
- * The app bar's first run: Stage on the 24px block, Channel … Harm/Arp in `--tab-rest`. Page tabs are
+ * The app bar's first run: Stage on the `--neutral` block, Channel … Harm/Arp in `--tab-rest`. Page tabs are
  * buttons with `aria-current`; a click calls through and leaves `chosen` to the parent.
  */
 export const Board: Story = {
@@ -65,17 +66,14 @@ export const Board: Story = {
   },
 }
 
-/** The band header's fader page: Panel on the 22px `--neutral` block. */
+/** The band header's fader page: Panel on the same `--neutral` block as every other run. */
 export const FaderPage: Story = {
   args: { tabs: faderPageTabs, chosen: faderPageTabs[0].id, label: 'Fader page (master button)' },
 }
 
-/**
- * The band header's fader layer: a tablist of five, Vol chosen on the `--chosen-2` second-level
- * block (`tone: 'secondary'`).
- */
+/** The band header's fader layer: a tablist of five, Vol chosen on the same `--neutral` block. */
 export const Layers: Story = {
-  args: { tabs: layerTabs, chosen: 'volume', label: 'Fader layer', tone: 'secondary' },
+  args: { tabs: layerTabs, chosen: 'volume', label: 'Fader layer' },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const tabs = canvas.getAllByRole('tab')
@@ -87,6 +85,7 @@ export const Layers: Story = {
       'Delay send',
     ])
     await expect(canvas.getByRole('tab', { name: 'Volume' })).toHaveAttribute('aria-selected', 'true')
+    await expect(canvas.getByRole('tablist')).not.toHaveAttribute('data-tone')
   },
 }
 

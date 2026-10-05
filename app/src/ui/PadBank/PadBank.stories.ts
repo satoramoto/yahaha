@@ -1,11 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
-import { expect, fn, within } from 'storybook/test'
+import { expect, fn, userEvent, within } from 'storybook/test'
 import PadBank from './PadBank.svelte'
-import { sectionBank, sectionLegend, sectionPads } from './PadBank.fixtures'
+import { padBanks, sectionLegend, sectionPads } from './PadBank.fixtures'
 
 /**
- * The band's Pads section: the bank's name, legend and counter, the bank ▲ ▼ buttons, and
- * sixteen Pads, each outlined in its family hue. `lit` is the flash phase of queued and armed pads.
+ * The band's Pads section: the pad bank tabs after the title, the bank's hue legend at the header's
+ * right end, and sixteen Pads across the whole column, each outlined in its family hue. `lit` is the
+ * flash phase of queued and armed pads; a tab choice is a callback with the bank's index.
  */
 const meta = {
   title: 'Components/PadBank',
@@ -13,19 +14,18 @@ const meta = {
   parameters: { layout: 'centered' },
   args: {
     pads: sectionPads,
-    bankName: sectionBank.name,
-    count: sectionBank.count,
+    banks: padBanks,
+    bank: 0,
     legend: sectionLegend,
     lit: true,
     tipAction: fn(),
-    onbankup: fn(),
-    onbankdown: fn(),
+    onbank: fn(),
     onpress: fn(),
   },
   argTypes: {
     pads: { control: 'object' },
-    bankName: { control: 'text' },
-    count: { control: 'text' },
+    banks: { control: 'object' },
+    bank: { control: { type: 'number', min: 0, max: padBanks.length - 1, step: 1 } },
     legend: { control: 'object' },
     lit: { control: 'boolean' },
   },
@@ -34,13 +34,16 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** The board: the Sections bank, Main B playing, Main C next, Start / Stop running. */
+/** The board: the Sections bank, Main B playing, Main C next, Start / Stop running. A tab click asks for that bank. */
 export const Board: Story = {
-  play: async ({ canvasElement }) => {
+  play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByRole('heading', { name: 'Pads' })).toBeInTheDocument()
     await expect(canvasElement.querySelectorAll('[data-face]').length).toBeGreaterThanOrEqual(16)
     await expect(canvas.getByText('NEXT')).toBeInTheDocument()
+    await expect(canvas.getByRole('tab', { name: 'Sections' })).toHaveAttribute('aria-selected', 'true')
+    await userEvent.click(canvas.getByRole('tab', { name: 'Chord' }))
+    await expect(args.onbank).toHaveBeenCalledWith(2)
   },
 }
 

@@ -31,9 +31,9 @@
     display: flex;
     flex: none;
     align-items: center;
-    gap: var(--space-12);
-    font: var(--type-small);
-    letter-spacing: var(--tracking-small);
+    gap: var(--space-8);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     white-space: nowrap;
   }
   .item {

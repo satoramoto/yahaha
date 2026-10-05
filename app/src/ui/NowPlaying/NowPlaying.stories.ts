@@ -1,18 +1,26 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
+import { fn } from 'storybook/test'
 import NowPlaying from './NowPlaying.svelte'
-import { nowPlayingBoard, nowPlayingFill, nowPlayingStopped } from './NowPlaying.fixtures'
+import { nowPlayingBoard, nowPlayingFill, nowPlayingLongFill, nowPlayingStopped } from './NowPlaying.fixtures'
 
 const HUES = ['intro', 'main', 'ending', 'brk', 'fill']
 
 /**
- * The display's middle, in glance order: the chord, the playing section (44px) with the next one
- * and when the fill lands, the bar and beat, then the tempo and the Running light. 814 × 162.
+ * The display's middle, in glance order: the chord, the playing and next section (display size)
+ * with when the fill lands, the bar and beat, then the tempo with Tempo − + and Style tempo, and
+ * the Running light. 814 × 162.
  */
 const meta = {
   title: 'Components/NowPlaying',
   component: NowPlaying,
   parameters: { layout: 'centered' },
-  args: { ...nowPlayingBoard },
+  args: {
+    ...nowPlayingBoard,
+    tipAction: fn(),
+    ontempoup: fn(),
+    ontempodown: fn(),
+    onstyletempo: fn(),
+  },
   argTypes: {
     chord: { control: 'object', table: { category: 'ChordReadout' } },
     playing: { control: 'text', table: { category: 'SectionName' } },
@@ -40,3 +48,6 @@ export const Stopped: Story = { args: { ...nowPlayingStopped } }
 
 /** A one-bar fill in 3/4 on its last beat, Ending II next. */
 export const FillToEnding: Story = { args: { ...nowPlayingFill } }
+
+/** A long fill text: it ellipsizes first, the playing and next section keep their width. */
+export const LongFill: Story = { args: { ...nowPlayingLongFill } }
