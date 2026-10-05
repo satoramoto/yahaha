@@ -351,6 +351,13 @@ const catalog = {
     keys: [],
     launchkey: null,
   },
+  'display.band_sends': {
+    title: 'Band sends',
+    body: 'How much of the band (the eight Style parts) goes to the reverb, the chorus and the delay. A dash means the engine hasn\'t sent it yet. Click to open Effects, where each effect has its band send.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
 
   // ── Style ───────────────────────────────────────────────────────────────
   'style.prev': {
@@ -1775,6 +1782,13 @@ const catalog = {
     keys: [],
     launchkey: null,
   },
+  'metronome.settings': {
+    title: 'Metronome settings',
+    body: 'Opens the metronome\'s settings: on/off, the click\'s volume and the bell on beat 1.',
+    genos: 'Menu › Metronome',
+    keys: [],
+    launchkey: null,
+  },
 
   // ── Style Dynamics (#180) ───────────────────────────────────────────────
   'dynamics.control': {
@@ -2204,6 +2218,13 @@ const catalog = {
   'audio.dropouts': {
     title: 'Audio dropouts',
     body: 'The audio device missed buffers several times in a short while: clicks or gaps in the sound, from a heavy plugin, a busy computer or a buffer too small for either. Opens Settings › Audio, where a larger buffer size gives each block more time, at a little more latency.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'app.health': {
+    title: 'Audio health',
+    body: 'How the audio is doing: "Audio" when all is well, "Audio off" when the built-in synth isn\'t running. A keyboard part whose plugin failed ("R3 failed") opens its Channel when clicked. Dropouts in the last 30 seconds ("2 dropouts", with "buffer 256?" when the buffer is under 1024) or the synth\'s CPU at 70% or more ("CPU 74%") open the audio settings, where a larger buffer gives each block more time.',
     genos: null,
     keys: [],
     launchkey: null,
@@ -2873,6 +2894,13 @@ const catalog = {
     genos: 'Mixer (Effect)',
     keys: [],
     app_keys: ['alt+e'],
+    launchkey: null,
+  },
+  'nav.channel': {
+    title: 'Channel',
+    body: 'Shows the Channel page: one part\'s sound, mix and inserts. Press again to go back to Stage.',
+    genos: null,
+    keys: [],
     launchkey: null,
   },
   'nav.mixer': {
