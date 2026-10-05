@@ -41,6 +41,16 @@ const PAIRS: [string, string, string, string?][] = [
     [hue, '--btn', 'hue text on a button face (Stage C6)'],
   ]),
   ...FILLS.map((hue): [string, string, string] => ['--solid-ink', hue, 'solid ink on a hue fill (Stage C6)']),
+  // The state language: labels in a control's hue at rest (on the ground), and --on-ink on every
+  // solid fill (on, chosen, playing).
+  ...[...FILLS, '--neutral', '--m', '--rec', '--a'].flatMap((hue): [string, string, string][] => [
+    [hue, '--g', 'rest label in its hue (state language)'],
+    ['--on-ink', hue, 'label on a solid fill (state language)'],
+  ]),
+  ['--tab-rest', '--g', 'unchosen tab, One Touch number'],
+  ['--chosen-2-ink', '--chosen-2', 'second-level chosen tab (ChosenTabs)'],
+  ['--caption-ink', '--g', 'captions and codes'],
+  ['--header-ink', '--g', 'section header title (GroupHeader)'],
 ]
 
 function declarations(css: string): Map<string, string> {

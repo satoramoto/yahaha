@@ -35,7 +35,7 @@
   --send-height: 24px;
   --style-name-max: 240px; /* the style's accent block; a longer name ends in an ellipsis */
   --ots-number-width: 24px; /* one One Touch number: the 24px smallest target */
-  --ots-bar-inset: 6px; /* the applied number's bar, in from each side */
+  --ots-block: 24px; /* the applied number's chosen block: 24 × 24, centred on the line */
 
   /* The bar row: "Bar 3/4", the beat dots and the bar segments */
   --bar-row-height: 24px;
@@ -48,28 +48,18 @@
   --now-height: 162px;
   --now-chord-width: 300px;
   --now-section-width: 490px;
-  --text-128: 128px; /* the chord */
-  --leading-104: 104px;
-  --tracking-128: -6px;
-  /* Longer chord names step down so they and "held" fit the 300px column. */
-  --text-chord-4: 96px; /* four characters (F♯m7, Dsus) */
-  --tracking-chord-4: -4px;
-  --text-chord-5: 80px; /* five (Cmaj7, Gsus4) */
-  --tracking-chord-5: -3px;
-  --text-chord-6: 64px; /* six or seven (F♯m7♭5, Cmaj7♯11) */
-  --tracking-chord-6: -2px;
-  --text-chord-8: 52px; /* eight or more (Csus4add9) */
-  --tracking-chord-8: -1px;
-  --tracking-44: -1.5px;
-  --tracking-32: -0.5px;
-  --leading-14: 14px;
-  --leading-16: 16px;
-  --leading-18: 18px;
-  --leading-24: 24px;
-  --leading-40: 40px;
-  --leading-44: 44px;
-  --tracking-28: -0.8px;
-  --label-height: 16px; /* the "Chord" and "Section" labels */
+  /* The hero family: the chord is --type-hero (scale.css); longer chord names step down so they
+     and "held" fit the 300px column. Each step sets the size and tracking over --type-hero. */
+  --hero-height: 104px; /* the chord's row: --type-hero's line height */
+  --hero-4: 96px; /* four characters (F♯m7, Dsus) */
+  --tracking-hero-4: -4px;
+  --hero-5: 80px; /* five (Cmaj7, Gsus4) */
+  --tracking-hero-5: -3px;
+  --hero-6: 64px; /* six or seven (F♯m7♭5, Cmaj7♯11) */
+  --tracking-hero-6: -2px;
+  --hero-8: 52px; /* eight or more (Csus4add9) */
+  --tracking-hero-8: -1px;
+  --label-height: 16px; /* the "Chord" and "Section" labels' row */
   --note-width: 24px; /* one note of the chord's note row */
   --note-row-height: 32px;
   --bar-row-gap: 10px; /* from the section line down to the bar row */

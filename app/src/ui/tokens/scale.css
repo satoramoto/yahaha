@@ -10,25 +10,36 @@
   /* Type: DM Sans for words and numbers, JetBrains Mono for key and pad digits */
   --font-sans: 'DM Sans', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  --text-9: 9px; /* ▲ ▼ after a label (Fill ▲) */
-  --text-10: 10px; /* the ▾ caret */
-  --text-11: 11px;
-  --text-12: 12px; /* small codes, captions */
-  --text-13: 13px; /* compact buttons */
-  --text-14: 14px; /* body, buttons */
-  --text-18: 18px; /* count row, app name */
-  --text-20: 20px;
-  --text-22: 22px;
-  --text-28: 28px; /* the next section, after Round 2 */
-  --text-32: 32px; /* tempo */
-  --text-36: 36px; /* next section */
-  --text-44: 44px; /* playing section */
-  --weight-thin: 200;
-  --weight-light: 300; /* numbers */
+  /* Three weights: light for readouts, regular for words, medium for titles and names. */
+  --weight-light: 300;
   --weight-regular: 400;
-  --weight-medium: 500; /* a lit lamp's label, names */
-  --tracking-36: -1px; /* letter-spacing of 36px light text */
-  --tracking-28: -0.8px; /* letter-spacing of 28px light text (the next section) */
+  --weight-medium: 500;
+
+  /* The type scale: eight text roles in six sizes (12, 14, 18, 32, 44 and the chord's 128) and
+     three weights. Each role is a `font` shorthand (weight, size / line height, family) with its
+     tracking beside it. A component sets both, `font: var(--type-small)` and
+     `letter-spacing: var(--tracking-small)`, and nothing else about its type (a mono digit adds
+     `font-family: var(--font-mono)`; digits that line up add `font-variant-numeric: tabular-nums`
+     after the shorthand, which resets it). No raw sizes, weights or tracking in components. */
+  --type-small: var(--weight-regular) 12px / 16px var(--font-sans); /* control labels (buttons, lamps, tabs, pads), captions, codes, units, legends, digits */
+  --tracking-small: 0;
+  --type-body: var(--weight-regular) 14px / 20px var(--font-sans); /* display words, sound names, the status line */
+  --tracking-body: 0;
+  --type-title: var(--weight-medium) 14px / 20px var(--font-sans); /* a section header's title, part tags */
+  --tracking-title: 0;
+  --type-name: var(--weight-medium) 18px / 24px var(--font-sans); /* the app name and the style name */
+  --tracking-name: -0.2px;
+  --type-readout: var(--weight-light) 18px / 24px var(--font-sans); /* values: knobs, faders, sends, One Touch, chord notes, the bar's "/4" */
+  --tracking-readout: 0;
+  --type-readout-lg: var(--weight-light) 32px / 40px var(--font-sans); /* tempo, the bar number, the next section */
+  --tracking-readout-lg: -0.5px;
+  --type-display: var(--weight-light) 44px / 44px var(--font-sans); /* the playing section */
+  --tracking-display: -1.5px;
+  --type-hero: var(--weight-light) 128px / 104px var(--font-sans); /* the chord; its step-down sizes are in stage-display.css */
+  --tracking-hero: -6px;
+  /* Glyphs, not text: ▲ ▼ ▾ beside or as a label, and ◀ ▶ alone. */
+  --glyph-sm: 10px;
+  --glyph-md: 12px;
 
   /* Spacing */
   --space-2: 2px;
@@ -51,10 +62,12 @@
   --button-band-width: 88px; /* a band button */
   --button-pair-width: 41px; /* each button of a pair */
   --caret-width: 20px; /* a caret button */
-  --bar-bottom: 5px; /* the running bar's distance from the bottom */
-  --bar-lift: 3px; /* the bottom padding that keeps the bar's room in a band button */
   --bar-height: 36px; /* the app bar, and a page tab */
-  --tab-height-header: 35px; /* a tab at any size: a 36px header row (or the app bar) minus its line */
+  /* A section header (GroupHeader, the app bar): a bright title over a bold full-width rule, then
+     a fixed gap before what it heads. */
+  --header-rule-width: 2px;
+  --header-gap: 12px; /* from the rule down to the section's controls */
+  --tab-height-header: calc(var(--bar-height) - var(--header-rule-width)); /* a tab at any size: a 36px header row (or the app bar) minus its rule */
   --tab-block: 24px; /* the chosen block at page size */
   --tab-block-header: 22px; /* the chosen block at header and compact size */
   --group-header-height: 36px; /* a group header row, hairline included */
@@ -63,12 +76,9 @@
      centred in its block (cap height centred in the 24px page block, mixed case in the 22px
      header block) and the block stands on the line. */
   --header-baseline: 28px;
-  /* A lamp: the 2px bar under the label (Round 2) */
-  --lamp-bar-height: 2px;
-  --lamp-bar-inset: 12px; /* the bar's left and right inset in a md or sm lamp */
-  --lamp-bar-inset-cell: 10px; /* in a cell lamp (the band's lamp row) */
-  --lamp-dash: 4px; /* a waiting lamp's dashed bar: dash, then gap */
-  --lamp-dash-gap: 3px;
+  /* The state language's lines: every clickable control's rest outline, and the waiting ring. */
+  --outline-width: 1px; /* rest (off) and disabled */
+  --outline-width-wait: 2px; /* waiting: queued or armed */
   --block-height: 26px; /* the accent block on the style line */
   --block-height-knob: 22px; /* the accent block in the knob header */
   --chip-height: 26px; /* a waiting chip at count and line size */
