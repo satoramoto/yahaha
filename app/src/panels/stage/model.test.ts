@@ -20,9 +20,50 @@ import {
   sectionName,
   sectionRow,
   splitChord,
+  status,
+  statusHint,
+  HELP_IDLE,
   valueText,
   whenText,
 } from './model'
+import { TIPS } from '../../help/tooltips'
+
+describe('statusHint (tooltips in the status line)', () => {
+  const err = (seq: number) => ({ seq, text: 'refused', error: true })
+
+  it('is the shown control\'s entry: title, body, labelled keys and the first Launchkey place', () => {
+    const t = TIPS['transport.sync_start']
+    const h = statusHint({ key: 'transport.sync_start', help: false, message: null, since: 0 })!
+    expect(h.title).toBe(t.title)
+    expect(h.body).toBe(t.body)
+    expect(h.keys).toBe('Y')
+    const places = t.launchkey!.split('; ')
+    expect(h.launchkey).toBe(places[0] + (places.length > 1 ? ` (+${places.length - 1} more)` : ''))
+    expect(statusHint({ key: 'app.theme', help: false, message: null, since: 0 })!.launchkey).toBeNull()
+  })
+
+  it('nothing hovered: no hint, or how help mode works in help mode', () => {
+    expect(statusHint({ key: null, help: false, message: null, since: 0 })).toBeNull()
+    expect(statusHint({ key: null, help: true, message: null, since: 0 })).toBe(HELP_IDLE)
+  })
+
+  it('an error newer than the hover wins; an older one or a notice stays under the hint', () => {
+    expect(statusHint({ key: 'transport.acmp', help: false, message: err(5), since: 4 })).toBeNull()
+    expect(statusHint({ key: 'transport.acmp', help: false, message: err(5), since: 5 })).not.toBeNull()
+    expect(statusHint({ key: 'transport.acmp', help: false, message: { seq: 9, text: 'ok', error: false }, since: 0 })).not.toBeNull()
+  })
+
+  it('the status line\'s own button shows no hint, so it never covers the message it explains', () => {
+    expect(statusHint({ key: 'display.status', help: false, message: err(1), since: 1 })).toBeNull()
+  })
+
+  it('status() carries the hint with the message', () => {
+    const s = new MockSession({ manual: true }).state
+    s.message = err(3)
+    expect(status(s, HELP_IDLE)).toEqual({ hint: HELP_IDLE, text: 'refused', error: true, seq: 3 })
+    expect(status(s).hint).toBeNull()
+  })
+})
 
 const NBSP = ' '
 const EMPTY_LIBRARY: LibraryList = { revision: 0, entries: [], voices: [], harmonyTypes: [], arpPatterns: [] }

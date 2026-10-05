@@ -1,139 +1,101 @@
 // `use:tip={'catalog.key'}` on every interactive element. It marks the element with
 // `data-tip` (the coverage test looks for it) and, on hover or keyboard focus, shows the
-// catalog entry in the help footer at the bottom of the window. Nothing floats over the
-// instrument unless the player opts in (`tips.floating`, the footer's "Pop-up" switch).
+// catalog entry in the status line above the keys (panels/stage/hint.svelte.ts turns
+// `tips.shown` into the line's hint). Nothing floats over the instrument.
 
-import { isTipKey, type TipKey } from '../../help/tooltips'
+import { keyLabel, isTipKey, type Tip, type TipKey } from '../../help/tooltips'
 
-/** How long the footer keeps the last entry after the pointer leaves a control, so moving
- * across the gap to the next one doesn't flash the idle hint. */
+/** How long the entry stays after the pointer leaves a control, so moving across the gap
+ * to the next one doesn't flash the status message back. */
 export const CLEAR_MS = 350
-/** Opt-in pop-up tips only: how long the pointer rests before the first one shows. After
- * that, moving to the next control shows its tip at once (for `WARM_MS`). */
-export const DELAY_MS = 280
-const WARM_MS = 600
-const FLOATING_KEY = 'yahaha.floatingTips'
-
-function storedFloating(): boolean {
-  try {
-    return localStorage.getItem(FLOATING_KEY) === '1'
-  } catch {
-    return false
-  }
-}
 
 class TipState {
-  /** The entry the footer shows (and the pop-up, if on): the control hovered or focused. */
+  /** The entry the status line shows: the control hovered or focused. */
   key = $state<TipKey | null>(null)
-  /** Where that control is: only the opt-in pop-up uses it. */
-  rect = $state<DOMRect | null>(null)
-  /** Help mode: the footer grows to the full entry, and the last one stays pinned. */
+  /** Help mode: the last entry stays pinned after the pointer leaves. */
   help = $state(false)
   pinned = $state<TipKey | null>(null)
-  /** The control with keyboard focus: the footer's screen-reader description
-   * (`aria-describedby`) follows it, whatever the pointer is over. */
+  /** The control with keyboard focus: the screen-reader description (`aria-describedby`)
+   * follows it, whatever the pointer is over. */
   focused = $state<TipKey | null>(null)
-  /** Opt-in: also show the entry in a pop-up next to the control (remembered). */
-  floating = $state(storedFloating())
 
-  private showTimer: ReturnType<typeof setTimeout> | null = null
   private clearTimer: ReturnType<typeof setTimeout> | null = null
-  private warmUntil = 0
   private owner: HTMLElement | null = null
-  private pending: HTMLElement | null = null
 
-  /** What the footer shows: the control under the pointer or focus, else (help mode) the
-   * last one. */
+  /** What the status line shows: the control under the pointer or focus, else (help mode)
+   * the last one. */
   get shown(): TipKey | null {
     return this.key ?? (this.help ? this.pinned : null)
   }
 
-  show(el: HTMLElement, key: TipKey, now: boolean) {
+  /** Show `key` for `el` at once. (`_now` is left from the pop-up tips, which waited.) */
+  show(el: HTMLElement, key: TipKey, _now?: boolean) {
     this.cancel()
-    const go = () => {
-      this.owner = el
-      this.key = key
-      this.rect = this.floating ? el.getBoundingClientRect() : null
-      if (this.help) this.pinned = key
-    }
-    // The footer covers nothing, so it follows at once. Only the pop-up waits, so it
-    // doesn't flash over the controls you sweep past.
-    const wait = this.floating && !now && !this.help && performance.now() >= this.warmUntil
-    if (wait) {
-      this.pending = el
-      this.showTimer = setTimeout(go, DELAY_MS)
-    } else go()
+    this.owner = el
+    this.key = key
+    if (this.help) this.pinned = key
   }
 
   /** The pointer left `el` (or it lost focus): clear after `CLEAR_MS`, unless another
    * control takes over first. Without `el`: clear now (Esc). */
   hide(el?: HTMLElement) {
-    if (el && el === this.pending && this.showTimer) {
-      // Left before its pop-up delay ran out: just don't show it.
-      clearTimeout(this.showTimer)
-      this.showTimer = this.pending = null
-      return
-    }
     if (el && this.owner !== el) return
     this.cancel()
-    if (!el || this.floating) {
+    if (!el) {
       this.clear()
       return
     }
     this.clearTimer = setTimeout(() => this.clear(), CLEAR_MS)
   }
 
-  /** Follow a control that moved or changed size (a fader cap while dragging). */
-  refresh() {
-    if (this.owner && this.floating) this.rect = this.owner.getBoundingClientRect()
-  }
+  /** A control moved or changed size (a fader cap while dragging). Only the pop-up tips
+   * followed it; the status line doesn't move, so this does nothing now. */
+  refresh() {}
 
   toggleHelp() {
     this.help = !this.help
     if (!this.help) this.pinned = null
   }
 
-  setFloating(on: boolean) {
-    this.floating = on
-    try {
-      if (on) localStorage.setItem(FLOATING_KEY, '1')
-      else localStorage.removeItem(FLOATING_KEY)
-    } catch {
-      /* private window: not remembered */
-    }
-  }
-
-  /** Tests only: forget every hovered, focused, pinned and pending control, so state left
-   * by an earlier test file (vitest runs with `isolate: false`) can't leak in. */
+  /** Tests only: forget every hovered, focused and pinned control, so state left by an
+   * earlier test file (vitest runs with `isolate: false`) can't leak in. */
   reset() {
     this.clear()
-    this.warmUntil = 0
     this.help = false
     this.pinned = null
     this.focused = null
-    this.setFloating(false)
   }
 
   private clear() {
     this.cancel()
-    if (this.key) this.warmUntil = performance.now() + WARM_MS
     this.key = null
     this.owner = null
-    this.rect = null
   }
 
   private cancel() {
-    if (this.showTimer) clearTimeout(this.showTimer)
     if (this.clearTimer) clearTimeout(this.clearTimer)
-    this.showTimer = this.clearTimer = null
-    this.pending = null
+    this.clearTimer = null
   }
 }
 
 export const tips = new TipState()
 
-/** The footer's plain-text description of the focused control (`aria-describedby`). */
+/** The id of the hidden plain-text description of the focused control (`aria-describedby`),
+ * rendered once by App.svelte. */
 export const TOOLTIP_ID = 'yahaha-help-entry'
+
+/** A catalog entry as plain sentences, for screen readers. */
+export function plainTip(t: Tip): string {
+  const k = t.app_keys ?? t.keys
+  return [
+    t.body,
+    t.genos && t.genos !== t.title ? `Genos: ${t.genos}.` : '',
+    k.length ? `Key: ${k.map(keyLabel).join(' or ')}.` : '',
+    t.launchkey ? `Launchkey: ${t.launchkey}.` : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
 
 export function tip(node: HTMLElement, key: TipKey) {
   let k = key
@@ -143,7 +105,7 @@ export function tip(node: HTMLElement, key: TipKey) {
   }
   set()
   const enter = (e: PointerEvent) => {
-    if (e.pointerType !== 'touch') tips.show(node, k, false)
+    if (e.pointerType !== 'touch') tips.show(node, k)
   }
   const leave = () => tips.hide(node)
   const focus = () => {
@@ -155,7 +117,7 @@ export function tip(node: HTMLElement, key: TipKey) {
       /* engines without :focus-visible: treat focus as keyboard focus */
     }
     if (visible) {
-      tips.show(node, k, true)
+      tips.show(node, k)
       tips.focused = k
       node.setAttribute('aria-describedby', TOOLTIP_ID)
     }

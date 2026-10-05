@@ -2,7 +2,8 @@
   StageScreen: the app's wiring of the library's Stage (app/src/ui/Stage). It reads the
   stores (app.state, app.library, the clocks, ui, tips), turns them into the Stage's region
   props (model.ts), and turns the Stage's callbacks into commands and links (actions.ts).
-  The page tabs other than Stage show ComingSoon.
+  The page tabs other than Stage show ComingSoon, except Settings, which opens today's Settings
+  drawer. The status line shows the hovered or focused control's tooltip (hint.svelte.ts).
 
   Scaling (Stage.md D1): the Stage is laid out at 1440 × 900; this box fills what the shell
   gives it and scales the artboard uniformly to fit, centred, on the kit's ground. The kit's
@@ -21,6 +22,7 @@
   import Stage from '../../ui/Stage/Stage.svelte'
   import { stageActions, type OpenTarget } from './actions'
   import ComingSoon from './ComingSoon.svelte'
+  import { useStatusHint } from './hint.svelte'
   import { appBar, beatOf, display, faders, holdPeak, keys, knobs, pads, sectionRow, status, stripMeters, type HoldState } from './model'
   import { stagePage } from './page.svelte'
 
@@ -71,6 +73,13 @@
   // ── Links (Stage.md D32): pages not built yet show "Coming soon"; the rest open today's drawers.
   function open(target: OpenTarget) {
     if (typeof target === 'object' && 'page' in target) {
+      // Settings isn't a page of its own yet: its tab opens today's Settings drawer, the
+      // same one Alt+T opens, over the Stage. Any other tab puts the drawer away.
+      if (target.page === 'settings') {
+        if (!ui.settings) ui.toggleDrawer('settings')
+        return
+      }
+      ui.settings = false
       stagePage.page = target.page
       return
     }
@@ -104,7 +113,9 @@
 
   // ── The regions, each derived from only what it reads (the clocks tick every frame).
   const s = $derived(app.state)
-  const appBarData = $derived(appBar({ state: s, meters, page: stagePage.page, dropouts: dropouts.recent(nowMs) }))
+  // While the Settings drawer is open, its tab is the current one.
+  const page = $derived(ui.settings ? 'settings' : stagePage.page)
+  const appBarData = $derived(appBar({ state: s, meters, page, dropouts: dropouts.recent(nowMs) }))
   const sectionRowData = $derived(sectionRow({ state: s, help: tips.help }))
   const displayBase = $derived(display({ state: s, library: app.library, pos: 0 }))
   const displayData = $derived({ ...displayBase, nowPlaying: { ...displayBase.nowPlaying, ...beatOf(s, clock.pos) } })
@@ -113,7 +124,9 @@
   const padBase = $derived(pads({ state: s, beats: 0 }))
   const lit = $derived(clock.beats - Math.floor(clock.beats) < 0.5)
   const padData = $derived({ ...padBase, lit })
-  const statusData = $derived(status(s))
+  // The hovered or focused control's tooltip takes the status line's place (hint.svelte.ts).
+  const hint = useStatusHint()
+  const statusData = $derived(status(s, hint.current))
   const keyData = $derived(keys(s, rangeFor(ui.keyRange, s.io.inputs)))
 
   // ── Scale to fit

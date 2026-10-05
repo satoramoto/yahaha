@@ -2,8 +2,8 @@
 //
 // Renders the whole app on the mock session in every state that shows different
 // controls (each overlay, each pad page, each fader page, help mode) and checks every
-// focusable or clickable element (the help footer's own switch included) for a `data-tip`
-// key that exists in the catalog: that entry is what the help footer shows on hover.
+// focusable or clickable element for a `data-tip` key that exists in the catalog: that entry
+// is what the status line above the keys shows on hover.
 // A new panel is covered automatically once it's in App.svelte; if it shows controls only
 // in some state, add that state to STATES below.
 
@@ -81,8 +81,9 @@ const STATES: [string, Setup][] = [
   ['pad page 5 (Setup)', (s) => s.send({ type: 'setPadPage', page: 'setup' })],
   ['fader page Style', (s) => s.send({ type: 'toggleFaderPage' })],
   ['Upper + Manual Bass', (s) => s.send({ type: 'toggleUpper' })],
-  ['help mode (expanded help footer)', () => (tips.help = true)],
-  ['pop-up tips on', () => tips.setFloating(true)],
+  ['help mode', () => (tips.help = true)],
+  ['Settings tab (the Settings drawer)', () => click('nav.settings')],
+  ['a message on the status line', (s) => s.send({ type: 'auditionStyle', id: 1 })],
   ['style browser open', () => (ui.browser = true)],
   ['style browser open, stopped (preview buttons)', (s) => (s.send({ type: 'stop' }), (ui.browser = true))],
   ['style browser, previewing', (s) => (s.send({ type: 'stop' }), s.send({ type: 'auditionStyle', id: 1 }), (ui.browser = true))],
@@ -258,7 +259,6 @@ afterEach(() => {
   soundNav.styleScope = false
   ui.shiftLatched = false
   tips.help = false
-  tips.setFloating(false)
   stagePage.page = 'stage'
 })
 
@@ -277,7 +277,7 @@ describe('tooltip coverage', () => {
   }
 
   // Every page tab that isn't built yet: "Coming soon" under the app bar, whose controls (the
-  // page tabs, the health slot) and the help footer's are all there is.
+  // page tabs, the health slot) are all there is.
   for (const page of PAGES.filter((p) => p !== 'stage')) {
     it(`every interactive element has a catalog tooltip: page tab ${page}, Coming soon`, () => {
       const session = new MockSession({ demo: true, manual: true })

@@ -776,6 +776,5 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
 | **Audio health** | How the audio is doing: "Audio" when all is well, "Audio off" when the built-in synth isn't running. A keyboard part whose plugin failed ("R3 failed") opens its Channel when clicked. Dropouts in the last 30 seconds ("2 dropouts", with "buffer 256?" when the buffer is under 1024) or the synth's CPU at 70% or more ("CPU 74%") open the audio settings, where a larger buffer gives each block more time. | — | — | — |
-| **Help mode** | Grows the help footer to show the whole entry, and keeps the last control you hovered or tabbed to there while you try it. Controls keep working. | — | `?` | — |
-| **Pop-up tips** | Also shows each entry in a pop-up next to the control, as well as in the help footer. Off by default, because a pop-up covers the controls while you play. | — | — | — |
+| **Help mode** | Keeps the last control you hovered or tabbed to in the status line above the keys while you try it, instead of the line going back to its message. Controls keep working. | — | `?` | — |
 | **Light / dark** | Switches between the dark stage theme and a light one. | — | — | — |

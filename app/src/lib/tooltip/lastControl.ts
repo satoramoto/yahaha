@@ -1,4 +1,5 @@
-// The Launchkey control pressed last, in words, for the help footer: "PAD 6 (page 2)" and
+// The Launchkey control pressed last, in words (the old help footer showed it; nothing shows
+// it now, kept for the Launchkey page): "PAD 6 (page 2)" and
 // what it does now ("KBD TR +"). The engine sends the raw message (`io.lastControl`,
 // packed 0x00SSDDVV); what each pad, button and fader does comes from the same state the
 // mirror draws (`pads`, `surface`), so nothing here knows the mapping itself.

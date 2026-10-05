@@ -17,6 +17,8 @@ import { firstFailedPart } from '../../ui/HealthSlot/health'
 import type { KnobItem } from '../../ui/KnobBank/types'
 import type { LegendItem, PadItem } from '../../ui/PadBank/types'
 import type Stage from '../../ui/Stage/Stage.svelte'
+import type { StatusHint } from '../../ui/StatusLine/StatusLine.svelte'
+import { TIPS, keyLabel, type TipKey } from '../../help/tooltips'
 
 type StageProps = ComponentProps<typeof Stage>
 
@@ -716,9 +718,45 @@ export function pads(input: Pick<StageInput, 'state' | 'beats'>): StageProps['pa
 
 // ── Status line, keys ─────────────────────────────────────────────────────────────────────
 
-export function status(state: AppState): StageProps['status'] {
+export function status(state: AppState, hint: StatusHint | null = null): StageProps['status'] {
   const m = state.message
-  return { text: m?.text ?? null, error: m?.error ?? false, seq: m?.seq ?? 0 }
+  return { hint, text: m?.text ?? null, error: m?.error ?? false, seq: m?.seq ?? 0 }
+}
+
+/** What the status line shows in help mode while no control is hovered or focused. */
+export const HELP_IDLE: StatusHint = {
+  title: 'Help mode',
+  body: 'Hover over or tab to any control: its entry stays here while you try it. Press ? again to leave help mode.',
+  keys: '?',
+}
+
+/**
+ * The tooltip the status line shows in its message's place (the old help footer's job):
+ * the hovered or focused control's catalog entry (`tips.shown`), or in help mode with
+ * nothing shown, how help mode works. `since` is the message `seq` when that control took
+ * over: an error that arrives after it wins until the pointer moves to another control
+ * (Decision: errors aren't hidden behind a hover). The status line's own button shows no
+ * hint, since the hint would cover the message it explains.
+ */
+export function statusHint(input: {
+  key: TipKey | null
+  help: boolean
+  message: AppState['message']
+  since: number
+}): StatusHint | null {
+  const { key, help, message, since } = input
+  if (key === 'display.status') return null
+  if (message?.error && message.seq > since) return null
+  if (!key) return help ? HELP_IDLE : null
+  const t = TIPS[key]
+  const keys = (t.app_keys ?? t.keys).map(keyLabel)
+  const places = t.launchkey ? t.launchkey.split('; ') : []
+  return {
+    title: t.title,
+    body: t.body,
+    keys: keys.length ? keys.join(' / ') : null,
+    launchkey: places.length ? places[0] + (places.length > 1 ? ` (+${places.length - 1} more)` : '') : null,
+  }
 }
 
 const RIGHT_HUES = ['r1', 'r2', 'r3'] as const

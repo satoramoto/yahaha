@@ -3845,16 +3845,9 @@ const catalog = {
   // ── App ─────────────────────────────────────────────────────────────────
   'app.help': {
     title: 'Help mode',
-    body: 'Grows the help footer to show the whole entry, and keeps the last control you hovered or tabbed to there while you try it. Controls keep working.',
+    body: 'Keeps the last control you hovered or tabbed to in the status line above the keys while you try it, instead of the line going back to its message. Controls keep working.',
     genos: null,
     keys: ['?'],
-    launchkey: null,
-  },
-  'app.floating_tips': {
-    title: 'Pop-up tips',
-    body: 'Also shows each entry in a pop-up next to the control, as well as in the help footer. Off by default, because a pop-up covers the controls while you play.',
-    genos: null,
-    keys: [],
     launchkey: null,
   },
   'app.theme': {
