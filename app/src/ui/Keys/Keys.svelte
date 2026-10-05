@@ -63,8 +63,6 @@
     flex: none;
     box-sizing: border-box;
     height: var(--keys-height);
-    border: var(--line-width) solid var(--line);
-    border-radius: var(--radius);
     overflow: hidden;
     background: var(--g);
   }

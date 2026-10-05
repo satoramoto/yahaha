@@ -220,7 +220,6 @@
     bottom: var(--bar-bottom);
     left: var(--inset);
     height: var(--lamp-bar-height);
-    border-radius: calc(var(--lamp-bar-height) / 2);
     background: var(--dim);
   }
 

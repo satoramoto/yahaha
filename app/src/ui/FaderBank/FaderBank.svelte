@@ -2,7 +2,7 @@
   FaderBank: the band's Faders section. A GroupHeader with the fader page and layer tabs; nine
   strips, each a Fader over its name button with PartMarks; the "Part on/off" and "Functions"
   caption row; and one 32px lamp row: the part lamps under faders 1–4 (their bar in the part's
-  hue), a hairline, the Launchkey function lamps under 5–8 (a grey bar), and the Panel page button
+  hue), the Launchkey function lamps under 5–8 (a grey bar), and the Panel page button
   under 9 (no bar). The layer tabs use the secondary (grey) chosen block. Holds no state: every change is a
   callback with the strip's or lamp's id.
 -->
@@ -165,7 +165,6 @@
     </div>
 
     <div class="lamps">
-      <span class="divider" aria-hidden="true"></span>
       {#each partLamps as item (item.id)}{@render lamp(item)}{/each}
       {#each functionLamps as item (item.id)}{@render lamp(item)}{/each}
       <Button
@@ -244,11 +243,11 @@
   }
   .captions {
     height: var(--band-caption-height);
+    margin-top: var(--band-caption-gap);
     white-space: nowrap;
   }
   .caption {
     box-sizing: border-box;
-    border-bottom: var(--line-width) solid var(--line);
     color: var(--m);
     font-size: var(--text-12);
     line-height: var(--space-16);
@@ -264,18 +263,8 @@
     margin-left: auto;
   }
   .lamps {
-    position: relative;
     height: var(--control-height);
     margin-top: var(--band-lamp-gap);
-  }
-  /* The hairline between the part lamps and the functions, centred in the gap after column 4. */
-  .divider {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: calc((100% - 8 * var(--space-8)) * 4 / 9 + 3.5 * var(--space-8));
-    width: var(--line-width);
-    background: var(--line);
   }
   .name:focus-visible {
     outline: var(--line-width) solid var(--focus);

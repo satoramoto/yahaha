@@ -47,7 +47,6 @@
   .swatch {
     width: var(--legend-swatch-width);
     height: var(--space-2);
-    border-radius: calc(var(--space-2) / 2);
     background: var(--hue);
   }
 </style>

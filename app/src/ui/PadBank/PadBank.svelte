@@ -1,8 +1,7 @@
 <!--
   PadBank: the band's Pads section. A GroupHeader with the bank's name, its hue legend and the
-  bank counter; the bank ▲ ▼ buttons; and sixteen Pads in two rows of eight. Push group lines (a
-  2px line in the family hue) run over each run of one section family's pads; each utility pad
-  has its own grey line. Holds no state: the flash phase comes in `lit`, presses go out by index.
+  bank counter; the bank ▲ ▼ buttons; and sixteen Pads in two rows of eight. Each pad carries
+  a 2px line in its family hue along its top edge (grey for utility pads). Holds no state: the flash phase comes in `lit`, presses go out by index.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -35,13 +34,7 @@
 
   let { pads, bankName, count, legend = [], lit = true, tipAction, onbankup, onbankdown, onpress }: Props = $props()
 
-  const COLUMNS = 8
   const isUtil = (pad: PadItem | undefined) => pad === undefined || pad.family === 'util' || pad.family === 'start'
-  /** The pad's group line joins the next one: same row, same section family. */
-  function joins(i: number) {
-    const next = pads[i + 1]
-    return (i + 1) % COLUMNS !== 0 && !isUtil(pads[i]) && !isUtil(next) && next.family === pads[i].family
-  }
 </script>
 
 <section class="bank" aria-label="Pads">
@@ -59,7 +52,6 @@
         <div class="cell">
           <span
             class="line"
-            class:join={joins(i)}
             style:--line-hue={isUtil(pad) ? 'var(--util)' : `var(--${pad.family})`}
             aria-hidden="true"
           ></span>
@@ -124,13 +116,12 @@
   }
   .line {
     position: absolute;
-    top: calc(-1 * var(--pad-line-offset));
+    z-index: 1;
+    top: 0;
     right: 0;
     left: 0;
     height: var(--pad-line-height);
     background: var(--line-hue);
-  }
-  .line.join {
-    right: calc(-1 * var(--pad-gap));
+    pointer-events: none;
   }
 </style>

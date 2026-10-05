@@ -4,8 +4,8 @@
  */
 
 :root {
-  /* The one radius */
-  --radius: 4px;
+  /* The one radius: square, by the owner's call (the boards' 4px didn't fit the hardware feel) */
+  --radius: 0;
 
   /* Type: DM Sans for words and numbers, JetBrains Mono for key and pad digits */
   --font-sans: 'DM Sans', system-ui, sans-serif;

@@ -22,7 +22,7 @@
   --keys-height: 56px;
   --keys-black-width: 22px;
   --keys-black-height: 32px;
-  --keys-black-radius: 3px; /* the bottom corners of a black key */
+  --keys-black-radius: 0; /* the bottom corners of a black key: square, like every corner */
   --keys-split-width: 2px; /* the white split line */
   --keys-zone-line: 2px; /* the left zone's top line */
   --keys-label-bottom: 6px; /* a C label's distance from the bottom */
@@ -42,7 +42,7 @@
   --key-white: var(--grey-09);
   --key-white-left: var(--teal-950);
   --key-black: var(--black);
-  --key-black-ring: var(--grey-18);
+  --key-black-ring: var(--black); /* no grey ring: black keys read against the whites alone */
   --key-black-ring-left: var(--teal-900);
 
   /* A held key's glow, one per part hue. */

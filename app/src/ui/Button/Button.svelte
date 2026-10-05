@@ -347,7 +347,6 @@
     bottom: var(--bar-bottom);
     left: var(--space-8);
     height: var(--space-2);
-    border-radius: calc(var(--space-2) / 2);
     background: var(--ok);
     box-shadow: var(--lamp-glow-ok);
   }

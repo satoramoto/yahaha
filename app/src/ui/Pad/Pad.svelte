@@ -129,7 +129,6 @@
     bottom: var(--pad-bar-bottom);
     left: var(--pad-bar-inset);
     height: var(--space-2);
-    border-radius: calc(var(--space-2) / 2);
     background: transparent;
   }
 

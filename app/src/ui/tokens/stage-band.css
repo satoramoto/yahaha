@@ -19,11 +19,12 @@
   --band-pads-gap: 18px; /* knobs to the pads header */
   --band-tempo-gap: 20px; /* transport buttons to the tempo header */
   --band-caption-height: 18px; /* "Part on/off" / "Functions" caption row */
-  --band-lamp-gap: 2px; /* caption row to the lamp row */
+  --band-caption-gap: 4px; /* strip names to the caption row */
+  --band-lamp-gap: 6px; /* caption row to the lamp row */
 
-  /* Fader: one strip's fader button */
-  --fader-height: 252px;
-  --fader-strip-height: 272px; /* fader plus its name */
+  /* Fader: one strip's fader button (8px shorter than the board, to give the captions room) */
+  --fader-height: 244px;
+  --fader-strip-height: 264px; /* fader plus its name */
   --fader-name-height: 20px;
   --fader-value-height: 20px;
   --fader-travel-top: 24px;
