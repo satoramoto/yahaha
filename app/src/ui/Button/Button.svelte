@@ -252,7 +252,10 @@
     font-size: var(--text-13);
   }
 
-  /* Sizes */
+  /* Sizes. Every size but `cell` keeps its width in a crowded flex row. */
+  .btn:not(.cell) {
+    flex: none;
+  }
   .icon {
     width: var(--control-height);
   }

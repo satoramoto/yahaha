@@ -6,6 +6,7 @@ import { functionLamps, panelStrips, partLamps, reverbStrips } from '../FaderBan
 import { boardKeys } from '../Keys/Keys.fixtures'
 import { styleKnobPage, styleKnobs } from '../KnobBank/KnobBank.fixtures'
 import { sectionBank, sectionLegend, sectionPads } from '../PadBank/PadBank.fixtures'
+import type { PadItem } from '../PadBank/types'
 import { sectionRowBoard } from '../SectionRow/SectionRow.fixtures'
 import { transportBoard } from '../TransportColumn/TransportColumn.fixtures'
 import type Stage from './Stage.svelte'
@@ -41,6 +42,15 @@ export const stageBoard = {
 export const stageStopped = {
   ...stageBoard,
   display: displayStopped,
+  // Main A picked, nothing queued, Start / Stop idle (Stage.md › States, Stopped).
+  pads: {
+    ...stageBoard.pads,
+    pads: sectionPads.map((pad, i): PadItem => {
+      if (pad.family === 'start') return { ...pad, state: 'idle', name: undefined }
+      if (pad.family !== 'main') return pad
+      return { ...pad, state: i === 8 ? 'playing' : 'idle', name: i === 8 ? 'Main A, playing' : undefined }
+    }),
+  },
   faders: { ...stageBoard.faders, layer: 'reverb', strips: reverbStrips },
   transport: { running: false, fading: false },
   status: { text: 'Style queued: it starts at the next Start', seq: 1 },

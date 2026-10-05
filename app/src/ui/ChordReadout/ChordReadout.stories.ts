@@ -39,6 +39,37 @@ export const Held: Story = {
   args: { chord: 'Am', extension: '7', notes: AM7, fingering: 'Fingered', held: true },
 }
 
+/** A five-character chord (Cmaj7) drops to 80px so it and "held" fit the column. */
+export const MidLength: Story = {
+  args: {
+    chord: 'C',
+    extension: 'maj7',
+    notes: [
+      { note: 'C', interval: 'R' },
+      { note: 'E', interval: '3' },
+      { note: 'G', interval: '5' },
+      { note: 'B', interval: '7' },
+    ],
+    fingering: 'Fingered',
+    held: true,
+  },
+}
+
+/** Six or seven characters (F♯m7♭5) drop to 64px; eight or more to 52px. */
+export const Long: Story = {
+  args: {
+    chord: 'F♯m',
+    extension: '7♭5',
+    notes: [
+      { note: 'F♯', interval: 'R' },
+      { note: 'A', interval: 'm3' },
+      { note: 'C', interval: '♭5' },
+      { note: 'E', interval: 'm7' },
+    ],
+    fingering: 'AI Full Keyboard',
+  },
+}
+
 /** No chord yet: a dash, no notes. */
 export const Empty: Story = {
   args: { chord: '', notes: [], fingering: 'Fingered' },

@@ -62,9 +62,9 @@
 <div class="now">
   <ChordReadout {...chord} />
   <div class="column" role="group" aria-label="Section">
-    <span class="label"><StatusDot {hue} />Section</span>
+    <span class="label"><StatusDot {hue} visible={running} />Section</span>
     <div class="sections">
-      <SectionName label={playing} {hue} />
+      <SectionName label={playing} {hue} idle={!running} />
       {#if hasNext}
         <span class="word">next</span>
         <span class="next">{next}</span>

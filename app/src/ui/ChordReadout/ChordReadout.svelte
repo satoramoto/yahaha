@@ -31,6 +31,9 @@
   let { chord, extension = '', notes = [], fingering = '', held = false, label = 'Chord' }: Props = $props()
 
   const shown = $derived(chord.trim() === '' ? '—' : chord)
+  /** The chord's size: 128px for up to three characters (Am7), smaller for longer names so they fit the column. */
+  const length = $derived([...(shown + extension)].length)
+  const fit = $derived(length <= 3 ? 'full' : length === 4 ? '4' : length === 5 ? '5' : length <= 7 ? '6' : '8')
   const spoken = $derived(
     `${label}: ${chord.trim() === '' ? 'none' : chord + extension}${held ? ', held' : ''}` +
       (notes.length ? `. Notes ${notes.map((n) => n.note).join(' ')}` : '') +
@@ -40,7 +43,7 @@
 
 <div class="readout" class:held role="group" aria-label={spoken} data-held={held ? 'true' : 'false'}>
   <span class="label" aria-hidden="true">{label}</span>
-  <div class="chord" aria-hidden="true">
+  <div class="chord" data-fit={fit} aria-hidden="true">
     {shown}<span class="ext">{extension}</span>{#if held}<span class="held-word">held</span>{/if}
   </div>
   <div class="notes" aria-hidden="true">
@@ -76,6 +79,22 @@
     color: var(--chord);
     text-shadow: var(--chord-glow);
     white-space: nowrap;
+  }
+  .chord[data-fit='4'] {
+    font-size: var(--text-chord-4);
+    letter-spacing: var(--tracking-chord-4);
+  }
+  .chord[data-fit='5'] {
+    font-size: var(--text-chord-5);
+    letter-spacing: var(--tracking-chord-5);
+  }
+  .chord[data-fit='6'] {
+    font-size: var(--text-chord-6);
+    letter-spacing: var(--tracking-chord-6);
+  }
+  .chord[data-fit='8'] {
+    font-size: var(--text-chord-8);
+    letter-spacing: var(--tracking-chord-8);
   }
   .ext {
     font-weight: var(--weight-thin);

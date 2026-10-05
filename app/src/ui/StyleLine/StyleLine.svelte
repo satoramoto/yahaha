@@ -60,12 +60,14 @@
     onsends,
   }: Props = $props()
 
-  const meta = $derived([category, timeSignature].filter(Boolean).join(' · '))
+  const hasQueued = $derived(queued.trim() !== '')
+  /** Category · metre, hidden while a style is queued so the queued name has the room. */
+  const meta = $derived(hasQueued ? '' : [category, timeSignature].filter(Boolean).join(' · '))
 </script>
 
 <div class="line">
   <Button symbol="prev" size="icon" name="Previous style (Track left)" tip="style.prev" {tipAction} onpress={onprev} />
-  <span class="name">
+  <span class="name" class:shrink={hasQueued}>
     <AccentBlock
       label={styleName}
       as="button"
@@ -78,7 +80,7 @@
   </span>
   <Button symbol="next" size="icon" name="Next style (Track right)" tip="style.next" {tipAction} onpress={onnext} />
   {#if meta}<span class="meta">{meta}</span>{/if}
-  <WaitingChip label={queued} hue="a" size="line" />
+  {#if hasQueued}<span class="queued"><WaitingChip label={queued} hue="a" size="line" /></span>{/if}
   <span class="ots"><OneTouchPicker applied={oneTouch} {tipAction} onapply={ononetouch} /></span>
   <span class="sends"><SendReadout {reverb} {chorus} {delay} tip="display.band_sends" {tipAction} onpress={onsends} /></span>
 </div>
@@ -98,6 +100,16 @@
     display: flex;
     flex: none;
     max-width: var(--style-name-max);
+  }
+  /* With a style queued the queued name keeps its width (up to the chip's cap) and the style's
+     name gives way, ending in its ellipsis. */
+  .name.shrink {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  .queued {
+    display: flex;
+    flex: none;
   }
   .meta {
     margin-left: var(--space-4);

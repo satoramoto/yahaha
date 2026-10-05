@@ -9,6 +9,7 @@ const meta = {
   argTypes: {
     label: { control: 'text' },
     hue: { control: 'select', options: ['intro', 'main', 'ending', 'brk', 'fill'] },
+    idle: { control: 'boolean' },
   },
 } satisfies Meta<typeof SectionName>
 
@@ -18,6 +19,11 @@ type Story = StoryObj<typeof meta>
 /** The board: "Main B", 44px light green with its glow. */
 export const Board: Story = {
   args: { label: 'Main B', hue: 'main' },
+}
+
+/** Stopped: the picked Main in muted grey, no glow. */
+export const Idle: Story = {
+  args: { label: 'Main A', hue: 'main', idle: true },
 }
 
 /** An intro, in the gold intro hue. */

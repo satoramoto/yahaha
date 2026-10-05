@@ -51,6 +51,15 @@
   --text-128: 128px; /* the chord */
   --leading-104: 104px;
   --tracking-128: -6px;
+  /* Longer chord names step down so they and "held" fit the 300px column. */
+  --text-chord-4: 96px; /* four characters (F♯m7, Dsus) */
+  --tracking-chord-4: -4px;
+  --text-chord-5: 80px; /* five (Cmaj7, Gsus4) */
+  --tracking-chord-5: -3px;
+  --text-chord-6: 64px; /* six or seven (F♯m7♭5, Cmaj7♯11) */
+  --tracking-chord-6: -2px;
+  --text-chord-8: 52px; /* eight or more (Csus4add9) */
+  --tracking-chord-8: -1px;
   --tracking-44: -1.5px;
   --tracking-32: -0.5px;
   --leading-14: 14px;
