@@ -236,7 +236,8 @@
   )
 
   let display = $derived.by(() => {
-    const base = running ? p.display : displayStopped
+    // Stopped swaps only the now-playing readout; the style line and the sounds stay the band's.
+    const base = running ? p.display : { ...p.display, nowPlaying: displayStopped.nowPlaying }
     const playingPad = pads.find((pad) => isSection(pad) && pad.state === 'playing')
     const nextPad =
       pads.find((pad) => pad.state === 'next') ?? (running ? undefined : pads.find((pad) => pad.state === 'armed'))
