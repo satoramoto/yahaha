@@ -302,6 +302,52 @@ describe('display, knobs, transport, app bar', () => {
     ])
   })
 
+  it('knob page tabs choose the page by index; in swap mode the one tab changes nothing', () => {
+    const { deps, actions, take } = fake()
+    actions.onknobpage(0)
+    actions.onknobpage(3)
+    actions.onknobpage(5)
+    actions.onknobpage(6)
+    expect(take().sent).toEqual([
+      { type: 'setKnobPage', page: 'style' },
+      { type: 'setKnobPage', page: 'reverb' },
+      { type: 'setKnobPage', page: 'delay' },
+    ])
+    deps.state.surface.layer = { type: 'swap', part: 1 }
+    actions.onknobpage(0)
+    expect(take().sent).toEqual([])
+  })
+
+  it('pad bank tabs choose the page in the state\'s page order', () => {
+    const { actions, take } = fake((s) => {
+      s.pads.pages = [
+        { page: 'sections', name: 'Sections' },
+        { page: 'chord', name: 'Chord' },
+        { page: 'racks', name: 'Racks' },
+      ]
+    })
+    actions.onpadbank(1)
+    actions.onpadbank(2)
+    actions.onpadbank(0)
+    actions.onpadbank(3)
+    expect(take().sent).toEqual([
+      { type: 'setPadPage', page: 'chord' },
+      { type: 'setPadPage', page: 'racks' },
+      { type: 'setPadPage', page: 'sections' },
+    ])
+  })
+
+  it('Sync Start toggles only when the state asked for differs', () => {
+    const { deps, actions, take } = fake()
+    actions.onsyncstart(true)
+    expect(take().sent).toEqual([{ type: 'toggleSyncStart' }])
+    actions.onsyncstart(false)
+    expect(take().sent).toEqual([])
+    deps.state.transport.syncStart = true
+    actions.onsyncstart(false)
+    expect(take().sent).toEqual([{ type: 'toggleSyncStart' }])
+  })
+
   it('transport buttons', () => {
     const { actions, take } = fake()
     actions.onstartstop()

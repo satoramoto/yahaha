@@ -18,6 +18,7 @@ import {
   pads,
   sectionBar,
   sectionName,
+  sectionRow,
   splitChord,
   valueText,
   whenText,
@@ -372,7 +373,7 @@ describe('knobs', () => {
       state: state((s) => {
         s.transport.tempo = 104
         s.knobs = {
-          page: 'style', pageName: 'Style', pageNumber: 2, pageCount: 6,
+          page: 'pan', pageName: 'Pan', pageNumber: 3, pageCount: 6,
           knobs: [
             knob({ value: '127', level: 127 }),
             knob({ function: 'none', name: 'No Assign', short: '---', value: '', level: null }),
@@ -383,14 +384,42 @@ describe('knobs', () => {
         }
       }),
     })
-    expect(k.pageLabel).toBe('Style')
-    expect(k.count).toBe('2/6')
+    expect(k.pages).toEqual(['Style', 'Rack', 'Pan', 'Reverb', 'Chorus', 'Delay'])
+    expect(k.page).toBe(2)
     expect(k.knobs[0]).toEqual({ label: 'Dynamics', code: 'DynCtrl', value: '127', unit: undefined, fraction: 1 })
     expect(k.knobs[1]).toMatchObject({ label: '---', unused: true, fraction: 0 })
     expect(k.knobs[2]).toMatchObject({ label: 'Swing', value: '30', unit: '%' })
     expect(k.knobs[3]).toMatchObject({ label: 'Tempo', value: '104' })
     expect(k.knobs[3].fraction).toBeCloseTo((104 - 40) / 240, 9)
     expect(k.knobs[4].fraction).toBeCloseTo(51 / 127, 9)
+  })
+})
+
+describe('knob page tabs', () => {
+  it('swap mode: one tab named as the state names it', () => {
+    const k = knobs({
+      state: state((s) => {
+        s.surface.layer = { type: 'swap', part: 2 }
+        s.knobs.pageName = 'Swap R3'
+      }),
+    })
+    expect(k.pages).toEqual([])
+    expect(k.pageLabel).toBe('Swap R3')
+  })
+})
+
+describe('section row transport', () => {
+  it('running, Sync Start and fading from the transport', () => {
+    expect(sectionRow({ state: state(), help: false })).toMatchObject({ running: false, syncStart: false, fading: false })
+    const r = sectionRow({
+      state: state((s) => {
+        running(s)
+        s.transport.syncStart = true
+        s.transport.fade = 'fadingOut'
+      }),
+      help: true,
+    })
+    expect(r).toMatchObject({ running: true, syncStart: true, fading: true, help: true })
   })
 })
 
@@ -432,13 +461,19 @@ describe('pads', () => {
       st.pads.pageName = 'Racks'
       st.pads.pageNumber = 2
       st.pads.pageCount = 5
+      st.pads.pages = [
+        { page: 'sections', name: 'Sections' },
+        { page: 'chord', name: 'Chord' },
+        { page: 'racks', name: 'Racks' },
+      ]
       st.pads.pads = Array.from({ length: 16 }, () => pad({ label: '' }))
       st.pads.pads[0] = pad({ label: 'RACK 1', level: 'bright' })
       st.pads.pads[1] = pad({ label: 'RACK 2', level: 'dim' })
     })
     const p = pads({ state: s, beats: 0 })
-    expect(p.bankName).toBe('Racks')
-    expect(p.count).toBe('2/5')
+    expect(p.banks).toEqual(['Sections', 'Chord', 'Racks'])
+    expect(p.bank).toBe(2)
+    expect(p.bankTips).toEqual(['padpage.sections', 'padpage.chord', 'padpage.racks'])
     expect(p.legend).toEqual([])
     expect(p.pads[0]).toEqual({ label: 'RACK 1', family: 'util', state: 'playing', tip: 'padpage.racks', name: 'RACK 1 (pad 1), playing' })
     expect(p.pads[1]).toMatchObject({ label: 'RACK 2', state: 'idle', name: 'RACK 2 (pad 2)' })

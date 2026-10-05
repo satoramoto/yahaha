@@ -7,7 +7,7 @@
 // the section it follows.
 
 import type { ComponentProps } from 'svelte'
-import type { HeldNote, LibraryList, Meters, Pad, PadPage, SurfaceControl, SurfaceFader } from '../../lib/api/types'
+import type { HeldNote, KnobPage, LibraryList, Meters, Pad, PadPage, SurfaceControl, SurfaceFader } from '../../lib/api/types'
 import { BREAK, KEYBOARD_PART_NAMES, type AppState, type FaderLayer, type KeyboardPart } from '../../lib/api/types'
 import type { KeyRange } from '../../lib/store.svelte'
 import { RANGES } from '../keystrip/keyboard'
@@ -46,7 +46,7 @@ export interface StageInput {
 }
 
 /** The Stage's data props (every region; the callbacks come from actions.ts). */
-export type StageData = Pick<StageProps, 'appBar' | 'sectionRow' | 'display' | 'faders' | 'knobs' | 'pads' | 'transport' | 'status' | 'keys'>
+export type StageData = Pick<StageProps, 'appBar' | 'sectionRow' | 'display' | 'faders' | 'knobs' | 'pads' | 'status' | 'keys'>
 
 export function stageData(input: StageInput): StageData {
   return {
@@ -56,7 +56,6 @@ export function stageData(input: StageInput): StageData {
     faders: faders(input),
     knobs: knobs(input),
     pads: pads(input),
-    transport: transport(input.state),
     status: status(input.state),
     keys: keys(input.state, input.keyRange),
   }
@@ -104,8 +103,12 @@ export function appBar(input: Pick<StageInput, 'state' | 'meters' | 'page' | 'dr
 
 export function sectionRow(input: Pick<StageInput, 'state' | 'help'>): StageProps['sectionRow'] {
   const { state } = input
+  const fade = state.transport.fade
   return {
+    running: state.transport.running,
     accomp: state.transport.acmp,
+    syncStart: state.transport.syncStart,
+    fading: fade === 'fadingIn' || fade === 'fadingOut' || fade === 'holding',
     metronome: state.metronome.on,
     metronomeOpen: false,
     unison: state.transport.unison,
@@ -604,10 +607,22 @@ export function knobs(input: Pick<StageInput, 'state'>): StageProps['knobs'] {
         knob.level !== null ? knob.level / 127 : Math.min(1, Math.max(0, (state.transport.tempo - 40) / 240))
       return { label: KNOB_WORDS[knob.function] ?? knob.name, code: knob.short, value, unit, fraction }
     }),
-    pageLabel: k.pageName,
-    count: `${k.pageNumber}/${k.pageCount}`,
+    // Swap mode takes the knobs over whatever the page (`pageName` "Swap R1"): one tab says so.
+    ...(state.surface.layer.type === 'swap'
+      ? { pages: [], pageLabel: k.pageName }
+      : { pages: KNOB_PAGES.map((p) => p.name), page: Math.max(0, KNOB_PAGES.findIndex((p) => p.id === k.page)) }),
   }
 }
+
+/** The Knob Assign pages, in the order `stepKnobPage` walks them (docs/app-api.md › Knob Assign pages). */
+export const KNOB_PAGES: { id: KnobPage; name: string }[] = [
+  { id: 'style', name: 'Style' },
+  { id: 'rack', name: 'Rack' },
+  { id: 'pan', name: 'Pan' },
+  { id: 'reverb', name: 'Reverb' },
+  { id: 'chorus', name: 'Chorus' },
+  { id: 'delay', name: 'Delay' },
+]
 
 // ── Pads (kit › Pads, Pad; D11, D33) ──────────────────────────────────────────────────────
 
@@ -647,6 +662,9 @@ const FALLBACK_TIP: Record<PadPage, string> = {
   setup: 'padpage.setup',
 }
 
+/** Each pad bank tab's tooltip. */
+const BANK_TIP: Record<PadPage, string> = { ...FALLBACK_TIP, sections: 'padpage.sections' }
+
 /** A pad's face from its lamp (kit › Pad): off = absent, dim = idle, bright solid = playing,
  * flashing = next, pulsing = armed (a pulsing Main is the landing: next, D11). */
 export function padFace(pad: Pick<Pad, 'level' | 'anim' | 'action'>, family: PadItem['family']): PadItem['state'] {
@@ -685,20 +703,18 @@ export function pads(input: Pick<StageInput, 'state' | 'beats'>): StageProps['pa
   })
   return {
     pads: items,
+    // The page order Pad Bank ▲/▼ walk (Sections, then `settings.padPages`), one tab each.
+    banks: p.pages.map((x) => x.name),
+    bank: Math.max(0, p.pages.findIndex((x) => x.page === p.page)),
+    bankTips: p.pages.map((x) => BANK_TIP[x.page]),
     bankName: p.pageName,
-    count: `${p.pageNumber}/${p.pageCount}`,
     legend: sections ? SECTION_LEGEND : [],
     // Queued pads flash on the LED clock, as the hardware's do.
     lit: input.beats - Math.floor(input.beats) < 0.5,
   }
 }
 
-// ── Transport, status line, keys ──────────────────────────────────────────────────────────
-
-export function transport(state: AppState): StageProps['transport'] {
-  const fade = state.transport.fade
-  return { running: state.transport.running, fading: fade === 'fadingIn' || fade === 'fadingOut' || fade === 'holding' }
-}
+// ── Status line, keys ─────────────────────────────────────────────────────────────────────
 
 export function status(state: AppState): StageProps['status'] {
   const m = state.message

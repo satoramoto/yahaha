@@ -24,6 +24,7 @@ afterEach(() => {
 })
 
 const region = (name: string) => screen.getByRole('region', { name })
+const toolbar = () => screen.getByRole('toolbar', { name: 'Transport, switches and helpers' })
 const button = (name: string | RegExp, within_: HTMLElement = document.body) => within(within_).getByRole('button', { name })
 
 describe('StageScreen', () => {
@@ -39,8 +40,37 @@ describe('StageScreen', () => {
   it('Accomp toggles the accompaniment', async () => {
     const s = setup()
     const before = s.state.transport.acmp
-    await fireEvent.click(button('Accomp ACMP', screen.getByRole('toolbar', { name: 'Switches and helpers' })))
+    await fireEvent.click(button('Accomp (ACMP)', toolbar()))
     expect(s.state.transport.acmp).toBe(!before)
+  })
+
+  it('Sync Start arms and disarms', async () => {
+    const s = setup()
+    const before = s.state.transport.syncStart
+    await fireEvent.click(button('Sync Start', toolbar()))
+    expect(s.state.transport.syncStart).toBe(!before)
+  })
+
+  it('Fill ▲ queues a fill', async () => {
+    const s = setup()
+    const before = [s.state.transport.queued, s.state.transport.landing]
+    await fireEvent.click(button(/^Fill Up:/, toolbar()))
+    expect([s.state.transport.queued, s.state.transport.landing]).not.toEqual(before)
+  })
+
+  it('a knob page tab chooses the knob page', async () => {
+    const s = setup()
+    const tabs = within(region('Knobs')).getByRole('tablist')
+    await fireEvent.click(within(tabs).getByRole('tab', { name: 'Reverb' }))
+    expect(s.state.knobs.page).toBe('reverb')
+  })
+
+  it('a pad bank tab chooses the pad page', async () => {
+    const s = setup()
+    const tabs = within(region('Pads')).getByRole('tablist')
+    const second = s.state.pads.pages[1]
+    await fireEvent.click(within(tabs).getByRole('tab', { name: second.name }))
+    expect(s.state.pads.page).toBe(second.page)
   })
 
   it('a fader layer tab changes the layer', async () => {
@@ -69,7 +99,7 @@ describe('StageScreen', () => {
   it('Start / Stop stops the band', async () => {
     const s = setup()
     expect(s.state.transport.running).toBe(true)
-    await fireEvent.click(button(/^Start \/ Stop, running \(Play\)/, region('Transport and tempo')))
+    await fireEvent.click(button(/^Start \/ Stop, running \(Play\)/, toolbar()))
     expect(s.state.transport.running).toBe(false)
   })
 

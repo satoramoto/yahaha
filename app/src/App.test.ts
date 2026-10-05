@@ -40,7 +40,7 @@ describe('the shell', () => {
     expect(box!.dataset.theme).toBe(ui.theme)
     expect(box!.querySelector('section[aria-label="Faders"]')).toBeTruthy()
     expect(box!.querySelector('nav[aria-label="Pages"]')).toBeTruthy()
-    expect(box!.querySelector('[role="toolbar"][aria-label="Switches and helpers"]')).toBeTruthy()
+    expect(box!.querySelector('[role="toolbar"][aria-label="Transport, switches and helpers"]')).toBeTruthy()
     // The column: the Stage's slot first, the help footer after it.
     const column = [...document.querySelector('.app')!.children]
     expect(column).toHaveLength(2)

@@ -10,6 +10,7 @@ import type { ComponentProps } from 'svelte'
 import type { AppCmd, AppState, ControlId, FaderLayer, FaderPage } from '../../lib/api/types'
 import type { HealthTarget } from '../../ui/HealthSlot/health'
 import type Stage from '../../ui/Stage/Stage.svelte'
+import { KNOB_PAGES } from './model'
 
 type StageProps = ComponentProps<typeof Stage>
 
@@ -148,13 +149,22 @@ export function stageActions(d: StageDeps): StageActions {
     },
     onpagebutton: () => send(d.shift() ? { type: 'stepFaderLayer', delta: 1 } : { type: 'toggleFaderPage' }),
 
-    // Knobs
+    // Knobs: a page tab chooses its page (KNOB_PAGES' order). Swap mode shows one tab, the
+    // swap itself: choosing it changes nothing. The ▲▼ callbacks are deprecated, not drawn.
+    onknobpage: (index) => {
+      const page = KNOB_PAGES[index]
+      if (page && d.state().surface.layer.type !== 'swap') send({ type: 'setKnobPage', page: page.id })
+    },
     onpageup: () => send({ type: 'stepKnobPage', delta: -1 }),
     onpagedown: () => send({ type: 'stepKnobPage', delta: 1 }),
     onknobpress: () => {},
     onstep: (index, delta) => send({ type: 'turnKnob', knob: index, delta }),
 
-    // Pads
+    // Pads: a bank tab chooses its page, in the state's page order (`pads.pages`).
+    onpadbank: (index) => {
+      const page = d.state().pads.pages[index]
+      if (page) send({ type: 'setPadPage', page: page.page })
+    },
     onbankup: () => send(control('padBankUp')),
     onbankdown: () => send(control('padBankDown')),
     onpadpress: (index) => {
@@ -166,6 +176,10 @@ export function stageActions(d: StageDeps): StageActions {
 
     // Transport and tempo
     onstartstop: () => send({ type: 'startStop' }),
+    // Sync Start asks for the state it wants; the command toggles, so send it only on a change.
+    onsyncstart: (on) => {
+      if (on !== d.state().transport.syncStart) send({ type: 'toggleSyncStart' })
+    },
     onstop: () => send({ type: 'stop' }),
     onstoplong: () => send({ type: 'stop' }),
     onreset: () => send({ type: 'sectionReset' }),

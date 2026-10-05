@@ -21,7 +21,7 @@
   import Stage from '../../ui/Stage/Stage.svelte'
   import { stageActions, type OpenTarget } from './actions'
   import ComingSoon from './ComingSoon.svelte'
-  import { appBar, beatOf, display, faders, holdPeak, keys, knobs, pads, sectionRow, status, stripMeters, transport, type HoldState } from './model'
+  import { appBar, beatOf, display, faders, holdPeak, keys, knobs, pads, sectionRow, status, stripMeters, type HoldState } from './model'
   import { stagePage } from './page.svelte'
 
   const WIDTH = 1440
@@ -113,7 +113,6 @@
   const padBase = $derived(pads({ state: s, beats: 0 }))
   const lit = $derived(clock.beats - Math.floor(clock.beats) < 0.5)
   const padData = $derived({ ...padBase, lit })
-  const transportData = $derived(transport(s))
   const statusData = $derived(status(s))
   const keyData = $derived(keys(s, rangeFor(ui.keyRange, s.io.inputs)))
 
@@ -149,7 +148,6 @@
         faders={faderData}
         knobs={knobData}
         pads={padData}
-        transport={transportData}
         status={statusData}
         keys={keyData}
         {tipAction}
