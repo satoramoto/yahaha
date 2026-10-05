@@ -10,7 +10,13 @@ const meta = {
   title: 'Primitives/SoundCell',
   component: SoundCell,
   parameters: { layout: 'centered' },
-  args: { onpart: fn(), onsound: fn(), tipAction: fn() },
+  args: {
+    partTip: 'mixer.strip.select',
+    soundTip: 'launchkey.fader_sound',
+    onpart: fn(),
+    onsound: fn(),
+    tipAction: fn(),
+  },
   argTypes: {
     part: { control: 'text' },
     partName: { control: 'text' },
@@ -36,7 +42,6 @@ export const Board: Story = {
     number: '1',
     sound: 'Stage Grand',
     off: false,
-    partTip: 'part.right1.select',
   },
 }
 

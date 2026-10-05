@@ -80,7 +80,7 @@
   {#if meta}<span class="meta">{meta}</span>{/if}
   <WaitingChip label={queued} hue="a" size="line" />
   <span class="ots"><OneTouchPicker applied={oneTouch} {tipAction} onapply={ononetouch} /></span>
-  <span class="sends"><SendReadout {reverb} {chorus} {delay} {tipAction} onpress={onsends} /></span>
+  <span class="sends"><SendReadout {reverb} {chorus} {delay} tip="display.band_sends" {tipAction} onpress={onsends} /></span>
 </div>
 
 <style>

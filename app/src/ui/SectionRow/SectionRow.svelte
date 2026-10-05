@@ -76,6 +76,7 @@
         expanded={metronomeOpen}
         controls={metronomeControls}
         name="Metronome settings: on/off, volume, bell on beat 1"
+        tip="metronome.settings"
         {tipAction}
         onpress={onmetronomesettings}
       />
@@ -88,6 +89,7 @@
       on={help}
       pressed={help}
       name="Help mode: point at any control to learn what it does"
+      tip="app.help"
       {tipAction}
       onpress={() => onhelp?.(!help)}
     />

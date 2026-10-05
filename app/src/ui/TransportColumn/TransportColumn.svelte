@@ -73,15 +73,16 @@
       bar={running}
       pressed={running}
       name={running ? 'Start / Stop, running (Play). The same control as pad 16' : 'Start / Stop, stopped (Play). The same control as pad 16'}
+      tip="transport.start_stop"
       {tipAction}
       onpress={onstartstop}
     />
     <Button label="Stop" size="band" name="Stop (fade with hold)" tip="transport.stop" {tipAction} onpress={onstop} onlongpress={onstoplong} />
-    <Button label="Reset" size="band" name="Section reset: restart the section from its first bar" {tipAction} onpress={onreset} />
+    <Button label="Reset" size="band" name="Section reset: restart the section from its first bar" tip="transport.section_reset" {tipAction} onpress={onreset} />
     <Button label="Fade" size="band" on={fading} pressed={fading} name="Fade in/out" tip="transport.fade" {tipAction} onpress={onfade} />
     <div class="pair" role="group" aria-label="Fills">
-      <Button label="Fill" symbol="up" size="pair" name="Fill Up: a fill, then the next Main up (at Main D, its own fill)" {tipAction} onpress={onfillup} />
-      <Button label="Fill" symbol="down" size="pair" name="Fill Down: a fill, then the next Main down (at Main A, its own fill)" {tipAction} onpress={onfilldown} />
+      <Button label="Fill" symbol="up" size="pair" name="Fill Up: a fill, then the next Main up (at Main D, its own fill)" tip="transport.fill_up" {tipAction} onpress={onfillup} />
+      <Button label="Fill" symbol="down" size="pair" name="Fill Down: a fill, then the next Main down (at Main A, its own fill)" tip="transport.fill_down" {tipAction} onpress={onfilldown} />
     </div>
   </div>
 

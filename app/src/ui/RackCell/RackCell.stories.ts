@@ -7,7 +7,7 @@ const meta = {
   title: 'Primitives/RackCell',
   component: RackCell,
   parameters: { layout: 'centered' },
-  args: { onpress: fn(), tipAction: fn() },
+  args: { tip: 'nav.rack', onpress: fn(), tipAction: fn() },
   argTypes: {
     rack: { control: 'text' },
     slot: { control: 'text' },

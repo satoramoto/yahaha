@@ -79,7 +79,8 @@
       sound={p.sound}
       off={p.off}
       soundName="{p.partName} sound: {p.number} {p.sound}{marksText(p)}. Opens the quick sound list"
-      partTip="part.{p.id}.select"
+      partTip="mixer.strip.select"
+      soundTip="launchkey.fader_sound"
       {tipAction}
       onpart={() => onpart?.(p.id)}
       onsound={() => onsound?.(p.id)}

@@ -28,6 +28,8 @@ export type FaderStrip = {
   openName?: string
   /** The fader's tooltip key. */
   tip?: string
+  /** The name button's tooltip key (not for a parked strip, whose name is plain text). */
+  openTip?: string
 }
 
 /** One lamp in the band's lamp row: a part's on/off, or a Launchkey function. */

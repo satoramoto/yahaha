@@ -1,10 +1,19 @@
 <!--
   DisplayArt: the display's background picture at its right edge: a dim violet glow over a dark
   sky with two hills, faded in from the ground on its left so the readouts over it stay
-  brighter. Purely decorative, with no props; the theme picks its colours.
+  brighter. Purely decorative; the theme picks its colours. `fade` off shows the art bare.
 -->
+<script lang="ts">
+  type Props = {
+    /** The fade from the ground on the left, which keeps the readouts over the art brighter. */
+    fade?: boolean
+  }
+
+  let { fade = true }: Props = $props()
+</script>
+
 <div class="art" aria-hidden="true">
-  <div class="fade"></div>
+  {#if fade}<div class="fade"></div>{/if}
 </div>
 
 <style>

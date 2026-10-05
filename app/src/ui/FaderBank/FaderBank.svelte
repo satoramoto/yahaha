@@ -79,6 +79,12 @@
 
   const isPart = (strip: FaderStrip) => strip.kind === 'part' || strip.kind === 'off'
   const isLive = (strip: FaderStrip) => strip.kind !== 'off' && strip.kind !== 'parked'
+
+  /** Applies the parent's tooltip action to a name button that has a key. */
+  const tipped: Action<HTMLElement, string | undefined> = (node, key) => {
+    if (!tipAction || key === undefined) return
+    return tipAction(node, key)
+  }
 </script>
 
 {#snippet lamp(item: BankLamp)}
@@ -125,16 +131,24 @@
             {tipAction}
             onlevel={(level) => onlevel?.(strip.id, level)}
           />
-          <button
-            type="button"
-            class="name"
-            style:--hue={isLive(strip) ? `var(--${strip.hue})` : 'var(--d)'}
-            aria-label={strip.openName ?? strip.tag}
-            onclick={() => onopen?.(strip.id)}
-          >
-            <span class="tag">{strip.tag}</span>
-            <PartMarks size="strip" edited={strip.edited} missing={strip.missing} failed={strip.failed} />
-          </button>
+          {#if strip.kind === 'parked'}
+            <span class="name" style:--hue="var(--d)" data-contrast="dim" aria-hidden="true">
+              <span class="tag">{strip.tag}</span>
+            </span>
+          {:else}
+            <button
+              type="button"
+              class="name"
+              style:--hue={isLive(strip) ? `var(--${strip.hue})` : 'var(--d)'}
+              aria-label={strip.openName ?? strip.tag}
+              data-tip={strip.openTip}
+              use:tipped={strip.openTip}
+              onclick={() => onopen?.(strip.id)}
+            >
+              <span class="tag">{strip.tag}</span>
+              <PartMarks size="strip" edited={strip.edited} missing={strip.missing} failed={strip.failed} />
+            </button>
+          {/if}
         </div>
       {/each}
     </div>
@@ -211,6 +225,9 @@
     background: none;
     white-space: nowrap;
     cursor: pointer;
+  }
+  span.name {
+    cursor: default;
   }
   .tag {
     color: var(--hue);

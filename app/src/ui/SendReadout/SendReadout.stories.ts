@@ -7,7 +7,7 @@ const meta = {
   title: 'Primitives/SendReadout',
   component: SendReadout,
   parameters: { layout: 'centered' },
-  args: { reverb: 40, chorus: 12, delay: 0, onpress: fn(), tipAction: fn() },
+  args: { reverb: 40, chorus: 12, delay: 0, tip: 'display.band_sends', onpress: fn(), tipAction: fn() },
   argTypes: {
     reverb: { control: { type: 'range', min: 0, max: 127, step: 1 } },
     chorus: { control: { type: 'range', min: 0, max: 127, step: 1 } },

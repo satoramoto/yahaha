@@ -15,6 +15,7 @@ export const panelStrips: FaderStrip[] = [
     faderName: 'Right 1 · Stage Grand, level 90',
     openName: 'Right 1, Stage Grand: open Channel',
     tip: 'mixer.panel.right1',
+    openTip: 'mixer.strip.select',
   },
   {
     id: 'right2',
@@ -31,6 +32,7 @@ export const panelStrips: FaderStrip[] = [
     faderName: 'Right 2 · Silk Strings, level 72, hardware fader away (soft takeover)',
     openName: 'Right 2, Silk Strings, edited: open Channel',
     tip: 'mixer.panel.right2',
+    openTip: 'mixer.strip.select',
   },
   {
     id: 'right3',
@@ -46,6 +48,7 @@ export const panelStrips: FaderStrip[] = [
     faderName: 'Right 3 · Brass Section, level 64',
     openName: 'Right 3, Brass Section, plugin missing: open Channel',
     tip: 'mixer.panel.right3',
+    openTip: 'mixer.strip.select',
   },
   {
     id: 'left',
@@ -60,6 +63,7 @@ export const panelStrips: FaderStrip[] = [
     faderName: 'Left · Silk Strings, level 80',
     openName: 'Left, Silk Strings: open Channel',
     tip: 'mixer.panel.left',
+    openTip: 'mixer.strip.select',
   },
   {
     id: 'style',
@@ -73,7 +77,8 @@ export const panelStrips: FaderStrip[] = [
     peak: 0.78,
     faderName: 'Style volume, level 100',
     openName: 'Style volume: open the Style fader page',
-    tip: 'mixer.style.volume',
+    tip: 'mixer.style_level',
+    openTip: 'mixer.page',
   },
   {
     id: 'multiPad',
@@ -87,6 +92,8 @@ export const panelStrips: FaderStrip[] = [
     peak: 0.12,
     faderName: 'Multi Pad volume, level 90',
     openName: 'Multi Pad volume: open Multi Pads',
+    tip: 'mixer.pad_level',
+    openTip: 'nav.multipad',
   },
   {
     id: 'fader7',
@@ -99,7 +106,7 @@ export const panelStrips: FaderStrip[] = [
     meter2: 0,
     peak: 0,
     faderName: 'Fader 7 unused',
-    openName: 'Fader 7 unused',
+    tip: 'launchkey.fader_unused',
   },
   {
     id: 'fader8',
@@ -112,7 +119,7 @@ export const panelStrips: FaderStrip[] = [
     meter2: 0,
     peak: 0,
     faderName: 'Fader 8 unused',
-    openName: 'Fader 8 unused',
+    tip: 'launchkey.fader_unused',
   },
   {
     id: 'master',
@@ -127,6 +134,7 @@ export const panelStrips: FaderStrip[] = [
     faderName: 'Master, level 100',
     openName: 'Master: open Effects, master compressor and EQ',
     tip: 'mixer.master',
+    openTip: 'fx.master_edit',
   },
 ]
 
@@ -142,6 +150,7 @@ export const reverbStrips: FaderStrip[] = panelStrips.map((strip, i) =>
         level: REVERB[i],
         away: undefined,
         faderName: `${strip.faderName.split(',')[0]}, Reverb ${REVERB[i]}`,
+        tip: 'mixer.part.reverb',
       }
     : strip,
 )
@@ -166,6 +175,6 @@ export const functionLamps: BankLamp[] = [
     tip: 'launchkey.sound',
     name: 'Sound: hold and the pads become Quick Racks. A click latches it until the next pad tap; click again or press fader button 6 to close',
   },
-  { id: 'leftHold', label: 'L Hold', on: false, hue: 'm', name: 'Left Hold on/off' },
+  { id: 'leftHold', label: 'L Hold', on: false, hue: 'm', tip: 'detection.left_hold', name: 'Left Hold on/off' },
   { id: 'looper', label: 'Looper', on: false, hue: 'm', long: true, tip: 'looper.rec', name: 'Chord Looper on/off. Long press: Loop rec' },
 ]
