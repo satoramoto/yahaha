@@ -69,7 +69,7 @@
      Same type, side padding and block everywhere; in a header the block stands on the rule, on a
      plain line (One Touch) it is centred. */
   --tab-height-header: calc(var(--bar-height) - var(--header-rule-width)); /* a header tab: a 36px header row (or the app bar) minus its rule */
-  --tab-pad-side: var(--space-10); /* a tab's side padding */
+  --tab-pad-side: var(--space-8); /* a tab's side padding (8, so the Pads header fits its five banks and the legend in 666px) */
   --tab-block: 24px; /* the chosen block's height */
   --group-header-height: 36px; /* a group header row, hairline included */
   /* The one text baseline of a 36px header row (the app bar, a group header), from the row's top.

@@ -21,6 +21,9 @@ const meta = {
     tipAction: fn(),
     onbank: fn(),
     onpress: fn(),
+    // Deprecated, never called (the tabs replaced ▲ ▼); kept as actions for the story test.
+    onbankup: fn(),
+    onbankdown: fn(),
   },
   argTypes: {
     pads: { control: 'object' },

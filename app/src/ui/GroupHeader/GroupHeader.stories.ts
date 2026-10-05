@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
 import { createRawSnippet, mount, unmount } from 'svelte'
 import { expect, fn, userEvent, within } from 'storybook/test'
-import AccentBlock from '../AccentBlock/AccentBlock.svelte'
 import ChosenTabs from '../ChosenTabs/ChosenTabs.svelte'
 import { faderPageTabs, layerTabs } from '../ChosenTabs/ChosenTabs.fixtures'
 import HueLegend from '../HueLegend/HueLegend.svelte'
@@ -25,8 +24,8 @@ type Args = {
   layerChosen: string
   onchooseLayer: (id: string) => void
   tipAction: (node: HTMLElement, key: string) => void
-  knobPageLabel: string
-  padPageName: string
+  bankChosen: string
+  onchooseBank: (id: string) => void
   endContent: End
   legendItems: LegendItem[]
 }
@@ -48,15 +47,16 @@ const FADERS =
   '<span data-mount="layer" style="display: contents"></span>' +
   '</span></span>'
 
-const KNOBS = '<span data-mount="block" style="display: contents"></span>'
+const BANK = '<span data-mount="bank" style="display: contents"></span>'
 
-const PADS =
-  '<span data-text="page" style="font: var(--type-strong); letter-spacing: var(--tracking-strong); color: var(--value-ink)"></span>'
+const KNOB_PAGES = ['Style', 'Rack', 'Pan', 'Reverb', 'Chorus', 'Delay']
+const PAD_BANKS = ['Sections', 'Quick Racks', 'Chord', 'Multi Pads', 'Setup']
+const PAD_TIPS = ['padpage.sections', 'padpage.racks', 'padpage.chord', 'padpage.multi_pads', 'padpage.setup']
 
-/** The `children` snippet for a story's `content`, mounting the real ChosenTabs and AccentBlock. */
+/** The `children` snippet for a story's `content`, mounting the real ChosenTabs. */
 function children(args: Args) {
   if (args.content === 'none') return undefined
-  const html = { faders: FADERS, knobs: KNOBS, pads: PADS }[args.content]
+  const html = { faders: FADERS, knobs: BANK, pads: BANK }[args.content]
   return createRawSnippet(() => ({
     render: () => html,
     setup: (root: Element) => {
@@ -87,11 +87,22 @@ function children(args: Args) {
             },
           }),
         )
-      } else if (args.content === 'knobs') {
-        mounted.push(mount(AccentBlock, { target: host('block'), props: { label: args.knobPageLabel, size: 'knob' } }))
       } else {
-        const page = root.matches('[data-text="page"]') ? root : root.querySelector('[data-text="page"]')
-        if (page) page.textContent = args.padPageName
+        const knobs = args.content === 'knobs'
+        const names = knobs ? KNOB_PAGES : PAD_BANKS
+        mounted.push(
+          mount(ChosenTabs, {
+            target: host('bank'),
+            props: {
+              size: 'header',
+              label: knobs ? 'Knob page' : 'Pad bank',
+              tabs: names.map((name, i) => ({ id: String(i), label: name, tip: knobs ? 'knobs.page' : PAD_TIPS[i] })),
+              chosen: args.bankChosen,
+              onchoose: args.onchooseBank,
+              tipAction: args.tipAction,
+            },
+          }),
+        )
       }
       return () => {
         for (const instance of mounted) void unmount(instance)
@@ -117,7 +128,7 @@ function end(args: Args) {
 /**
  * The row, a bright `--type-strong` title over a bold rule, that names a group of controls and
  * holds its tabs (the one tab style, ChosenTabs), its hue legend at the right end (`end`) and its
- * page counter. The stories mount the real children (ChosenTabs, AccentBlock, HueLegend) into the
+ * page counter. The stories mount the real children (ChosenTabs, HueLegend) into the
  * snippets; their args are grouped by child in the Controls panel.
  */
 const meta: Meta<Args> = {
@@ -145,8 +156,8 @@ const meta: Meta<Args> = {
     layerChosen: 'volume',
     onchooseLayer: fn(),
     tipAction: fn(),
-    knobPageLabel: 'Style',
-    padPageName: 'Sections',
+    bankChosen: '0',
+    onchooseBank: fn(),
     endContent: 'none',
     legendItems: SECTION_LEGEND,
   },
@@ -175,8 +186,12 @@ const meta: Meta<Args> = {
       table: { category: 'ChosenTabs · layer' },
     },
     onchooseLayer: { table: { category: 'ChosenTabs · layer' } },
-    knobPageLabel: { control: 'text', table: { category: 'AccentBlock' } },
-    padPageName: { control: 'text', table: { category: 'Pads content' } },
+    bankChosen: {
+      control: 'select',
+      options: ['0', '1', '2', '3', '4', '5'],
+      table: { category: 'ChosenTabs · knob page or pad bank' },
+    },
+    onchooseBank: { table: { category: 'ChosenTabs · knob page or pad bank' } },
     endContent: {
       control: 'inline-radio',
       options: ['legend', 'none'],
@@ -211,39 +226,32 @@ export const Board: Story = {
   },
 }
 
-/** Knobs, the violet "Style" page block, and "Page 1/6" at the right end. */
+/** Knobs and the knob page tabs, Style chosen on the same neutral block as every header's tabs. */
 export const Knobs: Story = {
-  args: { title: 'Knobs', width: 610, count: { label: 'Page', value: '1/6' }, content: 'knobs' },
-  play: async ({ canvasElement }) => {
+  args: { title: 'Knobs', width: 666, content: 'knobs' },
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByRole('heading', { name: 'Knobs' })).toBeInTheDocument()
-    const block = await canvas.findByText('Style')
-    await expect(block).toHaveAttribute('data-face', 'accent')
-    await expect(canvas.getByText('1/6').parentElement?.textContent).toBe('Page 1/6')
+    await expect(await canvas.findByRole('tab', { name: 'Style' })).toHaveAttribute('aria-selected', 'true')
+    await userEvent.click(canvas.getByRole('tab', { name: 'Reverb' }))
+    await expect(args.onchooseBank).toHaveBeenCalledWith('3')
   },
 }
 
 /**
- * Pads, the "Sections" page name, and at the right end the five-hue section legend (`end`, where
- * every header's legend goes) before "Bank 1/5".
+ * Pads, the pad bank tabs with Sections chosen, and at the right end the five-hue section legend
+ * (`end`, where every header's legend goes).
  */
 export const Pads: Story = {
-  args: {
-    title: 'Pads',
-    width: 610,
-    count: { label: 'Bank', value: '1/5' },
-    content: 'pads',
-    endContent: 'legend',
-  },
+  args: { title: 'Pads', width: 666, content: 'pads', endContent: 'legend' },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByRole('heading', { name: 'Pads' })).toBeInTheDocument()
-    await expect(await canvas.findByText('Sections')).toBeInTheDocument()
+    await expect(await canvas.findByRole('tab', { name: 'Sections' })).toHaveAttribute('data-tip', 'padpage.sections')
     const text = canvasElement.textContent ?? ''
-    const order = [...SECTION_LEGEND.map((item) => item.label), 'Bank'].map((word) => text.indexOf(word))
+    const order = SECTION_LEGEND.map((item) => item.label).map((word) => text.lastIndexOf(word))
     await expect(order.every((at) => at >= 0)).toBe(true)
     await expect([...order].sort((a, b) => a - b)).toEqual(order)
-    await expect(text.indexOf('Sections')).toBeLessThan(order[0])
-    await expect(canvas.getByText('1/5').parentElement?.textContent).toBe('Bank 1/5')
+    await expect(text.indexOf('Setup')).toBeLessThan(order[0])
   },
 }

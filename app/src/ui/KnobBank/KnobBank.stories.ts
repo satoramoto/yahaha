@@ -20,6 +20,9 @@ const meta = {
     onpage: fn(),
     onpress: fn(),
     onstep: fn(),
+    // Deprecated, never called (the tabs replaced ▲ ▼); kept as actions for the story test.
+    onpageup: fn(),
+    onpagedown: fn(),
   },
   argTypes: {
     knobs: { control: 'object' },

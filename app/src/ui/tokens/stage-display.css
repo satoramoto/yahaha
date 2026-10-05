@@ -32,7 +32,7 @@
   --display-art-width: 528px; /* the art at the display's right edge: the board's 38% of 1390 */
 
   /* Style line */
-  --send-height: 24px;
+  --send-height: var(--control-height); /* the sends button: one height with the line's controls */
   --style-name-max: 240px; /* the style's accent block; a longer name ends in an ellipsis */
 
   /* Section row: Start / Stop leads the transport group, wider than its neighbours */

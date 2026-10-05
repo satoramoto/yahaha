@@ -3,7 +3,8 @@
   name in its hue (a button that opens Channel), then its sound (a button that opens the quick
   sound list): the voice number muted, the name in text, and the part's marks after it, passed in
   as `marks`. One size across the cell: the part's name `strong`, the number and sound `text`.
-  An off part dims: its name to `--d`, its sound to muted.
+  An off part dims: its name to its own hue at absent strength (`--absent-<hue>`, as the fader
+  strip's name), its sound to muted.
 -->
 <script lang="ts">
   import type { Snippet } from 'svelte'
@@ -20,7 +21,7 @@
     number?: string
     /** The sound's name; a long one ends in an ellipsis. */
     sound: string
-    /** The part is off: the short name dims to `--d`, the sound to muted. */
+    /** The part is off: the short name dims to its hue at absent strength, the sound to muted. */
     off?: boolean
     /** The sound button's accessible name. Default: "Right 1 sound: 1 Stage Grand. Opens the quick sound list". */
     soundName?: string
@@ -68,7 +69,7 @@
   <button
     type="button"
     class="part"
-    style:--hue="var(--{hue})"
+    style:--hue={off ? `var(--absent-${hue})` : `var(--${hue})`}
     title={partName}
     data-contrast={off ? 'dim' : undefined}
     aria-label="{partName}: open Channel"
@@ -124,9 +125,6 @@
     font: var(--type-strong);
     letter-spacing: var(--tracking-strong);
     color: var(--hue);
-  }
-  .off .part {
-    color: var(--d);
   }
   .sound {
     flex: 1;
