@@ -7,7 +7,7 @@
 // the section it follows.
 
 import type { ComponentProps } from 'svelte'
-import type { HeldNote, KnobPage, LibraryList, Meters, Pad, PadPage, SurfaceControl, SurfaceFader } from '../../lib/api/types'
+import type { HeldNote, KnobPage, LibraryList, Meters, Pad, PadPage, SurfaceControl } from '../../lib/api/types'
 import { BREAK, KEYBOARD_PART_NAMES, type AppState, type FaderLayer, type KeyboardPart } from '../../lib/api/types'
 import type { KeyRange } from '../../lib/store.svelte'
 import { RANGES } from '../keystrip/keyboard'
@@ -397,107 +397,149 @@ function parked(i: number): FaderStrip {
   }
 }
 
+/**
+ * What a strip shows: the level it reads from the part's own state, and soft takeover. The
+ * level is always the engine's value for the part (as the old mixer Strip read `volume`,
+ * `pan` or the send from `keyboardParts` / `mixer`), never the Launchkey fader's mapping:
+ * the hardware fader may be mapped elsewhere by the live rack (D63), but the strip is the
+ * part's.
+ */
+interface Reading {
+  level: number
+  /** The level waits for the hardware fader (soft takeover). */
+  waiting: boolean
+  /** Where the hardware fader is, when it moves this level; null otherwise. */
+  position: number | null
+}
+
 /** The fields every live strip shares: value, level, meters, soft takeover, accessible name. */
-function live(f: SurfaceFader, layer: FaderLayer, tag: string, meter: { peak: number; rms: number } | null, hold: number) {
-  const level = f.value ?? 0
-  const text = valueText(layer, level)
+function live(r: Reading, layer: FaderLayer, tag: string, meter: { peak: number; rms: number } | null, hold: number, note = '') {
+  const text = valueText(layer, r.level)
+  const away = r.waiting && r.position !== null ? r.position : undefined
   return {
     value: text,
-    level,
+    level: r.level,
     meter: meter ? meterFraction(meter.peak) : 0,
     meter2: meter ? meterFraction(meter.rms) : 0,
     peak: meter ? meterFraction(hold) : 0,
-    away: f.waiting && f.position !== null ? f.position : undefined,
-    faderName: `${tag} ${text}${f.waiting ? ', hardware fader away' : ''}`,
+    away,
+    faderName: `${tag} ${text}${away !== undefined ? ', hardware fader away' : ''}${note}`,
   }
+}
+
+/** The send a fader layer moves, as `keyboardParts` / `styleParts` name it; null for Volume and Pan. */
+export const LAYER_SEND: Record<FaderLayer, 'reverb' | 'chorus' | 'variation' | null> = {
+  volume: null,
+  pan: null,
+  reverb: 'reverb',
+  chorus: 'chorus',
+  delay: 'variation',
+}
+
+/** A keyboard part's reading on a layer: its volume, pan or send (old Strip.svelte). */
+export function partReading(state: AppState, part: number, layer: FaderLayer): Reading {
+  const p = state.keyboardParts[part]
+  const f = state.surface.faders[part]
+  // The hardware fader moves this part only while it isn't routed elsewhere by the rack.
+  const own = !f || f.label === '' || f.label === PART_FADER_LABELS[part] || layer !== 'volume'
+  const position = own && state.mixer.faderPage === 'panel' ? (f?.position ?? null) : null
+  if (!p) return { level: 0, waiting: false, position: null }
+  if (layer === 'volume') return { level: p.volume, waiting: p.waiting, position }
+  const waiting = (state.mixer.sendWaiting & (1 << part)) !== 0
+  const send = LAYER_SEND[layer]
+  return { level: send ? p[send] : p.pan, waiting, position }
 }
 
 function panelStrips(input: Pick<StageInput, 'state' | 'meters' | 'holds'>): FaderStrip[] {
   const { state } = input
   const layer = state.mixer.faderLayer
+  const mixer = state.mixer
   const meters = stripMeters(state, input.meters)
   const faders = state.surface.faders
+  const position = (i: number) => (mixer.faderPage === 'panel' ? (faders[i]?.position ?? null) : null)
   return Array.from({ length: 9 }, (_, i): FaderStrip => {
-    const f = faders[i]
-    if (!f || f.set === null) return i === 8 ? { ...parked(i), id: 'master', tag: 'Master', faderName: 'Master unused (no audio)' } : parked(i)
     const hold = input.holds[i] ?? 0
     if (i < 4) {
       const part = state.keyboardParts[i]
-      const rackTarget = f.label !== '' && f.label !== PART_FADER_LABELS[i]
-      if (rackTarget) {
-        // The live rack maps this fader elsewhere (D63): its label, no meter, opens the Rack.
-        return {
-          id: PART_IDS[i],
-          tag: f.label,
-          hue: 't2',
-          kind: 'group',
-          ...live(f, 'volume', f.label, null, 0),
-          tip: 'launchkey.fader_rack',
-          openName: `${f.label}: open the Rack`,
-          openTip: 'launchkey.fader_rack',
-        }
-      }
+      if (!part) return parked(i)
       const tag = KEYBOARD_PART_NAMES[i]
-      const sounding = part?.sounding ?? true
+      const sounding = part.sounding
       const showMeter = sounding && layer === 'volume'
+      // The live rack maps the Launchkey fader elsewhere (D63): say so, the strip stays the part's.
+      const label = faders[i]?.label ?? ''
+      const rack = layer === 'volume' && label !== '' && label !== PART_FADER_LABELS[i] ? `, Launchkey fader ${i + 1} moves ${label}` : ''
       return {
         id: PART_IDS[i],
         tag,
         hue: PART_HUES[i],
         kind: sounding ? 'part' : 'off',
-        ...live(f, layer, tag, showMeter ? meters[i] : null, hold),
-        edited: part?.soundEdited === true,
-        missing: part?.plugin?.missing === true,
-        failed: part ? failed(part) : false,
+        ...live(partReading(state, i, layer), layer, tag, showMeter ? meters[i] : null, hold, rack),
+        edited: part.soundEdited === true,
+        missing: part.plugin?.missing === true,
+        failed: failed(part),
         tip: PART_LAYER_TIP[layer] ?? `mixer.panel.${PART_IDS[i]}`,
         openName: `${tag}: open Channel`,
         openTip: 'mixer.strip.select',
       }
     }
     if (i === 4) {
+      const r = { level: mixer.styleVolume, waiting: mixer.styleVolumeWaiting, position: position(4) }
       return {
-        id: 'style', tag: 'Style', hue: 'a', kind: 'group', ...live(f, 'volume', 'Style', meters[4], hold),
+        id: 'style', tag: 'Style', hue: 'a', kind: 'group', ...live(r, 'volume', 'Style', meters[4], hold),
         tip: 'mixer.style_level', openName: 'Style: show the Style faders', openTip: 'mixer.page',
       }
     }
     if (i === 5) {
+      const r = { level: mixer.multiPadVolume, waiting: mixer.multiPadVolumeWaiting, position: position(5) }
       return {
-        id: 'multiPad', tag: 'Multi Pad', hue: 't2', kind: 'group', ...live(f, 'volume', 'Multi Pad', meters[5], hold),
+        id: 'multiPad', tag: 'Multi Pad', hue: 't2', kind: 'group', ...live(r, 'volume', 'Multi Pad', meters[5], hold),
         tip: 'mixer.pad_level', openName: 'Multi Pad: open Multi Pads', openTip: 'nav.multipad',
       }
     }
     if (i === 8) {
+      if (mixer.master === null) return { ...parked(i), id: 'master', tag: 'Master', faderName: 'Master unused (no audio)' }
+      const r = { level: mixer.master, waiting: mixer.masterWaiting, position: faders[8]?.position ?? null }
       return {
-        id: 'master', tag: 'Master', hue: 't', kind: 'master', ...live(f, 'volume', 'Master', meters[8], hold),
+        id: 'master', tag: 'Master', hue: 't', kind: 'master', ...live(r, 'volume', 'Master', meters[8], hold),
         tip: 'mixer.master', openName: 'Master: open Effects', openTip: 'fx.master_edit',
       }
     }
     // Faders 7 and 8 are unused on Panel; if the engine maps them, show what it sends.
+    const f = faders[i]
+    if (!f || f.set === null) return parked(i)
     return {
-      id: `fader${i + 1}`, tag: f.label, hue: 't2', kind: 'group', ...live(f, 'volume', f.label, null, 0),
+      id: `fader${i + 1}`, tag: f.label, hue: 't2', kind: 'group', ...live({ level: f.value ?? 0, waiting: f.waiting, position: f.position }, 'volume', f.label, null, 0),
       tip: 'launchkey.fader_rack', openName: `${f.label}: open the Rack`, openTip: 'launchkey.fader_rack',
     }
   })
 }
 
-/** The Style fader page's fallback until #507 (Stage.md › Band): the Style parts as the
- * engine labels them, no meter; Master as on Panel. */
+/** The Style fader page's fallback until #507 (Stage.md › Band): the Style parts' levels or
+ * sends from `mixer.styleParts`, as the engine labels them, no meter; Master as on Panel. A
+ * Style part has no pan: on Pan its fader is unused. */
 function styleStrips(input: Pick<StageInput, 'state' | 'meters' | 'holds'>): FaderStrip[] {
   const { state } = input
   const layer = state.mixer.faderLayer
   const panel = panelStrips(input)
+  const send = LAYER_SEND[layer]
   return Array.from({ length: 9 }, (_, i): FaderStrip => {
     if (i === 8) return panel[8]
+    const p = state.mixer.styleParts[i]
     const f = state.surface.faders[i]
-    if (!f || f.set === null) return parked(i)
+    const tag = f?.label || p?.name.toUpperCase() || ''
+    if (!p || layer === 'pan') return { ...parked(i), tag: tag || '—' }
+    const position = state.mixer.faderPage === 'style' ? (f?.position ?? null) : null
+    const r: Reading = send
+      ? { level: p[send], waiting: (state.mixer.styleSendWaiting & (1 << i)) !== 0, position }
+      : { level: p.volume, waiting: p.waiting, position }
     return {
       id: `style${i + 1}`,
-      tag: f.label,
+      tag,
       hue: 'a',
       kind: 'group',
-      ...live(f, layer, f.label, null, 0),
+      ...live(r, layer, tag, null, 0),
       tip: STYLE_LAYER_TIP[layer],
-      openName: `${f.label}: open Channel`,
+      openName: `${tag}: open Channel`,
       openTip: 'mixer.strip.select',
     }
   })
@@ -667,17 +709,54 @@ const FALLBACK_TIP: Record<PadPage, string> = {
 /** Each pad bank tab's tooltip. */
 const BANK_TIP: Record<PadPage, string> = { ...FALLBACK_TIP, sections: 'padpage.sections' }
 
-/** A pad's face from its lamp (kit › Pad): off = absent, dim = idle, bright solid = playing,
- * flashing = next, pulsing = armed (a pulsing Main is the landing: next, D11). */
-export function padFace(pad: Pick<Pad, 'level' | 'anim' | 'action'>, family: PadItem['family']): PadItem['state'] {
-  if (pad.level === 'off' || pad.action === null) return 'dark'
-  if (pad.level === 'dim') return 'idle'
+/**
+ * A pad's face from its lamp, as the old screen pads read it (develop's HwPad): off = absent
+ * (dark), flashing = queued (next), pulsing = armed, bright = on (playing), dim = available
+ * (idle). Whether the pad has an action doesn't change how it lights: the hardware lights
+ * it the same.
+ */
+export function padFace(pad: Pick<Pad, 'level' | 'anim'>): PadItem['state'] {
+  if (pad.level === 'off') return 'dark'
   if (pad.anim === 'flash') return 'next'
-  if (pad.anim === 'pulse') return family === 'main' ? 'next' : 'armed'
-  return 'playing'
+  if (pad.anim === 'pulse') return 'armed'
+  if (pad.level === 'bright') return 'playing'
+  return 'idle'
 }
 
-const WORDS: Partial<Record<PadItem['state'], string>> = { playing: ', playing', next: ', queued', armed: ', armed', dark: ' (not in this style)' }
+/** The kit hues a pad colour maps onto, by hue angle (degrees). */
+const PAD_HUES: { family: PadItem['family']; deg: number }[] = [
+  { family: 'ending', deg: 0 }, // red: Ending, a loaded Quick Rack, a Multi Pad playing, Stop
+  { family: 'r3', deg: 25 }, // orange: Sync Start, the Racks page, a Multi Pad waiting
+  { family: 'intro', deg: 45 }, // amber / yellow: Intro, the Multi Pads page
+  { family: 'main', deg: 125 }, // green: Main
+  { family: 'l', deg: 180 }, // teal / cyan: Sync Stop, the Chord page
+  { family: 'r1', deg: 220 }, // blue: Auto Fill, a stored Quick Rack, a Multi Pad with data
+  { family: 'brk', deg: 280 }, // purple: Break
+  { family: 'r2', deg: 325 }, // pink / magenta: the Setup page
+  { family: 'ending', deg: 360 },
+]
+
+/**
+ * The kit hue nearest the colour the engine lights a pad in (`pad.rgb`, 0–127 a channel), so
+ * every pad keeps its old colour in the kit's palette (develop's HwPad drew `pad.rgb`): a
+ * grey or unlit colour is neutral (`util`). Null for black (no colour sent).
+ */
+export function padHue(rgb: Pad['rgb']): PadItem['family'] | null {
+  const [r, g, b] = rgb
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  if (max <= 0) return null
+  if ((max - min) / max < 0.25) return 'util'
+  const c = max - min
+  const h = max === r ? ((g - b) / c + 6) % 6 : max === g ? (b - r) / c + 2 : (r - g) / c + 4
+  const deg = h * 60
+  let best = PAD_HUES[0]
+  for (const x of PAD_HUES) if (Math.abs(x.deg - deg) < Math.abs(best.deg - deg)) best = x
+  return best.family
+}
+
+const WORDS: Partial<Record<PadItem['state'], string>> = { playing: ', on', next: ', queued', armed: ', armed', dark: ', unavailable' }
+const SECTION_WORDS: Partial<Record<PadItem['state'], string>> = { ...WORDS, playing: ', playing', dark: ' (not in this style)' }
 const plain = (label: string) => label.replaceAll(NBSP, ' ')
 
 export function pads(input: Pick<StageInput, 'state' | 'beats'>): StageProps['pads'] {
@@ -689,19 +768,32 @@ export function pads(input: Pick<StageInput, 'state' | 'beats'>): StageProps['pa
     if (sections) {
       const s = SECTION_PADS[i]
       if (s.family === 'start') {
+        // Green while running, red while stopped, as the engine lights it (develop's pad).
         const running = state.transport.running
-        return { ...s, state: running ? 'running' : 'idle', name: `Start / Stop (pad 16), ${running ? 'running' : 'stopped'}` }
+        const lamp = pad ? padHue(pad.rgb) : null
+        const stopped = !running && lamp !== null && lamp !== 'main' && pad?.level !== 'off'
+        return {
+          ...s,
+          family: stopped ? lamp : 'start',
+          state: running ? 'running' : stopped ? padFace(pad!) : 'idle',
+          name: `Start / Stop (pad 16), ${running ? 'running' : 'stopped'}`,
+        }
       }
-      const face = pad ? padFace(pad, s.family) : 'dark'
-      const word = WORDS[face]
-      return { ...s, state: face, name: word ? `${plain(s.label)} (pad ${i + 1})${word}` : undefined }
+      const face = pad ? padFace(pad) : 'dark'
+      const word = SECTION_WORDS[face]
+      return {
+        ...s,
+        family: (pad && padHue(pad.rgb)) ?? s.family,
+        state: face,
+        name: word ? `${plain(s.label)} (pad ${i + 1})${word}` : undefined,
+      }
     }
-    // Other pages until their spec lands (D33): utility pads captioned as the state sends.
+    // The other pages: captioned and coloured as the state sends (develop's HwPad).
     const label = pad?.label ?? ''
     if (!pad || label === '') return { label: '', family: 'util', state: 'dark', tip: 'launchkey.unused', name: `Pad ${i + 1} unused` }
-    const face = padFace(pad, 'util')
-    const word = face === 'dark' ? '' : (WORDS[face] ?? '')
-    return { label, family: 'util', state: face, tip: FALLBACK_TIP[p.page], name: `${label} (pad ${i + 1})${word}` }
+    const face = padFace(pad)
+    const word = WORDS[face] ?? ''
+    return { label, family: padHue(pad.rgb) ?? 'util', state: face, tip: FALLBACK_TIP[p.page], name: `${label} (pad ${i + 1})${word}` }
   })
   return {
     pads: items,

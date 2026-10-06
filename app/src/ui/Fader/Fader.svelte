@@ -5,8 +5,10 @@
   level, a dashed ghost line marks where it is and ↕ says "move it through". Kinds: `part`,
   `group` and `master` are live; `off` dims the bracket and drops the meter; `parked` (an unused
   fader) draws a dashed groove only. `layered` is the non-Vol layer look: no meters, a white
-  bracket, the value carrying the layer word. Fully controlled: a drag or an arrow key asks for a
-  level through `onlevel`; it moves nothing itself.
+  bracket, the value carrying the layer word. Fully controlled: a drag, a key (↑ ↓ → ← ±1, Page
+  Up / Down ±10, Home, End) or the wheel (±2 a notch) asks for a level through `onlevel`; it moves
+  nothing itself. Steps in quick succession count from the level last asked for until `level`
+  catches up, so key repeats never stall on a level the state hasn't sent back yet.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -40,7 +42,7 @@
     tip?: string
     /** The app's `use:tip` action, applied with `tip` when both are set. */
     tipAction?: Action<HTMLElement, string>
-    /** Called with the level asked for (0–127) on a drag along the track, or ↑ / ↓ (±1). Not when parked. */
+    /** Called with the level asked for (0–127, whole) on a drag along the track (each level once), a key or the wheel. Not when parked. */
     onlevel?: (level: number) => void
   }
 
@@ -74,6 +76,35 @@
   let track: HTMLSpanElement | undefined = $state()
   let dragId: number | null = null
 
+  // The level last asked for, until the state catches up. A key or wheel step counts from it,
+  // not from `level`: the state arrives a frame or more after each ask, so stepping from
+  // `level` would ask for the same value again on every repeat until then (five presses, one
+  // step). It's dropped once `level` reaches it, or after a short pause with no ask (the
+  // engine may have moved the level elsewhere meanwhile), so `level` always wins in the end.
+  const SETTLE_MS = 400
+  let asked: number | null = null
+  let askedAt = 0
+  let lastSent: number | null = null
+
+  $effect(() => {
+    if (level === asked) asked = null
+  })
+
+  function base() {
+    if (asked !== null && performance.now() - askedAt > SETTLE_MS) asked = null
+    return asked ?? clamp(level, 0, MAX)
+  }
+
+  function ask(next: number) {
+    const v = clamp(Math.round(next), 0, MAX)
+    asked = v === level ? null : v
+    askedAt = performance.now()
+    // A drag repeats the same level on every pixel within a step: send each level once.
+    if (dragId !== null && v === lastSent) return
+    lastSent = v
+    onlevel?.(v)
+  }
+
   function levelAt(clientY: number) {
     if (!track) return level
     const box = track.getBoundingClientRect()
@@ -84,28 +115,52 @@
   function pointerdown(event: PointerEvent) {
     if (parked || event.button !== 0) return
     dragId = event.pointerId
+    lastSent = null
     try {
       ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
     } catch {
       // jsdom and synthetic events have no pointer capture.
     }
-    onlevel?.(levelAt(event.clientY))
+    ask(levelAt(event.clientY))
   }
 
   function pointermove(event: PointerEvent) {
-    if (dragId === event.pointerId) onlevel?.(levelAt(event.clientY))
+    if (dragId === event.pointerId) ask(levelAt(event.clientY))
   }
 
   function pointerend(event: PointerEvent) {
     if (dragId === event.pointerId) dragId = null
   }
 
+  /** ↑ / → +1, ↓ / ← −1, Page Up / Down ±10, Home 0, End 127 (the old app's fader keys). */
+  const STEPS: Record<string, number> = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1, PageUp: 10, PageDown: -10 }
+
   function keydown(event: KeyboardEvent) {
     if (parked) return
-    const step = event.key === 'ArrowUp' ? 1 : event.key === 'ArrowDown' ? -1 : 0
-    if (step === 0) return
+    let next: number | null = null
+    if (event.key in STEPS) next = base() + STEPS[event.key]
+    else if (event.key === 'Home') next = 0
+    else if (event.key === 'End') next = MAX
+    if (next === null) return
     event.preventDefault()
-    onlevel?.(clamp(level + step, 0, MAX))
+    ask(next)
+  }
+
+  // The wheel: 2 a notch, as the old fader moved. A trackpad sends many small deltas: they add
+  // up to a notch (WHEEL_PX) before the fader moves, so a swipe doesn't fling it end to end.
+  const WHEEL_PX = 20
+  let wheelAcc = 0
+
+  function wheel(event: WheelEvent) {
+    if (parked || event.deltaY === 0) return
+    event.preventDefault()
+    const px = event.deltaMode === 1 ? event.deltaY * WHEEL_PX : event.deltaMode === 2 ? event.deltaY * WHEEL_PX * 10 : event.deltaY
+    if (Math.sign(px) !== Math.sign(wheelAcc)) wheelAcc = 0
+    wheelAcc += px
+    if (Math.abs(wheelAcc) < WHEEL_PX) return
+    const dir = wheelAcc < 0 ? 1 : -1
+    wheelAcc = 0
+    ask(base() + 2 * dir)
   }
 
   const tipped: Action<HTMLElement, string | undefined> = (node, key) => {
@@ -141,6 +196,7 @@
   onpointerup={pointerend}
   onpointercancel={pointerend}
   onkeydown={keydown}
+  onwheel={wheel}
   use:tipped={tip}
 >
   <span class="value" aria-hidden="true">{parked ? '' : value}</span>

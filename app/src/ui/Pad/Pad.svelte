@@ -14,14 +14,18 @@
 <script lang="ts">
   import type { Action } from 'svelte/action'
 
-  type Family = 'intro' | 'main' | 'ending' | 'brk' | 'fill' | 'util' | 'start'
+  type Family = 'intro' | 'main' | 'ending' | 'brk' | 'fill' | 'util' | 'start' | 'r1' | 'r2' | 'r3' | 'l'
+
+  /** The hues with a pad glow token of their own (`--pad-glow-<hue>`); the others glow none. */
+  const GLOWS = new Set(['intro', 'main', 'ending', 'brk', 'fill', 't', 'ok'])
 
   type Props = {
     /** The label, centred in the pad ("Main B", "Sync Start"); it wraps at word boundaries. Tie a numeral to its word with a no-break space. */
     label: string
     /** The pad's number on the Launchkey ("1" … "16"). Not drawn; it only goes into the default accessible name. */
     index?: string
-    /** The family: a section hue, `util` (neutral) or `start` (Start / Stop, `--ok` when running). */
+    /** The family: a section hue, `util` (neutral), `start` (Start / Stop, `--ok` when running), or a
+        part hue (`r1` blue, `r2` pink, `r3` orange, `l` teal) for a pad the engine lights in that colour. */
     family?: Family
     /** The face. `dark` (absent) draws the family's hue at reduced strength. */
     state?: 'idle' | 'dark' | 'playing' | 'next' | 'armed' | 'running'
@@ -80,7 +84,7 @@
   class:waiting
   class:unlit={waiting && !lit}
   style:--hue="var(--{hue})"
-  style:--glow="var(--pad-glow-{glow})"
+  style:--glow={GLOWS.has(glow) ? `var(--pad-glow-${glow})` : 'none'}
   data-face={state}
   data-hue={hue}
   data-contrast={state === 'dark' ? 'dim' : undefined}

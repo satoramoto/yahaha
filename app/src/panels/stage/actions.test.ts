@@ -83,13 +83,28 @@ describe('pads', () => {
     expect(take().sent).toEqual([{ type: 'main', index: 1 }])
   })
 
-  it('a pad press releases a latched Sound', () => {
-    const { deps, actions, take } = fake((s) => (s.pads.pads = [pad({ type: 'pressQuickRack', slot: 0 })]))
-    lampClick(actions,'sound')
+  it('a latched Sound stays latched through pad presses, as on develop; a click on Sound lets go', () => {
+    const { deps, actions, take } = fake((s) => (s.pads.pads = [pad({ type: 'pressQuickRack', slot: 0 }), pad({ type: 'storeRack', slot: 1 })]))
+    lampClick(actions, 'sound')
     expect(take().sent).toEqual([{ type: 'setLayer', layer: { type: 'sound' } }])
     deps.state.surface.layer = { type: 'sound' }
     actions.onpadpress(0)
-    expect(take().sent).toEqual([{ type: 'pressQuickRack', slot: 0 }, { type: 'setLayer', layer: { type: 'none' } }])
+    actions.onpadpress(1)
+    expect(take().sent).toEqual([{ type: 'pressQuickRack', slot: 0 }, { type: 'storeRack', slot: 1 }])
+    lampClick(actions, 'sound')
+    expect(take().sent).toEqual([{ type: 'setLayer', layer: { type: 'none' } }])
+  })
+
+  it('a pad sends exactly the state\'s action on every page, whatever it lights', () => {
+    const { deps, actions, take } = fake((s) => {
+      s.pads.page = 'multiPads'
+      s.pads.pads = [{ ...pad({ type: 'triggerMultiPad', pad: 0 }), level: 'off' }, { ...pad({ type: 'stopAllMultiPads' }), level: 'bright', anim: 'flash' }]
+    })
+    actions.onpadpress(0)
+    actions.onpadpress(1)
+    deps.shift = true
+    actions.onpadpress(1)
+    expect(take().sent).toEqual([{ type: 'triggerMultiPad', pad: 0 }, { type: 'stopAllMultiPads' }, { type: 'stopAllMultiPads' }])
   })
 
   it('a pad press keeps a Sound held by a long press; its release ends it', () => {
@@ -188,39 +203,62 @@ describe('lamps', () => {
 })
 
 describe('faders', () => {
-  it('onlevel fills volume, pan or value in the strip\'s fader `set`, rounded', () => {
-    const { actions, take } = fake((s) => {
-      s.surface.faders[0] = fader('RIGHT 1', { type: 'setPartVolume', part: 0, volume: 0 })
-      s.surface.faders[1] = fader('RIGHT 2', { type: 'setPartPan', part: 1, pan: 0 })
-      s.surface.faders[4] = fader('STYLE', { type: 'setStyleVolume', volume: 0 })
-      s.surface.faders[2] = fader('RIGHT 3', { type: 'setPartSend', part: 2, send: 'reverb', value: 0 })
-      s.surface.faders[8] = fader('MASTER', { type: 'setMasterVolume', volume: 0 })
+  it('onlevel sends the old Strip\'s command for the layer, rounded and clamped, whatever the rack maps the hardware fader to', () => {
+    const { deps, actions, take } = fake((s) => {
+      // The surface is remapped or empty: the strip's command doesn't come from it.
+      s.surface.faders[0] = fader('PANR2', { type: 'moveRackFader', fader: 0, volume: 0 })
+      s.surface.faders[1] = fader('', null)
+      s.surface.faders[4] = fader('', null)
     })
     actions.onlevel('right1', 99.6)
-    actions.onlevel('right2', 20)
-    actions.onlevel('right3', 40)
+    actions.onlevel('right2', 140)
     actions.onlevel('style', 80)
-    actions.onlevel('master', 127)
     actions.onlevel('multiPad', 50)
+    actions.onlevel('master', 127)
     actions.onlevel('nonsense', 50)
     expect(take().sent).toEqual([
       { type: 'setPartVolume', part: 0, volume: 100 },
+      { type: 'setPartVolume', part: 1, volume: 127 },
+      { type: 'setStyleVolume', volume: 80 },
+      { type: 'setMultiPadVolume', volume: 50 },
+      { type: 'setMasterVolume', volume: 127 },
+    ])
+    deps.state.mixer.faderLayer = 'pan'
+    actions.onlevel('right2', 20)
+    deps.state.mixer.faderLayer = 'reverb'
+    actions.onlevel('right3', 40)
+    deps.state.mixer.faderLayer = 'chorus'
+    actions.onlevel('left', -3)
+    deps.state.mixer.faderLayer = 'delay'
+    actions.onlevel('right1', 7)
+    expect(take().sent).toEqual([
       { type: 'setPartPan', part: 1, pan: 20 },
       { type: 'setPartSend', part: 2, send: 'reverb', value: 40 },
-      { type: 'setStyleVolume', volume: 80 },
-      { type: 'setMasterVolume', volume: 127 },
+      { type: 'setPartSend', part: 3, send: 'chorus', value: 0 },
+      { type: 'setPartSend', part: 0, send: 'variation', value: 7 },
     ])
   })
 
-  it('onlevel on a Style-page strip uses that fader', () => {
-    const { actions, take } = fake((s) => {
-      s.surface.faders[2] = fader('BASS', { type: 'setStylePartVolume', part: 2, volume: 0 })
-    })
-    actions.onlevel('style3', 77)
-    expect(take().sent).toEqual([{ type: 'setStylePartVolume', part: 2, volume: 77 }])
+  it('no synth: Master sends nothing', () => {
+    const { actions, take } = fake((s) => (s.mixer.master = null))
+    actions.onlevel('master', 90)
+    expect(take().sent).toEqual([])
   })
 
-  it('onopen: a part opens Channel, a rack target the Rack, Style its page, Multi Pad, Master, style1…', () => {
+  it('onlevel on a Style-page strip: the Style part\'s volume or send; nothing on Pan', () => {
+    const { deps, actions, take } = fake((s) => (s.mixer.faderPage = 'style'))
+    actions.onlevel('style3', 77)
+    deps.state.mixer.faderLayer = 'delay'
+    actions.onlevel('style8', 30)
+    deps.state.mixer.faderLayer = 'pan'
+    actions.onlevel('style1', 30)
+    expect(take().sent).toEqual([
+      { type: 'setStylePartVolume', part: 2, volume: 77 },
+      { type: 'setStylePartSend', part: 7, send: 'variation', value: 30 },
+    ])
+  })
+
+  it('onopen: a part opens Channel (even with its Launchkey fader on a rack target), fader 7 the Rack, Style its page, Multi Pad, Master, style1…', () => {
     const { actions, take } = fake((s) => {
       s.surface.faders[0].label = 'RIGHT 1'
       s.surface.faders[1].label = 'R1 PAN'
@@ -234,7 +272,7 @@ describe('faders', () => {
     actions.onopen('master')
     actions.onopen('style1')
     actions.onopen('style8')
-    expect(take().opened).toEqual([{ channel: 0 }, 'rack', { channel: 2 }, 'rack', 'multipad', 'effects', { channel: 4 }, { channel: 11 }])
+    expect(take().opened).toEqual([{ channel: 0 }, { channel: 1 }, { channel: 2 }, 'rack', 'multipad', 'effects', { channel: 4 }, { channel: 11 }])
     actions.onopen('style')
     expect(take()).toEqual({ sent: [{ type: 'setFaderPage', page: 'style' }], opened: [] })
   })

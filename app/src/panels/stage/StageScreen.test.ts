@@ -103,6 +103,42 @@ describe('StageScreen', () => {
     expect(s.state.transport.running).toBe(false)
   })
 
+  it('a fader shows the part\'s level after a Quick Rack recall', async () => {
+    const s = setup()
+    s.send({ type: 'setPartVolume', part: 0, volume: 40 })
+    s.send({ type: 'storeRack', slot: 0 })
+    s.send({ type: 'setPartVolume', part: 0, volume: 120 })
+    flushSync()
+    expect(button(/^Right 1 120/, region('Faders'))).toBeTruthy()
+    s.send({ type: 'pressQuickRack', slot: 0, discard: true })
+    flushSync()
+    expect(s.state.keyboardParts[0].volume).toBe(40)
+    expect(button(/^Right 1 40/, region('Faders'))).toBeTruthy()
+  })
+
+  it('ArrowUp on a fader sets the part\'s volume one higher, and the fader shows it', async () => {
+    const s = setup()
+    const before = s.state.keyboardParts[0].volume
+    await fireEvent.keyDown(button(new RegExp(`^Right 1 ${before}`), region('Faders')), { key: 'ArrowUp' })
+    expect(s.state.keyboardParts[0].volume).toBe(before + 1)
+    expect(button(new RegExp(`^Right 1 ${before + 1}`), region('Faders'))).toBeTruthy()
+  })
+
+  it('dragging a knob turns it from where it is, a step every 4px', async () => {
+    const s = setup()
+    const knob = button(/^Knob 6: Swing/, region('Knobs'))
+    const before = s.state.styleSettings.swing
+    await fireEvent.pointerDown(knob, { pointerId: 1, button: 0, clientX: 0, clientY: 500 })
+    expect(s.state.styleSettings.swing).toBe(before)
+    await fireEvent.pointerMove(knob, { pointerId: 1, clientX: 0, clientY: 492 })
+    await fireEvent.pointerUp(knob, { pointerId: 1 })
+    expect(s.state.styleSettings.swing).toBeGreaterThan(before)
+    // Two steps, as two ↑ presses would be: two ↓ bring it back.
+    await fireEvent.keyDown(knob, { key: 'ArrowDown' })
+    await fireEvent.keyDown(knob, { key: 'ArrowDown' })
+    expect(s.state.styleSettings.swing).toBe(before)
+  })
+
   it('ArrowUp on a knob turns it one step', async () => {
     const s = setup()
     expect(s.state.styleSettings.swing).toBe(0)

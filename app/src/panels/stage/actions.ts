@@ -10,7 +10,7 @@ import type { ComponentProps } from 'svelte'
 import type { AppCmd, AppState, ControlId, FaderLayer, FaderPage } from '../../lib/api/types'
 import type { HealthTarget } from '../../ui/HealthSlot/health'
 import type Stage from '../../ui/Stage/Stage.svelte'
-import { KNOB_PAGES } from './model'
+import { KNOB_PAGES, LAYER_SEND } from './model'
 
 type StageProps = ComponentProps<typeof Stage>
 
@@ -45,11 +45,44 @@ export interface StageDeps {
 export type StageActions = { [K in keyof StageProps as K extends `on${string}` ? K : never]-?: StageProps[K] }
 
 const PART_IDS = ['right1', 'right2', 'right3', 'left']
-const PART_FADER_LABELS = ['RIGHT 1', 'RIGHT 2', 'RIGHT 3', 'LEFT']
 /** Strip id → its Launchkey fader (0–8). */
 const STRIP_FADER: Record<string, number> = {
   right1: 0, right2: 1, right3: 2, left: 3, style: 4, multiPad: 5, fader7: 6, fader8: 7, master: 8,
   ...Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].map((n) => [`style${n}`, n - 1])),
+}
+
+/**
+ * What a strip's fader sends for `level` on the layer showing: the old mixer Strip's
+ * commands, whatever the live rack maps the Launchkey fader to (a keyboard part's
+ * setPartVolume, setPartPan or setPartSend; a Style part's setStylePartVolume or
+ * setStylePartSend, nothing on Pan; Style, Multi Pad and Master their volumes), rounded to
+ * a whole MIDI value and clamped to 0–127. Faders 7 and 8, unused on Panel, send what the
+ * state says (`surface.faders[i].set`). Null: nothing to send.
+ */
+export function levelCommand(s: AppState, id: string, level: number): AppCmd | null {
+  const v = Math.max(0, Math.min(127, Math.round(level)))
+  const layer = s.mixer.faderLayer
+  const send = LAYER_SEND[layer]
+  const part = PART_IDS.indexOf(id)
+  if (part >= 0) {
+    if (layer === 'volume') return { type: 'setPartVolume', part, volume: v }
+    if (layer === 'pan') return { type: 'setPartPan', part, pan: v }
+    return { type: 'setPartSend', part, send: send!, value: v }
+  }
+  if (id === 'style') return { type: 'setStyleVolume', volume: v }
+  if (id === 'multiPad') return { type: 'setMultiPadVolume', volume: v }
+  if (id === 'master') return s.mixer.master === null ? null : { type: 'setMasterVolume', volume: v }
+  const style = /^style([1-8])$/.exec(id)
+  if (style) {
+    const i = Number(style[1]) - 1
+    if (layer === 'volume') return { type: 'setStylePartVolume', part: i, volume: v }
+    return send ? { type: 'setStylePartSend', part: i, send, value: v } : null
+  }
+  const f = s.surface.faders[STRIP_FADER[id] ?? -1]
+  if (!f?.set) return null
+  const set = f.set as Record<string, unknown>
+  const field = 'volume' in set ? 'volume' : 'pan' in set ? 'pan' : 'value'
+  return { ...set, [field]: v } as AppCmd
 }
 
 export function stageActions(d: StageDeps): StageActions {
@@ -93,21 +126,16 @@ export function stageActions(d: StageDeps): StageActions {
     // Faders
     onchoosePage: (id) => send({ type: 'setFaderPage', page: id as FaderPage }),
     onchooseLayer: (id) => send({ type: 'setFaderLayer', layer: id as FaderLayer }),
-    onlevel: (id, level) => {
-      const f = d.state().surface.faders[STRIP_FADER[id] ?? -1]
-      if (!f?.set) return
-      const set = f.set as Record<string, unknown>
-      const field = 'volume' in set ? 'volume' : 'pan' in set ? 'pan' : 'value'
-      d.send({ ...set, [field]: Math.round(level) } as AppCmd)
-    },
+    onlevel: (id, level) => send(levelCommand(d.state(), id, level)),
     onopen: (id) => {
       const s = d.state()
       const i = STRIP_FADER[id]
       if (id.startsWith('style') && id !== 'style') return d.open({ channel: 4 + i })
-      if (i < 4 || i === 6 || i === 7) {
-        // A fader the live rack maps elsewhere opens the Rack (D63); a part's opens Channel.
+      // A part's strip is the part's whatever the rack maps its Launchkey fader to: Channel.
+      if (i < 4) return d.open({ channel: i })
+      if (i === 6 || i === 7) {
         const label = s.surface.faders[i]?.label ?? ''
-        return d.open(i < 4 && (label === '' || label === PART_FADER_LABELS[i]) ? { channel: i } : 'rack')
+        return label === '' ? undefined : d.open('rack')
       }
       if (id === 'style') return send({ type: 'setFaderPage', page: 'style' })
       if (id === 'multiPad') return d.open('multipad')
@@ -167,12 +195,10 @@ export function stageActions(d: StageDeps): StageActions {
     },
     onbankup: () => send(control('padBankUp')),
     onbankdown: () => send(control('padBankDown')),
-    onpadpress: (index) => {
-      const s = d.state()
-      send(s.pads.pads[index]?.action)
-      // A latched Sound ends with the next pad pressed on screen (D18; C3 brings the hardware's).
-      if (s.surface.layer.type === 'sound' && !soundHeld) send({ type: 'setLayer', layer: { type: 'none' } })
-    },
+    // A pad sends what the state says it sends, as the old screen pads and the hardware do.
+    // A latched Sound stays latched (the pointer is free for the pads) until Sound is
+    // clicked again, as on the old Launchkey panel.
+    onpadpress: (index) => send(d.state().pads.pads[index]?.action),
 
     // Transport and tempo
     onstartstop: () => send({ type: 'startStop' }),

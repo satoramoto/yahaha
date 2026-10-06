@@ -4,7 +4,8 @@
 import { describe, expect, it } from 'vitest'
 import { emptyState } from '../../lib/api/constants'
 import { MockSession } from '../../lib/api/mock'
-import type { AppState, ControlId, KnobState, LibraryEntry, LibraryList, Meters, Pad, PartPlugin, SurfaceFader } from '../../lib/api/types'
+import type { AppState, ControlId, KnobState, LibraryEntry, LibraryList, Meters, Pad, PadPage, PartPlugin, SurfaceFader } from '../../lib/api/types'
+import { FINGERINGS } from '../../lib/api/types'
 import {
   appBar,
   chordNotes,
@@ -15,6 +16,7 @@ import {
   knobs,
   meterFraction,
   padFace,
+  padHue,
   pads,
   sectionBar,
   sectionName,
@@ -249,15 +251,40 @@ describe('valueText, meterFraction, holdPeak', () => {
   })
 })
 
-describe('padFace', () => {
-  it('off/unused dark, dim idle, flash next, pulse armed (a Main: next), bright playing', () => {
-    expect(padFace(pad({ level: 'off' }), 'main')).toBe('dark')
-    expect(padFace(pad({ level: 'bright', action: null }), 'main')).toBe('dark')
-    expect(padFace(pad({ level: 'dim' }), 'main')).toBe('idle')
-    expect(padFace(pad({ level: 'bright', anim: 'flash' }), 'intro')).toBe('next')
-    expect(padFace(pad({ level: 'bright', anim: 'pulse' }), 'intro')).toBe('armed')
-    expect(padFace(pad({ level: 'bright', anim: 'pulse' }), 'main')).toBe('next')
-    expect(padFace(pad({ level: 'bright' }), 'main')).toBe('playing')
+describe('padFace (develop\'s HwPad: dark, queued, armed, on, available)', () => {
+  it('off dark, flash next, pulse armed, bright playing, dim idle; the action doesn\'t change the light', () => {
+    expect(padFace(pad({ level: 'off' }))).toBe('dark')
+    expect(padFace(pad({ level: 'bright', action: null }))).toBe('playing')
+    expect(padFace(pad({ level: 'dim', action: null }))).toBe('idle')
+    expect(padFace(pad({ level: 'dim' }))).toBe('idle')
+    expect(padFace(pad({ level: 'bright', anim: 'flash' }))).toBe('next')
+    // A pulsing pad (Sync Start on, an armed Intro, the Main a fill lands on) is armed, as on the old pads.
+    expect(padFace(pad({ level: 'bright', anim: 'pulse' }))).toBe('armed')
+    expect(padFace(pad({ level: 'bright' }))).toBe('playing')
+  })
+})
+
+describe('padHue: the engine\'s pad colours onto the kit\'s hues', () => {
+  it('every colour src/launchkey.rs lights a pad in maps to its own hue', () => {
+    // The colours of `looks()` (mock-pads.ts is its port) and their hues.
+    const cases: [Pad['rgb'], string][] = [
+      [[127, 95, 0], 'intro'], // Intro
+      [[0, 127, 16], 'main'], // Main
+      [[127, 0, 0], 'ending'], // Ending, a loaded Quick Rack, a Multi Pad playing, Stop
+      [[90, 0, 127], 'brk'], // Break
+      [[127, 45, 0], 'r3'], // Sync Start
+      [[0, 45, 127], 'r1'], // Auto Fill
+      [[100, 100, 100], 'util'], // Tap
+      [[0, 110, 110], 'l'], // Sync Stop
+      [[0, 127, 0], 'main'], // Start (running)
+      [[127, 60, 0], 'r3'], // the Racks page; a Multi Pad waiting
+      [[0, 100, 127], 'l'], // the Chord page
+      [[127, 127, 0], 'intro'], // the Multi Pads page
+      [[127, 0, 70], 'r2'], // the Setup page
+      [[0, 40, 127], 'r1'], // a stored Quick Rack, a Multi Pad with data
+    ]
+    for (const [rgb, hue] of cases) expect(padHue(rgb), rgb.join(',')).toBe(hue)
+    expect(padHue([0, 0, 0])).toBeNull()
   })
 })
 
@@ -290,6 +317,9 @@ describe('faders on Panel', () => {
     const f = input(
       state((s) => {
         s.keyboardParts[1].sounding = true
+        s.keyboardParts[1].volume = 90
+        s.keyboardParts[1].waiting = true
+        s.keyboardParts[2].volume = 90
         s.surface.faders[1] = fader({ label: 'RIGHT 2', value: 90, waiting: true, position: 40, set: { type: 'setPartVolume', part: 1, volume: 0 } })
         s.surface.faders[2] = fader({ label: 'RIGHT 3', value: 90, waiting: false, position: 40, set: { type: 'setPartVolume', part: 2, volume: 0 } })
       }),
@@ -299,23 +329,63 @@ describe('faders on Panel', () => {
     expect(f.strips[2].away).toBeUndefined()
   })
 
-  it('a rack target: its label, no meter, the rack tip (D63)', () => {
+  it('reads each level from the part, never from the Launchkey fader (a stale or remapped surface)', () => {
+    const f = input(
+      state((s) => {
+        s.keyboardParts[0].volume = 101
+        s.keyboardParts[0].sounding = true
+        s.mixer.styleVolume = 77
+        s.mixer.multiPadVolume = 66
+        s.mixer.master = 99
+        // The surface says something else (or nothing): the strip doesn't care.
+        s.surface.faders[0] = fader({ label: 'RIGHT 1', value: 12 })
+        s.surface.faders[4] = fader({ label: '', value: null, set: null })
+        s.surface.faders[5] = fader({ label: 'M.PAD', value: 3 })
+        s.surface.faders[8] = fader({ label: 'MASTER', value: 4 })
+      }),
+    )
+    expect(f.strips.map((x) => `${x.id}:${x.value}`)).toEqual(expect.arrayContaining(['right1:101', 'style:77', 'multiPad:66', 'master:99']))
+    expect(f.strips[0].level).toBe(101)
+  })
+
+  it('a rack that maps a Launchkey fader elsewhere (or to nothing) leaves the strip the part\'s, with its level (D63)', () => {
     const m = meters({ channels: [{ channel: 1, peak: 1, rms: 1, cpu: 0, cpuPeak: 0 }] })
     const f = input(
       state((s) => {
         s.keyboardParts[0].sounding = true
-        s.surface.faders[0] = fader({ label: 'PANR2', value: 64, set: { type: 'setPartPan', part: 1, pan: 0 } })
+        s.keyboardParts[0].volume = 88
+        s.keyboardParts[1].sounding = true
+        s.keyboardParts[1].volume = 55
+        s.surface.faders[0] = fader({ label: 'PANR2', value: 64, waiting: true, position: 3, set: { type: 'moveRackFader', fader: 0, volume: 0 } })
+        s.surface.faders[1] = fader({ label: '', value: null, set: null })
       }),
       m,
       [1],
     )
-    expect(f.strips[0]).toMatchObject({ id: 'right1', tag: 'PANR2', kind: 'group', meter: 0, peak: 0, tip: 'launchkey.fader_rack', openTip: 'launchkey.fader_rack' })
+    expect(f.strips[0]).toMatchObject({ id: 'right1', tag: 'Right 1', kind: 'part', value: '88', level: 88, meter: 1, away: undefined })
+    expect(f.strips[0].faderName).toBe('Right 1 88, Launchkey fader 1 moves PANR2')
+    expect(f.strips[1]).toMatchObject({ id: 'right2', tag: 'Right 2', kind: 'part', value: '55', level: 55 })
   })
 
-  it('a part strip on Volume reads its channel\'s meter; on another layer none', () => {
+  it('after a Quick Rack recall the strips show the recalled levels (mock session round trip)', () => {
+    const session = new MockSession({ demo: true, manual: true })
+    session.send({ type: 'setPartVolume', part: 0, volume: 40 })
+    session.send({ type: 'storeRack', slot: 0 })
+    session.send({ type: 'setPartVolume', part: 0, volume: 120 })
+    expect(input(session.state).strips[0].value).toBe('120')
+    session.send({ type: 'pressQuickRack', slot: 0, discard: true })
+    expect(session.state.keyboardParts[0].volume).toBe(40)
+    expect(input(session.state).strips[0]).toMatchObject({ value: '40', level: 40 })
+  })
+
+  it('a part strip on Volume reads its channel\'s meter; on another layer the part\'s pan or send, no meter', () => {
     const m = meters({ channels: [{ channel: 3, peak: 1, rms: 0.1, cpu: 0, cpuPeak: 0 }] })
     const s = state((st) => {
       st.keyboardParts[1].sounding = true // Right 2 is channel 3
+      st.keyboardParts[1].reverb = 40
+      st.keyboardParts[1].chorus = 30
+      st.keyboardParts[1].variation = 20
+      st.keyboardParts[1].pan = 44
       st.surface.faders[1] = fader({ label: 'RIGHT 2', set: { type: 'setPartVolume', part: 1, volume: 0 } })
     })
     const vol = input(s, m, [0, 1])
@@ -323,15 +393,32 @@ describe('faders on Panel', () => {
     expect(vol.strips[1].meter2).toBeCloseTo(2 / 3, 9)
     expect(vol.strips[1].peak).toBe(1)
     s.mixer.faderLayer = 'reverb'
-    s.surface.faders[1] = fader({ label: 'RIGHT 2', value: 40, set: { type: 'setPartSend', part: 1, send: 'reverb', value: 0 } })
-    const rev = input(s, m, [0, 1])
-    expect(rev.strips[1]).toMatchObject({ value: 'Rev 40', meter: 0, tip: 'mixer.part.reverb' })
+    expect(input(s, m, [0, 1]).strips[1]).toMatchObject({ value: 'Rev 40', level: 40, meter: 0, tip: 'mixer.part.reverb' })
+    s.mixer.faderLayer = 'chorus'
+    expect(input(s, m).strips[1]).toMatchObject({ value: 'Cho 30', level: 30 })
+    s.mixer.faderLayer = 'delay'
+    expect(input(s, m).strips[1]).toMatchObject({ value: 'Dly 20', level: 20 })
+    s.mixer.faderLayer = 'pan'
+    expect(input(s, m).strips[1]).toMatchObject({ value: 'L20', level: 44 })
+  })
+
+  it('a send layer waits on its own bit (`mixer.sendWaiting`)', () => {
+    const s = state((st) => {
+      st.mixer.faderLayer = 'reverb'
+      st.mixer.sendWaiting = 1 << 2
+      st.surface.faders[2] = fader({ label: 'RIGHT 3', position: 5 })
+      st.surface.faders[1] = fader({ label: 'RIGHT 2', position: 5 })
+    })
+    const f = input(s)
+    expect(f.strips[2].away).toBe(5)
+    expect(f.strips[1].away).toBeUndefined()
   })
 
   it('no synth: Master parked', () => {
     const f = input(
       state((s) => {
         s.io.synth = null
+        s.mixer.master = null
         s.surface.faders[8] = fader({ label: '', value: null, set: null })
       }),
     )
@@ -344,7 +431,10 @@ describe('faders on the Style page', () => {
     return state((s) => {
       s.mixer.faderPage = 'style'
       ;['RHY1', 'RHY2', 'BASS', 'CHD1', 'CHD2', 'PAD', 'PHR1', 'PHR2'].forEach((label, i) => {
-        s.surface.faders[i] = fader({ label, value: 80 + i, set: { type: 'setStylePartVolume', part: i, volume: 0 } })
+        s.mixer.styleParts[i].volume = 80 + i
+        s.mixer.styleParts[i].reverb = 10 + i
+        // The surface's value is stale: the strip reads the Style part.
+        s.surface.faders[i] = fader({ label, value: 1, set: { type: 'setStylePartVolume', part: i, volume: 0 } })
       })
       s.surface.faders[8] = fader({ label: 'MASTER', set: { type: 'setMasterVolume', volume: 0 } })
       const c1 = control(s, 'faderButton1')
@@ -366,6 +456,14 @@ describe('faders on the Style page', () => {
       'style1:RHY1:80', 'style2:RHY2:81', 'style3:BASS:82', 'style4:CHD1:83', 'style5:CHD2:84', 'style6:PAD:85', 'style7:PHR1:86', 'style8:PHR2:87',
     ])
     expect(f.strips[8]).toMatchObject({ id: 'master', kind: 'master' })
+  })
+
+  it('a send layer shows each Style part\'s send; Pan parks them (a Style part has no pan)', () => {
+    const s = styleState()
+    s.mixer.faderLayer = 'reverb'
+    expect(faders({ state: s, meters: null, holds: [] }).strips.slice(0, 3).map((x) => x.value)).toEqual(['Rev 10', 'Rev 11', 'Rev 12'])
+    s.mixer.faderLayer = 'pan'
+    expect(faders({ state: s, meters: null, holds: [] }).strips[0]).toMatchObject({ kind: 'parked', tag: 'RHY1' })
   })
 
   it('lamps come from the fader buttons; Sound stays', () => {
@@ -516,9 +614,84 @@ describe('pads', () => {
     expect(p.bank).toBe(2)
     expect(p.bankTips).toEqual(['padpage.sections', 'padpage.chord', 'padpage.racks'])
     expect(p.legend).toEqual([])
-    expect(p.pads[0]).toEqual({ label: 'RACK 1', family: 'util', state: 'playing', tip: 'padpage.racks', name: 'RACK 1 (pad 1), playing' })
+    expect(p.pads[0]).toEqual({ label: 'RACK 1', family: 'util', state: 'playing', tip: 'padpage.racks', name: 'RACK 1 (pad 1), on' })
     expect(p.pads[1]).toMatchObject({ label: 'RACK 2', state: 'idle', name: 'RACK 2 (pad 2)' })
     expect(p.pads[2]).toEqual({ label: '', family: 'util', state: 'dark', tip: 'launchkey.unused', name: 'Pad 3 unused' })
+  })
+})
+
+// Each pad page as the mock's engine lights it (mock-pads.ts, the port of src/launchkey.rs
+// `looks()`), read the way develop's screen pads read it: the pad's colour, dark when off,
+// queued when flashing, armed when pulsing, on when bright, available when dim.
+describe('pads, page by page, as develop lit them', () => {
+  const fresh = () => new MockSession({ manual: true })
+  const face = (s: AppState, i: number) => {
+    const p = pads({ state: s, beats: 0 }).pads[i]
+    return `${p.family}:${p.state}`
+  }
+  const page = (m: MockSession, p: PadPage) => m.send({ type: 'setPadPage', page: p })
+
+  it('Sections: utilities in their own colours; Start / Stop red when stopped, green running', () => {
+    const m = fresh()
+    const s = m.state
+    expect(face(s, 0)).toBe(s.style.sections.includes('Intro A') ? 'intro:idle' : 'intro:dark')
+    // Sync Start, orange: pulsing (armed) while on, dim (available) while off.
+    const sync = (st: AppState) => (st.transport.syncStart ? 'r3:armed' : 'r3:idle')
+    expect(face(s, 3)).toBe(sync(s))
+    expect(face(s, 7)).toBe(s.transport.autoFill ? 'r1:playing' : 'r1:idle') // Auto Fill, blue
+    expect(face(s, 13)).toBe('util:idle') // Tap, grey
+    expect(face(s, 14)).toBe(s.transport.syncStop ? 'l:playing' : 'l:idle') // Sync Stop, teal
+    expect(face(s, 15)).toBe('ending:playing') // Start / Stop stopped: bright red
+    const before = face(s, 3)
+    m.send({ type: 'toggleSyncStart' })
+    expect(face(m.state, 3)).toBe(sync(m.state))
+    expect(face(m.state, 3)).not.toBe(before)
+    if (m.state.transport.syncStart) m.send({ type: 'toggleSyncStart' })
+    m.send({ type: 'startStop' })
+    expect(face(m.state, 15)).toBe('start:running')
+  })
+
+  it('Racks: Quick Racks blue when stored, red when loaded, dark when empty; OTS, Bank and Store in the page\'s orange', () => {
+    const m = fresh()
+    page(m, 'racks')
+    const empty = m.state.quickRacks.buttons.findIndex((b) => !b.rack)
+    expect(face(m.state, empty)).toBe('r1:dark')
+    m.send({ type: 'storeRack', slot: empty })
+    page(m, 'racks')
+    const loaded = m.state.quickRacks.buttons[empty].loaded
+    expect(face(m.state, empty)).toBe(loaded ? 'ending:playing' : 'r1:playing')
+    expect(face(m.state, 12)).toBe(m.state.quickRacks.bank > 0 ? 'r3:idle' : 'r3:dark') // Bank −
+    expect(face(m.state, 14)).toBe('r3:idle') // Store
+    expect(pads({ state: m.state, beats: 0 }).pads[15]).toMatchObject({ family: 'util', state: 'dark' })
+    m.send({ type: 'toggleQuickRackStore' })
+    expect(face(m.state, 14)).toBe('ending:next') // Store armed: flashing red
+  })
+
+  it('Chord: the top row dark, the switches in the page\'s colour, lit when on', () => {
+    const m = fresh()
+    page(m, 'chord')
+    expect(face(m.state, 0)).toBe('util:dark')
+    expect(face(m.state, 9)).toBe(m.state.transport.stopAcmp ? 'l:playing' : 'l:idle') // STOP ACMP
+    m.send({ type: 'toggleStopAcmp' })
+    expect(face(m.state, 9)).toBe(m.state.transport.stopAcmp ? 'l:playing' : 'l:idle')
+  })
+
+  it('Setup: the fingering chosen lit in the page\'s pink, the others available', () => {
+    const m = fresh()
+    page(m, 'setup')
+    const chosen = FINGERINGS.findIndex((f) => f.id === m.state.chord.fingering)
+    expect(face(m.state, chosen)).toBe('r2:playing')
+    expect(face(m.state, (chosen + 1) % 7)).toBe('r2:idle')
+  })
+
+  it('Multi Pads: an empty pad dark; Stop available only with data', () => {
+    const m = fresh()
+    page(m, 'multiPads')
+    const lamps = m.state.multiPad.pads.map((p) => p.lamp)
+    lamps.forEach((lamp, i) => {
+      const expected = { empty: 'r1:dark', ready: 'r1:playing', playing: 'ending:playing', queued: 'r3:next', armed: 'ending:next' }[lamp]
+      expect(face(m.state, i), `pad ${i + 1} ${lamp}`).toBe(expected)
+    })
   })
 })
 

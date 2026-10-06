@@ -1,8 +1,10 @@
 <!--
   Knob: one of the eight band knobs. The plain name above, the value and unit in the accent, a
   bare 44px 270° ring arc with a small tip dot at the arc's end, and the Genos code beneath. An
-  unused knob shows only its dim name and an empty ring. Fully controlled: ↑ / ↓ and the wheel ask
-  for a step through `onstep`; a click calls `onpress`.
+  unused knob shows only its dim name and an empty ring. Fully controlled: a drag (relative: a
+  step every 4px up or right, 16px with Shift, never jumping to the pointer), ↑ → / ↓ ← and the
+  wheel (a step a notch; a trackpad's small deltas add up to one) ask for steps through
+  `onstep`; a click that didn't turn it calls `onpress`.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -26,9 +28,9 @@
     tip?: string
     /** The app's `use:tip` action, applied with `tip` when both are set. */
     tipAction?: Action<HTMLElement, string>
-    /** Called on a click, Space or Enter. */
+    /** Called on a click that didn't turn the knob, Space or Enter. */
     onpress?: () => void
-    /** Called with +1 or −1 on ↑ / ↓ or a wheel step. Not when unused. */
+    /** Called with the steps turned (positive: clockwise): ±1 on a key or a wheel notch, the steps a drag covered. Not when unused. */
     onstep?: (delta: number) => void
   }
 
@@ -73,16 +75,76 @@
 
   function keydown(event: KeyboardEvent) {
     if (unused) return
-    const step = event.key === 'ArrowUp' ? 1 : event.key === 'ArrowDown' ? -1 : 0
+    const step = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[event.key] ?? 0
     if (step === 0) return
     event.preventDefault()
     onstep?.(step)
   }
 
+  // The wheel: a step a notch. A trackpad sends many small deltas: they add up to a notch
+  // (WHEEL_PX) before the knob steps, so a swipe turns it a few steps, not dozens.
+  const WHEEL_PX = 20
+  let wheelAcc = 0
+
   function wheel(event: WheelEvent) {
     if (unused || event.deltaY === 0) return
     event.preventDefault()
-    onstep?.(event.deltaY < 0 ? 1 : -1)
+    const px = event.deltaMode === 1 ? event.deltaY * WHEEL_PX : event.deltaMode === 2 ? event.deltaY * WHEEL_PX * 10 : event.deltaY
+    if (Math.sign(px) !== Math.sign(wheelAcc)) wheelAcc = 0
+    wheelAcc += px
+    if (Math.abs(wheelAcc) < WHEEL_PX) return
+    wheelAcc = 0
+    onstep?.(px < 0 ? 1 : -1)
+  }
+
+  // A drag turns it relative to where it is, as the old app's knob: up (or right) is
+  // clockwise, a step every 4px (Shift: every 16px, fine). It never jumps to the pointer.
+  const DRAG_PX = 4
+  const FINE_PX = 16
+  let dragId: number | null = null
+  let lastX = 0
+  let lastY = 0
+  let dragAcc = 0
+  /** This press turned the knob: its click isn't also a press. */
+  let turned = false
+
+  function pointerdown(event: PointerEvent) {
+    turned = false
+    if (unused || event.button !== 0) return
+    dragId = event.pointerId
+    lastX = event.clientX
+    lastY = event.clientY
+    dragAcc = 0
+    try {
+      ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
+    } catch {
+      // jsdom and synthetic events have no pointer capture.
+    }
+  }
+
+  function pointermove(event: PointerEvent) {
+    if (dragId !== event.pointerId) return
+    dragAcc += (lastY - event.clientY + (event.clientX - lastX)) / (event.shiftKey ? FINE_PX : DRAG_PX)
+    lastX = event.clientX
+    lastY = event.clientY
+    const steps = Math.trunc(dragAcc)
+    if (steps === 0) return
+    dragAcc -= steps
+    turned = true
+    onstep?.(steps)
+  }
+
+  function pointerend(event: PointerEvent) {
+    if (dragId === event.pointerId) dragId = null
+  }
+
+  function click(event: MouseEvent) {
+    // A drag isn't a press; Enter / Space (detail 0) always are.
+    if (turned && event.detail > 0) {
+      turned = false
+      return
+    }
+    onpress?.()
   }
 
   const tipped: Action<HTMLElement, string | undefined> = (node, key) => {
@@ -103,7 +165,11 @@
   class:unused
   data-tip={tip}
   aria-label={spoken}
-  onclick={() => onpress?.()}
+  onclick={click}
+  onpointerdown={pointerdown}
+  onpointermove={pointermove}
+  onpointerup={pointerend}
+  onpointercancel={pointerend}
   onkeydown={keydown}
   onwheel={wheel}
   use:tipped={tip}
@@ -138,7 +204,11 @@
     font-variant-numeric: tabular-nums;
     text-align: center;
     white-space: nowrap;
-    cursor: pointer;
+    cursor: ns-resize;
+    touch-action: none;
+  }
+  .unused {
+    cursor: default;
   }
   .label,
   .code {

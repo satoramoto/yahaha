@@ -26,7 +26,7 @@ const meta = {
   argTypes: {
     label: { control: 'text' },
     index: { control: 'text' },
-    family: { control: 'select', options: ['intro', 'main', 'ending', 'brk', 'fill', 'util', 'start'] },
+    family: { control: 'select', options: ['intro', 'main', 'ending', 'brk', 'fill', 'util', 'start', 'r1', 'r2', 'r3', 'l'] },
     state: { control: 'select', options: ['idle', 'dark', 'playing', 'next', 'armed', 'running'] },
     lit: { control: 'boolean' },
     name: { control: 'text' },
@@ -110,5 +110,24 @@ export const Running: Story = {
   args: { label: 'Start / Stop', index: '16', family: 'start', state: 'running', name: 'Start / Stop, running (pad 16)' },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('button')).toHaveAttribute('data-hue', 'ok')
+  },
+}
+
+/** A pad the engine lights blue (a stored Quick Rack): the `r1` hue, solid when on; part hues
+ * have no glow token, so none. */
+export const PartHue: Story = {
+  args: { label: 'QUICK 1', index: '1', family: 'r1', state: 'playing', tip: 'padpage.racks' },
+  play: async ({ canvasElement }) => {
+    const pad = within(canvasElement).getByRole('button')
+    await expect(pad).toHaveAttribute('data-hue', 'r1')
+    await expect(pad.style.getPropertyValue('--glow')).toBe('none')
+  },
+}
+
+/** A part-hue pad that isn't available: the hue's absent token. */
+export const PartHueDark: Story = {
+  args: { label: 'BANK -', index: '13', family: 'r3', state: 'dark', tip: 'padpage.racks' },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button')).toHaveAttribute('data-hue', 'absent-r3')
   },
 }
