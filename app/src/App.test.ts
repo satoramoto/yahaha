@@ -52,16 +52,16 @@ describe('the shell', () => {
     expect(document.querySelector('footer')).toBeNull()
   })
 
-  it('shows Library in the Stage\'s place while ui.view is library', () => {
+  it('shows the Library screen in the Stage\'s place while ui.view is library, scaled the same way', () => {
     setup()
     ui.openLibrary('sounds', 0)
     flushSync()
-    expect(scaler()).toBeNull()
-    expect(document.querySelector('.app > main.library-slot')).toBeTruthy()
+    expect(scaler()!.querySelector('section[aria-label="Faders"]')).toBeNull()
+    expect(scaler()!.querySelector('section[aria-label="Library: Sounds"]')).toBeTruthy()
     ui.view = 'stage'
     flushSync()
-    expect(scaler()).toBeTruthy()
-    expect(document.querySelector('.app > main.library-slot')).toBeNull()
+    expect(scaler()!.querySelector('section[aria-label="Faders"]')).toBeTruthy()
+    expect(document.querySelector('section[aria-label^="Library:"]')).toBeNull()
   })
 })
 
@@ -82,15 +82,24 @@ describe('page tabs', () => {
     expect(document.querySelector('section[aria-label="Faders"]')).toBeTruthy()
   })
 
-  it('Library, a full tab, shows Coming soon; the Stage tab comes back', async () => {
+  it('Library, a full tab, shows the Library screen; the Stage tab and Esc come back', async () => {
     setup()
     await fireEvent.click(tab('Library'))
     flushSync()
-    expect(screen.getByLabelText('Library: coming soon')).toBeTruthy()
+    expect(ui.view).toBe('library')
+    expect(screen.queryByText('Coming soon')).toBeNull()
+    expect(document.querySelector('section[aria-label^="Library:"]')).toBeTruthy()
+    expect(tab('Library').getAttribute('aria-current')).toBe('page')
     await fireEvent.click(tab('Stage'))
     flushSync()
+    expect(ui.view).toBe('stage')
     expect(stagePage.page).toBe('stage')
-    expect(screen.queryByText('Coming soon')).toBeNull()
+    expect(document.querySelector('section[aria-label="Faders"]')).toBeTruthy()
+    await fireEvent.click(tab('Library'))
+    flushSync()
+    await fireEvent.keyDown(window, { key: 'Escape' })
+    flushSync()
+    expect(ui.view).toBe('stage')
   })
 
   it('the Settings tab opens the Settings drawer over the Stage, and a setting round-trips', async () => {
@@ -221,17 +230,16 @@ describe('tooltips in the status line', () => {
     expect(accomp.hasAttribute('aria-describedby')).toBe(false)
   })
 
-  it('Library has its own status line with the hovered control\'s entry', async () => {
+  it('Library\'s status line shows the hovered control\'s entry', async () => {
     setup()
     ui.openLibrary('sounds', 0)
     flushSync()
-    const status = document.querySelector<HTMLElement>('.library-status p[role="status"]')!
+    const status = document.querySelector<HTMLElement>('.scaler p[role="status"]')!
     expect(status).toBeTruthy()
-    // Library focuses its search field after a tick; take focus away so only the hover counts.
     await tick()
     ;(document.activeElement as HTMLElement | null)?.blur()
     vi.advanceTimersByTime(CLEAR_MS)
-    const el = document.querySelector<HTMLElement>('.library-slot [data-tip]')!
+    const el = document.querySelector<HTMLElement>('section[aria-label="Library: Sounds"] [data-tip]')!
     await hover(el)
     flushSync()
     expect(status.querySelector('.hint')!.textContent).toContain(TIPS[el.dataset.tip as TipKey].title)

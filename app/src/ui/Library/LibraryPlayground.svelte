@@ -98,6 +98,8 @@
         p.styles?.onload?.(id)
       },
       onstar: (id, on) => {
+        // A new set replaces the old whole, so `starred` stays a plain reassigned value.
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity
         const next = new Set(starred)
         if (on) next.add(id)
         else next.delete(id)
@@ -117,7 +119,8 @@
     if (!so || !p.sounds) return undefined
     const s = so
     let rows = p.sounds.rows
-    if (s.query.trim()) rows = rows.filter((r) => has(r, s.query, [0, 1, 2]))
+    const q = s.query ?? ''
+    if (q.trim()) rows = rows.filter((r) => has(r, q, [0, 1, 2]))
     if (s.source === 'mine') rows = rows.filter((r) => r.cells[3] === 'Mine')
     else if (s.source === 'factory') rows = rows.filter((r) => r.cells[3] === 'Factory')
     else if (s.source === 'soundFont') rows = rows.filter((r) => r.cells[3] === 'SoundFont')
@@ -187,7 +190,8 @@
   const racks = $derived.by((): Racks | undefined => {
     if (!ra || !p.racks) return undefined
     const s = ra
-    const rows = s.query.trim() ? p.racks.rows.filter((r) => has(r, s.query, [0, 1])) : p.racks.rows
+    const q = s.query ?? ''
+    const rows = q.trim() ? p.racks.rows.filter((r) => has(r, q, [0, 1])) : p.racks.rows
     return {
       ...s,
       rows,

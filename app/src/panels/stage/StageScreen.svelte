@@ -80,6 +80,11 @@
         return
       }
       ui.settings = false
+      // Library is a page of its own (panels/library/LibraryScreen, in the Stage's place).
+      if (target.page === 'library') {
+        ui.openLibrary()
+        return
+      }
       stagePage.page = target.page
       return
     }
@@ -93,7 +98,7 @@
       ui.openLibrary('sounds', target.sounds)
       return
     }
-    if (target === 'browser') ui.browser = true
+    if (target === 'browser') ui.openLibrary('styles')
     else if (target === 'settingsAudio') {
       settingsNav.tab = 'audio'
       ui.settings = true

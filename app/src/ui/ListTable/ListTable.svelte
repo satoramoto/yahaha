@@ -34,7 +34,7 @@
     rowHeight?: number
     /** Shown centred in `--m` when there are no rows ("No styles match"). */
     emptyText?: string
-    /** The tooltip key on every option (`data-tip`, passed to `tipAction`). */
+    /** The tooltip key on the listbox (its one tab stop) and every option (`data-tip`, passed to `tipAction`). */
     rowTip?: string
     /** The tooltip key on every star button. */
     starTip?: string
@@ -193,6 +193,8 @@
         tabindex="0"
         aria-label={label}
         aria-activedescendant={selectedIndex >= 0 ? optionId(selectedIndex) : undefined}
+        data-tip={rowTip}
+        use:tipOn={rowTip}
         {onkeydown}
       >
         {#each visible as i (ids[i])}

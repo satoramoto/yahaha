@@ -16,6 +16,9 @@ import { ui } from '../lib/store.svelte'
 import { tips } from '../lib/tooltip/tip.svelte'
 import { nav as soundNav } from '../panels/sound/nav.svelte'
 import { libraryNav } from '../panels/library/nav.svelte'
+import { instrumentsState } from '../panels/library/instrumentsState.svelte'
+import { racksState } from '../panels/library/racksState.svelte'
+import { soundsPage } from '../panels/library/soundsState.svelte'
 import { channelNav } from '../panels/channel/nav.svelte'
 import { PAGES } from '../panels/stage/model'
 import { stagePage } from '../panels/stage/page.svelte'
@@ -105,17 +108,16 @@ const STATES: [string, Setup][] = [
     s.send({ type: 'setPartPatch', part: 0, id: 'warm-rhodes' })
     ui.openLibrary('sounds', 0)
     flushSync()
-    click('sounds.more')
     click('sound.delete')
   }],
-  ['Library › Instruments, More… on a playing plugin (category, in process, Edit…)', (s) => {
+  ['Library › Instruments, a playing plugin chosen (in process, Edit…)', (s) => {
     s.send({ type: 'setPartPlugin', part: 0, id: 'aumu Smp7 Fake', state: null })
     s.advance(1000)
+    instrumentsState.chosen = 'au:aumu Smp7 Fake'
     ui.openLibrary('instruments', 0)
-    flushSync()
-    document.querySelector<HTMLElement>('section[aria-label="Sampler Deluxe"] [data-tip="library.inst_more"]')!.click()
-    flushSync()
   }],
+  ['Library › Styles, playing (a style queued)', (s) => (s.send({ type: 'queueStyle', id: 1 }), ui.openLibrary('styles'))],
+  ['Library › Styles, stopped (Preview on select)', (s) => (s.send({ type: 'stop' }), ui.openLibrary('styles'))],
   ['Library › Racks, Needs attention on', () => {
     ui.openLibrary('racks', 0)
     flushSync()
@@ -246,6 +248,9 @@ afterEach(() => {
   ui.libraryTab = 'sounds'
   ui.libraryPart = 0
   libraryNav.reset()
+  soundsPage.reset()
+  racksState.reset()
+  instrumentsState.reset()
   ui.settings = false
   ui.rack = false
   ui.mixer = false
@@ -278,7 +283,8 @@ describe('tooltip coverage', () => {
 
   // Every page tab that isn't built yet: "Coming soon" under the app bar, whose controls (the
   // page tabs, the health slot) are all there is.
-  for (const page of PAGES.filter((p) => p !== 'stage')) {
+  // (Library is a page of its own now: its states are in STATES above.)
+  for (const page of PAGES.filter((p) => p !== 'stage' && p !== 'library')) {
     it(`every interactive element has a catalog tooltip: page tab ${page}, Coming soon`, () => {
       const session = new MockSession({ demo: true, manual: true })
       render(App, { props: { session } })

@@ -245,6 +245,14 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Sounds** | Every sound a keyboard part can play: yours, plugin presets and SoundFont voices, by category. Click one to hear it on the target part. | Voice Selection | — | — |
 | **Instruments** | Your plugins and SoundFonts, with New and Missing ones marked. Browse lists an instrument's sounds; + New sound starts from a blank plugin. | — | — | — |
 | **Style map** | The program map that makes every style play your sounds instead of the GM voices it asks for, and Add from SoundFont. | — | `Alt+Y` (terminal: ) | — |
+| **Styles** | The style library by folder, with Favourites and Recent. Filter it, pick a style and load it; while the band plays it loads on the next bar. | Style Selection | — | — |
+| **Style** | Click to highlight it (and preview it while stopped, with Preview on select). Enter or a double-click loads it. ● marks the loaded style; ◀ and ▶ the ones Track ◀ and Track ▶ would load. | — | — | Track ◀ / Track ▶ load the neighbouring styles |
+| **Load style** | Loads the highlighted style now and goes back to the Stage. While the band plays, it loads on the next bar line instead. Enter does the same. | — | — | — |
+| **Cancel next-bar load** | Would cancel the style waiting for the next bar line. Not available yet: the engine has no command to unqueue a style. | — | — | — |
+| **Open file…** | Opens a style file from any folder, adds it to the library and loads it. Not available yet: the app has no file chooser. | — | — | — |
+| **Show** | All instruments, only plugins, only SoundFonts, or the ones that need attention: a plugin that is not installed (its parts are silent) or one that failed to load last time. | — | — | — |
+| **Instrument** | Click to see its details; double-click or Enter browses its sounds. New marks a plugin the last scan found that you have not opened yet; ⚠ one that is missing or failed to load. | — | — | — |
+| **Replace…** | This plugin is not installed, so the parts playing it are silent. Opens Sounds with that part as the target: the sound you pick replaces it and keeps its mix. Off when no part plays it now. | — | — | — |
 | **Loads into** | The keyboard part that Sounds and Instruments load into. It starts on the part you came from; switch it here without leaving Library. | PART SELECT | — | — |
 | **Back to Stage** | Closes Library and shows the stage again. Nothing is lost: the live rack keeps what you picked. | — | `Esc` | — |
 | **Search sounds** | Narrows the list by name, instrument or category. ↑ ↓ step through the list and play each sound on the target part; Enter plays the selected one. | — | — | — |

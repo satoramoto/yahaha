@@ -274,7 +274,7 @@ export interface SoundPick {
 export type View = 'stage' | 'library'
 
 /** Library's tabs. */
-export type LibraryTab = 'racks' | 'sounds' | 'instruments' | 'map'
+export type LibraryTab = 'styles' | 'racks' | 'sounds' | 'instruments' | 'map'
 
 class UiStore {
   /** The page in place of the stage: Stage | Library (the header's switch, Alt+B). Drawers

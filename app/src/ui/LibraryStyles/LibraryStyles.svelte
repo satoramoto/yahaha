@@ -238,7 +238,7 @@
           stars
           rowHeight={ROW_HEIGHT}
           {emptyText}
-          rowTip="browser.row"
+          rowTip="library.style_row"
           starTip="browser.favourite"
           {tipAction}
           onselect={(id) => onselect?.(id)}

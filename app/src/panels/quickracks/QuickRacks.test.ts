@@ -372,14 +372,13 @@ describe('Library › Racks', () => {
     flushSync()
     expect(ui.view).toBe('library')
     expect(ui.libraryTab).toBe('racks')
-    const rack = tipped('library.rack_row')
+    const rack = tipped('library.rack_row').filter((el) => el.getAttribute('role') === 'option')
     expect(rack.map((b) => b.textContent)).toEqual([expect.stringContaining('Ballad')])
     expect(rack[0].textContent).toContain('A1')
     await fireEvent.dblClick(rack[0])
     flushSync()
-    // The prompt is asked in the docked Rack panel, not the Quick Racks bar; no drawer opens.
-    expect(ui.rack).toBe(false)
-    expect(document.querySelector('.library-slot .qbar')!.textContent).not.toContain('Ballad?')
+    // The prompt is asked in the Rack drawer, which opens over Library.
+    expect(ui.rack).toBe(true)
     expect(tipped('rack.discard_switch')).toHaveLength(1)
     await click(tipped('rack.discard_switch')[0])
     expect(s.state.liveRack).toMatchObject({ name: 'Ballad', modified: false })

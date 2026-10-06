@@ -2,7 +2,7 @@
   The layout shell (docs/specs/push/Stage.md, "The app shell around it"): a column filling
   the window, holding the Stage screen (panels/stage/StageScreen, the library's Stage scaled to
   fit). There is no help footer: the hovered or focused control's tooltip shows in the status
-  line above the keys (panels/stage/hint.svelte.ts), and in Library's own status line under it.
+  line above the keys (panels/stage/hint.svelte.ts), on the Stage and on Library alike.
 
   ┌──────────────────────────────────────────────────────────────────┐
   │ StageScreen: the 1440 × 900 Stage, scaled and centred            │
@@ -17,20 +17,17 @@
   Stage (lib/nav.ts), and the Stage's links open them (Stage.md D32): the Rack, Effects,
   Multi Pads, Looper, Settings, Charts and Harmony drawers (lib/ui/Overlay), the style
   Browser and the Sound Browser stay as they were, unscaled, in the old tokens. Library
-  (`ui.view`) takes the Stage's place, unscaled, as before.
+  (`ui.view`: the app bar's Library tab, Alt+B) takes the Stage's place as the library's
+  Library screen (panels/library/LibraryScreen), scaled like the Stage.
 -->
 <script lang="ts">
   import { onDestroy, untrack } from 'svelte'
-  import type { Action } from 'svelte/action'
   import type { Session } from './lib/api/session'
   import { dropouts } from './lib/dropouts.svelte'
   import { handleBlur, handleKey, handleKeyUp } from './lib/shortcuts'
   import { app, clock, ui } from './lib/store.svelte'
   import { TIPS } from './help/tooltips'
-  import { plainTip, tip, tips, TOOLTIP_ID } from './lib/tooltip/tip.svelte'
-  import StatusLine from './ui/StatusLine/StatusLine.svelte'
-  import { useStatusHint } from './panels/stage/hint.svelte'
-  import { status } from './panels/stage/model'
+  import { plainTip, tips, TOOLTIP_ID } from './lib/tooltip/tip.svelte'
   import Browser from './panels/browser/Browser.svelte'
   import Charts from './panels/charts/Charts.svelte'
   import Harmony from './panels/harmony/Harmony.svelte'
@@ -39,7 +36,7 @@
   import Looper from './panels/looper/Looper.svelte'
   import MultiPad from './panels/multipad/MultiPad.svelte'
   import RackPanel from './panels/rack/RackPanel.svelte'
-  import Library from './panels/library/Library.svelte'
+  import LibraryScreen from './panels/library/LibraryScreen.svelte'
   import Settings from './panels/settings/Settings.svelte'
   import SoundPicker from './panels/sounds/SoundPicker.svelte'
   import StageScreen from './panels/stage/StageScreen.svelte'
@@ -68,11 +65,6 @@
     untrack(() => dropouts.observe(s ? { dropouts: s.dropouts ?? 0, bufferFrames: s.bufferFrames } : null, Date.now()))
   })
 
-  // Library's status line (the Stage has its own): the message, or the hovered control's tooltip.
-  const hint = useStatusHint()
-  const libraryStatus = $derived(status(app.state, hint.current))
-  const tipAction = tip as unknown as Action<HTMLElement, string>
-
   /** Esc closes what's open over the stage first (handleKey), then goes back to the Stage. */
   function onKey(e: KeyboardEvent) {
     handleKey(e)
@@ -85,13 +77,8 @@
 
 <div class="app">
   {#if ui.view === 'library'}
-    <!-- Library replaces the stage (docs/racks.md, "Screens"); the band keeps playing. -->
-    <main class="library-slot">
-      <Library />
-      <div class="library-status" data-theme={ui.theme}>
-        <StatusLine {...libraryStatus} {tipAction} onclear={() => app.send({ type: 'clearMessage' })} />
-      </div>
-    </main>
+    <!-- Library replaces the stage (panels/library/LibraryScreen, scaled like it); the band keeps playing. -->
+    <main class="stage-slot"><LibraryScreen /></main>
   {:else}
     <main class="stage-slot"><StageScreen /></main>
   {/if}
@@ -124,22 +111,5 @@
     flex: 1;
     min-height: 0;
     display: flex;
-  }
-  .library-slot {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    padding: 0.5rem 16px 0.6rem;
-  }
-  .library-slot > :global(:first-child) {
-    flex: 1;
-    min-height: 0;
-  }
-  .library-status {
-    flex: none;
-    padding-top: var(--space-8);
-    background: transparent;
-    color: var(--t);
   }
 </style>
