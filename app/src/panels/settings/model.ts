@@ -283,6 +283,7 @@ function launchkeyModel(inputs: string[]): string {
   return ''
 }
 
+/** `app.cpu`: the meters' CPU share, 0–1 (null: not measured). */
 export function systemPage(state: AppState, app: { theme: 'dark' | 'light'; cpu: number | null; dropouts: number }): SystemPageData {
   const synth = state.io.synth
   const view = settings.view(state)
@@ -300,7 +301,8 @@ export function systemPage(state: AppState, app: { theme: 'dark' | 'light'; cpu:
     latencyMs: latency === null ? null : latency < 10 ? latency.toFixed(1) : latency.toFixed(0),
     sampleRateKhz: synth ? (synth.sampleRate / 1000).toFixed(1).replace(/\.0$/, '') : null,
     master: state.mixer.master,
-    cpu: app.cpu,
+    // The meters give the load as a share of the buffer's time (1 = all of it); the page shows percent.
+    cpu: app.cpu === null ? null : Math.round(app.cpu * 100),
     dropouts: app.dropouts,
     allInputs: view.allInputs,
     inputsFixed: view.mocked.inputs,

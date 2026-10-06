@@ -28,7 +28,7 @@ function mockState(edit?: (s: AppState) => void): AppState {
   return s
 }
 
-const APP = { theme: 'dark' as const, cpu: 12, dropouts: 0 }
+const APP = { theme: 'dark' as const, cpu: 0.12, dropouts: 0 }
 
 describe('settingsPages', () => {
   it('lists the six pages with their labels, captions and tips', () => {
@@ -214,7 +214,8 @@ describe('systemPage', () => {
       s.library.count = 42
       s.library.roots = ['/styles']
     })
-    const sys = systemPage(s, { theme: 'light', cpu: 80, dropouts: 2 })
+    // The meters' share of the buffer's time, shown as a rounded percent.
+    const sys = systemPage(s, { theme: 'light', cpu: 0.8044, dropouts: 2 })
     expect(sys.synthRunning).toBe(true)
     expect(sys.synthOn).toBe(false)
     expect(sys.outputPairs).toEqual([
