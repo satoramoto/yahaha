@@ -6,7 +6,7 @@
   - Middle, song: the playing section, what comes next and when, the tempo with + and −.
   - Right, parts: one row per keyboard part, then One Touch 1-4.
   Exactly three type sizes: the chord (--type-hero and its step-downs), the section and the tempo
-  (--type-display), and --type-text for every other word. No boxes inside the display: its
+  (--type-poster), and --type-text for every other word. No boxes inside the display: its
   controls are plain text and glyphs that brighten on hover (the band keeps its outlines).
   Data comes in as each region's props; every press comes back through the callbacks here.
 -->
@@ -159,6 +159,8 @@
     bottom: calc(var(--display-pad-left) + var(--space-24));
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* The three thirds share one row, centred in the space above the beat bar. */
+    align-content: center;
     gap: calc(2 * var(--space-24));
   }
   .third {

@@ -126,9 +126,9 @@
   .name:hover {
     color: var(--t);
   }
+  /* Keeps its width (the name gives way), up to half the line. */
   .meta {
-    flex: 0 1 auto;
-    min-width: 0;
+    flex: none;
     max-width: 50%;
     margin-left: var(--space-12);
     overflow: hidden;

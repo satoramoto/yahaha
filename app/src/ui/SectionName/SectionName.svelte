@@ -1,5 +1,5 @@
 <!--
-  SectionName: the playing section's name on the display, 44px light text in its hue with the
+  SectionName: the playing section's name on the display, light text at the display's second size (--type-poster, shared with the tempo) in its hue with the
   hue's soft glow ("Main B"). Idle (the band stopped): muted, with no glow. A readout, not a
   control.
 -->
@@ -27,8 +27,8 @@
 <style>
   .name {
     flex: none;
-    font: var(--type-display);
-    letter-spacing: var(--tracking-display);
+    font: var(--type-poster);
+    letter-spacing: var(--tracking-poster);
     font-variant-numeric: tabular-nums;
     color: var(--hue);
     text-shadow: var(--glow);

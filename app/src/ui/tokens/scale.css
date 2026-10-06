@@ -32,6 +32,8 @@
   --tracking-large: -0.5px;
   --type-display: var(--weight-light) 44px / 44px var(--font-sans); /* hero values: the playing and the next section */
   --tracking-display: -1.5px;
+  --type-poster: var(--weight-light) 56px / 56px var(--font-sans); /* the display's second size: the playing section and the tempo, one size for both */
+  --tracking-poster: -2px;
   --type-hero: var(--weight-light) 128px / 104px var(--font-sans); /* the chord; its step-down sizes are in stage-display.css */
   --tracking-hero: -6px;
   /* Glyphs, not text: ▲ ▼ ▾ beside or as a label, and ◀ ▶ alone. */

@@ -3,7 +3,7 @@
   without its glow, while stopped); under it one small line: what comes next and when ("then Main D
   · fill after bar 4"), "bar 3 of 4" when nothing is queued, or stopped "Stopped" / "Sync Start
   armed" (and the armed Intro). Below, the tempo at the section's size with Tempo + and − stacked
-  at its right (TempoReadout). Two sizes only: the section and the tempo share --type-display,
+  at its right (TempoReadout). Two sizes only: the section and the tempo share --type-poster,
   every other word is --type-text. Holds no state and no timers: the parent repeats Tempo ±
   between the two hold calls.
 -->

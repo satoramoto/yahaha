@@ -118,26 +118,28 @@
 </script>
 
 <div class="tempo">
-  <span
-    class="bpm"
-    bind:this={number}
-    role="spinbutton"
-    tabindex="0"
-    aria-label="Tempo, {unit}. Drag, scroll or use the arrow keys; double-click for the style's tempo"
-    aria-valuenow={bpm}
-    aria-valuemin={min}
-    aria-valuemax={max}
-    aria-valuetext="{bpm} {unit}"
-    data-tip="display.tempo"
-    use:tipOn={'display.tempo'}
-    onpointerdown={down}
-    onpointermove={move}
-    onpointerup={up}
-    onpointercancel={up}
-    onkeydown={key}
-    ondblclick={() => onreset?.()}>{bpm}</span
-  >
-  <span class="unit" aria-hidden="true">{unit}</span>
+  <span class="reading">
+    <span
+      class="bpm"
+      bind:this={number}
+      role="spinbutton"
+      tabindex="0"
+      aria-label="Tempo, {unit}. Drag, scroll or use the arrow keys; double-click for the style's tempo"
+      aria-valuenow={bpm}
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuetext="{bpm} {unit}"
+      data-tip="display.tempo"
+      use:tipOn={'display.tempo'}
+      onpointerdown={down}
+      onpointermove={move}
+      onpointerup={up}
+      onpointercancel={up}
+      onkeydown={key}
+      ondblclick={() => onreset?.()}>{bpm}</span
+    >
+    <span class="unit" aria-hidden="true">{unit}</span>
+  </span>
   <span class="steps" role="group" aria-label="Tempo">
     <button
       type="button"
@@ -169,14 +171,19 @@
 <style>
   .tempo {
     display: inline-flex;
-    align-items: baseline;
+    align-items: stretch;
     gap: var(--space-8);
     font-family: var(--font-sans);
     white-space: nowrap;
   }
+  .reading {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-8);
+  }
   .bpm {
-    font: var(--type-display);
-    letter-spacing: var(--tracking-display);
+    font: var(--type-poster);
+    letter-spacing: var(--tracking-poster);
     font-variant-numeric: tabular-nums;
     color: var(--t);
     cursor: ns-resize;
@@ -198,10 +205,8 @@
   }
   /* + over −, together as tall as the number's line. */
   .steps {
-    align-self: center;
     display: flex;
     flex-direction: column;
-    height: var(--chip-height-display);
   }
   .step {
     flex: 1;
