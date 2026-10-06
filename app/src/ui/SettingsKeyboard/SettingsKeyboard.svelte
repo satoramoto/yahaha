@@ -1,10 +1,12 @@
 <!--
-  SettingsKeyboard: the Settings screen's Keyboard page, in two halves. Left, Transpose: Keyboard
-  and Master, each a large Stepper (−12 to +12 semitones) with a line on what it moves, then what a
-  C sounds as and Reset both to 0 (shown, not pressable, while both are 0), then the hardware note.
-  Right, Parameter lock: the Split point and Fingering type lamps, what a lock does, and the
-  read-only list of what a rack recall sets. The Screen draws the page's title and caption.
-  Controlled: every press is reported through `onchange`; the data never changes here.
+  SettingsKeyboard: the Settings screen's Keyboard page, in two halves, each a section in its own
+  hue (`SECTION_HUES.keyboard`). Left, Transpose: Keyboard and Master, each a large Stepper (−12 to
+  +12 semitones) with a line on what it moves, then what a C sounds as and Reset both to 0 (under
+  Master's column; shown, not pressable, while both are 0), then the hardware note. Right,
+  Parameter lock: the Split point and Fingering type lamps, what a lock does, and the read-only
+  list of what a rack recall sets under its own sub-header. One text size on every line. The
+  Screen draws the page's title and caption. Controlled: every press is reported through
+  `onchange`; the data never changes here.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -13,6 +15,7 @@
   import LampButton from '../LampButton/LampButton.svelte'
   import SettingsRow from '../SettingsRow/SettingsRow.svelte'
   import Stepper from '../Stepper/Stepper.svelte'
+  import { SECTION_HUES, sectionHue } from '../Settings/hues'
   import type { KeyboardChange, KeyboardPageData } from '../Settings/types'
 
   type Props = {
@@ -25,6 +28,7 @@
   }
 
   let { data, tipAction, onchange }: Props = $props()
+  const uid = $props.id()
 
   const MIN = -12
   const MAX = 12
@@ -49,7 +53,7 @@
 </script>
 
 <div class="page">
-  <section class="half" aria-label="Transpose">
+  <section class="half" aria-label="Transpose" style={sectionHue(SECTION_HUES.keyboard.transpose)}>
     <GroupHeader title="Transpose" level={3}>
       {#snippet end()}<span class="caption">Also on <span class="value">Pads · Chord page</span></span>{/snippet}
     </GroupHeader>
@@ -93,12 +97,15 @@
         <span class="caption">Range <span class="value">−12 to +12</span></span>
       </div>
     </div>
+    <!-- Same two columns as Keyboard and Master: the readout under Keyboard, Reset under Master. -->
     <div class="hear">
-      <span class="caption">You play</span>
-      <span class="note">{data.youPlay}</span>
-      <span class="caption" aria-hidden="true">→</span>
-      <span class="caption">you hear</span>
-      <span class="note">{data.youHear}</span>
+      <span class="readout">
+        <span class="caption">You play</span>
+        <span class="note">{data.youPlay}</span>
+        <span class="caption" aria-hidden="true">→</span>
+        <span class="caption">you hear</span>
+        <span class="note">{data.youHear}</span>
+      </span>
       <span class="reset">
         <Button
           label="Reset both to 0"
@@ -109,13 +116,13 @@
         />
       </span>
     </div>
-    <p class="caption hardware">
+    <p class="help">
       Chord pad page: <span class="value">Kbd Tr −</span> · <span class="value">Kbd Tr +</span> ·
       <span class="value">Tr Reset</span>. Master has no hardware control.
     </p>
   </section>
 
-  <section class="half" aria-label="Parameter lock">
+  <section class="half" aria-label="Parameter lock" style={sectionHue(SECTION_HUES.keyboard.lock)}>
     <GroupHeader title="Parameter lock" level={3}>
       {#snippet end()}<span class="caption">Applies to <span class="value">Quick Racks · One Touch</span></span>{/snippet}
     </GroupHeader>
@@ -145,19 +152,21 @@
         />
       </SettingsRow>
     </div>
-    <p class="line">
+    <p class="help">
       A locked setting stays as it is when you recall a Quick Rack or a One Touch Setting. You can still change it
       by hand. A rack recall sets only the split point.
     </p>
-    <h4 class="sub">A rack recall sets</h4>
-    <dl class="recall">
-      {#each recall as item (item.what)}
-        <div class="item">
-          <dt>{item.what}</dt>
-          <dd>{item.does}</dd>
-        </div>
-      {/each}
-    </dl>
+    <div class="sub" role="group" aria-labelledby="{uid}-recall">
+      <GroupHeader title="A rack recall sets" level={4} id="{uid}-recall" />
+      <dl class="recall">
+        {#each recall as item (item.what)}
+          <div class="item">
+            <dt>{item.what}</dt>
+            <dd>{item.does}</dd>
+          </div>
+        {/each}
+      </dl>
+    </div>
   </section>
 </div>
 
@@ -168,6 +177,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     column-gap: var(--settings-half-gap);
+    align-items: start;
     box-sizing: border-box;
     width: var(--settings-page-width);
     max-width: 100%;
@@ -189,10 +199,14 @@
   p {
     margin: 0;
   }
-  .pair {
+  /* Keyboard | Master, and the readout | Reset line under them: one grid, one gap. */
+  .pair,
+  .hear {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     column-gap: var(--space-24);
+  }
+  .pair {
     margin-top: var(--header-gap);
   }
   .unit {
@@ -202,21 +216,27 @@
     gap: var(--space-8);
     min-width: 0;
   }
+  /* A unit's name: the section's hue, at the one text size. */
   .name {
     color: var(--header-ink);
     font: var(--type-strong);
     letter-spacing: var(--tracking-strong);
   }
   .line {
-    color: var(--t2);
+    color: var(--caption-ink);
   }
   .hear {
-    display: flex;
     align-items: center;
-    gap: var(--space-8);
+    min-height: var(--group-header-height);
     margin-top: var(--space-24);
     padding-top: var(--space-12);
     border-top: var(--line-width) solid var(--line);
+  }
+  .readout {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-8);
+    min-width: 0;
     white-space: nowrap;
   }
   .note {
@@ -225,35 +245,32 @@
     letter-spacing: var(--tracking-strong);
   }
   .reset {
-    margin-left: auto;
+    display: flex;
+    min-width: 0;
   }
-  .hardware {
+  .help {
     margin-top: var(--space-12);
+    color: var(--caption-ink);
   }
   .rows {
     display: flex;
     flex-direction: column;
     margin-top: var(--space-4);
   }
-  .rows + .line {
-    margin-top: var(--space-12);
-  }
   .sub {
-    margin: var(--space-24) 0 0;
-    padding-bottom: var(--space-8);
-    border-bottom: var(--line-width) solid var(--line);
-    color: var(--header-ink);
-    font: var(--type-strong);
-    letter-spacing: var(--tracking-strong);
+    display: flex;
+    flex-direction: column;
+    margin-top: var(--space-24);
   }
   .recall {
-    margin: 0;
+    margin: var(--space-4) 0 0;
   }
   .item {
     display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: var(--space-12);
-    padding: var(--space-6) 0;
+    min-height: var(--control-height-compact);
     border-bottom: var(--line-width) solid var(--line);
   }
   dt {

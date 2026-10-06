@@ -16,7 +16,16 @@
   import LampButton from '../LampButton/LampButton.svelte'
   import LineSlider from '../LineSlider/LineSlider.svelte'
   import SettingsRow from '../SettingsRow/SettingsRow.svelte'
+  import { SECTION_HUES, sectionHue } from '../Settings/hues'
   import type { StyleChange, StylePageData } from '../Settings/types'
+
+  /**
+   * One label column for the whole page, so every column's controls start the same distance in:
+   * the smallest that fits the longest label ("Sync Stop window", 111 px in 13 px DM Sans).
+   */
+  const LABEL_WIDTH = 112
+
+  const HUES = SECTION_HUES.style
 
   type Props = {
     /** Every Style setting, as the engine has it. */
@@ -116,9 +125,9 @@
 {/snippet}
 
 <div class="page">
-  <section class="column" aria-labelledby="{uid}-sections">
+  <section class="column" aria-labelledby="{uid}-sections" style={sectionHue(HUES.sections)}>
     <GroupHeader title="Sections" level={3} id="{uid}-sections" />
-    <SettingsRow label="Main timing">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Main timing">
       <ChosenTabs
         tabs={MAIN_TIMING}
         chosen={data.mainTiming}
@@ -128,7 +137,7 @@
         onchoose={(id) => set('mainTiming', id as StylePageData['mainTiming'])}
       />
     </SettingsRow>
-    <SettingsRow label="Intro & ending">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Intro & ending">
       <ChosenTabs
         tabs={INTRO_ENDING}
         chosen={data.introEndingTiming}
@@ -138,7 +147,7 @@
         onchoose={(id) => set('introEndingTiming', id as StylePageData['introEndingTiming'])}
       />
     </SettingsRow>
-    <SettingsRow label="OTS Link timing">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="OTS Link timing">
       <ChosenTabs
         tabs={OTS_LINK}
         chosen={data.otsLinkTiming}
@@ -148,7 +157,7 @@
         onchoose={(id) => set('otsLinkTiming', id as StylePageData['otsLinkTiming'])}
       />
     </SettingsRow>
-    <SettingsRow label="Stop Accomp">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Stop Accomp">
       <ChosenTabs
         tabs={STOP_ACMP}
         chosen={data.stopAcmp}
@@ -158,7 +167,7 @@
         onchoose={(id) => set('stopAcmp', id as StylePageData['stopAcmp'])}
       />
     </SettingsRow>
-    <SettingsRow label="New style: tempo">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="New style: tempo">
       <ChosenTabs
         tabs={TEMPO_CHANGE}
         chosen={data.tempoChange}
@@ -168,7 +177,7 @@
         onchoose={(id) => set('tempoChange', id as StylePageData['tempoChange'])}
       />
     </SettingsRow>
-    <SettingsRow label="New style: parts">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="New style: parts">
       <ChosenTabs
         tabs={PARTS_CHANGE}
         chosen={data.partsChange}
@@ -178,7 +187,7 @@
         onchoose={(id) => set('partsChange', id as StylePageData['partsChange'])}
       />
     </SettingsRow>
-    <SettingsRow label="Section set">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Section set">
       <ChosenTabs
         tabs={SECTION_SET}
         chosen={data.sectionSet === null ? 'off' : String(data.sectionSet)}
@@ -188,14 +197,14 @@
         onchoose={(id) => set('sectionSet', id === 'off' ? null : Number(id))}
       />
     </SettingsRow>
-    <SettingsRow label="Section reset" hint="Launchkey: Shift + Play">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Section reset" hint="Shift + Play">
       {@render lamp('sectionReset', data.sectionReset, 'Section reset', 'settings.section_reset')}
     </SettingsRow>
   </section>
 
-  <section class="column" aria-labelledby="{uid}-timing">
+  <section class="column" aria-labelledby="{uid}-timing" style={sectionHue(HUES.timing)}>
     <GroupHeader title="Timing & feel" level={3} id="{uid}-timing" />
-    <SettingsRow label="Sync Stop window">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Sync Stop window">
       <LineSlider
         value={data.syncStopWindowMs}
         min={0}
@@ -209,7 +218,7 @@
         onchange={(value) => set('syncStopWindowMs', value)}
       />
     </SettingsRow>
-    <SettingsRow label="Fade in">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Fade in">
       <LineSlider
         value={data.fadeInMs}
         min={0}
@@ -223,7 +232,7 @@
         onchange={(value) => set('fadeInMs', value)}
       />
     </SettingsRow>
-    <SettingsRow label="Fade out">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Fade out">
       <LineSlider
         value={data.fadeOutMs}
         min={0}
@@ -237,7 +246,7 @@
         onchange={(value) => set('fadeOutMs', value)}
       />
     </SettingsRow>
-    <SettingsRow label="Fade hold">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Fade hold">
       <LineSlider
         value={data.fadeHoldMs}
         min={0}
@@ -251,10 +260,10 @@
         onchange={(value) => set('fadeHoldMs', value)}
       />
     </SettingsRow>
-    <SettingsRow label="Retrigger" hint="Knob 3">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Retrigger" hint="Knob 3">
       {@render lamp('retrigger', data.retrigger, 'Retrigger', 'transport.retrigger')}
     </SettingsRow>
-    <SettingsRow label="Retrig rate">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Retrig rate">
       <ChosenTabs
         tabs={RETRIGGER_RATE}
         chosen={String(data.retriggerRate)}
@@ -264,7 +273,7 @@
         onchoose={(id) => set('retriggerRate', Number(id))}
       />
     </SettingsRow>
-    <SettingsRow label="Swing">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Swing">
       <LineSlider
         value={data.swing}
         min={0}
@@ -276,7 +285,7 @@
         onchange={(value) => set('swing', value)}
       />
     </SettingsRow>
-    <SettingsRow label="Swing grid">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Swing grid">
       <ChosenTabs
         tabs={SWING_GRID}
         chosen={String(data.swingGrid)}
@@ -286,26 +295,26 @@
         onchoose={(id) => set('swingGrid', Number(id))}
       />
     </SettingsRow>
-    <SettingsRow label="Section tempo">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Section tempo">
       {@render lamp('sectionTempo', data.sectionTempo, 'Section tempo', 'settings.section_tempo')}
     </SettingsRow>
   </section>
 
-  <section class="column" aria-labelledby="{uid}-playing">
+  <section class="column" aria-labelledby="{uid}-playing" style={sectionHue(HUES.playing)}>
     <GroupHeader title="Playing" level={3} id="{uid}-playing" />
-    <SettingsRow label="Auto Fill">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Auto Fill">
       {@render lamp('autoFill', data.autoFill, 'Auto Fill', 'transport.auto_fill')}
     </SettingsRow>
-    <SettingsRow label="Sync Stop">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Sync Stop">
       {@render lamp('syncStop', data.syncStop, 'Sync Stop', 'transport.sync_stop', !data.syncStopAvailable)}
     </SettingsRow>
-    <SettingsRow label="Half-bar fill">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Half-bar fill">
       {@render lamp('halfBarFill', data.halfBarFill, 'Half-bar fill', 'transport.half_bar_fill')}
     </SettingsRow>
-    <SettingsRow label="Unison">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Unison">
       {@render lamp('unison', data.unison, 'Unison', 'transport.unison')}
     </SettingsRow>
-    <SettingsRow label="Unison bass">
+    <SettingsRow labelWidth={LABEL_WIDTH} label="Unison bass">
       <ChosenTabs
         tabs={UNISON_TYPE}
         chosen={data.unisonType}
@@ -316,12 +325,12 @@
       />
     </SettingsRow>
 
-    <div class="sub" role="group" aria-labelledby="{uid}-dynamics">
+    <div class="sub" role="group" aria-labelledby="{uid}-dynamics" style={sectionHue(HUES.dynamics)}>
       <GroupHeader title="Dynamics" level={4} id="{uid}-dynamics" />
-      <SettingsRow label="Control">
+      <SettingsRow labelWidth={LABEL_WIDTH} label="Control">
         {@render lamp('dynamicsControl', data.dynamicsControl, 'Dynamics control', 'dynamics.control')}
       </SettingsRow>
-      <SettingsRow label="Level">
+      <SettingsRow labelWidth={LABEL_WIDTH} label="Level">
         <LineSlider
           value={data.dynamicsLevel}
           min={0}
@@ -333,10 +342,10 @@
           onchange={(value) => set('dynamicsLevel', value)}
         />
       </SettingsRow>
-      <SettingsRow label="Touch">
+      <SettingsRow labelWidth={LABEL_WIDTH} label="Touch">
         {@render lamp('touch', data.touch, 'Dynamics touch', 'dynamics.touch')}
       </SettingsRow>
-      <SettingsRow label="Accent">
+      <SettingsRow labelWidth={LABEL_WIDTH} label="Accent">
         {@render lamp('accent', data.accent, 'Dynamics accent', 'dynamics.accent')}
         <Button
           label="More"
@@ -349,7 +358,7 @@
         />
       </SettingsRow>
       {#if more}
-        <SettingsRow label="Accent mode">
+        <SettingsRow labelWidth={LABEL_WIDTH} label="Accent mode">
           <ChosenTabs
             tabs={ACCENT_MODE}
             chosen={data.accentMode}
@@ -359,7 +368,7 @@
             onchoose={(id) => set('accentMode', id as StylePageData['accentMode'])}
           />
         </SettingsRow>
-        <SettingsRow label="Accent source">
+        <SettingsRow labelWidth={LABEL_WIDTH} label="Accent source">
           <ChosenTabs
             tabs={ACCENT_SOURCE}
             chosen={data.accentSource}
@@ -370,7 +379,7 @@
           />
         </SettingsRow>
       {/if}
-      <SettingsRow label="Threshold">
+      <SettingsRow labelWidth={LABEL_WIDTH} label="Threshold">
         <LineSlider
           value={data.accentThreshold}
           min={1}
@@ -390,6 +399,9 @@
     /* The page area the Settings screen gives a page, below its header. */
     --settings-page-width: 1048px;
     --settings-page-height: 560px;
+    /* The widest slider readout ("5000 ms") in 13 px type. */
+    --settings-readout-width: 56px;
+    --settings-group-gap: var(--space-12);
     display: grid;
     /* The middle column (Retrig rate's six tabs) takes its natural width; the outer two share the rest. */
     grid-template-columns: minmax(0, 1fr) minmax(max-content, 1fr) minmax(0, 1fr);
@@ -411,9 +423,16 @@
     flex-direction: column;
     min-width: 0;
   }
+  /* A group under another group in the same column: the same gap above its header every time. */
   .sub {
     display: flex;
     flex-direction: column;
-    margin-top: var(--space-12);
+    margin-top: var(--settings-group-gap);
+  }
+  /* Every slider's value and unit in one fixed, right-aligned box, so the numbers line up down a
+     column ("5000 ms", "20.0 s", "100 %"). */
+  .page :global(.slider .readout) {
+    justify-content: flex-end;
+    min-width: var(--settings-readout-width);
   }
 </style>

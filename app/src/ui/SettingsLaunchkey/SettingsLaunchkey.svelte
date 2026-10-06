@@ -1,16 +1,20 @@
 <!--
-  SettingsLaunchkey: the Settings screen's Launchkey page, the pad page order. A list of the pad
-  pages Pad Bank ▲ ▼ steps through: Sections first and fixed, then the others, each with what its
-  pads do, a Shown lamp and ▲ ▼ to move it. Shown pages are numbered 2 on in their order; a page
-  left out sits last, unnumbered, and doesn't move. Below: the run Pad Bank steps through, Default
-  order (shown, not pressable, while the order is the default) and how One Touch reaches the pads.
-  Moving is ▲ ▼ only (no drag grip). The Screen draws the page's title and caption. Controlled:
-  every press is reported through `onchange`; the data never changes here.
+  SettingsLaunchkey: the Settings screen's Launchkey page, the pad page order, in two sections,
+  each in its own hue (`SECTION_HUES.launchkey`). A table of the pad pages Pad Bank ▲ ▼ steps
+  through: Sections first and fixed, then the others, each with what its pads do, a Shown lamp and
+  ▲ ▼ to move it. Shown pages are numbered 2 on in their order; a page left out sits last,
+  unnumbered, and doesn't move. Below, under its own header: the run Pad Bank steps through, its
+  page count and Default order at the right end (shown, not pressable, while the order is the
+  default), then how One Touch reaches the pads. Moving is ▲ ▼ only (no drag grip). The Screen
+  draws the page's title and caption. Controlled: every press is reported through `onchange`; the
+  data never changes here.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
   import Button from '../Button/Button.svelte'
+  import GroupHeader from '../GroupHeader/GroupHeader.svelte'
   import LampButton from '../LampButton/LampButton.svelte'
+  import { SECTION_HUES, sectionHue } from '../Settings/hues'
   import type { LaunchkeyChange, LaunchkeyPageData } from '../Settings/types'
 
   type Props = {
@@ -41,90 +45,92 @@
 </script>
 
 <div class="page">
-  <table class="order">
-    <caption class="hidden">Pad page order</caption>
-    <thead>
-      <tr>
-        <th scope="col" class="num">#</th>
-        <th scope="col">Pad page</th>
-        <th scope="col">On the pads</th>
-        <th scope="col">Shown</th>
-        <th scope="col">Move</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td class="num">1</td>
-        <td class="name">Sections</td>
-        <td class="pads">{data.sectionsPads}</td>
-        <td class="caption">Always · fixed</td>
-        <td>
-          <span class="move">
-            <Button
-              symbol="up"
-              size="icon"
-              name="Sections is fixed as page 1"
-              tip="settings.pad_pages.up"
-              disabled
-              {tipAction}
-            />
-            <Button
-              symbol="down"
-              size="icon"
-              name="Sections is fixed as page 1"
-              tip="settings.pad_pages.down"
-              disabled
-              {tipAction}
-            />
-          </span>
-        </td>
-      </tr>
-      {#each rows as row (row.page.id)}
-        <tr class:out={!row.page.shown}>
-          <td class="num">{row.number}</td>
-          <td class="name">{row.page.label}</td>
-          <td class="pads">{row.page.pads}</td>
-          <td>
-            <LampButton
-              label={row.page.shown ? 'On' : 'Off'}
-              on={row.page.shown}
-              size="sm"
-              width={64}
-              name={`Show the ${row.page.label} page`}
-              tip="settings.pad_pages.shown"
-              {tipAction}
-              ontoggle={(on) => onchange?.({ type: 'shown', id: row.page.id, on })}
-            />
-          </td>
+  <div class="pages" style={sectionHue(SECTION_HUES.launchkey.pages)}>
+    <table class="order">
+      <caption class="hidden">Pad page order</caption>
+      <thead>
+        <tr>
+          <th scope="col" class="num">#</th>
+          <th scope="col">Pad page</th>
+          <th scope="col">On the pads</th>
+          <th scope="col">Shown</th>
+          <th scope="col">Move</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="num">1</td>
+          <td class="name">Sections</td>
+          <td class="pads">{data.sectionsPads}</td>
+          <td class="caption">Always · fixed</td>
           <td>
             <span class="move">
               <Button
                 symbol="up"
                 size="icon"
-                name={`Move ${row.page.label} up`}
+                name="Sections is fixed as page 1"
                 tip="settings.pad_pages.up"
-                disabled={!row.canUp}
+                disabled
                 {tipAction}
-                onpress={() => onchange?.({ type: 'move', id: row.page.id, delta: -1 })}
               />
               <Button
                 symbol="down"
                 size="icon"
-                name={`Move ${row.page.label} down`}
+                name="Sections is fixed as page 1"
                 tip="settings.pad_pages.down"
-                disabled={!row.canDown}
+                disabled
                 {tipAction}
-                onpress={() => onchange?.({ type: 'move', id: row.page.id, delta: 1 })}
               />
             </span>
           </td>
         </tr>
-      {/each}
-    </tbody>
-  </table>
+        {#each rows as row (row.page.id)}
+          <tr class:out={!row.page.shown}>
+            <td class="num">{row.number}</td>
+            <td class="name">{row.page.label}</td>
+            <td class="pads">{row.page.pads}</td>
+            <td>
+              <LampButton
+                label={row.page.shown ? 'On' : 'Off'}
+                on={row.page.shown}
+                size="sm"
+                width={64}
+                name={`Show the ${row.page.label} page`}
+                tip="settings.pad_pages.shown"
+                {tipAction}
+                ontoggle={(on) => onchange?.({ type: 'shown', id: row.page.id, on })}
+              />
+            </td>
+            <td>
+              <span class="move">
+                <Button
+                  symbol="up"
+                  size="icon"
+                  name={`Move ${row.page.label} up`}
+                  tip="settings.pad_pages.up"
+                  disabled={!row.canUp}
+                  {tipAction}
+                  onpress={() => onchange?.({ type: 'move', id: row.page.id, delta: -1 })}
+                />
+                <Button
+                  symbol="down"
+                  size="icon"
+                  name={`Move ${row.page.label} down`}
+                  tip="settings.pad_pages.down"
+                  disabled={!row.canDown}
+                  {tipAction}
+                  onpress={() => onchange?.({ type: 'move', id: row.page.id, delta: 1 })}
+                />
+              </span>
+            </td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
 
-  <div class="steps">
-    <h3 class="sub">Pad Bank <span class="caption">▲ ▼</span> steps through</h3>
+  <div class="steps" style={sectionHue(SECTION_HUES.launchkey.bank)}>
+    <GroupHeader title="Pad Bank ▲ ▼ steps through" level={3} />
     <div class="run">
       <p class="chain">
         {#each run as label, i (label)}{#if i > 0}<span class="caption" aria-hidden="true"> → </span>{/if}<span
@@ -132,15 +138,13 @@
           >{/each}
       </p>
       <span class="caption">{run.length} pages</span>
-      <span class="reset">
-        <Button
-          label="Default order"
-          tip="settings.pad_pages.reset"
-          disabled={data.isDefault}
-          {tipAction}
-          onpress={() => onchange?.({ type: 'reset' })}
-        />
-      </span>
+      <Button
+        label="Default order"
+        tip="settings.pad_pages.reset"
+        disabled={data.isDefault}
+        {tipAction}
+        onpress={() => onchange?.({ type: 'reset' })}
+      />
     </div>
     <p class="help">
       Sections is always page 1. Holding Sound (fader button 6) shows the Racks pads from any page. On the Launchkey,
@@ -189,16 +193,27 @@
     table-layout: fixed;
     border-collapse: collapse;
   }
-  th {
+  /* Header and body cells share one left edge per column (no left padding, the same right
+     padding) and one height, so every heading sits over its cells and every row is as tall. */
+  th,
+  td {
+    box-sizing: border-box;
     height: var(--group-header-height);
     padding: 0 var(--space-12) 0 0;
+    text-align: left;
+  }
+  th:last-child,
+  td:last-child {
+    padding-right: 0;
+  }
+  /* The header row: a GroupHeader's rule in the section's hue, its words on the header baseline. */
+  th {
+    padding-bottom: calc(var(--group-header-height) - var(--header-baseline) - var(--header-rule-width));
     border-bottom: var(--header-rule-width) solid var(--header-rule);
     color: var(--caption-ink);
     font: var(--type-text);
     letter-spacing: var(--tracking-text);
-    text-align: left;
     vertical-align: bottom;
-    padding-bottom: var(--space-8);
   }
   th:nth-child(1) {
     width: var(--pad-order-num);
@@ -211,16 +226,10 @@
   }
   th:nth-child(5) {
     width: var(--pad-order-move);
-    padding-right: 0;
   }
   td {
-    height: var(--group-header-height);
-    padding: var(--space-4) var(--space-12) var(--space-4) 0;
     border-bottom: var(--line-width) solid var(--line);
     vertical-align: middle;
-  }
-  td:last-child {
-    padding-right: 0;
   }
   .num {
     color: var(--caption-ink);
@@ -232,40 +241,39 @@
   }
   .pads {
     overflow: hidden;
-    color: var(--t2);
+    color: var(--caption-ink);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  /* A page left out: its name and pads in the caption ink. */
-  .out .name,
-  .out .pads {
+  /* A page left out: its name in the caption ink too. */
+  .out .name {
     color: var(--caption-ink);
   }
   .move {
-    display: inline-flex;
+    display: flex;
     gap: var(--space-4);
   }
   .steps {
     display: flex;
     flex-direction: column;
-    gap: var(--space-12);
   }
-  .sub {
-    margin: 0;
-    color: var(--header-ink);
-    font: var(--type-strong);
-    letter-spacing: var(--tracking-strong);
-  }
+  /* The run, then its count and Default order at the right end, flush with the table's Move column. */
   .run {
     display: flex;
     align-items: center;
-    gap: var(--space-16);
+    gap: var(--space-12);
+    min-height: var(--group-header-height);
+    margin-top: var(--space-4);
     white-space: nowrap;
   }
-  .reset {
-    margin-left: auto;
+  .chain {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .help {
-    color: var(--t2);
+    margin-top: var(--space-12);
+    color: var(--caption-ink);
   }
 </style>

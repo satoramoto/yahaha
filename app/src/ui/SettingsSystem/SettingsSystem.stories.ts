@@ -5,7 +5,8 @@ import { systemBoard, systemEmpty, systemNoSynth, systemOnlyThese, systemScannin
 
 /**
  * The Settings screen's System page: Audio, MIDI inputs, and the style folders, SoundFonts and
- * theme, one column each. Every one-of-many choice is a run of ChosenTabs, every switch a
+ * theme, one column each. Each section is called out in its own hue, and every row shares one
+ * label width, so the controls of the three columns line up. Every one-of-many choice is a run of ChosenTabs, every switch a
  * LampButton; readouts are plain values. Controlled: a control reports a `SystemChange` through
  * `onchange` and the page changes nothing itself.
  */
@@ -38,6 +39,24 @@ export const Board: Story = {
       'SoundFonts',
       'App',
     ])
+    // Each section is a region in its own hue (SECTION_HUES.system).
+    for (const [name, hue] of [
+      ['Audio', 'main'],
+      ['MIDI inputs', 'r1'],
+      ['Output and Launchkey', 'r3'],
+      ['Style folders', 'intro'],
+      ['SoundFonts', 'r2'],
+      ['App', 'a'],
+    ]) {
+      await expect(canvas.getByRole('region', { name })).toHaveAttribute(
+        'style',
+        expect.stringContaining(`--header-ink: var(--${hue})`),
+      )
+    }
+    // A long input name is cut to the label column and keeps its full name as a title.
+    await expect(canvas.getByTitle('Launchkey MK4 61 DAW')).toHaveTextContent('Launchkey MK4 61 DAW')
+    await expect(canvas.getByTitle('MK4 61 · DAW mode')).toBeVisible()
+
     const cpu = canvas.getByRole('img', { name: 'CPU 74 percent, above 70' })
     await expect(cpu).toHaveClass('trouble')
     await expect(canvas.getByText('Launchkey connected')).toBeVisible()

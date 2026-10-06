@@ -4,11 +4,14 @@
   above 70 % in trouble red). MIDI: which inputs yahaha listens to (all, or one lamp per input),
   then the virtual output, the Launchkey and its LED colours. Library: the style folders (read
   only) and Rescan, the SoundFonts found, and the app's theme. The Screen draws the page header;
-  this draws only the columns. Controlled: every control reports a SystemChange through onchange
-  and changes nothing itself.
+  this draws only the columns. Each section (Audio, MIDI inputs, Output and Launchkey, Style
+  folders, SoundFonts, App) is its own block in its own hue (SECTION_HUES.system), and every row
+  on the page shares one label width, so the controls of all three columns start on one line.
+  Controlled: every control reports a SystemChange through onchange and changes nothing itself.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
+  import { SECTION_HUES, sectionHue } from '../Settings/hues'
   import Button from '../Button/Button.svelte'
   import ChosenTabs from '../ChosenTabs/ChosenTabs.svelte'
   import GroupHeader from '../GroupHeader/GroupHeader.svelte'
@@ -33,6 +36,15 @@
 
   /** Above this CPU load the readout turns trouble red. */
   const CPU_TROUBLE = 70
+
+  /**
+   * The label column of every row on the page, in px: the smallest that fits the longest fixed
+   * label ("Master volume", 88 px in 13px DM Sans). A longer MIDI input name is cut with "…" and
+   * keeps its full name as a title.
+   */
+  const LABEL_WIDTH = 96
+
+  const hues = SECTION_HUES.system
 
   const off = $derived(!data.synthRunning)
 
@@ -116,240 +128,254 @@
   }
 </script>
 
-<div class="page">
+<div class="page" style:--system-label-width={`${LABEL_WIDTH}px`}>
   <!-- Audio -->
-  <section class="column" aria-labelledby="{uid}-audio">
-    <GroupHeader title="Audio" level={3} id="{uid}-audio">
-      {#snippet end()}
-        <span class="caption">Master is <span class="value">fader 9</span></span>
-      {/snippet}
-    </GroupHeader>
-    <SettingsRow label="Built-in synth" hint={off ? 'Not running' : ''}>
-      <LampButton
-        label={data.synthOn ? 'On' : 'Off'}
-        on={data.synthOn}
-        size="sm"
-        width={64}
-        disabled={off}
-        name="Built-in synth"
-        tip="audio.synth_on"
-        {tipAction}
-        ontoggle={(on) => onchange?.({ type: 'synth', on })}
-      />
-    </SettingsRow>
-    <SettingsRow label="Output pair">
-      <ChosenTabs
-        tabs={outputTabs}
-        chosen={data.outputFirst === null ? null : String(data.outputFirst)}
-        size="compact"
-        label="Output pair"
-        {tipAction}
-        onchoose={chooseOutput}
-      />
-    </SettingsRow>
-    <SettingsRow label="Buffer">
-      <ChosenTabs
-        tabs={bufferTabs}
-        chosen={data.buffer === null ? null : String(data.buffer)}
-        size="compact"
-        label="Buffer size in frames"
-        {tipAction}
-        onchoose={chooseBuffer}
-      />
-    </SettingsRow>
-    <SettingsRow label="Latency">
-      <span class="readout"
-        >{#if data.latencyMs === null}<span class="caption">—</span>{:else}<span class="value"
-            >{data.latencyMs}</span
-          ><span class="caption">ms</span>{/if}</span
-      >
-    </SettingsRow>
-    <SettingsRow label="Master volume">
-      <LineSlider
-        value={data.master ?? 0}
-        min={0}
-        max={127}
-        name="Master volume (fader 9)"
-        valueText={data.master === null ? '—' : undefined}
-        disabled={off || data.master === null}
-        tip="mixer.master"
-        {tipAction}
-        onchange={(volume) => onchange?.({ type: 'master', volume })}
-      />
-    </SettingsRow>
-    <SettingsRow label="Sample rate">
-      <span class="readout"
-        >{#if data.sampleRateKhz === null}<span class="caption">—</span>{:else}<span class="value"
-            >{data.sampleRateKhz}</span
-          ><span class="caption">kHz</span>{/if}</span
-      >
-    </SettingsRow>
-    <SettingsRow label="CPU">
-      {#if data.cpu === null}
-        <span class="caption">—</span>
-      {:else}
-        <span class="meter" class:trouble={cpuTrouble} aria-hidden="true"
-          ><span class="meter-fill" style:width={`${cpuFraction * 100}%`}></span></span
-        >
-        <span
-          class="readout"
-          class:trouble={cpuTrouble}
-          role="img"
-          aria-label={`CPU ${data.cpu} percent${cpuTrouble ? `, above ${CPU_TROUBLE}` : ''}`}
-          ><span class="value">{data.cpu}</span><span class="caption">%</span></span
-        >
-      {/if}
-    </SettingsRow>
-    {#if data.dropouts > 0}
-      <SettingsRow label="Dropouts">
-        <span class="readout trouble"
-          ><span class="value">{data.dropouts}</span><span class="caption">lately</span></span
+  <div class="column">
+    <section class="group" aria-labelledby="{uid}-audio" style={sectionHue(hues.audio)}>
+      <GroupHeader title="Audio" level={3} id="{uid}-audio">
+        {#snippet end()}
+          <span class="caption">Master is <span class="value">fader 9</span></span>
+        {/snippet}
+      </GroupHeader>
+      <SettingsRow label="Built-in synth" labelWidth={LABEL_WIDTH} hint={off ? 'Not running' : ''}>
+        <LampButton
+          label={data.synthOn ? 'On' : 'Off'}
+          on={data.synthOn}
+          size="sm"
+          width={64}
+          disabled={off}
+          name="Built-in synth"
+          tip="audio.synth_on"
+          {tipAction}
+          ontoggle={(on) => onchange?.({ type: 'synth', on })}
+        />
+      </SettingsRow>
+      <SettingsRow label="Output pair" labelWidth={LABEL_WIDTH}>
+        <ChosenTabs
+          tabs={outputTabs}
+          chosen={data.outputFirst === null ? null : String(data.outputFirst)}
+          size="compact"
+          label="Output pair"
+          {tipAction}
+          onchoose={chooseOutput}
+        />
+      </SettingsRow>
+      <SettingsRow label="Buffer" labelWidth={LABEL_WIDTH}>
+        <ChosenTabs
+          tabs={bufferTabs}
+          chosen={data.buffer === null ? null : String(data.buffer)}
+          size="compact"
+          label="Buffer size in frames"
+          {tipAction}
+          onchoose={chooseBuffer}
+        />
+      </SettingsRow>
+      <SettingsRow label="Latency" labelWidth={LABEL_WIDTH}>
+        <span class="readout"
+          >{#if data.latencyMs === null}<span class="caption">—</span>{:else}<span class="value"
+              >{data.latencyMs}</span
+            ><span class="caption">ms</span>{/if}</span
         >
       </SettingsRow>
-    {/if}
+      <SettingsRow label="Master volume" labelWidth={LABEL_WIDTH}>
+        <LineSlider
+          value={data.master ?? 0}
+          min={0}
+          max={127}
+          name="Master volume (fader 9)"
+          valueText={data.master === null ? '—' : undefined}
+          disabled={off || data.master === null}
+          tip="mixer.master"
+          {tipAction}
+          onchange={(volume) => onchange?.({ type: 'master', volume })}
+        />
+      </SettingsRow>
+      <SettingsRow label="Sample rate" labelWidth={LABEL_WIDTH}>
+        <span class="readout"
+          >{#if data.sampleRateKhz === null}<span class="caption">—</span>{:else}<span class="value"
+              >{data.sampleRateKhz}</span
+            ><span class="caption">kHz</span>{/if}</span
+        >
+      </SettingsRow>
+      <SettingsRow label="CPU" labelWidth={LABEL_WIDTH}>
+        {#if data.cpu === null}
+          <span class="caption">—</span>
+        {:else}
+          <!-- The value first, so it starts where Latency's and Sample rate's do; the meter after it. -->
+          <span
+            class="readout"
+            class:trouble={cpuTrouble}
+            role="img"
+            aria-label={`CPU ${data.cpu} percent${cpuTrouble ? `, above ${CPU_TROUBLE}` : ''}`}
+            ><span class="value">{data.cpu}</span><span class="caption">%</span></span
+          >
+          <span class="meter" class:trouble={cpuTrouble} aria-hidden="true"
+            ><span class="meter-fill" style:width={`${cpuFraction * 100}%`}></span></span
+          >
+        {/if}
+      </SettingsRow>
+      {#if data.dropouts > 0}
+        <SettingsRow label="Dropouts" labelWidth={LABEL_WIDTH}>
+          <span class="readout trouble"
+            ><span class="value">{data.dropouts}</span><span class="caption">lately</span></span
+          >
+        </SettingsRow>
+      {/if}
+    </section>
     <p class="help">
       Smaller buffers answer your hands faster. Raise it if you hear clicks. The output pair is the two outputs yahaha
       plays through.
     </p>
-  </section>
+  </div>
 
   <!-- MIDI -->
-  <section class="column" aria-labelledby="{uid}-midi">
-    <GroupHeader title="MIDI inputs" level={3} id="{uid}-midi">
-      {#snippet end()}
-        <span class="status"
-          ><StatusDot hue={data.launchkeyConnected ? 'ok' : 'd'} hollow={!data.launchkeyConnected} /><span
-            class="caption">{data.launchkeyConnected ? 'Launchkey connected' : 'Launchkey not connected'}</span
-          ></span
-        >
-      {/snippet}
-    </GroupHeader>
-    <SettingsRow label="Listen to">
-      <ChosenTabs
-        tabs={listenTabs}
-        chosen={listenChosen}
-        size="compact"
-        label="Which MIDI inputs yahaha listens to"
-        {tipAction}
-        onchoose={chooseListen}
-      />
-    </SettingsRow>
-    {#each data.inputs as input (input.name)}
-      {@const on = data.allInputs === true ? true : input.listening}
-      <SettingsRow label={input.name} labelWidth={176} hint={input.pads ? 'pads' : ''}>
-        <LampButton
-          label={on ? 'On' : 'Off'}
-          {on}
-          size="sm"
-          width={64}
-          disabled={lampsLocked}
-          name={`Listen to ${input.name}`}
-          tip="midi.input"
+  <div class="column">
+    <section class="group" aria-labelledby="{uid}-midi" style={sectionHue(hues.midi)}>
+      <GroupHeader title="MIDI inputs" level={3} id="{uid}-midi">
+        {#snippet end()}
+          <span class="status"
+            ><StatusDot hue={data.launchkeyConnected ? 'ok' : 'd'} hollow={!data.launchkeyConnected} /><span
+              class="caption">{data.launchkeyConnected ? 'Launchkey connected' : 'Launchkey not connected'}</span
+            ></span
+          >
+        {/snippet}
+      </GroupHeader>
+      <SettingsRow label="Listen to" labelWidth={LABEL_WIDTH}>
+        <ChosenTabs
+          tabs={listenTabs}
+          chosen={listenChosen}
+          size="compact"
+          label="Which MIDI inputs yahaha listens to"
           {tipAction}
-          ontoggle={(next) => onchange?.({ type: 'input', name: input.name, on: next })}
+          onchoose={chooseListen}
         />
       </SettingsRow>
-    {:else}
-      <p class="empty">No MIDI inputs found</p>
-    {/each}
-    <div class="sub">
-      <GroupHeader title="Output and Launchkey" level={3} />
-    </div>
-    <SettingsRow label="Virtual output">
-      <span class="readout"
-        >{#if data.outputPort}<span class="value">{data.outputPort}</span><span class="caption">· always on</span
-          >{:else}<span class="caption">not open</span>{/if}</span
-      >
-    </SettingsRow>
-    <SettingsRow label="Launchkey">
-      <span class="readout wraps"
-        >{#if data.launchkeyConnected}<span class="value">{data.launchkeyName}</span>
-          <span class="caption">· DAW mode · reconnects itself</span>{:else}<span class="caption"
-            >Not connected</span
-          >{/if}</span
-      >
-    </SettingsRow>
-    <SettingsRow label="LED colours">
-      <ChosenTabs
-        tabs={ledTabs}
-        chosen={ledChosen}
-        size="compact"
-        label="Launchkey LED colours"
-        {tipAction}
-        onchoose={chooseLeds}
-      />
-    </SettingsRow>
+      {#each data.inputs as input (input.name)}
+        {@const on = data.allInputs === true ? true : input.listening}
+        <!-- SettingsRow's grid, with the input's full name as the label's title: names are cut to the
+             page's label width so every lamp stands in the one control column. -->
+        <div class="input">
+          <span class="input-name" title={input.name}>{input.name}</span>
+          <span class="input-lamp">
+            <LampButton
+              label={on ? 'On' : 'Off'}
+              {on}
+              size="sm"
+              width={64}
+              disabled={lampsLocked}
+              name={`Listen to ${input.name}`}
+              tip="midi.input"
+              {tipAction}
+              ontoggle={(next) => onchange?.({ type: 'input', name: input.name, on: next })}
+            />
+          </span>
+          {#if input.pads}<span class="caption input-hint">pads</span>{/if}
+        </div>
+      {:else}
+        <p class="empty">No MIDI inputs found</p>
+      {/each}
+    </section>
+    <section class="group" aria-labelledby="{uid}-output" style={sectionHue(hues.output)}>
+      <GroupHeader title="Output and Launchkey" level={3} id="{uid}-output" />
+      <SettingsRow label="Virtual output" labelWidth={LABEL_WIDTH}>
+        <span class="readout"
+          >{#if data.outputPort}<span class="value">{data.outputPort}</span><span class="caption">· always on</span
+            >{:else}<span class="caption">not open</span>{/if}</span
+        >
+      </SettingsRow>
+      <SettingsRow label="Launchkey" labelWidth={LABEL_WIDTH}>
+        {#if data.launchkeyConnected}
+          <span class="readout clip" title={`${data.launchkeyName} · DAW mode`}
+            ><span class="value">{data.launchkeyName}</span>&nbsp;<span class="caption">· DAW mode</span></span
+          >
+        {:else}
+          <span class="caption">Not connected</span>
+        {/if}
+      </SettingsRow>
+      <SettingsRow label="LED colours" labelWidth={LABEL_WIDTH}>
+        <ChosenTabs
+          tabs={ledTabs}
+          chosen={ledChosen}
+          size="compact"
+          label="Launchkey LED colours"
+          {tipAction}
+          onchoose={chooseLeds}
+        />
+      </SettingsRow>
+    </section>
     <p class="help">
       All inputs: yahaha plays from every MIDI keyboard it finds. {data.outputPort || 'The virtual output'} sends what you
-      play to other apps.
+      play to other apps. The Launchkey reconnects itself.
     </p>
-  </section>
+  </div>
 
   <!-- Library and App -->
-  <section class="column" aria-labelledby="{uid}-library">
-    <GroupHeader title="Style folders" level={3} id="{uid}-library">
-      {#snippet end()}
-        <span class="caption">read-only</span>
-      {/snippet}
-    </GroupHeader>
-    {#if folders > 0}
-      <ul class="folders">
-        {#each data.styleFolders as folder (folder)}
-          <li class="folder" title={folder}>{folder}</li>
-        {/each}
-      </ul>
-    {:else}
-      <p class="empty">No folders reported</p>
-    {/if}
-    <div class="line">
-      <span class="readout"
-        ><span class="value">{data.styleCount.toLocaleString('en-US')}</span><span class="caption"
-          >{data.styleCount === 1 ? 'style' : 'styles'} in {plural(folders, 'folder', 'folders')}</span
-        ></span
-      >
-      <Button
-        label={data.scanning ? 'Scanning…' : 'Rescan'}
-        waiting={data.scanning}
-        disabled={data.rescanFixed}
-        name={data.scanning ? 'Scanning the style folders' : 'Rescan the style folders'}
-        tip="settings.rescan"
-        {tipAction}
-        onpress={rescan}
-      />
-    </div>
-    <div class="sub">
-      <GroupHeader title="SoundFonts" level={3} />
-    </div>
-    <div class="line">
-      {#if fonts > 0}
+  <div class="column">
+    <section class="group" aria-labelledby="{uid}-library" style={sectionHue(hues.folders)}>
+      <GroupHeader title="Style folders" level={3} id="{uid}-library">
+        {#snippet end()}
+          <span class="caption">read-only</span>
+        {/snippet}
+      </GroupHeader>
+      {#if folders > 0}
+        <ul class="folders">
+          {#each data.styleFolders as folder (folder)}
+            <li class="folder" title={folder}>{folder}</li>
+          {/each}
+        </ul>
+      {:else}
+        <p class="empty">No folders reported</p>
+      {/if}
+      <div class="line">
         <span class="readout"
-          ><span class="value">{fonts}</span><span class="caption"
-            >{fonts === 1 ? 'font' : 'fonts'}{#if data.soundFontMain}&nbsp;·&nbsp;<span class="value plain"
-                >{data.soundFontMain}</span
-              >{/if}</span
+          ><span class="value">{data.styleCount.toLocaleString('en-US')}</span><span class="caption"
+            >{data.styleCount === 1 ? 'style' : 'styles'} in {plural(folders, 'folder', 'folders')}</span
           ></span
         >
-      {:else}
-        <span class="caption">No SoundFonts found</span>
-      {/if}
-    </div>
-    <div class="sub">
-      <GroupHeader title="App" level={3} />
-    </div>
-    <SettingsRow label="Theme">
-      <ChosenTabs
-        tabs={themeTabs}
-        chosen={data.theme}
-        size="compact"
-        label="Theme"
-        {tipAction}
-        onchoose={chooseTheme}
-      />
-    </SettingsRow>
+        <Button
+          label={data.scanning ? 'Scanning…' : 'Rescan'}
+          waiting={data.scanning}
+          disabled={data.rescanFixed}
+          name={data.scanning ? 'Scanning the style folders' : 'Rescan the style folders'}
+          tip="settings.rescan"
+          {tipAction}
+          onpress={rescan}
+        />
+      </div>
+    </section>
+    <section class="group" aria-labelledby="{uid}-fonts" style={sectionHue(hues.soundFonts)}>
+      <GroupHeader title="SoundFonts" level={3} id="{uid}-fonts" />
+      <div class="line">
+        {#if fonts > 0}
+          <span class="readout"
+            ><span class="value">{fonts}</span><span class="caption"
+              >{fonts === 1 ? 'font' : 'fonts'}{#if data.soundFontMain}&nbsp;·&nbsp;<span class="value plain"
+                  >{data.soundFontMain}</span
+                >{/if}</span
+            ></span
+          >
+        {:else}
+          <span class="caption">No SoundFonts found</span>
+        {/if}
+      </div>
+    </section>
+    <section class="group" aria-labelledby="{uid}-app" style={sectionHue(hues.app)}>
+      <GroupHeader title="App" level={3} id="{uid}-app" />
+      <SettingsRow label="Theme" labelWidth={LABEL_WIDTH}>
+        <ChosenTabs
+          tabs={themeTabs}
+          chosen={data.theme}
+          size="compact"
+          label="Theme"
+          {tipAction}
+          onchoose={chooseTheme}
+        />
+      </SettingsRow>
+    </section>
     <p class="help">
       yahaha reads your styles from these folders. Copy styles in, then Rescan. The theme is kept on this computer.
     </p>
-  </section>
+  </div>
 </div>
 
 <style>
@@ -375,8 +401,14 @@
     flex-direction: column;
     min-width: 0;
   }
-  .sub {
-    margin-top: var(--space-12);
+  .group {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  /* The same gap above every header that follows a group, in every column. */
+  .group + .group {
+    margin-top: var(--space-24);
   }
   .caption {
     color: var(--caption-ink);
@@ -398,9 +430,11 @@
     min-width: 0;
     white-space: nowrap;
   }
-  .readout.wraps {
-    display: inline;
-    white-space: normal;
+  /* One line, cut with "…" if a long name needs it; the full text is the title. */
+  .readout.clip {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .trouble .value,
   .trouble .caption {
@@ -428,6 +462,28 @@
     align-items: center;
     gap: var(--space-6);
   }
+  /* A MIDI input: SettingsRow's columns and height, so its lamp lines up with every control above. */
+  .input {
+    display: grid;
+    grid-template-columns: var(--system-label-width) auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--space-12);
+    min-height: var(--group-header-height);
+  }
+  .input-name,
+  .input-hint {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .input-name {
+    color: var(--value-ink);
+  }
+  .input-lamp {
+    display: flex;
+    align-items: center;
+  }
   .folders {
     margin: 0;
     padding: 0;
@@ -454,8 +510,11 @@
     margin: 0;
     color: var(--caption-ink);
   }
+  /* Every column's note: the same gap after its last group, caption ink, the page's one size. */
   .help {
     margin: var(--space-12) 0 0;
     color: var(--caption-ink);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
   }
 </style>
