@@ -235,7 +235,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
 | **Stage** | Shows the Stage: the display (style, chord, tempo, One Touch Settings), the band of faders, knobs, pads and transport, and the keys. Esc on another page comes back here. | — | `Alt+B` (terminal: ) | — |
-| **Library** | Shows the Library page, coming soon: racks, sounds, instruments and the style map. Until then Alt+B opens today's Library, and a part's sound on the Stage opens it on Sounds for that part. | Voice Selection | `Alt+B` (terminal: ) | — |
+| **Library** | Shows the Library in the Stage's place: styles, sounds, instruments, racks and the style map, while the band keeps playing. A part's sound on the Stage opens it on Sounds for that part; the Stage tab or Esc goes back. | Voice Selection | `Alt+B` (terminal: ) | — |
 
 ## Library
 

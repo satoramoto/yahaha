@@ -3286,7 +3286,7 @@ const catalog = {
   },
   'view.library': {
     title: 'Library',
-    body: 'Shows the Library page, coming soon: racks, sounds, instruments and the style map. Until then Alt+B opens today\'s Library, and a part\'s sound on the Stage opens it on Sounds for that part.',
+    body: 'Shows the Library in the Stage\'s place: styles, sounds, instruments, racks and the style map, while the band keeps playing. A part\'s sound on the Stage opens it on Sounds for that part; the Stage tab or Esc goes back.',
     genos: 'Voice Selection',
     keys: [],
     app_keys: ['alt+b'],
