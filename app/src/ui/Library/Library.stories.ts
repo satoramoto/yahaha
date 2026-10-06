@@ -10,21 +10,7 @@ const on = (category: string, names: string[]) =>
 
 const CALLBACKS: Record<string, string[]> = {
   AppBar: ['onchoose', 'onhealth'],
-  SectionRow: [
-    'onstartstop',
-    'onaccomp',
-    'onsyncstart',
-    'onreset',
-    'onfillup',
-    'onfilldown',
-    'onfade',
-    'onmetronome',
-    'onmetronomesettings',
-    'onunison',
-    'onpanic',
-    'onhelp',
-  ],
-  Library: ['onpage'],
+  Library: ['onpage', 'onpanic', 'onhelp'],
   QuickRacksBar: ['onquickbank', 'onquickstore', 'onquickclear', 'onquickslot', 'onquickslotlong'],
   StatusLine: ['onclear'],
 }
@@ -103,7 +89,7 @@ const meta = {
   },
   argTypes: {
     appBar: { control: 'object', table: { category: 'AppBar' } },
-    sectionRow: { control: 'object', table: { category: 'SectionRow' } },
+    help: { control: 'boolean', table: { category: 'Library' } },
     pages: { control: 'object', table: { category: 'Library' } },
     page: { control: 'inline-radio', options: ['styles', 'sounds', 'instruments', 'racks', 'map'], table: { category: 'Library' } },
     quickRacks: { control: 'object', table: { category: 'QuickRacksBar' } },

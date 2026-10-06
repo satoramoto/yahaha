@@ -21,7 +21,7 @@
   import { nav as settingsNav } from '../settings/nav.svelte'
   import { stageActions, type OpenTarget } from '../stage/actions'
   import { useStatusHint } from '../stage/hint.svelte'
-  import { appBar, keys, sectionRow, status } from '../stage/model'
+  import { appBar, keys, status } from '../stage/model'
   import { stagePage } from '../stage/page.svelte'
   import { keysActions, splitPick } from '../stage/splitPick.svelte'
   import { libraryPages, quickRacksBar } from './frameModel'
@@ -207,7 +207,6 @@
   const s = $derived(app.state)
   const tab = $derived(ui.libraryTab)
   const appBarData = $derived(appBar({ state: s, meters, page: 'library', dropouts: dropouts.recent(nowMs) }))
-  const sectionRowData = $derived(sectionRow({ state: s, help: tips.help }))
   const pages = $derived(libraryPages(s, app.library, app.sounds))
   const quickRacks = $derived(quickRacksBar(s, clearArmed))
   const styles = $derived(tab === 'styles' ? { ...stylesProps(s, app.library, stylesState, prefs), ...stylesCb } : undefined)
@@ -247,7 +246,7 @@
   <div class="artboard" style:transform={`translate(-50%, -50%) scale(${scale})`}>
     <Library
       appBar={appBarData}
-      sectionRow={sectionRowData}
+      help={tips.help}
       {pages}
       page={tab}
       {quickRacks}
@@ -261,16 +260,6 @@
       {tipAction}
       onchoose={actions.onchoose}
       onhealth={actions.onhealth}
-      onstartstop={actions.onstartstop}
-      onaccomp={actions.onaccomp}
-      onsyncstart={actions.onsyncstart}
-      onreset={actions.onreset}
-      onfillup={actions.onfillup}
-      onfilldown={actions.onfilldown}
-      onfade={actions.onfade}
-      onmetronome={actions.onmetronome}
-      onmetronomesettings={actions.onmetronomesettings}
-      onunison={actions.onunison}
       onpanic={actions.onpanic}
       onhelp={actions.onhelp}
       onclear={() => app.send({ type: 'clearMessage' })}

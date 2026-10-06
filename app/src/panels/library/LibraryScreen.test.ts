@@ -64,6 +64,19 @@ describe('Library screen', () => {
     expect(libraryTab('Styles').textContent).toMatch(/Styles [\d,]+/)
   })
 
+  it('has no transport row; Panic and help mode\'s ? sit at the foot of the left column', async () => {
+    const session = setup()
+    ui.view = 'library'
+    step(session)
+    expect(document.querySelector('[data-tip="transport.start_stop"]')).toBeNull()
+    expect(document.querySelector('[data-tip="transport.acmp"]')).toBeNull()
+    expect(page()!.querySelector('[data-tip="transport.panic"]')).toBeTruthy()
+    const help = page()!.querySelector<HTMLButtonElement>('[data-tip="app.help"]')!
+    await fireEvent.click(help)
+    step(session)
+    expect(help.getAttribute('aria-pressed')).toBe('true')
+  })
+
   it('Styles: the filter narrows the list; Load loads the highlighted style and goes back to the Stage', async () => {
     const session = setup(true)
     ui.openLibrary('styles')

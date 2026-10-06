@@ -7,7 +7,6 @@ import { racksBoard } from '../LibraryRacks/LibraryRacks.fixtures'
 import { soundsBoard } from '../LibrarySounds/LibrarySounds.fixtures'
 import { loadQueued, styleFolders, styleRows, styleViews } from '../LibraryStyles/LibraryStyles.fixtures'
 import { quickSlotsBoard } from '../QuickRacksBar/QuickRacksBar.fixtures'
-import { sectionRowBoard } from '../SectionRow/SectionRow.fixtures'
 import type Library from './Library.svelte'
 
 type Props = ComponentProps<typeof Library>
@@ -70,7 +69,7 @@ export const racksPage = { ...fill(racksBoard), confirming: false } satisfies Pr
 /** The board's frame: Library chosen in the app bar, running in Main B, Quick Rack A1 loaded. */
 export const libraryBoard = {
   appBar: { ...boardAppBar, chosen: 'library' },
-  sectionRow: { ...sectionRowBoard, running: true },
+  help: false,
   pages: libraryPages,
   page: 'sounds',
   quickRacks: { bank: 'A', bankCount: 8, slots: quickSlotsBoard, store: false, clear: false, readOnly: false },
