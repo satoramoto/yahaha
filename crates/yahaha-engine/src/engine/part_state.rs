@@ -592,7 +592,10 @@ impl Parts {
     /// Load a One Touch Setting into Right 1-3 and Left: voice, on/off, volume, octave, and
     /// the pan and reverb/chorus sends the OTS sets (the engine thread sends them; one it
     /// doesn't set stays as it is). Drum-kit voices (bank MSB 126/127) keep the part's
-    /// current voice. The voice settings (#238): a part the OTS gives a voice starts from
+    /// current voice. The voice plays as its GM program by its bank
+    /// (`voice_gm::keyboard_program`): a bank 8 guitar is a GM guitar, not the GM program
+    /// its number happens to be (HeavyRockGuitar, 8/32/PC# 5, is not Electric Piano 1).
+    /// The voice settings (#238): a part the OTS gives a voice starts from
     /// neutral (`voice_changed`), then takes the filter, EG, vibrato, portamento and XG
     /// part parameters the OTS sets. Pitch bend range is the caller's (`Controllers`).
     /// The part EQ (#247): the OTS's XG part EQ (`PartEq::from_xg`, its other bands at the
@@ -609,8 +612,8 @@ impl Parts {
     pub fn apply_ots(&self, ots: &yahaha_sff::sff::Ots, number: u8, sends: bool) {
         for (p, part) in ots.parts.iter().enumerate() {
             let voiced = part.voice.filter(|v| v.0 < 126);
-            if let Some((_, _, pc)) = voiced {
-                self.program[p].store(pc, Relaxed);
+            if let Some((msb, _, pc)) = voiced {
+                self.program[p].store(yahaha_core::voice_gm::keyboard_program(msb, pc), Relaxed);
                 self.voice_changed(p);
             }
             if part.tone.iter().any(Option::is_some) || !part.xg.is_empty() {
@@ -860,6 +863,27 @@ mod tests {
         // The slot's fields change one at a time, the others kept.
         parts.edit_insert(LEFT, |s| s.amount = 200);
         assert_eq!(parts.insert(LEFT), PartInsert { amount: 127, ..mine });
+    }
+
+    /// An OTS voice plays as its GM program by its bank: a bank 8 guitar with its amp
+    /// simulator (HeavyRockGuitar, 8/32/PC# 5, Stereo Amp Sim) is a GM Overdriven Guitar
+    /// with the distortion, not Electric Piano 1 through an amp; JazzGuitarClean (PC# 7) is
+    /// Jazz Guitar, not Harpsichord. Bank 0 and bank 104 numbers play as they are.
+    #[test]
+    fn an_ots_voice_plays_as_its_banks_gm_program() {
+        let parts = Parts::new();
+        let mut ots = yahaha_sff::sff::Ots::default();
+        ots.parts[RIGHT1].voice = Some((8, 32, 4));
+        ots.parts[RIGHT1].insert = Some((75, 22));
+        ots.parts[RIGHT2].voice = Some((8, 32, 6));
+        ots.parts[RIGHT3].voice = Some((0, 116, 4));
+        ots.parts[LEFT].voice = Some((104, 11, 4));
+        parts.apply_ots(&ots, 1, true);
+        let program = |p: usize| parts.program[p].load(Relaxed);
+        assert_eq!(program(RIGHT1), 29, "Overdriven Guitar");
+        assert_eq!(parts.insert(RIGHT1).effect, InsertEffect::Distortion);
+        assert_eq!(program(RIGHT2), 26, "Jazz Guitar");
+        assert_eq!((program(RIGHT3), program(LEFT)), (4, 4), "VintageEP and SuitcaseDrive: Electric Piano 1");
     }
 
     /// The player's sends stick: an OTS recall with sends applies them; one without
