@@ -1,8 +1,6 @@
 <!--
-  LibrarySounds: the Library's Sounds page, where a keyboard part changes its sound. A 36px zone
-  header ("Sounds · Strings", then "Right 2 plays 41 Silk Strings" with the part in its hue, the
-  "edited" word, Save and Save as…, which opens an inline name field, an .aupreset switch for a
-  plugin part, and Save / Cancel, or Replace / Cancel when that preset exists). A filter row: the
+  LibrarySounds: the Library's Sounds page, where a keyboard part changes its sound. No header of
+  its own: its Save and Save as… sit at the Library header's right end (LibrarySoundsSave). A filter row: the
   search, the Source tabs (All, Mine, Factory, SoundFont, ★ Starred), the instrument filter as a
   removable button (from Instruments › Browse sounds), and "Loads into" with the part tabs. Then
   three columns: the categories with their counts (All first), the ListTable of sounds (No., Name,
@@ -23,26 +21,17 @@
   import type { DetailActionRow, DetailField } from '../DetailPanel/types'
   import FolderList from '../FolderList/FolderList.svelte'
   import type { FolderItem } from '../FolderList/types'
-  import GroupHeader from '../GroupHeader/GroupHeader.svelte'
   import ListTable from '../ListTable/ListTable.svelte'
   import { stepSelection } from '../ListTable/step'
   import type { ListColumn, ListRow } from '../ListTable/types'
   import SearchField from '../SearchField/SearchField.svelte'
-  import type { PartHue, SoundCategoryItem, SoundDetail, SoundNowPlaying, SoundSaveAs, SoundSourceTab } from './types'
+  import type { PartHue, SoundCategoryItem, SoundDetail, SoundSourceTab } from './types'
 
   type Props = {
     /** The four keyboard parts' names, Right 1 to Left. */
     partNames: string[]
     /** The target part (0-3): what a row click plays on, and "Loads into". */
     part: number
-    /** What the target part plays now, in the header. */
-    nowPlaying: SoundNowPlaying
-    /** The target part's sound was edited since it was chosen or saved. */
-    edited?: boolean
-    /** The Save as… form; null: closed. */
-    saveAs?: SoundSaveAs | null
-    /** The target part plays a plugin that can keep an .aupreset: the form offers it. */
-    canPreset?: boolean
     /** The search text. */
     query?: string
     /** The chosen Source tab. */
@@ -85,16 +74,6 @@
     onselect?: (id: string) => void
     /** A row's star was pressed, with its new state. */
     onstar?: (id: string, on: boolean) => void
-    /** Save the target part's sound over its own sound. */
-    onsave?: () => void
-    /** Save as… was pressed: open the form. */
-    onsaveasopen?: () => void
-    /** The form was edited (name, the .aupreset switch, its category). */
-    onsaveasedit?: (change: Partial<Pick<SoundSaveAs, 'name' | 'aupreset' | 'category'>>) => void
-    /** Save the form; `overwrite`: replace the .aupreset of that name. */
-    onsaveas?: (overwrite: boolean) => void
-    /** The form was cancelled (or the replace question, which goes back to the form). */
-    onsaveascancel?: () => void
     /** Audition the selected sound. */
     onaudition?: (id: string) => void
     /** Play the selected sound on the target part. */
@@ -118,10 +97,6 @@
   let {
     partNames,
     part,
-    nowPlaying,
-    edited = false,
-    saveAs = null,
-    canPreset = false,
     query = '',
     source = 'all',
     instrument = null,
@@ -143,11 +118,6 @@
     oncategory,
     onselect,
     onstar,
-    onsave,
-    onsaveasopen,
-    onsaveasedit,
-    onsaveas,
-    onsaveascancel,
     onaudition,
     onuse,
     oncopy,
@@ -257,87 +227,9 @@
     onselect?.(to)
   }
 
-  function saveAsKey(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      event.preventDefault()
-      if (saveAs?.name.trim()) onsaveas?.(false)
-    } else if (event.key === 'Escape') {
-      event.preventDefault()
-      event.stopPropagation()
-      onsaveascancel?.()
-    }
-  }
-
-  function focusOnMount(node: HTMLInputElement) {
-    node.focus()
-    node.select()
-  }
 </script>
 
 <div class="page" style:width={width === undefined ? '100%' : `${width}px`} style:height={height === undefined ? '100%' : `${height}px`}>
-  <GroupHeader title="Sounds" detail={categoryLabel} level={2}>
-    {#if saveAs}
-      <div class="saveas" role="group" aria-label="Save as a new sound">
-        <input
-          class="line-input name-input"
-          type="text"
-          value={saveAs.name}
-          placeholder="Sound name"
-          aria-label="New sound's name"
-          spellcheck="false"
-          autocomplete="off"
-          data-tip="sounds.save_as_name"
-          use:tipped={'sounds.save_as_name'}
-          use:focusOnMount
-          oninput={(e) => onsaveasedit?.({ name: e.currentTarget.value })}
-          onkeydown={saveAsKey}
-        />
-        {#if canPreset}
-          <Button
-            label=".aupreset"
-            on={saveAs.aupreset}
-            pressed={saveAs.aupreset}
-            name="Also save as an .aupreset"
-            tip="sounds.save_preset"
-            {tipAction}
-            onpress={() => onsaveasedit?.({ aupreset: !saveAs?.aupreset })}
-          />
-          {#if saveAs.aupreset}
-            <select
-              class="line-input"
-              aria-label="Category of the preset"
-              value={saveAs.category}
-              data-tip="sounds.preset_category"
-              use:tipped={'sounds.preset_category'}
-              onchange={(e) => onsaveasedit?.({ category: e.currentTarget.value })}
-            >
-              {#each categories as c (c.id)}<option value={c.id}>{c.label}</option>{/each}
-            </select>
-          {/if}
-        {/if}
-        {#if saveAs.replace}
-          <span class="ask" role="alert">Replace ‘{saveAs.name.trim()}’?</span>
-          <Button label="Replace" hue="ending" tip="sounds.preset_replace" {tipAction} onpress={() => onsaveas?.(true)} />
-          <Button label="Cancel" tip="sounds.preset_replace_cancel" {tipAction} onpress={onsaveascancel} />
-        {:else}
-          <Button label="Save" disabled={!saveAs.name.trim()} name="Save the new sound" tip="sounds.save_as_confirm" {tipAction} onpress={() => onsaveas?.(false)} />
-          <Button label="Cancel" tip="sounds.preset_cancel" {tipAction} onpress={onsaveascancel} />
-        {/if}
-      </div>
-    {:else}
-      <span class="now">
-        <span class="part-{HUES[part] ?? 'r1'}">{partName}</span>
-        <span class="caption">plays</span>
-        {#if nowPlaying.number}<span class="caption">{nowPlaying.number}</span>{/if}
-        <span class="sound">{nowPlaying.name}</span>
-        {#if nowPlaying.warn}<span class="warn">{nowPlaying.warn}</span>{/if}
-      </span>
-      {#if edited}<span class="edited" data-tip="sounds.edited" use:tipped={'sounds.edited'}>edited</span>{/if}
-      <Button label="Save" name="Save {partName}'s sound" tip="sounds.save_over" {tipAction} onpress={onsave} />
-      <Button label="Save as…" name="Save {partName}'s sound as a new sound" tip="sounds.save" {tipAction} onpress={onsaveasopen} />
-    {/if}
-  </GroupHeader>
-
   <div class="filters">
     <div class="search">
       <SearchField value={query} label="Search sounds" placeholder="Search sounds or a number" tip="library.search" {tipAction} oninput={onquery} onkeydown={searchKey} />
@@ -354,6 +246,7 @@
 
   <div class="body">
     <div class="cats">
+      <span class="col-head" aria-hidden="true">Category</span>
       <FolderList items={folders} chosen={category ?? ALL} label="Category" {tipAction} onchoose={(id) => oncategory?.(id === ALL ? null : id)} />
     </div>
     <div class="list">
@@ -422,8 +315,6 @@
     font-family: var(--font-sans);
     color: var(--t);
   }
-  .now,
-  .saveas,
   .confirm,
   .field {
     display: flex;
@@ -434,41 +325,11 @@
     letter-spacing: var(--tracking-text);
     white-space: nowrap;
   }
-  .now {
-    overflow: hidden;
-  }
-  .sound {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font: var(--type-strong);
-    letter-spacing: var(--tracking-strong);
-  }
   .caption {
     color: var(--caption-ink);
     font: var(--type-text);
     letter-spacing: var(--tracking-text);
     white-space: nowrap;
-  }
-  .part-r1 {
-    color: var(--r1);
-  }
-  .part-r2 {
-    color: var(--r2);
-  }
-  .part-r3 {
-    color: var(--r3);
-  }
-  .part-l {
-    color: var(--l);
-  }
-  .warn {
-    color: var(--warn);
-  }
-  .edited {
-    color: var(--t2);
-    font: var(--type-text);
-    letter-spacing: var(--tracking-text);
   }
   .ask {
     color: var(--t);
@@ -498,13 +359,6 @@
     background: var(--g);
     color: var(--t);
   }
-  .name-input {
-    width: 180px;
-  }
-  .name-input::placeholder {
-    color: var(--m);
-    opacity: 1;
-  }
   .filters {
     display: flex;
     flex: none;
@@ -528,10 +382,29 @@
     gap: var(--space-16);
     min-height: 0;
   }
+  /* The categories, under a column heading drawn as the list's own (24px, --m, the hairline), so
+     each 28px category row lines up with a sound row. */
   .cats {
+    display: flex;
     flex: none;
+    flex-direction: column;
     width: 168px;
     min-height: 0;
+  }
+  .cats > :global(nav) {
+    flex: 1 1 0;
+  }
+  .col-head {
+    display: flex;
+    flex: none;
+    align-items: center;
+    box-sizing: border-box;
+    height: 24px;
+    padding: 0 var(--space-8);
+    border-bottom: var(--line-width) solid var(--line);
+    color: var(--m);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
   }
   .list {
     display: flex;

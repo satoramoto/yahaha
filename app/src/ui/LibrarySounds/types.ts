@@ -14,16 +14,6 @@ export type SoundCategoryItem = {
   count: number
 }
 
-/** What the target part plays now, in the header ("Right 2 plays 41 Silk Strings"). */
-export type SoundNowPlaying = {
-  /** Its sound number (My Sounds only), in the caption ink. */
-  number?: string
-  /** The sound's name. */
-  name: string
-  /** A problem drawn after it in --warn ("plugin missing: silent"). */
-  warn?: string
-}
-
 /** The Save as… form, open in the header. */
 export type SoundSaveAs = {
   /** The new sound's name. */

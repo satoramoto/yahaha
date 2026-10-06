@@ -6,9 +6,9 @@ import { soundsBoard, soundsEmpty, soundsStopped } from './LibrarySounds.fixture
 const SOURCES = ['all', 'mine', 'factory', 'soundFont', 'starred']
 
 /**
- * Library › Sounds: the zone header (what the target part plays, edited, Save, Save as… with its
- * inline form), the search, Source tabs, the instrument filter and "Loads into", then the
- * categories, the sound list and the selected sound's details (Audition while the band is
+ * Library › Sounds (its Save and Save as… are LibrarySoundsSave, in the Library header): the
+ * search, Source tabs, the instrument filter and "Loads into", then the
+ * categories under their "Category" heading, the sound list and the selected sound's details (Audition while the band is
  * stopped, Use on the part, Copy to My Sounds, and for My Sounds Duplicate, Move up / down,
  * Delete with its inline confirm, and the category).
  */
@@ -26,11 +26,6 @@ const meta = {
     oncategory: fn(),
     onselect: fn(),
     onstar: fn(),
-    onsave: fn(),
-    onsaveasopen: fn(),
-    onsaveasedit: fn(),
-    onsaveas: fn(),
-    onsaveascancel: fn(),
     onaudition: fn(),
     onuse: fn(),
     oncopy: fn(),
@@ -44,10 +39,6 @@ const meta = {
   argTypes: {
     partNames: { control: 'object' },
     part: { control: { type: 'number', min: 0, max: 3, step: 1 } },
-    nowPlaying: { control: 'object' },
-    edited: { control: 'boolean' },
-    saveAs: { control: 'object' },
-    canPreset: { control: 'boolean' },
     query: { control: 'text', table: { category: 'SearchField' } },
     source: { control: 'select', options: SOURCES, table: { category: 'ChosenTabs' } },
     instrument: { control: 'text' },
@@ -67,7 +58,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** As the board: Strings, Right 2 plays 41 Silk Strings (edited), the band running so Audition is off. */
+/** As the board: Strings, Right 2 the target, the band running so Audition is off. */
 export const Board: Story = {
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement)
@@ -75,10 +66,9 @@ export const Board: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Audition' }))
     await expect(args.onaudition).not.toHaveBeenCalled()
 
-    await userEvent.click(canvas.getByRole('button', { name: "Save Right 2's sound" }))
-    await expect(args.onsave).toHaveBeenCalled()
-    await userEvent.click(canvas.getByRole('button', { name: "Save Right 2's sound as a new sound" }))
-    await expect(args.onsaveasopen).toHaveBeenCalled()
+    // The categories' heading and the list's stand on one line, so the rows line up.
+    const head = canvas.getByText('Category', { selector: '.col-head' })
+    await expect(head).toBeInTheDocument()
 
     await userEvent.click(canvas.getByRole('option', { name: /^—, Strings, / }))
     await expect(args.onselect).toHaveBeenCalledWith('sf:demo.sf2:0:48')
@@ -104,9 +94,9 @@ export const Board: Story = {
   },
 }
 
-/** The band stopped, a SoundFont preset selected: Audition and Use on Right 2 work; the Save as… form is open with .aupreset on. */
+/** The band stopped, a SoundFont preset selected: Audition and Use on Right 2 work. */
 export const Stopped: Story = {
-  args: { ...soundsStopped, saveAs: { name: 'Slow Strings 2', aupreset: true, category: 'strings', replace: false } },
+  args: { ...soundsStopped },
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement)
     await userEvent.click(canvas.getByRole('button', { name: 'Audition' }))
@@ -115,8 +105,6 @@ export const Stopped: Story = {
     await expect(args.onuse).toHaveBeenCalledWith('sf:demo.sf2:0:49')
     await userEvent.click(canvas.getByRole('button', { name: 'Copy to My Sounds' }))
     await expect(args.oncopy).toHaveBeenCalledWith('sf:demo.sf2:0:49')
-    await userEvent.click(canvas.getByRole('button', { name: 'Save the new sound' }))
-    await expect(args.onsaveas).toHaveBeenCalledWith(false)
   },
 }
 

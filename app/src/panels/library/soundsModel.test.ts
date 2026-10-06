@@ -31,7 +31,6 @@ describe('soundsProps', () => {
     expect(p.rows.every((r) => r.cells.length === 4)).toBe(true)
     expect(p.source).toBe('all')
     expect(p.running).toBe(state.transport.running)
-    expect(p.nowPlaying.name).toBe(state.keyboardParts[0].sound?.name ?? state.keyboardParts[0].voiceName)
     // The selected row is what the target part plays, and the details show it.
     if (p.selected) {
       expect(p.detail?.id).toBe(p.selected)

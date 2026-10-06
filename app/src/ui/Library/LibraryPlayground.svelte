@@ -9,7 +9,7 @@
     click or ↑ ↓ moves the cursor, Load (or Enter) loads the cursor's style: the compact block and
     the ● mark follow it. Stars toggle.
   - Sounds: the search narrows the list, Source and the categories are chosen, a click plays the
-    sound on the target part: the header's "plays" and the details follow. Loads into switches.
+    sound on the target part: the selection and the details follow. Loads into switches.
   - Instruments: Show filters the list (Plugins, SoundFonts, Needs attention); a click chooses.
   - Racks: the search narrows the list, a click chooses a rack, Load makes it the loaded rack.
   - Quick Racks: a slot press loads it, Store arms and disarms, ◀ ▶ step the bank letter.
@@ -148,7 +148,6 @@
           so = {
             ...s,
             selected: id,
-            nowPlaying: { number, name: row.cells[1] },
             edited: false,
             detail: s.detail ? { ...s.detail, id, name: row.cells[1], number, instrument: row.cells[2] } : s.detail,
           }

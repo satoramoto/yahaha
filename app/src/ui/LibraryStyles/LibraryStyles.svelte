@@ -225,6 +225,7 @@
   </GroupHeader>
   <div class="body">
     <div class="folders">
+      <span class="col-head" aria-hidden="true">Folder</span>
       <FolderList items={folders} chosen={folder} label="Style folders" width={200} {tipAction} onchoose={(id) => onfolder?.(id)} />
     </div>
     <div class="main">
@@ -311,11 +312,29 @@
     gap: var(--space-24);
     min-height: 0;
   }
+  /* The folders, under a column heading drawn as the list's own (24px, --m, the hairline), so each
+     28px folder row lines up with a style row. */
   .folders {
     display: flex;
     flex: none;
+    flex-direction: column;
     width: 200px;
     min-height: 0;
+  }
+  .folders > :global(nav) {
+    flex: 1 1 0;
+  }
+  .col-head {
+    display: flex;
+    flex: none;
+    align-items: center;
+    box-sizing: border-box;
+    height: 24px;
+    padding: 0 var(--space-8);
+    border-bottom: var(--line-width) solid var(--line);
+    color: var(--m);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
   }
   .main {
     display: flex;

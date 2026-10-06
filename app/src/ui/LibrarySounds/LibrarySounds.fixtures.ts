@@ -1,6 +1,10 @@
 import type { ComponentProps } from 'svelte'
 import type LibrarySounds from './LibrarySounds.svelte'
+import type LibrarySoundsSave from './LibrarySoundsSave.svelte'
 import type { SoundCategoryItem } from './types'
+
+/** The page's props plus its header actions' (LibrarySoundsSave), as the Library passes them. */
+type SoundsProps = ComponentProps<typeof LibrarySounds> & ComponentProps<typeof LibrarySoundsSave>
 
 const PARTS = ['Right 1', 'Right 2', 'Right 3', 'Left']
 
@@ -25,7 +29,6 @@ export const soundCategories: SoundCategoryItem[] = [
 export const soundsBoard = {
   partNames: PARTS,
   part: 1,
-  nowPlaying: { number: '41', name: 'Silk Strings' },
   edited: true,
   saveAs: null,
   canPreset: true,
@@ -63,7 +66,7 @@ export const soundsBoard = {
   confirmDelete: false,
   width: 1010,
   height: 560,
-} satisfies ComponentProps<typeof LibrarySounds>
+} satisfies SoundsProps
 
 /** The band stopped and a SoundFont preset selected that no part plays: Audition and Use on Right 2 are on. */
 export const soundsStopped = {
@@ -84,7 +87,7 @@ export const soundsStopped = {
     canMoveUp: false,
     canMoveDown: false,
   },
-} satisfies ComponentProps<typeof LibrarySounds>
+} satisfies SoundsProps
 
 /** Instruments › Browse sounds on Sampler Deluxe, searching for a word nothing matches. */
 export const soundsEmpty = {
@@ -97,4 +100,4 @@ export const soundsEmpty = {
   rows: [],
   selected: null,
   detail: null,
-} satisfies ComponentProps<typeof LibrarySounds>
+} satisfies SoundsProps

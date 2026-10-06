@@ -5,7 +5,8 @@
   320px left column (the Quick Racks bar, with its own header, at its top; Panic and help mode's ?
   at its foot), a hairline, and the main area: a "Library" header whose ChosenTabs pick the Library
   page (Styles, Sounds, Instruments, Racks, Style map), over the chosen page's component. Both
-  headers start at the top, so they read as one row. The board's half-height band isn't drawn yet: the page takes its height.
+  headers start at the top, so they read as one row. While Sounds is chosen, its Save and Save as…
+  (LibrarySoundsSave) sit at the Library header's right end; the page has no header of its own. The board's half-height band isn't drawn yet: the page takes its height.
   Each page's props (data and callbacks) come as one object; only the chosen page is rendered. The
   Style map page is the parent's `map` snippet (or a placeholder line without one).
 -->
@@ -21,6 +22,7 @@
   import LibraryInstruments from '../LibraryInstruments/LibraryInstruments.svelte'
   import LibraryRacks from '../LibraryRacks/LibraryRacks.svelte'
   import LibrarySounds from '../LibrarySounds/LibrarySounds.svelte'
+  import LibrarySoundsSave from '../LibrarySounds/LibrarySoundsSave.svelte'
   import LibraryStyles from '../LibraryStyles/LibraryStyles.svelte'
   import QuickRacksBar from '../QuickRacksBar/QuickRacksBar.svelte'
   import StatusLine from '../StatusLine/StatusLine.svelte'
@@ -56,7 +58,7 @@
     /** Styles: the page's data and callbacks. Needed when `page` is `styles`. */
     styles?: Page<typeof LibraryStyles>
     /** Sounds: the page's data and callbacks. Needed when `page` is `sounds`. */
-    sounds?: Page<typeof LibrarySounds>
+    sounds?: Page<typeof LibrarySounds> & Page<typeof LibrarySoundsSave>
     /** Instruments: the page's data and callbacks. Needed when `page` is `instruments`. */
     instruments?: Page<typeof LibraryInstruments>
     /** Racks: the page's data and callbacks. Needed when `page` is `racks`. */
@@ -128,6 +130,9 @@
       <div class="main">
       <GroupHeader title="Library">
         <ChosenTabs tabs={p.pages} chosen={p.page} size="header" label="Library pages" tipAction={p.tipAction} onchoose={p.onpage} />
+        {#if p.page === 'sounds' && p.sounds}
+          <LibrarySoundsSave {...p.sounds} tipAction={p.tipAction} />
+        {/if}
       </GroupHeader>
       <div class="content">
         {#if p.page === 'styles' && p.styles}

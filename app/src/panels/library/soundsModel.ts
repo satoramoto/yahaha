@@ -18,18 +18,19 @@ import { parsePresetId } from '../../lib/api/sounds'
 import type { AppCmd, AppState, GmMapRow, PatchCategory, PatchInfo, SoundCatalog, SoundEntry } from '../../lib/api/types'
 import type { ListRow } from '../../ui/ListTable/types'
 import type LibrarySounds from '../../ui/LibrarySounds/LibrarySounds.svelte'
+import type LibrarySoundsSave from '../../ui/LibrarySounds/LibrarySoundsSave.svelte'
 import type { SoundDetail, SoundSaveAs, SoundSourceTab } from '../../ui/LibrarySounds/types'
 import { inMySounds } from '../sounds/instruments'
 import { instrumentOf, patchesById, presetFileName, soundNumber, type SoundContext } from '../sounds/model'
 import { BADGE_LABEL, PART_SHORT, badgeOf, instrumentNames, libraryCategories, librarySounds, playingByPart, type SoundFilter } from './model'
 
-type Props = ComponentProps<typeof LibrarySounds>
+/** The page's props plus its Save / Save as… in the Library header (LibrarySoundsSave). */
+type Props = ComponentProps<typeof LibrarySounds> & ComponentProps<typeof LibrarySoundsSave>
 /** LibrarySounds' data props (everything but the callbacks, the tooltip action and the size). */
 export type SoundsData = Pick<
   Props,
   | 'partNames'
   | 'part'
-  | 'nowPlaying'
   | 'edited'
   | 'saveAs'
   | 'canPreset'
@@ -160,14 +161,6 @@ export function soundsProps(state: AppState, catalog: SoundCatalog, part: number
   const selected = page.selected ?? playing[part] ?? null
   const entry = selected ? catalog.entries.find((e) => e.id === selected) : undefined
 
-  const playingNow = playing[part]
-  const nowNumber = playingNow ? byId.get(playingNow)?.number : undefined
-  const nowPlaying = {
-    number: nowNumber === undefined ? undefined : String(nowNumber),
-    name: kp ? (kp.sound?.name ?? kp.voiceName) : '',
-    warn: kp?.plugin?.missing ? 'plugin missing: silent' : undefined,
-  }
-
   let detail: SoundDetail | null = null
   if (entry) {
     const patch = byId.get(entry.id)
@@ -205,7 +198,6 @@ export function soundsProps(state: AppState, catalog: SoundCatalog, part: number
   return {
     partNames: parts.map((p) => p.name),
     part,
-    nowPlaying,
     edited: !!kp?.soundEdited,
     saveAs: page.saveAs,
     canPreset: kp?.plugin?.status === 'playing',
