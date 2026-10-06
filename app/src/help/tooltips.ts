@@ -4137,6 +4137,65 @@ const catalog = {
     launchkey: null,
   },
   // --- end eyes-free lane D ---
+
+  // --- The Settings screen (docs/design/push, the six Settings boards) ---
+  'settings.tab.keyboard': {
+    title: 'Settings: Keyboard',
+    body: 'Keyboard and Master transpose, and the parameter locks that keep the split point and the fingering type when you recall a Quick Rack or a One Touch Setting.',
+    genos: 'Menu › Transpose, Utility › Parameter Lock',
+    keys: [],
+    launchkey: `${P3}, bottom row (Kbd Tr −, Kbd Tr +, Tr Reset)`,
+  },
+  'settings.tab.system': {
+    title: 'Settings: System',
+    body: 'Audio (the built-in synth, the output pair, the buffer, master volume), MIDI (which inputs yahaha listens to, its output, the Launchkey LEDs), the style folders and SoundFonts, and the theme.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'settings.split_reset': {
+    title: 'Reset split point',
+    body: 'Puts the split point back at the default, F#2. Nothing to reset while it is there.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'settings.split_lock_link': {
+    title: 'Split point lock',
+    body: 'A locked split point stays where it is when you recall a Quick Rack or a One Touch Setting. Opens the Keyboard page, where the lock is switched.',
+    genos: 'Parameter Lock',
+    keys: [],
+    launchkey: null,
+  },
+  'settings.pad_pages.shown': {
+    title: 'Shown',
+    body: 'Lit: Pad Bank ▲/▼ steps through this pad page. Off: the page is left out and Pad Bank skips it; switch it back on and it goes last. Hold Sound still shows Racks.',
+    genos: null,
+    keys: [],
+    launchkey: 'Pad Bank ▲ / ▼ follow the order',
+  },
+  'dynamics.accent_more': {
+    title: 'More accent settings',
+    body: 'Shows or hides the accent mode (Hits: a drum hit; Fill: the Main’s fill while it plays) and its source (Left: chord-section strikes; Both: right-hand strikes too).',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'pedal.control_type': {
+    title: 'Control type',
+    body: 'How a switch function follows the pedal, for switch functions only: Hold A and Hold B (the Genos’ two hold styles) are on while held; Toggle switches it on or off with each press.',
+    genos: 'Control Type',
+    keys: [],
+    launchkey: null,
+  },
+  'pedal.range': {
+    title: 'Pitch bend range',
+    body: 'Which way a Pitch Bend pedal bends: Upper up only, Lower down only, Full down at rest and up when pressed. Only for Pitch Bend.',
+    genos: 'Range',
+    keys: [],
+    launchkey: null,
+  },
+  // --- end Settings screen ---
 } satisfies Record<string, Tip>
 
 export type TipKey = keyof typeof catalog

@@ -6,7 +6,6 @@ import { instrumentRows, instrumentsBoard, samplerDetail } from '../LibraryInstr
 import { racksBoard } from '../LibraryRacks/LibraryRacks.fixtures'
 import { soundsBoard } from '../LibrarySounds/LibrarySounds.fixtures'
 import { loadQueued, styleFolders, styleRows, styleViews } from '../LibraryStyles/LibraryStyles.fixtures'
-import { compactBoard } from '../NowPlayingCompact/NowPlayingCompact.fixtures'
 import { quickSlotsBoard } from '../QuickRacksBar/QuickRacksBar.fixtures'
 import { sectionRowBoard } from '../SectionRow/SectionRow.fixtures'
 import type Library from './Library.svelte'
@@ -74,7 +73,7 @@ export const libraryBoard = {
   sectionRow: { ...sectionRowBoard, running: true },
   pages: libraryPages,
   page: 'sounds',
-  nowPlaying: compactBoard,
+  nowPlaying: { style: 'Sunday Drive Pop', bpm: 104, running: true, chord: 'Am', ext: '7', notes: 'A C E G', section: 'Main B', hue: 'main' },
   quickRacks: { bank: 'A', bankCount: 8, slots: quickSlotsBoard, store: false, clear: false, readOnly: false },
   styles: stylesPage,
   sounds: soundsPage,

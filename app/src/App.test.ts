@@ -102,38 +102,46 @@ describe('page tabs', () => {
     expect(ui.view).toBe('stage')
   })
 
-  it('the Settings tab opens the Settings drawer over the Stage, and a setting round-trips', async () => {
+  it('the Settings tab shows the Settings screen in the Stage\'s place, and a setting round-trips', async () => {
     const session = setup()
+    session.send({ type: 'setUpper', on: false })
+    session.advance(16)
     await fireEvent.click(tab('Settings'))
     flushSync()
     expect(ui.settings).toBe(true)
-    expect(stagePage.page).toBe('stage')
     expect(screen.queryByText('Coming soon')).toBeNull()
     expect(tab('Settings').getAttribute('aria-current')).toBe('page')
-    const drawer = document.querySelector<HTMLElement>('[role="complementary"]')!
-    expect(drawer.querySelector('[role="tablist"][aria-label="Settings pages"]')).toBeTruthy()
-    // The Style page's Auto Fill: the change reaches the session and comes back.
-    await fireEvent.click(drawer.querySelector<HTMLElement>('[data-tip="settings.tab.style"]')!)
-    flushSync()
-    const before = session.state.transport.autoFill
-    const toggle = drawer.querySelector<HTMLElement>('[data-tip="transport.auto_fill"]')!
-    await fireEvent.click(toggle)
+    // The screen, not the old drawer, and not the Stage under it.
+    expect(scaler()!.querySelector('nav[aria-label="Settings pages"]')).toBeTruthy()
+    expect(document.querySelector('[role="complementary"]')).toBeNull()
+    expect(document.querySelector('section[aria-label="Faders"]')).toBeNull()
+    // Chord & Split's Upper: the change reaches the session and comes back.
+    await fireEvent.click(scaler()!.querySelector<HTMLElement>('[data-tip="detection.upper"]')!)
     session.advance(16)
     flushSync()
-    expect(session.state.transport.autoFill).toBe(!before)
-    expect(toggle.textContent).toContain(before ? 'Off' : 'On')
-    // Another tab puts the drawer away.
+    expect(session.state.chord.upper).toBe(true)
+    expect(scaler()!.querySelector('[data-tip="detection.upper"]')!.getAttribute('aria-pressed')).toBe('true')
+    // The Stage tab leaves it.
     await fireEvent.click(tab('Stage'))
     flushSync()
     expect(ui.settings).toBe(false)
+    expect(stagePage.page).toBe('stage')
+    expect(document.querySelector('nav[aria-label="Settings pages"]')).toBeNull()
+    expect(document.querySelector('section[aria-label="Faders"]')).toBeTruthy()
   })
 
-  it('Alt+T opens the same Settings drawer, with its tab current', async () => {
+  it('Alt+T shows the same Settings screen, with its tab current; Esc leaves it', async () => {
     setup()
     await fireEvent.keyDown(window, { key: 't', code: 'KeyT', altKey: true })
     flushSync()
     expect(ui.settings).toBe(true)
+    expect(document.querySelector('nav[aria-label="Settings pages"]')).toBeTruthy()
+    expect(document.querySelector('[role="complementary"]')).toBeNull()
     expect(tab('Settings').getAttribute('aria-current')).toBe('page')
+    await fireEvent.keyDown(window, { key: 'Escape' })
+    flushSync()
+    expect(ui.settings).toBe(false)
+    expect(document.querySelector('nav[aria-label="Settings pages"]')).toBeNull()
   })
 
   it('Esc closes a drawer open over the Stage before it leaves a page', async () => {

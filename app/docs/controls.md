@@ -497,6 +497,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Accent mode: Fill** | While a Main plays, an accent plays that Main's own fill from the next beat (as Fill Self; OTS Link does not follow it). With the style stopped, accents play drum hits. | — | — | — |
 | **Accent source: Left** | Only chord-section strikes accent. The default. | — | — | — |
 | **Accent source: Both** | Chord-section and right-hand strikes both accent. | — | — | — |
+| **More accent settings** | Shows or hides the accent mode (Hits: a drum hit; Fill: the Main’s fill while it plays) and its source (Left: chord-section strikes; Both: right-hand strikes too). | — | — | — |
 
 ## Knob Assign pages
 
@@ -737,6 +738,11 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Leave page out** | Takes this pad page out of the order: Pad Bank ▲/▼ and Tab skip it. If the pads are showing it, they go back to Sections. Hold Sound still shows Racks. | — | — | — |
 | **Add page back** | Puts a pad page you left out back into the order, last. | — | — | — |
 | **Default page order** | Puts every pad page back in the default order: Sections, Racks, Chord, Multi Pads, Setup. | — | — | — |
+| **Settings: Keyboard** | Keyboard and Master transpose, and the parameter locks that keep the split point and the fingering type when you recall a Quick Rack or a One Touch Setting. | Menu › Transpose, Utility › Parameter Lock | — | Pad page 3 (Chord), bottom row (Kbd Tr −, Kbd Tr +, Tr Reset) |
+| **Settings: System** | Audio (the built-in synth, the output pair, the buffer, master volume), MIDI (which inputs yahaha listens to, its output, the Launchkey LEDs), the style folders and SoundFonts, and the theme. | — | — | — |
+| **Reset split point** | Puts the split point back at the default, F#2. Nothing to reset while it is there. | — | — | — |
+| **Split point lock** | A locked split point stays where it is when you recall a Quick Rack or a One Touch Setting. Opens the Keyboard page, where the lock is switched. | Parameter Lock | — | — |
+| **Shown** | Lit: Pad Bank ▲/▼ steps through this pad page. Off: the page is left out and Pad Bank skips it; switch it back on and it goes last. Hold Sound still shows Racks. | — | — | Pad Bank ▲ / ▼ follow the order |
 
 ## Audio
 
@@ -778,6 +784,8 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Modulation on this part** | Whether the modulation wheel adds vibrato to this part. By default Right 1–3 take it and Left doesn't. | Joystick (Y): Modulation | — | The modulation wheel |
 | **Pitch Bend Range down** | One semitone less bend for this part (0–12; 2 is the default). | Pitch Bend Range | — | — |
 | **Pitch Bend Range up** | One semitone more bend for this part (0–12). | Pitch Bend Range | — | — |
+| **Control type** | How a switch function follows the pedal, for switch functions only: Hold A and Hold B (the Genos’ two hold styles) are on while held; Toggle switches it on or off with each press. | Control Type | — | — |
+| **Pitch bend range** | Which way a Pitch Bend pedal bends: Upper up only, Lower down only, Full down at rest and up when pressed. Only for Pitch Bend. | Range | — | — |
 
 ## App
 

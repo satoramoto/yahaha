@@ -9,7 +9,7 @@ import type { TabItem } from '../../ui/ChosenTabs/types'
 import type NowPlayingCompact from '../../ui/NowPlayingCompact/NowPlayingCompact.svelte'
 import type { QuickSlot } from '../../ui/QuickRacksBar/types'
 import { instruments } from '../sounds/model'
-import { chordNotes, sectionHue, sectionName, splitChord } from '../stage/model'
+import { nowPlayingCompact } from '../settings/model'
 import { librarySounds, NO_FILTER } from './model'
 
 /** The Library pages, left to right, and their tooltip keys. */
@@ -40,22 +40,9 @@ export function libraryPages(state: AppState, library: LibraryList, catalog: Sou
   })
 }
 
-/** The left column's compact block: style, tempo, running, the chord and its notes, the section. */
+/** The left column's compact block, as on Settings: style, tempo, running, the chord, the section. */
 export function compactNowPlaying(state: AppState): ComponentProps<typeof NowPlayingCompact> {
-  const t = state.transport
-  const raw = t.running && t.section ? t.section : `Main ${'ABCD'[t.main] ?? 'A'}`
-  const chord = splitChord(state.chord.name)
-  return {
-    style: state.style.name,
-    tempo: Math.round(t.tempo),
-    running: t.running,
-    chord: chord.chord ? chord.chord + chord.extension : null,
-    notes: chordNotes(state)
-      .map((n) => n.note)
-      .join(' '),
-    section: sectionName(raw),
-    sectionHue: sectionHue(raw),
-  }
+  return nowPlayingCompact(state)
 }
 
 /** The Quick Racks bar: the bank on view, its eight slots, Store armed, Clear armed (app-only). */

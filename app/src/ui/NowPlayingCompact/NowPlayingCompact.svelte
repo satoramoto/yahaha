@@ -1,69 +1,43 @@
 <!--
-  NowPlayingCompact: the Library's compact now-playing block, 320 × 84 at the top of a tall page's
-  left column. Line 1: the style name (strong, ellipsis), then the tempo ("104" strong, " BPM" in
-  the caption ink) and the run-state dot (solid green with its glow running, a hollow ring
-  stopped). Line 2: the chord in the accent at the large size, its notes in the caption ink, and
-  the playing section in its section hue. Not a control: no click, no focus.
+  NowPlayingCompact: the now-playing block at the head of a full page's left column (Settings). Two
+  lines: the style, its tempo and the running light; the chord, its notes and the playing section.
+  Beat, bar and next live in the section row's count, not here.
 -->
 <script lang="ts">
   import StatusDot from '../StatusDot/StatusDot.svelte'
 
-  type SectionHue = 'intro' | 'main' | 'ending' | 'brk' | 'fill'
-
   type Props = {
-    /** The loaded style's name ("Sunday Drive Pop"); ellipsized when too long. */
+    /** The style's name. */
     style: string
-    /** The tempo in BPM, rounded for display. `null`: "—". */
-    tempo: number | null
-    /** The band is running: a solid green dot with its glow, named "Running"; else a hollow ring, "Stopped". */
+    /** The tempo in BPM. */
+    bpm: number
+    /** The style is running: the green light. False: a hollow dot. */
     running?: boolean
-    /** The chord's name, root and quality ("Am7"). `null` or empty: "—", no notes. */
-    chord: string | null
-    /** The chord's note names, space-separated ("A C E G"). */
+    /** The chord's name ("Am"); empty: no chord. */
+    chord: string
+    /** Its extension, drawn after it ("7"). */
+    ext?: string
+    /** The chord's notes ("A C E G"). */
     notes?: string
-    /** The playing section's name ("Main B"); stopped, the one the band will start on. */
+    /** The playing section's name ("Main B"). */
     section: string
-    /** The section's hue token: the section name is drawn in it. */
-    sectionHue?: SectionHue
-    /** The block's width in px. */
-    width?: number
+    /** The section's hue. */
+    hue?: 'intro' | 'main' | 'ending' | 'brk' | 'fill'
   }
 
-  let {
-    style,
-    tempo,
-    running = false,
-    chord,
-    notes = '',
-    section,
-    sectionHue = 'main',
-    width = 320,
-  }: Props = $props()
-
-  const DASH = '—'
-  /** Before the unit; an expression, so Svelte keeps the space. */
-  const UNIT = ' BPM'
-  let hasChord = $derived(chord !== null && chord.trim() !== '')
-  let shownTempo = $derived(tempo === null ? DASH : String(Math.round(tempo)))
+  let { style, bpm, running = false, chord, ext = '', notes = '', section, hue = 'main' }: Props = $props()
 </script>
 
-<div
-  class="block"
-  role="group"
-  aria-label="Now playing"
-  data-running={running ? 'true' : 'false'}
-  data-hue={sectionHue}
-  style:width={`${width}px`}
->
-  <div class="line one">
+<div class="block" role="group" aria-label="Now playing">
+  <div class="line">
     <span class="style">{style}</span>
-    <span class="tempo"><span class="bpm">{shownTempo}</span><span class="unit">{UNIT}</span></span>
-    <StatusDot hue="ok" hollow={!running} glow={running} name={running ? 'Running' : 'Stopped'} />
+    <span class="tempo"><span class="value">{Math.round(bpm)}</span><span class="unit">BPM</span></span>
+    <StatusDot hue={running ? 'ok' : 'd'} hollow={!running} name={running ? 'Running' : 'Stopped'} />
   </div>
-  <div class="line two">
-    <span class="chord" class:none={!hasChord}>{hasChord ? chord : DASH}</span>
-    {#if hasChord && notes}<span class="notes">{notes}</span>{/if}
-    <span class="section" style:color={`var(--${sectionHue})`}>{section}</span>
+  <div class="line">
+    <span class="chord">{chord || '—'}{#if ext}<span class="ext">{ext}</span>{/if}</span>
+    {#if notes}<span class="notes">{notes}</span>{/if}
+    <span class="section" data-hue={hue}>{section}</span>
   </div>
 </div>
 
@@ -71,71 +45,71 @@
   .block {
     display: flex;
     flex-direction: column;
-    gap: var(--space-12);
-    box-sizing: border-box;
-    height: 84px;
-    min-width: 0;
-    font-family: var(--font-sans);
-    white-space: nowrap;
+    gap: var(--space-8);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
+    font-variant-numeric: tabular-nums;
   }
   .line {
     display: flex;
     align-items: baseline;
-    gap: var(--space-8);
+    gap: var(--space-12);
     min-width: 0;
+    white-space: nowrap;
   }
-  .one {
+  .line:first-child {
     align-items: center;
   }
   .style {
-    flex: 0 1 auto;
     min-width: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--t);
+    color: var(--a);
     font: var(--type-strong);
     letter-spacing: var(--tracking-strong);
+    text-overflow: ellipsis;
   }
   .tempo {
-    flex: none;
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-4);
     margin-left: auto;
   }
-  .bpm {
-    color: var(--t);
+  .value {
+    color: var(--value-ink);
     font: var(--type-strong);
     letter-spacing: var(--tracking-strong);
     font-variant-numeric: tabular-nums;
   }
-  .unit {
-    color: var(--caption-ink);
-    font: var(--type-text);
-    letter-spacing: var(--tracking-text);
-  }
-  .two {
-    gap: var(--space-12);
-  }
-  .chord {
-    flex: none;
-    color: var(--a);
-    font: var(--type-large);
-    letter-spacing: var(--tracking-large);
-  }
-  .chord.none {
-    color: var(--caption-ink);
-  }
+  .unit,
   .notes {
-    flex: 0 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
     color: var(--caption-ink);
-    font: var(--type-text);
-    letter-spacing: var(--tracking-text);
   }
-  .section {
-    flex: none;
-    margin-left: auto;
+  /* One size per line: the chord is the strong text size, set apart by its violet, not by size. */
+  .chord {
+    color: var(--a);
     font: var(--type-strong);
     letter-spacing: var(--tracking-strong);
+  }
+  .ext {
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
+  }
+  .section {
+    margin-left: auto;
+    color: var(--main);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
+  }
+  .section[data-hue='intro'] {
+    color: var(--intro);
+  }
+  .section[data-hue='ending'] {
+    color: var(--ending);
+  }
+  .section[data-hue='brk'] {
+    color: var(--brk);
+  }
+  .section[data-hue='fill'] {
+    color: var(--fill);
   }
 </style>

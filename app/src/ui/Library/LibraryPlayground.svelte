@@ -94,7 +94,7 @@
       onload: (id) => {
         loadedStyle = id
         const row = p.styles?.rows.find((r) => r.id === id)
-        if (row) nowPlaying = { ...nowPlaying, style: row.cells[1], tempo: Number(row.cells[3]) || nowPlaying.tempo }
+        if (row) nowPlaying = { ...nowPlaying, style: row.cells[1], bpm: Number(row.cells[3]) || nowPlaying.bpm }
         p.styles?.onload?.(id)
       },
       onstar: (id, on) => {

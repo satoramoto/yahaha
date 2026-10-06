@@ -24,7 +24,7 @@ describe('Library frame', () => {
     const s = session()
     const np = compactNowPlaying(s.state)
     expect(np.style).toBe(s.state.style.name)
-    expect(np.tempo).toBe(Math.round(s.state.transport.tempo))
+    expect(np.bpm).toBe(Math.round(s.state.transport.tempo))
     expect(np.running).toBe(s.state.transport.running)
     expect(np.section).toMatch(/^(Main|Intro|Ending|Break|Fill)/)
   })
