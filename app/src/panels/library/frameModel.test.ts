@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MockSession } from '../../lib/api/mock'
-import { compactNowPlaying, libraryPages, quickRacksBar } from './frameModel'
+import { libraryPages, quickRacksBar } from './frameModel'
 
 function session() {
   const s = new MockSession({ demo: true, manual: true })
@@ -18,15 +18,6 @@ describe('Library frame', () => {
     expect(tabs[3].label).toBe(`Racks ${s.state.racks.length}`)
     expect(tabs[4].label).toBe('Style map')
     expect(tabs.every((t) => t.tip?.startsWith('library.tab_'))).toBe(true)
-  })
-
-  it('the compact block reads the style, tempo, running and section', () => {
-    const s = session()
-    const np = compactNowPlaying(s.state)
-    expect(np.style).toBe(s.state.style.name)
-    expect(np.bpm).toBe(Math.round(s.state.transport.tempo))
-    expect(np.running).toBe(s.state.transport.running)
-    expect(np.section).toMatch(/^(Main|Intro|Ending|Break|Fill)/)
   })
 
   it('Quick Racks: the bank letter and each slot\'s face; Clear armed is the page\'s own', () => {

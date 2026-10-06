@@ -321,18 +321,3 @@ export type LaunchkeyChange =
   | { type: 'shown'; id: string; on: boolean }
   | { type: 'reset' }
 
-// ── The compact now-playing block ────────────────────────────────────────────────────────────────
-
-export interface NowPlayingCompactData {
-  style: string
-  bpm: number
-  running: boolean
-  /** "Am", and its extension "7" drawn after it. */
-  chord: string
-  ext?: string
-  /** "A C E G". */
-  notes?: string
-  /** "Main B". */
-  section: string
-  hue?: 'intro' | 'main' | 'ending' | 'brk' | 'fill'
-}

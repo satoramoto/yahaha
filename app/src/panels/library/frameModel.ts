@@ -1,15 +1,12 @@
-// The Library screen's frame (ui/Library): the Library page tabs with their counts, the compact
-// now-playing block and the Quick Racks bar, from app state. Pure, so it is unit-tested; the
+// The Library screen's frame (ui/Library): the Library page tabs with their counts and the
+// Quick Racks bar, from app state. Pure, so it is unit-tested; the
 // pages' own props come from stylesModel, soundsModel, instrumentsModel and racksModel.
 
-import type { ComponentProps } from 'svelte'
 import type { AppState, LibraryList, SoundCatalog } from '../../lib/api/types'
 import type { LibraryTab } from '../../lib/store.svelte'
 import type { TabItem } from '../../ui/ChosenTabs/types'
-import type NowPlayingCompact from '../../ui/NowPlayingCompact/NowPlayingCompact.svelte'
 import type { QuickSlot } from '../../ui/QuickRacksBar/types'
 import { instruments } from '../sounds/model'
-import { nowPlayingCompact } from '../settings/model'
 import { librarySounds, NO_FILTER } from './model'
 
 /** The Library pages, left to right, and their tooltip keys. */
@@ -38,11 +35,6 @@ export function libraryPages(state: AppState, library: LibraryList, catalog: Sou
       ? { id: p.id, label: p.label, tip: p.tip }
       : { id: p.id, label: `${p.label} ${count(c)}`, name: `${p.label}, ${count(c)}`, tip: p.tip }
   })
-}
-
-/** The left column's compact block, as on Settings: style, tempo, running, the chord, the section. */
-export function compactNowPlaying(state: AppState): ComponentProps<typeof NowPlayingCompact> {
-  return nowPlayingCompact(state)
 }
 
 /** The Quick Racks bar: the bank on view, its eight slots, Store armed, Clear armed (app-only). */

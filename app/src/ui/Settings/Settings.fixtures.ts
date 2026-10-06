@@ -6,7 +6,7 @@ import { launchkeyBoard } from '../SettingsLaunchkey/SettingsLaunchkey.fixtures'
 import { pedalsBoard } from '../SettingsPedals/SettingsPedals.fixtures'
 import { styleBoard } from '../SettingsStyle/SettingsStyle.fixtures'
 import { systemBoard } from '../SettingsSystem/SettingsSystem.fixtures'
-import type { NowPlayingCompactData, SettingsPageItem } from './types'
+import type { SettingsPageItem } from './types'
 
 /** The six pages as the left column lists them: names only. */
 export const settingsPageItems: SettingsPageItem[] = [
@@ -18,23 +18,10 @@ export const settingsPageItems: SettingsPageItem[] = [
   { id: 'launchkey', label: 'Controller', tip: 'settings.tab.launchkey' },
 ]
 
-/** The compact block on every Settings board: Sunday Drive Pop at 104, Am7 in Main B. */
-export const settingsNowPlaying: NowPlayingCompactData = {
-  style: 'Sunday Drive Pop',
-  bpm: 104,
-  running: true,
-  chord: 'Am',
-  ext: '7',
-  notes: 'A C E G',
-  section: 'Main B',
-  hue: 'main',
-}
-
 /** The dark boards: the Settings tab chosen, running, the Chord & Split page open. */
 export const settingsBoard = {
   appBar: { ...boardAppBar, chosen: 'settings' },
   help: false,
-  nowPlaying: settingsNowPlaying,
   pages: settingsPageItems,
   page: 'chord' as const,
   chord: chordBoard,

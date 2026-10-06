@@ -1,7 +1,7 @@
 <!--
   Settings: the Settings page at 1440 × 900, a full-screen page in place of the Stage. The app bar
   as on the Stage (no transport row: the owner found it confusing here); then a left column (the
-  compact now-playing block over the six pages as a list, the open one the chosen block, and Panic
+  six pages as a list from its top, the open one the chosen block, and Panic
   and help mode's ? at its foot) beside the open page, whose sections start at the top (the chosen
   page in the list names it); the status line and the keys at the foot. Every page stays mounted
   (the others hidden), so switching is instant. Each region takes its data as one object; every
@@ -15,7 +15,6 @@
   import Button from '../Button/Button.svelte'
   import GroupHeader from '../GroupHeader/GroupHeader.svelte'
   import Keys from '../Keys/Keys.svelte'
-  import NowPlayingCompact from '../NowPlayingCompact/NowPlayingCompact.svelte'
   import PageList from '../PageList/PageList.svelte'
   import SettingsChord from '../SettingsChord/SettingsChord.svelte'
   import SettingsKeyboard from '../SettingsKeyboard/SettingsKeyboard.svelte'
@@ -31,7 +30,6 @@
     KeyboardPageData,
     LaunchkeyChange,
     LaunchkeyPageData,
-    NowPlayingCompactData,
     PedalsChange,
     PedalsPageData,
     SettingsPageId,
@@ -62,8 +60,6 @@
     appBar: Data<typeof AppBar>
     /** Help mode on: the ? at the foot of the left column is lit. */
     help?: boolean
-    /** The compact now-playing block at the head of the left column. */
-    nowPlaying: NowPlayingCompactData
     /** The six pages, with what each is set to. */
     pages: SettingsPageItem[]
     /** The open page. */
@@ -108,7 +104,6 @@
   <AppBar {...p.appBar} tipAction={p.tipAction} onchoose={p.onchoose} onhealth={p.onhealth} />
   <section class="body" aria-label="Settings">
     <div class="side">
-      <NowPlayingCompact {...p.nowPlaying} />
       <div class="list">
         <GroupHeader title="Settings" level={2} />
         <PageList

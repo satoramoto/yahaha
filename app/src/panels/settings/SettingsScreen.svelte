@@ -26,7 +26,7 @@
   import Settings from '../../ui/Settings/Settings.svelte'
   import type { SettingsPageId } from '../../ui/Settings/types'
   import { settingsActions } from './actions'
-  import { chordPage, keyboardPage, launchkeyPage, nowPlayingCompact, pedalsPage, SETTINGS_PAGES, stylePage, systemPage } from './model'
+  import { chordPage, keyboardPage, launchkeyPage, pedalsPage, SETTINGS_PAGES, stylePage, systemPage } from './model'
   import { nav } from './nav.svelte'
 
   const WIDTH = 1440
@@ -124,7 +124,6 @@
   const statusData = $derived(status(s, hint.current))
   const keyData = $derived({ ...keys(s, range, splitPick.armed), tipAction, ...keyCb })
 
-  const nowPlaying = $derived(nowPlayingCompact(s))
   const chord = $derived(chordPage(s, splitPick.armed))
   const style = $derived(stylePage(s))
   const keyboard = $derived(keyboardPage(s))
@@ -161,7 +160,6 @@
       help={tips.help}
       status={statusData}
       keys={keyData}
-      {nowPlaying}
       pages={SETTINGS_PAGES}
       page={nav.page}
       {chord}

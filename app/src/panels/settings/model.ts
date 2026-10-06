@@ -1,5 +1,5 @@
 // The Settings screen's data: pure functions from the app's state to the props of the library's
-// `Settings` (app/src/ui/Settings): the page list, the compact now-playing block and one data
+// `Settings` (app/src/ui/Settings): the page list and one data
 // object per page. SettingsScreen.svelte feeds these from the stores; actions.ts turns the pages'
 // changes into commands. The old drawer's pages (ChordPage.svelte and the rest, in this folder)
 // read the same fields; where they made a choice (what a note says, when a control shows), this
@@ -9,13 +9,11 @@ import { functionGroups } from '../../lib/api/assignable'
 import { settings } from '../../lib/api/settings.svelte'
 import { DEFAULT_PAD_PAGES, FINGERINGS, KEYBOARD_PART_NAMES, PAD_PAGES, CHORD_SETTLE_MAX_MS } from '../../lib/api/types'
 import type { AppState, Fingering, PadPage } from '../../lib/api/types'
-import { chordNotes, sectionHue, sectionName, splitChord } from '../stage/model'
 import type {
   ChordPageData,
   FingeringItem,
   KeyboardPageData,
   LaunchkeyPageData,
-  NowPlayingCompactData,
   PadPageRow,
   PartHue,
   PedalsPageData,
@@ -51,26 +49,6 @@ export const SETTINGS_PAGES: SettingsPageItem[] = [
   { id: 'system', label: 'System', tip: 'settings.tab.system' },
   { id: 'launchkey', label: 'Controller', tip: 'settings.tab.launchkey' },
 ]
-
-// ── Now playing ───────────────────────────────────────────────────────────────────────────
-
-export function nowPlayingCompact(state: AppState): NowPlayingCompactData {
-  const t = state.transport
-  const { chord, extension } = splitChord(state.chord.name)
-  const notes = chordNotes(state).map((n) => n.note)
-  // Playing: the section, or stopped the Main the band starts on (as the Stage's display).
-  const playing = t.running && t.section ? t.section : `Main ${'ABCD'[t.main] ?? 'A'}`
-  return {
-    style: state.style.name,
-    bpm: Math.round(t.tempo),
-    running: t.running,
-    chord,
-    ext: extension || undefined,
-    notes: notes.length ? notes.join(' ') : undefined,
-    section: sectionName(playing),
-    hue: sectionHue(playing),
-  }
-}
 
 // ── Chord & Split ─────────────────────────────────────────────────────────────────────────
 

@@ -106,7 +106,6 @@ const meta = {
     sectionRow: { control: 'object', table: { category: 'SectionRow' } },
     pages: { control: 'object', table: { category: 'Library' } },
     page: { control: 'inline-radio', options: ['styles', 'sounds', 'instruments', 'racks', 'map'], table: { category: 'Library' } },
-    nowPlaying: { control: 'object', table: { category: 'NowPlayingCompact' } },
     quickRacks: { control: 'object', table: { category: 'QuickRacksBar' } },
     styles: { control: 'object', table: { category: 'LibraryStyles' } },
     sounds: { control: 'object', table: { category: 'LibrarySounds' } },

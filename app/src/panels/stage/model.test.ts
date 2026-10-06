@@ -707,6 +707,14 @@ describe('app bar', () => {
     expect(bar(state()).failedPart).toBeNull()
   })
 
+  it('names the style and tempo off the Stage only', () => {
+    const s = state((st) => (st.transport.tempo = 103.6))
+    expect(bar(s).nowPlaying).toBeUndefined()
+    for (const page of ['settings', 'library', 'mixer']) {
+      expect(appBar({ state: s, meters: null, page, dropouts: 0 }).nowPlaying).toEqual({ style: s.style.name, tempo: 104 })
+    }
+  })
+
   it('no synth: synthOn false, no buffer', () => {
     const b = bar(state((s) => (s.io.synth = null)))
     expect(b.synthOn).toBe(false)

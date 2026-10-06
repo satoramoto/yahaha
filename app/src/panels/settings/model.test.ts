@@ -9,7 +9,6 @@ import {
   DEFAULT_SPLIT,
   keyboardPage,
   launchkeyPage,
-  nowPlayingCompact,
   pedalsPage,
   SETTINGS_PAGES,
   stylePage,
@@ -43,24 +42,6 @@ describe('SETTINGS_PAGES', () => {
       'settings.tab.launchkey',
     ])
     for (const p of pages) expect(Object.keys(p).sort()).toEqual(['id', 'label', 'tip'])
-  })
-})
-
-describe('nowPlayingCompact', () => {
-  it('shows the style, tempo, chord in two runs and the section the band starts on', () => {
-    const s = mockState((s) => {
-      s.transport.running = false
-      s.transport.main = 1
-      s.transport.tempo = 119.6
-      s.chord.name = 'Am7'
-    })
-    const n = nowPlayingCompact(s)
-    expect(n.style).toBe(s.style.name)
-    expect(n.bpm).toBe(120)
-    expect(n.chord).toBe('Am')
-    expect(n.ext).toBe('7')
-    expect(n.section).toBe('Main B')
-    expect(n.hue).toBe('main')
   })
 })
 

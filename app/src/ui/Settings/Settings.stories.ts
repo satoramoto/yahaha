@@ -41,7 +41,6 @@ const meta = {
   argTypes: {
     appBar: { control: 'object', table: { category: 'AppBar' } },
     help: { control: 'boolean', table: { category: 'Helpers' } },
-    nowPlaying: { control: 'object', table: { category: 'NowPlayingCompact' } },
     pages: { control: 'object', table: { category: 'PageList' } },
     page: { control: 'select', options: PAGES, table: { category: 'PageList' } },
     chord: { control: 'object', table: { category: 'SettingsChord' } },

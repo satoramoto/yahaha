@@ -3,7 +3,7 @@
   LibraryInstruments and LibraryRacks boards). A thin layout of components: the app bar (Library
   chosen), the section row, the page, the status line and the keys. The page is a "Library" header
   whose ChosenTabs pick the Library page (Styles, Sounds, Instruments, Racks, Style map), over a
-  320px left column (the compact now-playing block, the Quick Racks bar), a hairline, and the
+  320px left column (the Quick Racks bar at its top), a hairline, and the
   chosen page's component. The board's half-height band isn't drawn yet: the page takes its height.
   Each page's props (data and callbacks) come as one object; only the chosen page is rendered. The
   Style map page is the parent's `map` snippet (or a placeholder line without one).
@@ -20,7 +20,6 @@
   import LibraryRacks from '../LibraryRacks/LibraryRacks.svelte'
   import LibrarySounds from '../LibrarySounds/LibrarySounds.svelte'
   import LibraryStyles from '../LibraryStyles/LibraryStyles.svelte'
-  import NowPlayingCompact from '../NowPlayingCompact/NowPlayingCompact.svelte'
   import QuickRacksBar from '../QuickRacksBar/QuickRacksBar.svelte'
   import SectionRow from '../SectionRow/SectionRow.svelte'
   import StatusLine from '../StatusLine/StatusLine.svelte'
@@ -51,9 +50,7 @@
     pages: TabItem[]
     /** The `id` of the Library page shown: `styles`, `sounds`, `instruments`, `racks` or `map`. */
     page: string
-    /** The compact now-playing block at the top of the left column. */
-    nowPlaying: ComponentProps<typeof NowPlayingCompact>
-    /** The Quick Racks bar under it: the bank on view and its eight slots. */
+    /** The Quick Racks bar at the top of the left column: the bank on view and its eight slots. */
     quickRacks: Data<typeof QuickRacksBar>
     /** Styles: the page's data and callbacks. Needed when `page` is `styles`. */
     styles?: Page<typeof LibraryStyles>
@@ -133,7 +130,6 @@
     </GroupHeader>
     <div class="body">
       <div class="left">
-        <NowPlayingCompact {...p.nowPlaying} />
         <div class="quick">
           <QuickRacksBar
             {...p.quickRacks}
@@ -212,7 +208,6 @@
   }
   .quick {
     display: flex;
-    margin-top: var(--space-16);
   }
   .quick > :global(*) {
     flex: 1;

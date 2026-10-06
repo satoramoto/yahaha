@@ -31,7 +31,6 @@
 
   // ---- Frame
   let page = $derived(p.page)
-  let nowPlaying = $derived({ ...p.nowPlaying })
   let quick = $derived({ ...p.quickRacks, slots: p.quickRacks.slots.map((s) => ({ ...s })) })
   const BANKS = 'ABCDEFGH'
 
@@ -93,8 +92,6 @@
       },
       onload: (id) => {
         loadedStyle = id
-        const row = p.styles?.rows.find((r) => r.id === id)
-        if (row) nowPlaying = { ...nowPlaying, style: row.cells[1], bpm: Number(row.cells[3]) || nowPlaying.bpm }
         p.styles?.onload?.(id)
       },
       onstar: (id, on) => {
@@ -233,7 +230,6 @@
 <Library
   {...p}
   {page}
-  {nowPlaying}
   quickRacks={quick}
   {styles}
   {sounds}

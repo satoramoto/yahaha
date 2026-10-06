@@ -73,7 +73,6 @@ export const libraryBoard = {
   sectionRow: { ...sectionRowBoard, running: true },
   pages: libraryPages,
   page: 'sounds',
-  nowPlaying: { style: 'Sunday Drive Pop', bpm: 104, running: true, chord: 'Am', ext: '7', notes: 'A C E G', section: 'Main B', hue: 'main' },
   quickRacks: { bank: 'A', bankCount: 8, slots: quickSlotsBoard, store: false, clear: false, readOnly: false },
   styles: stylesPage,
   sounds: soundsPage,

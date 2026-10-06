@@ -99,6 +99,8 @@ export function appBar(input: Pick<StageInput, 'state' | 'meters' | 'page' | 'dr
     bufferFrames: state.io.synth?.bufferFrames ?? null,
     // No CPU before the first frame with channels (no synth: an empty frame).
     cpu: meters && meters.channels.length > 0 ? meters.cpu.total : null,
+    // Off the Stage the bar names the style and tempo (the Stage's display already shows them).
+    nowPlaying: input.page === 'stage' ? undefined : { style: state.style.name, tempo: Math.round(state.transport.tempo) },
   }
 }
 

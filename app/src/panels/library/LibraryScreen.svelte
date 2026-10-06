@@ -24,7 +24,7 @@
   import { appBar, keys, sectionRow, status } from '../stage/model'
   import { stagePage } from '../stage/page.svelte'
   import { keysActions, splitPick } from '../stage/splitPick.svelte'
-  import { compactNowPlaying, libraryPages, quickRacksBar } from './frameModel'
+  import { libraryPages, quickRacksBar } from './frameModel'
   import { followPendingEditor, instrumentsActions, instrumentsProps } from './instrumentsModel'
   import { instrumentsState } from './instrumentsState.svelte'
   import MapTab from './MapTab.svelte'
@@ -209,7 +209,6 @@
   const appBarData = $derived(appBar({ state: s, meters, page: 'library', dropouts: dropouts.recent(nowMs) }))
   const sectionRowData = $derived(sectionRow({ state: s, help: tips.help }))
   const pages = $derived(libraryPages(s, app.library, app.sounds))
-  const nowPlaying = $derived(compactNowPlaying(s))
   const quickRacks = $derived(quickRacksBar(s, clearArmed))
   const styles = $derived(tab === 'styles' ? { ...stylesProps(s, app.library, stylesState, prefs), ...stylesCb } : undefined)
   const sounds = $derived(tab === 'sounds' ? { ...soundsProps(s, app.sounds, ui.libraryPart, libraryNav, soundsPage), ...soundsCb } : undefined)
@@ -251,7 +250,6 @@
       sectionRow={sectionRowData}
       {pages}
       page={tab}
-      {nowPlaying}
       {quickRacks}
       {styles}
       {sounds}

@@ -43,6 +43,8 @@
     cpu?: number | null
     /** HealthSlot: called with where to fix the trouble. */
     onhealth?: (target: HealthTarget) => void
+    /** Off the Stage: the style and its tempo after "yahaha" ("Sunday Drive Pop 104 BPM"). Omit on the Stage. */
+    nowPlaying?: { style: string; tempo: number }
     /** The bar's width in px. Default: fills its container. */
     width?: number
   }
@@ -60,12 +62,19 @@
     bufferFrames = null,
     cpu = null,
     onhealth,
+    nowPlaying,
     width,
   }: Props = $props()
 </script>
 
 <header class="bar" style:width={width === undefined ? undefined : `${width}px`}>
   <span class="name">yahaha</span>
+  {#if nowPlaying}
+    <span class="playing" aria-label={`Style ${nowPlaying.style}, ${nowPlaying.tempo} BPM`}>
+      <span class="style">{nowPlaying.style}</span>
+      <span class="value">{nowPlaying.tempo}</span><span class="unit">BPM</span>
+    </span>
+  {/if}
   <nav aria-label="Pages">
     <ChosenTabs tabs={displayTabs} {chosen} size="page" {tipAction} {onchoose} />
     <span class="gap"><Separator /></span>
@@ -113,6 +122,31 @@
     font: var(--type-strong);
     letter-spacing: var(--tracking-strong);
     white-space: nowrap;
+  }
+  /* Off the Stage: the style in the accent (as on the Stage) and the tempo as a value + unit, one
+     size on the line, on the bar's baseline. */
+  .playing {
+    min-width: 0;
+    margin-left: var(--space-8);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .style {
+    margin-right: var(--space-8);
+    color: var(--a);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
+  }
+  .value {
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
+  }
+  .unit {
+    margin-left: var(--space-4);
+    color: var(--m);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
   }
   nav {
     display: flex;

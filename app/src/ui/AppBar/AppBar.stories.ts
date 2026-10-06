@@ -30,6 +30,7 @@ const meta = {
     bufferFrames: { control: 'select', options: [null, 64, 128, 256, 512, 1024], table: { category: 'HealthSlot' } },
     cpu: { control: { type: 'range', min: 0, max: 1.2, step: 0.01 }, table: { category: 'HealthSlot' } },
     onhealth: { table: { category: 'HealthSlot' } },
+    nowPlaying: { control: 'object' },
   },
 } satisfies Meta<typeof AppBar>
 
@@ -42,6 +43,11 @@ export const Board: Story = {}
 /** Library chosen: the block moves past the hairline. */
 export const Library: Story = {
   args: { chosen: 'library' },
+}
+
+/** Off the Stage (Settings here): the style in the accent and its tempo after "yahaha". */
+export const OffStage: Story = {
+  args: { chosen: 'settings', nowPlaying: { style: 'Sunday Drive Pop', tempo: 104 } },
 }
 
 /** The Launchkey unplugged: a hollow grey ring before the word. */
