@@ -1,14 +1,20 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
 import { fn } from 'storybook/test'
 import NowPlaying from './NowPlaying.svelte'
-import { nowPlayingBoard, nowPlayingFill, nowPlayingLongFill, nowPlayingStopped } from './NowPlaying.fixtures'
+import {
+  nowPlayingBoard,
+  nowPlayingFill,
+  nowPlayingLooping,
+  nowPlayingStopped,
+  nowPlayingSyncStart,
+} from './NowPlaying.fixtures'
 
 const HUES = ['intro', 'main', 'ending', 'brk', 'fill']
 
 /**
- * The display's middle, in glance order: the chord, the playing and next section (display size)
- * with when the fill lands, the bar and beat, then the tempo with Tempo − + and Style tempo, and
- * the Running light. 814 × 162.
+ * The display's middle third, the song: the playing section large in its hue, one small line with
+ * what comes next and when, and the tempo at the section's size with + and − stacked at its right.
+ * A third of the display wide.
  */
 const meta = {
   title: 'Components/NowPlaying',
@@ -20,34 +26,35 @@ const meta = {
     ontempoup: fn(),
     ontempodown: fn(),
     onstyletempo: fn(),
+    ontempo: fn(),
   },
   argTypes: {
-    chord: { control: 'object', table: { category: 'ChordReadout' } },
     playing: { control: 'text', table: { category: 'SectionName' } },
     hue: { control: 'select', options: HUES, table: { category: 'SectionName' } },
     next: { control: 'text' },
     fill: { control: 'text' },
-    bar: { control: { type: 'number', min: 1, step: 1 }, table: { category: 'BarBeat' } },
-    bars: { control: { type: 'number', min: 1, max: 16, step: 1 }, table: { category: 'BarBeat' } },
-    beat: { control: { type: 'range', min: 0, max: 12, step: 1 }, table: { category: 'BarBeat' } },
-    beats: { control: { type: 'number', min: 1, max: 12, step: 1 }, table: { category: 'BarBeat' } },
-    progress: { control: { type: 'range', min: 0, max: 1, step: 0.01 }, table: { category: 'BarBeat' } },
+    bar: { control: { type: 'number', min: 1, step: 1 } },
+    bars: { control: { type: 'number', min: 1, max: 16, step: 1 } },
     bpm: { control: { type: 'number', min: 5, max: 500, step: 1 }, table: { category: 'TempoReadout' } },
-    running: { control: 'boolean', table: { category: 'StatusDot' } },
+    running: { control: 'boolean' },
+    syncStart: { control: 'boolean' },
   },
 } satisfies Meta<typeof NowPlaying>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** The dark board: Am7, Main B, next Main C, fill lands after bar 4, bar 3/4 on beat 3, 104 BPM, Running. */
+/** The board: Main B, then Main C · fill after bar 4, 104 BPM. */
 export const Board: Story = {}
 
-/** Stopped on Main A, the last chord held, nothing next, every beat a ring. */
+/** Stopped on Main A: the section muted, "Stopped". */
 export const Stopped: Story = { args: { ...nowPlayingStopped } }
 
-/** A one-bar fill in 3/4 on its last beat, Ending II next. */
-export const FillToEnding: Story = { args: { ...nowPlayingFill } }
+/** Sync Start armed with Intro II armed. */
+export const SyncStartArmed: Story = { args: { ...nowPlayingSyncStart } }
 
-/** A long fill text: it ellipsizes first, the playing and next section keep their width. */
-export const LongFill: Story = { args: { ...nowPlayingLongFill } }
+/** Main D looping, nothing queued: "bar 2 of 8". */
+export const Looping: Story = { args: { ...nowPlayingLooping } }
+
+/** A fill with Ending II waiting. */
+export const FillToEnding: Story = { args: { ...nowPlayingFill } }

@@ -4,27 +4,26 @@ import SoundRow from './SoundRow.svelte'
 import { soundRowBoard, soundRowClean } from './SoundRow.fixtures'
 
 /**
- * The display's bottom row: the rack readout, then the four keyboard parts' sounds with their
- * marks. 814 × 44, each cell under a hairline.
+ * The display's right third: a row per keyboard part (its hue's dot, the sound and its marks, the
+ * part's name at the right), then One Touch 1-4. Plain rows, no boxes. A third of the display wide.
  */
 const meta = {
   title: 'Components/SoundRow',
   component: SoundRow,
   parameters: { layout: 'centered' },
-  args: { ...soundRowBoard, tipAction: fn(), onrack: fn(), onpart: fn(), onsound: fn() },
+  args: { ...soundRowBoard, tipAction: fn(), onsound: fn(), ononetouch: fn() },
   argTypes: {
-    rack: { control: 'text', table: { category: 'RackCell' } },
-    slot: { control: 'text', table: { category: 'RackCell' } },
-    modified: { control: 'boolean', table: { category: 'StatusDot' } },
-    parts: { control: 'object', table: { category: 'SoundCell' } },
+    parts: { control: 'object' },
+    oneTouch: { control: { type: 'inline-radio' }, options: [0, 1, 2, 3, 4], table: { category: 'OneTouchPicker' } },
+    oneTouchCount: { control: { type: 'number', min: 0, max: 4, step: 1 }, table: { category: 'OneTouchPicker' } },
   },
 } satisfies Meta<typeof SoundRow>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** The dark board: Sunday drive modified on A1; R2 edited; R3 off with its plugin missing. */
+/** The board: R2 edited; R3 off with its plugin missing; One Touch 2. */
 export const Board: Story = {}
 
-/** A clean rack: every part on, R2's plugin failed, Left playing the Style's bass. */
+/** Every part on, R2's plugin failed, Left playing the Style's bass, a long sound name; three One Touch settings. */
 export const Clean: Story = { args: { ...soundRowClean } }

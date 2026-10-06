@@ -1,12 +1,20 @@
 <!--
-  Display: the Stage's 300px display, no frame, on the ground. The art at its right edge; over it
-  at the left, the style line, now playing and the sound row. Data comes in as each part's
-  props; every press comes back through the callbacks here.
+  Display: the Stage's 1392 × 300 display, "Poster, in thirds": three equal columns on the ground,
+  calm and big, and one thin beat bar under all three.
+  - Left, harmony: the style line (‹ style › and its category · metre), the chord at the hero
+    size, the chord's notes and the fingering.
+  - Middle, song: the playing section, what comes next and when, the tempo with + and −.
+  - Right, parts: one row per keyboard part, then One Touch 1-4.
+  Exactly three type sizes: the chord (--type-hero and its step-downs), the section and the tempo
+  (--type-display), and --type-text for every other word. No boxes inside the display: its
+  controls are plain text and glyphs that brighten on hover (the band keeps its outlines).
+  Data comes in as each region's props; every press comes back through the callbacks here.
 -->
 <script lang="ts">
   import type { ComponentProps } from 'svelte'
   import type { Action } from 'svelte/action'
-  import DisplayArt from '../DisplayArt/DisplayArt.svelte'
+  import BarBeat from '../BarBeat/BarBeat.svelte'
+  import ChordReadout from '../ChordReadout/ChordReadout.svelte'
   import NowPlaying from '../NowPlaying/NowPlaying.svelte'
   import SoundRow from '../SoundRow/SoundRow.svelte'
   import StyleLine from '../StyleLine/StyleLine.svelte'
@@ -14,7 +22,7 @@
   type StyleLineProps = ComponentProps<typeof StyleLine>
   type SoundRowProps = ComponentProps<typeof SoundRow>
   type NowPlayingProps = ComponentProps<typeof NowPlaying>
-  /** A region's data: its props without `tipAction` and the `on…` callbacks (a data prop such as `oneTouch` stays). */
+  /** A region's data: its props without `tipAction` and the `on…` callbacks. */
   type Data<P> = {
     [K in keyof P as K extends 'tipAction'
       ? never
@@ -26,35 +34,45 @@
   }
 
   type Props = {
-    /** The style line: style, category, time signature, queued style, One Touch, sends. */
-    styleLine: Data<StyleLineProps>
-    /** Now playing: the chord, the sections, the tempo and Running. */
-    nowPlaying: Data<NowPlayingProps>
-    /** The sound row: the rack and the four parts. */
-    soundRow: Data<SoundRowProps>
+    /** The style line: style, category, time signature, queued style; and One Touch (drawn in the right third). */
+    styleLine: Data<StyleLineProps> & {
+      /** The applied One Touch, 1-4; 0 when none is. */
+      oneTouch?: number
+      /** How many One Touch settings the style has (numbers past it are disabled). */
+      oneTouchCount?: number
+    }
+    /** Now playing: the chord (left third), the section and tempo (middle), and the beat (the beat bar). */
+    nowPlaying: Data<NowPlayingProps> & {
+      /** The chord readout: chord, extension, notes, fingering, held. */
+      chord: ComponentProps<typeof ChordReadout>
+      /** The current beat, 1-based; 0 when stopped. */
+      beat?: number
+      /** Beats in the bar (the time signature's): one segment each in the beat bar. */
+      beats?: number
+      /** Unused: kept so callers that pass it still type-check. */
+      progress?: number
+    }
+    /** The parts: one row per keyboard part. */
+    soundRow: Pick<Data<SoundRowProps>, 'parts'>
     /** The app's tooltip action (`use:tip`), applied to every control. */
     tipAction?: Action<HTMLElement, string>
-    /** ◀: the previous style. */
+    /** ‹: the previous style. */
     onprev?: StyleLineProps['onprev']
-    /** ▶: the next style. */
+    /** ›: the next style. */
     onnext?: StyleLineProps['onnext']
-    /** The style's name: opens the Browser. */
+    /** The style's name: opens Library › Styles. */
     onbrowse?: StyleLineProps['onbrowse']
     /** One Touch 1-4: applies it. */
-    ononetouch?: StyleLineProps['ononetouch']
-    /** The sends: opens Effects. */
-    onsends?: StyleLineProps['onsends']
+    ononetouch?: SoundRowProps['ononetouch']
     /** Tempo + held (`true`) and released (`false`); from the keyboard, a press calls with `true` then `false`. */
     ontempoup?: NowPlayingProps['ontempoup']
     /** Tempo − held and released, as `ontempoup`. */
     ontempodown?: NowPlayingProps['ontempodown']
-    /** Style tempo: back to the style's own tempo. */
+    /** The tempo number double-clicked: back to the style's own tempo. */
     onstyletempo?: NowPlayingProps['onstyletempo']
-    /** The rack: opens the Rack page. */
-    onrack?: SoundRowProps['onrack']
-    /** A part's short name: opens Channel. */
-    onpart?: SoundRowProps['onpart']
-    /** A part's sound: opens the quick sound list. */
+    /** A drag, scroll or arrow key on the tempo number asks for this tempo. */
+    ontempo?: NowPlayingProps['ontempo']
+    /** A part's row: opens its sound list. */
     onsound?: SoundRowProps['onsound']
   }
 
@@ -67,22 +85,58 @@
     onnext,
     onbrowse,
     ononetouch,
-    onsends,
     ontempoup,
     ontempodown,
     onstyletempo,
-    onrack,
-    onpart,
+    ontempo,
     onsound,
   }: Props = $props()
+
+  const style = $derived({
+    styleName: styleLine.styleName,
+    category: styleLine.category,
+    timeSignature: styleLine.timeSignature,
+    queued: styleLine.queued,
+  })
+  const song = $derived({
+    playing: nowPlaying.playing,
+    hue: nowPlaying.hue,
+    next: nowPlaying.next,
+    fill: nowPlaying.fill,
+    bar: nowPlaying.bar,
+    bars: nowPlaying.bars,
+    bpm: nowPlaying.bpm,
+    running: nowPlaying.running,
+    syncStart: nowPlaying.syncStart,
+  })
 </script>
 
 <section class="display" aria-label="Stage display">
-  <div class="art"><DisplayArt /></div>
-  <div class="content">
-    <StyleLine {...styleLine} {tipAction} {onprev} {onnext} {onbrowse} {ononetouch} {onsends} />
-    <div class="now"><NowPlaying {...nowPlaying} {tipAction} {ontempoup} {ontempodown} {onstyletempo} /></div>
-    <div class="sounds"><SoundRow {...soundRow} {tipAction} {onrack} {onpart} {onsound} /></div>
+  <div class="thirds">
+    <div class="third harmony">
+      <StyleLine {...style} {tipAction} {onprev} {onnext} {onbrowse} />
+      <div class="chord"><ChordReadout {...nowPlaying.chord} /></div>
+    </div>
+    <div class="third song">
+      <NowPlaying {...song} {tipAction} {ontempoup} {ontempodown} {onstyletempo} {ontempo} />
+    </div>
+    <div class="third parts">
+      <SoundRow
+        parts={soundRow.parts}
+        oneTouch={styleLine.oneTouch}
+        oneTouchCount={styleLine.oneTouchCount}
+        {tipAction}
+        {onsound}
+        {ononetouch}
+      />
+    </div>
+  </div>
+  <div class="beat">
+    <BarBeat
+      beat={nowPlaying.running ? (nowPlaying.beat ?? 0) : 0}
+      beats={nowPlaying.beats ?? 4}
+      hue={nowPlaying.hue}
+    />
   </div>
 </section>
 
@@ -96,24 +150,33 @@
     background: var(--g);
     overflow: hidden;
   }
-  .art {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-  }
-  .content {
+  /* Three equal columns inside the display's padding, above the beat bar. */
+  .thirds {
     position: absolute;
     top: var(--display-pad-top);
     left: var(--display-pad-left);
+    right: var(--display-pad-left);
+    bottom: calc(var(--display-pad-left) + var(--space-24));
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: calc(2 * var(--space-24));
+  }
+  .third {
     display: flex;
     flex-direction: column;
-    width: var(--display-content-width);
+    min-width: 0;
   }
-  .now {
+  .chord {
     margin-top: var(--space-8);
   }
-  .sounds {
-    margin-top: var(--sound-row-gap);
+  /* The middle third's section lines up with the chord: below a style line's height. */
+  .song {
+    padding-top: calc(var(--tab-block) + var(--space-8));
+  }
+  .beat {
+    position: absolute;
+    left: var(--display-pad-left);
+    right: var(--display-pad-left);
+    bottom: var(--display-pad-left);
   }
 </style>

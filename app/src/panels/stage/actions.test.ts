@@ -316,6 +316,19 @@ describe('display, knobs, transport, app bar', () => {
     expect(take().opened).toEqual(['browser', 'effects', 'rack', { channel: 2 }, { sounds: 3 }])
   })
 
+  it('the display\'s tempo number sets the tempo, whole BPM within 5–500', () => {
+    const { actions, take } = fake()
+    actions.ontempo(112.4)
+    actions.ontempo(2)
+    actions.ontempo(900)
+    actions.ontempo(Number.NaN)
+    expect(take().sent).toEqual([
+      { type: 'setTempo', bpm: 112 },
+      { type: 'setTempo', bpm: 5 },
+      { type: 'setTempo', bpm: 500 },
+    ])
+  })
+
   it('section row', () => {
     const { deps, actions, take } = fake()
     // Each switch toggles whatever state its lamp asks for.

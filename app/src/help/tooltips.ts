@@ -297,14 +297,14 @@ const catalog = {
   },
   'tempo.down': {
     title: 'Tempo −',
-    body: 'Slows the tempo by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together for the style\'s own tempo.',
+    body: 'Slows the tempo by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together, or double-click the tempo, for the style\'s own tempo.',
     genos: 'TEMPO −',
     keys: ['-'],
     launchkey: 'Function button (right of the pads)',
   },
   'tempo.up': {
     title: 'Tempo +',
-    body: 'Speeds the tempo up by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together for the style\'s own tempo.',
+    body: 'Speeds the tempo up by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together, or double-click the tempo, for the style\'s own tempo.',
     genos: 'TEMPO +',
     keys: ['='],
     launchkey: '> (Scene Launch) button (right of the pads)',
@@ -318,7 +318,7 @@ const catalog = {
   },
   'display.tempo': {
     title: 'Tempo',
-    body: 'The current tempo in beats per minute. Loading a style sets the style\'s own tempo.',
+    body: 'The current tempo in beats per minute. Drag it up or down, or scroll on it, to change it; with focus, ↑ and ↓ step it by 1 BPM. Double-click it for the style\'s own tempo (Style tempo), which loading a style also sets.',
     genos: 'Tempo',
     keys: [],
     launchkey: null,

@@ -198,13 +198,16 @@ export const stagePadBanks: { pads: PadItem[]; legend: LegendItem[] }[] = [
   },
 ]
 
-/** The styles the Playground's ◀ ▶ step through. */
+/** The styles the Playground's ‹ › step through (the waltz shows three beat segments). */
 export const stageStyles = [
-  { styleName: 'Sunday Drive Pop', category: 'Pop', timeSignature: '4/4' },
+  { styleName: 'Sunday Drive Pop', category: 'Pop & Rock', timeSignature: '4/4' },
   { styleName: 'Coastal Highway', category: 'Rock', timeSignature: '4/4' },
   { styleName: 'Ballad Night', category: 'Ballad', timeSignature: '4/4' },
   { styleName: 'Waltz for Two', category: 'Ballroom', timeSignature: '3/4' },
 ]
+
+/** The sounds a part's row steps through in the Playground. */
+export const stageSounds = ['Stage Grand', 'Warm Rhodes', 'Silk Strings', 'Brass Section', 'Soft Pad', 'Finger Bass']
 
 /** The style's own tempo, which Style tempo goes back to. */
 export const stageStyleTempo = 104

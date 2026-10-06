@@ -50,8 +50,8 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
 | **Tap tempo** | Tap two or more times in time to set the tempo (the last four count); stopped, a whole bar of taps (four in 4/4) starts the style one beat after your last tap, rhythm only until you play a chord. While the band plays, a tap restarts the section instead (Section Reset) and the tempo stays, unless you turn Tap: Section Reset off in Settings › Style. The pad lights on the downbeat while the band plays. | TAP TEMPO | `T` | Pad page 1 (Sections), bottom row, pad 6 |
-| **Tempo −** | Slows the tempo by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together for the style's own tempo. | TEMPO − | `-` | Function button (right of the pads) |
-| **Tempo +** | Speeds the tempo up by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together for the style's own tempo. | TEMPO + | `=` | > (Scene Launch) button (right of the pads) |
+| **Tempo −** | Slows the tempo by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together, or double-click the tempo, for the style's own tempo. | TEMPO − | `-` | Function button (right of the pads) |
+| **Tempo +** | Speeds the tempo up by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together, or double-click the tempo, for the style's own tempo. | TEMPO + | `=` | > (Scene Launch) button (right of the pads) |
 | **Style tempo** | Back to the tempo the style came with, as pressing TEMPO − and + together does on the Genos. Hold one tempo button and press the other, here or on the Launchkey. | TEMPO − and + together | `+` | Function and > (Scene Launch) pressed together |
 | **Tempo** | Sets the tempo directly, 5–500 BPM, as the Tempo knob on the Launchkey does. With focus, the arrow keys move it by 1 BPM. | Tempo | — | Knob 8 on most knob pages |
 
@@ -59,7 +59,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
-| **Tempo** | The current tempo in beats per minute. Loading a style sets the style's own tempo. | Tempo | — | — |
+| **Tempo** | The current tempo in beats per minute. Drag it up or down, or scroll on it, to change it; with focus, ↑ and ↓ step it by 1 BPM. Double-click it for the style's own tempo (Style tempo), which loading a style also sets. | Tempo | — | — |
 | **Time signature** | The style's time signature, from the style file. | — | — | — |
 | **Bar and beat** | Where the band is: bar, and a light per beat. The section playing now and the one queued next are shown alongside, and for a fill the Main it lands on (⤷). The first press picks the fill; later presses before it ends only change where it lands, and its own Main again repeats it. | — | — | — |
 | **Chord** | The chord the style is following. When Keyboard transpose is not zero, the chord as you fingered it is shown small underneath. | Chord (Home display, Style area) | — | — |

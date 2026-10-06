@@ -1,16 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
+import { chordBoard, chordLong, chordLongFingering, chordStopped } from '../NowPlaying/NowPlaying.fixtures'
 import ChordReadout from './ChordReadout.svelte'
 
-const AM7 = [
-  { note: 'A', interval: 'R' },
-  { note: 'C', interval: 'm3' },
-  { note: 'E', interval: '5' },
-  { note: 'G', interval: 'm7' },
-]
-
 /**
- * The display's chord: the "Chord" label, the 128px light chord in the accent with its extension,
- * the notes with their intervals, and the fingering word. Held dims it to muted grey.
+ * The display's chord: the hero chord in the accent with its extension, then one small line with
+ * the notes and the fingering (wrapping rather than cut off). Long chords step down the hero sizes
+ * to fit the third. Held dims it to muted grey and says "held".
  */
 const meta = {
   title: 'Primitives/ChordReadout',
@@ -29,48 +24,17 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** The board: Am7, A C E G over R m3 5 m7, Fingered. */
-export const Board: Story = {
-  args: { chord: 'Am', extension: '7', notes: AM7, fingering: 'Fingered', held: false, label: 'Chord' },
-}
+/** The board: Am7, A · C · E · G, Fingered On Bass. */
+export const Board: Story = { args: { ...chordBoard, label: 'Chord' } }
 
-/** Held: detection is unsure, so the last chord stays, muted, with "held" beside it. */
-export const Held: Story = {
-  args: { chord: 'Am', extension: '7', notes: AM7, fingering: 'Fingered', held: true },
-}
+/** Held: detection is unsure, so the last chord stays, muted, with "held" on the small line. */
+export const Held: Story = { args: { ...chordStopped } }
 
-/** A five-character chord (Cmaj7) drops to 80px so it and "held" fit the column. */
-export const MidLength: Story = {
-  args: {
-    chord: 'C',
-    extension: 'maj7',
-    notes: [
-      { note: 'C', interval: 'R' },
-      { note: 'E', interval: '3' },
-      { note: 'G', interval: '5' },
-      { note: 'B', interval: '7' },
-    ],
-    fingering: 'Fingered',
-    held: true,
-  },
-}
+/** A long chord (C♯mmaj9(♯11)/G♯) steps down the hero sizes until it fits. */
+export const Long: Story = { args: { ...chordLong } }
 
-/** Six or seven characters (F♯m7♭5) drop to 64px; eight or more to 52px. */
-export const Long: Story = {
-  args: {
-    chord: 'F♯m',
-    extension: '7♭5',
-    notes: [
-      { note: 'F♯', interval: 'R' },
-      { note: 'A', interval: 'm3' },
-      { note: 'C', interval: '♭5' },
-      { note: 'E', interval: 'm7' },
-    ],
-    fingering: 'AI Full Keyboard',
-  },
-}
+/** A long fingering with Keyboard transpose: the small line wraps to a second line. */
+export const LongFingering: Story = { args: { ...chordLongFingering } }
 
-/** No chord yet: a dash, no notes. */
-export const Empty: Story = {
-  args: { chord: '', notes: [], fingering: 'Fingered' },
-}
+/** No chord yet: a dim dash, no notes. */
+export const Empty: Story = { args: { chord: '', notes: [], fingering: 'Fingered' } }

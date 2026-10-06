@@ -1,11 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
 import { fn } from 'storybook/test'
 import StyleLine from './StyleLine.svelte'
-import { styleLineBoard, styleLineQueued } from './StyleLine.fixtures'
+import { styleLineBoard, styleLineLong, styleLineQueued } from './StyleLine.fixtures'
 
 /**
- * The display's top line: ◀ the style in its accent block ▶, its category and time signature,
- * a queued style, One Touch 1-4 and the band's sends. 814 wide, the display's content column.
+ * The small line at the top of the display's left third: ‹ the style's name in the accent ›, then
+ * its category and time signature (or a queued style after "→"). Plain text controls, no boxes.
+ * A third of the display wide.
  */
 const meta = {
   title: 'Components/StyleLine',
@@ -17,29 +18,23 @@ const meta = {
     onprev: fn(),
     onnext: fn(),
     onbrowse: fn(),
-    ononetouch: fn(),
-    onsends: fn(),
   },
   argTypes: {
-    styleName: { control: 'text', table: { category: 'AccentBlock' } },
+    styleName: { control: 'text' },
     category: { control: 'text' },
     timeSignature: { control: 'text' },
-    queued: { control: 'text', table: { category: 'WaitingChip' } },
-    oneTouch: { control: { type: 'inline-radio' }, options: [0, 1, 2, 3, 4], table: { category: 'OneTouchPicker' } },
-    reverb: { control: { type: 'range', min: 0, max: 127, step: 1 }, table: { category: 'SendReadout' } },
-    chorus: { control: { type: 'range', min: 0, max: 127, step: 1 }, table: { category: 'SendReadout' } },
-    delay: { control: { type: 'range', min: 0, max: 127, step: 1 }, table: { category: 'SendReadout' } },
+    queued: { control: 'text' },
   },
 } satisfies Meta<typeof StyleLine>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** The dark board: Sunday Drive Pop, Pop · 4/4, One Touch 2 applied, Reverb 40 Chorus 12 Delay 0. */
+/** The board: ‹ Sunday Drive Pop ›  Pop & Rock · 4/4. */
 export const Board: Story = {}
 
-/** Coastal Highway waits for the bar line, outlined in the accent after the time signature. */
+/** Coastal Highway waits for the bar line: "→ Coastal Highway" in place of the category. */
 export const Queued: Story = { args: { ...styleLineQueued } }
 
-/** No One Touch applied: all four on the plain face. */
-export const NoneApplied: Story = { args: { oneTouch: 0 } }
+/** A name longer than the third: it ends in an ellipsis, the full name in its title. */
+export const LongName: Story = { args: { ...styleLineLong } }

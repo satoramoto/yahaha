@@ -38,7 +38,7 @@
     appBar: Data<typeof AppBar>
     /** The section row: the transport (running, Accomp, Sync Start, fading) and the helpers. */
     sectionRow: Data<typeof SectionRow>
-    /** The display: style line, now playing (with the tempo controls), sound row. */
+    /** The display, in thirds: the style line and chord, the section and tempo, the parts and One Touch. */
     display: Data<typeof Display>
     /** The band's faders: strips, page and layer tabs, lamps. */
     faders: Data<typeof FaderBank>
@@ -84,14 +84,19 @@
       | 'onnext'
       | 'onbrowse'
       | 'ononetouch'
-      | 'onsends'
-      | 'onrack'
-      | 'onpart'
       | 'onsound'
       | 'ontempoup'
       | 'ontempodown'
       | 'onstyletempo'
-    > &
+      | 'ontempo'
+    > & {
+      /** Deprecated: the band sends left the display (Effects has them); accepted, unused. */
+      onsends?: () => void
+      /** Deprecated: the rack left the display (Library › Racks, the fader layers); accepted, unused. */
+      onrack?: () => void
+      /** Deprecated: a part's tag left the display (its fader strip's name opens Channel); accepted, unused. */
+      onpart?: (id: 'right1' | 'right2' | 'right3' | 'left') => void
+    } &
     On<
       typeof FaderBank,
       | 'onchoosePage'
@@ -145,13 +150,11 @@
       onnext={p.onnext}
       onbrowse={p.onbrowse}
       ononetouch={p.ononetouch}
-      onsends={p.onsends}
-      onrack={p.onrack}
-      onpart={p.onpart}
       onsound={p.onsound}
       ontempoup={p.ontempoup}
       ontempodown={p.ontempodown}
       onstyletempo={p.onstyletempo}
+      ontempo={p.ontempo}
     />
   </div>
   <div class="band">

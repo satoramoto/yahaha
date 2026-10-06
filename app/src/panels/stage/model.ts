@@ -193,11 +193,6 @@ function styleMeta(state: AppState, library: LibraryList): { category: string; t
   return { category, timeSignature: `${n}/${d}` }
 }
 
-/** The band's send to a block, from `home.bandSends` (by block, never by index). */
-function bandSend(state: AppState, block: string): number {
-  return state.home.bandSends.find((s) => s.block === block)?.level ?? 0
-}
-
 /** The bar of the section playing, 1-based: a looping Main counts on past its length, so
  * this is the bar within the pattern. */
 export function sectionBar(t: AppState['transport']): number {
@@ -249,9 +244,7 @@ export function display(input: Pick<StageInput, 'state' | 'library' | 'pos'>): S
       ...styleMeta(state, library),
       queued: queuedName,
       oneTouch: state.ots.applied,
-      reverb: bandSend(state, 'reverb'),
-      chorus: bandSend(state, 'chorus'),
-      delay: bandSend(state, 'variation'),
+      oneTouchCount: state.ots.settings.length,
     },
     nowPlaying: {
       chord: { ...chord, notes: chordNotes(state), fingering: state.chord.fingeringName + played },
@@ -264,6 +257,7 @@ export function display(input: Pick<StageInput, 'state' | 'library' | 'pos'>): S
       ...beatOf(state, input.pos),
       bpm: Math.round(t.tempo),
       running: t.running,
+      syncStart: t.syncStart,
     },
     soundRow: soundRow(state),
   }
@@ -283,13 +277,9 @@ function soundNumber(state: AppState, part: KeyboardPart): string {
 
 const failed = (p: KeyboardPart) => p.plugin?.status === 'failed' && p.plugin.missing !== true
 
+/** The display's part rows (the rack left the display: Library › Racks and the fader layers have it). */
 function soundRow(state: AppState): StageProps['display']['soundRow'] {
-  const quick = state.quickRacks
-  const loaded = quick.buttons.findIndex((b) => b.loaded)
   return {
-    rack: state.liveRack.name,
-    slot: loaded < 0 ? '' : `${String.fromCharCode(65 + quick.bank)}${loaded + 1}`,
-    modified: state.liveRack.modified,
     parts: state.keyboardParts.slice(0, 4).map((p, i) => ({
       id: PART_IDS[i],
       part: PART_SHORT[i],

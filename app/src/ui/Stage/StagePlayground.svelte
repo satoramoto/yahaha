@@ -2,8 +2,9 @@
   StagePlayground: a story-only wrapper for the Stage Playground story. It takes the same props as
   Stage, keeps what the controls change in its own state (seeded from the props, and re-seeded when
   a prop changes in the Controls panel), and renders Stage with that state. Every handler calls the
-  prop's callback too, so each press still shows in the Actions panel. No timers: every change
-  happens on a press.
+  prop's callback too, so each press still shows in the Actions panel. One timer, story-only: while
+  the band runs, a ticker steps the beat at the tempo so the display's beat bar moves (the
+  components take the beat as a prop and hold no timers). Every other change happens on a press.
 
   Pads, deterministic: stopped, a Main (or Break) becomes the playing section at once, and an Intro
   or Ending arms (press again to disarm). Running, a section pad is queued (`next`); press the queued
@@ -13,13 +14,20 @@
   are one switch), Auto Fill and Sync Stop toggle. The other pad banks' pads toggle.
 -->
 <script lang="ts">
-  import type { ComponentProps } from 'svelte'
+  import { untrack, type ComponentProps } from 'svelte'
   import { displayStopped } from '../Display/Display.fixtures'
   import type { BankLamp, FaderStrip } from '../FaderBank/types'
   import type { KnobItem } from '../KnobBank/types'
   import type { PadItem } from '../PadBank/types'
   import Stage from './Stage.svelte'
-  import { stageKnobPages, stageLayerValues, stagePadBanks, stageStyles, stageStyleTempo } from './Stage.fixtures'
+  import {
+    stageKnobPages,
+    stageLayerValues,
+    stagePadBanks,
+    stageSounds,
+    stageStyles,
+    stageStyleTempo,
+  } from './Stage.fixtures'
 
   type Props = ComponentProps<typeof Stage>
   type Hue = NonNullable<Props['display']['nowPlaying']['hue']>
@@ -148,6 +156,27 @@
   let styleIndex = $derived(stageStyles.findIndex((style) => style.styleName === p.display.styleLine.styleName))
   let oneTouch = $derived(p.display.styleLine.oneTouch ?? 0)
   let status = $derived({ ...p.status })
+  /** Each part's sound, as its row steps it through `stageSounds`. */
+  let sounds = $derived(Object.fromEntries(p.display.soundRow.parts.map((part) => [part.id, part.sound])))
+
+  // ---- The beat: a story-only ticker at the tempo while running (the components take it as a prop)
+  const beatsPerBar = $derived(
+    Number((styleIndex >= 0 ? stageStyles[styleIndex].timeSignature : p.display.styleLine.timeSignature)?.split('/')[0]) || 4,
+  )
+  let beat = $state(0)
+  $effect(() => {
+    if (!running) {
+      beat = 0
+      return
+    }
+    const beats = beatsPerBar
+    // A tempo change keeps counting from where it was; a start begins on beat 1.
+    untrack(() => {
+      if (beat === 0 || beat > beats) beat = 1
+    })
+    const t = setInterval(() => (beat = (beat % beats) + 1), 60000 / bpm)
+    return () => clearInterval(t)
+  })
 
   let knobsShown: KnobItem[] = $derived(
     knobs.map((knob) =>
@@ -264,14 +293,21 @@
         ...base.nowPlaying,
         bpm,
         running,
+        syncStart: section.syncStart ?? false,
         playing: playingPad ? plain(playingPad.label) : base.nowPlaying.playing,
         hue: playingPad ? (playingPad.family as Hue) : base.nowPlaying.hue,
         next: nextPad ? plain(nextPad.label) : '',
-        fill: nextPad && running ? base.nowPlaying.fill || 'fill lands after bar 4' : '',
+        fill: nextPad && running ? base.nowPlaying.fill || 'fill after bar 4' : '',
+        beat,
+        beats: beatsPerBar,
       },
       soundRow: {
         ...base.soundRow,
-        parts: base.soundRow.parts.map((part) => ({ ...part, off: partOn[part.id] === false })),
+        parts: base.soundRow.parts.map((part) => ({
+          ...part,
+          sound: sounds[part.id] ?? part.sound,
+          off: partOn[part.id] === false,
+        })),
       },
     }
   })
@@ -422,6 +458,15 @@
   onstyletempo={() => {
     p.onstyletempo?.()
     bpm = stageStyleTempo
+  }}
+  ontempo={(next) => {
+    p.ontempo?.(next)
+    bpm = clamp(next, TEMPO_MIN, TEMPO_MAX)
+  }}
+  onsound={(id) => {
+    p.onsound?.(id)
+    const at = stageSounds.indexOf(sounds[id] ?? '')
+    sounds = { ...sounds, [id]: stageSounds[(at + 1) % stageSounds.length] }
   }}
   onclear={() => {
     p.onclear?.()

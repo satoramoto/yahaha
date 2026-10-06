@@ -1,135 +1,145 @@
 <!--
-  StyleLine: the display's top line. The style is "the device": ◀ its name in the accent block ▶
-  (the name opens the Browser), its category and time signature, a style waiting for the bar
-  line, then One Touch 1-4 (the applied one chosen) and the band's sends. One line, one size and
-  one height: every text on it is the 13px text size, and ◀, the name block, ▶ and the One Touch
-  row are all the 32px control height, centred on the line.
+  StyleLine: the small line at the top of the display's left third. ‹ the style's name › (‹ › step
+  styles, the name opens Library › Styles), then its category and time signature, or, while a
+  style waits for the bar line, "→" and that style's name. One small size (--type-text) for every
+  word and glyph; no boxes: each control is plain text that brightens on hover and shows the focus
+  ring on keyboard focus. A long style name ends in an ellipsis (its full name in `title`); the
+  category and metre keep their width up to half the line.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
-  import AccentBlock from '../AccentBlock/AccentBlock.svelte'
-  import Button from '../Button/Button.svelte'
-  import OneTouchPicker from '../OneTouchPicker/OneTouchPicker.svelte'
-  import SendReadout from '../SendReadout/SendReadout.svelte'
-  import WaitingChip from '../WaitingChip/WaitingChip.svelte'
 
   type Props = {
-    /** The style's name ("Sunday Drive Pop"). */
+    /** The style's name ("Sunday Drive Pop"). Empty: "No style". */
     styleName: string
-    /** The style's category ("Pop"). */
+    /** The style's category ("Pop & Rock"). */
     category?: string
     /** The style's time signature ("4/4"). */
     timeSignature?: string
-    /** A style waiting for the bar line, outlined in the accent. Empty: none. */
+    /** A style waiting for the bar line, in the accent after "→". Empty: none. */
     queued?: string
-    /** The applied One Touch, 1-4; 0 when none is. */
-    oneTouch?: number
-    /** The band's reverb send, 0-127. */
-    reverb?: number
-    /** The band's chorus send, 0-127. */
-    chorus?: number
-    /** The band's delay send, 0-127. */
-    delay?: number
     /** The app's tooltip action (`use:tip`), applied to every control. */
     tipAction?: Action<HTMLElement, string>
-    /** Called when ◀ is pressed (the previous style). */
+    /** Called when ‹ is pressed (the previous style). */
     onprev?: () => void
-    /** Called when ▶ is pressed (the next style). */
+    /** Called when › is pressed (the next style). */
     onnext?: () => void
-    /** Called when the style's name is pressed (opens the Browser). */
+    /** Called when the style's name is pressed (opens Library › Styles). */
     onbrowse?: () => void
-    /** Called with 1-4 when a One Touch is pressed (applies it at once). */
-    ononetouch?: (n: number) => void
-    /** Called when the sends are pressed (opens Effects). */
-    onsends?: () => void
   }
 
-  let {
-    styleName,
-    category = '',
-    timeSignature = '',
-    queued = '',
-    oneTouch = 0,
-    reverb = 0,
-    chorus = 0,
-    delay = 0,
-    tipAction,
-    onprev,
-    onnext,
-    onbrowse,
-    ononetouch,
-    onsends,
-  }: Props = $props()
+  let { styleName, category = '', timeSignature = '', queued = '', tipAction, onprev, onnext, onbrowse }: Props = $props()
 
+  const name = $derived(styleName.trim() || 'No style')
   const hasQueued = $derived(queued.trim() !== '')
-  /** Category · metre, hidden while a style is queued so the queued name has the room. */
-  const meta = $derived(hasQueued ? '' : [category, timeSignature].filter(Boolean).join(' · '))
+  const meta = $derived([category, timeSignature].filter(Boolean).join(' · '))
+
+  function tipOn(node: HTMLElement, key: string) {
+    if (!tipAction) return
+    return tipAction(node, key)
+  }
 </script>
 
 <div class="line">
-  <Button symbol="prev" size="icon" name="Previous style (Track left)" tip="style.prev" {tipAction} onpress={onprev} />
-  <span class="name" class:shrink={hasQueued}>
-    <AccentBlock
-      label={styleName}
-      as="button"
-      empty="No style"
-      name="{styleName.trim() || 'No style'}: open the Browser"
-      tip="browser.open"
-      {tipAction}
-      onpress={onbrowse}
-    />
-  </span>
-  <Button symbol="next" size="icon" name="Next style (Track right)" tip="style.next" {tipAction} onpress={onnext} />
-  {#if meta}<span class="meta">{meta}</span>{/if}
-  {#if hasQueued}<span class="queued"><WaitingChip label={queued} hue="a" size="line" /></span>{/if}
-  <span class="ots"><OneTouchPicker applied={oneTouch} {tipAction} onapply={ononetouch} /></span>
-  <span class="sends"><SendReadout {reverb} {chorus} {delay} tip="display.band_sends" {tipAction} onpress={onsends} /></span>
+  <button
+    type="button"
+    class="glyph"
+    aria-label="Previous style (Track left)"
+    data-tip="style.prev"
+    use:tipOn={'style.prev'}
+    onclick={() => onprev?.()}><span aria-hidden="true">‹</span></button
+  >
+  <button
+    type="button"
+    class="name"
+    title={name}
+    aria-label="{name}: open the Browser"
+    data-tip="browser.open"
+    use:tipOn={'browser.open'}
+    onclick={() => onbrowse?.()}>{name}</button
+  >
+  <button
+    type="button"
+    class="glyph"
+    aria-label="Next style (Track right)"
+    data-tip="style.next"
+    use:tipOn={'style.next'}
+    onclick={() => onnext?.()}><span aria-hidden="true">›</span></button
+  >
+  {#if hasQueued}
+    <span class="meta queued" title="Next: {queued}"><span class="arrow" aria-hidden="true">→</span> {queued}</span>
+  {:else if meta}
+    <span class="meta" title={meta}>{meta}</span>
+  {/if}
 </div>
 
 <style>
+  /* A third of the display's content width (Display's grid), at most its container. */
   .line {
     display: flex;
     align-items: center;
-    gap: var(--space-8);
-    width: var(--display-content-width);
-    height: var(--control-height);
-    white-space: nowrap;
-  }
-  /* The style's name keeps its width, as on the board (whose line runs 11px past 814); past
-     --style-name-max it ends in the block's ellipsis. */
-  .name {
-    display: flex;
-    align-items: center;
-    height: var(--control-height);
-    flex: none;
-    max-width: var(--style-name-max);
-  }
-  /* With a style queued the queued name keeps its width (up to the chip's cap) and the style's
-     name gives way, ending in its ellipsis. */
-  .name.shrink {
-    flex: 0 1 auto;
+    gap: var(--space-2);
     min-width: 0;
-  }
-  .queued {
-    display: flex;
-    flex: none;
-  }
-  .meta {
-    margin-left: var(--space-4);
+    box-sizing: border-box;
+    width: calc((var(--stage-row-width) - 2 * var(--line-width) - 2 * var(--display-pad-left) - 4 * var(--space-24)) / 3);
+    max-width: 100%;
+    height: var(--tab-block);
     font: var(--type-text);
     letter-spacing: var(--tracking-text);
+    white-space: nowrap;
+  }
+  button {
+    height: var(--tab-block);
+    margin: 0;
+    border: 0;
+    border-radius: var(--radius);
+    background: none;
+    font: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+  }
+  button:focus-visible {
+    outline: var(--line-width) solid var(--focus);
+    outline-offset: calc(-1 * var(--line-width));
+  }
+  .glyph {
+    flex: none;
+    padding: 0 var(--space-6);
+    color: var(--m);
+  }
+  .glyph:first-child {
+    margin-left: calc(-1 * var(--space-6));
+  }
+  .glyph:hover {
+    color: var(--t);
+  }
+  /* The name in the accent; it gives way first, ending in an ellipsis. */
+  .name {
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 0 var(--space-2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--a);
+    text-align: left;
+  }
+  .name:hover {
+    color: var(--t);
+  }
+  .meta {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 50%;
+    margin-left: var(--space-12);
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-variant-numeric: tabular-nums;
     color: var(--m);
   }
-  .ots {
-    display: flex;
-    align-items: center;
-    height: var(--control-height);
-    margin-left: auto;
+  .queued {
+    color: var(--a);
   }
-  .sends {
-    display: flex;
-    align-items: center;
-    margin-left: var(--space-16);
+  .arrow {
+    color: var(--m);
   }
 </style>

@@ -732,11 +732,9 @@ describe('app bar', () => {
 describe('display', () => {
   const show = (s: AppState, library: LibraryList = EMPTY_LIBRARY) => display({ state: s, library, pos: 0 })
 
-  it('the sound row: the loaded Quick Rack\'s slot, sound numbers from saved: ids', () => {
+  it('the part rows: sound numbers from saved: ids, names, and no rack (it left the display)', () => {
     const s = state((st) => {
       st.liveRack.name = 'Ballad'
-      st.quickRacks.bank = 0
-      st.quickRacks.buttons[0].loaded = true
       st.soundLibrary.patches = [{ id: 'grand', number: 12 } as AppState['soundLibrary']['patches'][number]]
       st.keyboardParts[0].sound = { id: 'saved:grand', name: 'Grand' }
       st.keyboardParts[1].sound = { id: 'saved:gone', name: 'Gone' }
@@ -744,18 +742,9 @@ describe('display', () => {
       st.keyboardParts[3].voiceName = 'Fretless'
     })
     const row = show(s).soundRow
-    expect(row.rack).toBe('Ballad')
-    expect(row.slot).toBe('A1')
+    expect(Object.keys(row)).toEqual(['parts'])
     expect(row.parts.map((p) => `${p.number}:${p.sound}`)).toEqual(['12:Grand', ':Gone', ':Pluck', ':Fretless'])
-  })
-
-  it('the slot names the bank and button; none loaded: empty', () => {
-    const s = state((st) => {
-      st.quickRacks.bank = 1
-      st.quickRacks.buttons[2].loaded = true
-    })
-    expect(show(s).soundRow.slot).toBe('B3')
-    expect(show(state()).soundRow.slot).toBe('')
+    expect(row.parts.map((p) => p.partName)).toEqual(['Right 1', 'Right 2', 'Right 3', 'Left'])
   })
 
   it('the demo\'s sound row reads the parts\' sounds', () => {
@@ -765,16 +754,19 @@ describe('display', () => {
     expect(row.parts.map((p) => p.off)).toEqual([false, false, true, true])
   })
 
-  it('band sends by block, whatever the order', () => {
+  it('One Touch: the applied one and how many the style has; no band sends on the display', () => {
     const s = state((st) => {
-      st.home.bandSends = [
-        { block: 'variation', name: 'Variation', effectName: 'Delay', level: 30 },
-        { block: 'reverb', name: 'Reverb', effectName: 'Hall', level: 70 },
-        { block: 'chorus', name: 'Chorus', effectName: 'Chorus', level: 20 },
-      ]
+      st.ots.applied = 2
+      st.ots.settings = [1, 2, 3].map((n) => ({ name: `OTS ${n}`, parts: [] }))
     })
-    expect(show(s).styleLine).toMatchObject({ reverb: 70, chorus: 20, delay: 30 })
-    expect(show(state()).styleLine).toMatchObject({ reverb: 0, chorus: 0, delay: 0 })
+    const line = show(s).styleLine
+    expect(line).toMatchObject({ oneTouch: 2, oneTouchCount: 3 })
+    expect(line).not.toHaveProperty('reverb')
+  })
+
+  it('Sync Start armed reaches the song third', () => {
+    expect(show(state((st) => (st.transport.syncStart = true))).nowPlaying.syncStart).toBe(true)
+    expect(show(state()).nowPlaying.syncStart).toBe(false)
   })
 
   it('the queued style chip: its name, or "next style" when the library lacks it', () => {

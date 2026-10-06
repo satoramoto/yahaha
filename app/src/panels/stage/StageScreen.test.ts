@@ -154,6 +154,26 @@ describe('StageScreen', () => {
     expect(s.state.transport.tempo).toBe(before + 1)
   })
 
+  it('the tempo number: ↑ sets one higher, dragging up sets more, a double-click goes back to the style\'s', async () => {
+    const s = setup()
+    const tempo = within(region('Stage display')).getByRole('spinbutton')
+    const before = Math.round(s.state.transport.tempo)
+    await fireEvent.keyDown(tempo, { key: 'ArrowUp' })
+    expect(s.state.transport.tempo).toBe(before + 1)
+    await fireEvent.pointerDown(tempo, { pointerId: 1, button: 0, clientY: 400 })
+    await fireEvent.pointerMove(tempo, { pointerId: 1, clientY: 380 })
+    await fireEvent.pointerUp(tempo, { pointerId: 1 })
+    expect(s.state.transport.tempo).toBe(before + 1 + 5)
+    await fireEvent.dblClick(tempo)
+    expect(s.state.transport.tempo).toBe(s.state.style.tempo)
+  })
+
+  it('One Touch on the display applies it', async () => {
+    const s = setup()
+    await fireEvent.click(button(/^Apply One Touch 1/, region('Stage display')))
+    expect(s.state.ots.applied).toBe(1)
+  })
+
   it('every interactive element carries a data-tip', () => {
     setup()
     const interactive = [...document.querySelectorAll<HTMLElement>('button, input, select, textarea, [role="slider"], [role="tab"], [tabindex]:not([tabindex="-1"])')]

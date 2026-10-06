@@ -29,13 +29,11 @@ const CALLBACKS: Record<string, string[]> = {
     'onnext',
     'onbrowse',
     'ononetouch',
-    'onsends',
-    'onrack',
-    'onpart',
     'onsound',
     'ontempoup',
     'ontempodown',
     'onstyletempo',
+    'ontempo',
   ],
   FaderBank: [
     'onchoosePage',
@@ -51,14 +49,14 @@ const CALLBACKS: Record<string, string[]> = {
   PadBank: ['onpadbank', 'onpadpress'],
   StatusLine: ['onclear'],
   // Accepted so the wiring branch still type-checks; nothing on the Stage calls them now.
-  Unused: ['onstop', 'onstoplong', 'onpageup', 'onpagedown', 'onbankup', 'onbankdown'],
+  Unused: ['onstop', 'onstoplong', 'onpageup', 'onpagedown', 'onbankup', 'onbankdown', 'onsends', 'onrack', 'onpart'],
 }
 
 const actions = Object.fromEntries(Object.values(CALLBACKS).flatMap((names) => names.map((name) => [name, fn()])))
 
 /**
  * The Stage page at the app's 1440 × 900: the app bar, the section row (transport at its left), the
- * display (tempo controls on its tempo line), the hardware band (faders; knobs above pads), the
+ * display in thirds (harmony, song, parts), the hardware band (faders; knobs above pads), the
  * status line and the keys. Each region's data is
  * one object control; every callback is an action, grouped under its component.
  */
@@ -108,9 +106,12 @@ export const Stopped: Story = {
  *   plays the armed pad and queues the Main that was playing; Stop clears what was queued or armed.
  *   Auto Fill and Sync Stop toggle.
  * - Start / Stop (the section row's or pad 16) swaps the display between the board and the stopped
- *   display; Fade toggles; Reset and Fill ▲ ▼ write a status line; Tempo − and + on the display step
- *   the tempo, Style tempo goes back to 104.
- * - One Touch applies, ◀ ▶ step through a few styles, Panic writes a status line, a click clears it.
+ *   display; while running, a story-only ticker in this wrapper moves the beat bar at the tempo
+ *   (the components hold no timers). Fade toggles; Reset and Fill ▲ ▼ write a status line.
+ * - Tempo: + and − on the display step it, dragging or scrolling on the number sets it, ↑ ↓ step it
+ *   with focus, and a double-click goes back to the style's 104.
+ * - One Touch applies, ‹ › step through a few styles (a 3/4 waltz among them: three beat segments),
+ *   a part's row steps through a few sounds, Panic writes a status line, a click clears it.
  */
 export const Playground: Story = {
   render: (args) => ({ Component: StagePlayground, props: args }),

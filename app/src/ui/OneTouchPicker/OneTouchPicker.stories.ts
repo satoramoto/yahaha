@@ -3,10 +3,9 @@ import { expect, fn, within } from 'storybook/test'
 import OneTouchPicker from './OneTouchPicker.svelte'
 
 /**
- * One Touch on the style line: "One Touch OTS" as a caption in `--caption-ink`, the same 13px
- * `--type-text` as the numbers, then 1-4 in the one tab style (ChosenTabs' tokens, no outlines):
- * unchosen numbers in `--tab-rest`, the applied one on a `--neutral` block `--tab-block` tall in
- * `--on-ink`, centred on the 32px line.
+ * One Touch on the display: "One Touch" in `--caption-ink`, then 1-4 as plain text (no boxes) in
+ * `--tab-rest`, brightening on hover; the applied one in `--t`, underlined. Numbers past the
+ * style's count are disabled.
  */
 const meta = {
   title: 'Primitives/OneTouchPicker',
@@ -15,9 +14,9 @@ const meta = {
   args: { tipAction: fn(), onapply: fn() },
   argTypes: {
     applied: { control: { type: 'inline-radio' }, options: [0, 1, 2, 3, 4] },
-    count: { control: { type: 'number', min: 1, max: 4, step: 1 } },
+    count: { control: { type: 'number', min: 0, max: 4, step: 1 } },
+    numbers: { control: { type: 'number', min: 1, max: 4, step: 1 } },
     label: { control: 'text' },
-    code: { control: 'text' },
     name: { control: 'text' },
   },
 } satisfies Meta<typeof OneTouchPicker>
@@ -25,7 +24,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** The board: One Touch 2 applied, on its chosen block. */
+/** The board: One Touch 2 applied, underlined. */
 export const Board: Story = {
   args: { applied: 2 },
   play: async ({ canvasElement }) => {
@@ -35,5 +34,14 @@ export const Board: Story = {
   },
 }
 
-/** None applied: every number a plain `--tab-rest` label, no block. */
+/** None applied: every number plain. */
 export const NoneApplied: Story = { args: { applied: 0 } }
+
+/** A style with two One Touch settings: 3 and 4 disabled. */
+export const TwoSettings: Story = {
+  args: { applied: 1, count: 2 },
+  play: async ({ canvasElement }) => {
+    const buttons = within(canvasElement).getAllByRole('button')
+    await expect(buttons.map((b) => (b as HTMLButtonElement).disabled)).toEqual([false, false, true, true])
+  },
+}

@@ -118,6 +118,8 @@ export function stageActions(d: StageDeps): StageActions {
     ononetouch: (n) => {
       if (n >= 1 && n <= d.state().ots.settings.length) send({ type: 'recallOts', index: n - 1 })
     },
+    // Deprecated on the Stage (the sends, the rack and the part tags left the display); kept
+    // working for any caller that still passes them.
     onsends: () => d.open('effects'),
     onrack: () => d.open('rack'),
     onpart: (id) => d.open({ channel: partIndex(id) }),
@@ -215,6 +217,10 @@ export function stageActions(d: StageDeps): StageActions {
     ontempoup: (down) => d.tempo(1, down),
     ontempodown: (down) => d.tempo(-1, down),
     onstyletempo: () => send({ type: 'resetTempo' }),
+    // A drag, scroll or arrow key on the display's tempo: that tempo, whole BPM, 5–500.
+    ontempo: (bpm) => {
+      if (Number.isFinite(bpm)) send({ type: 'setTempo', bpm: Math.max(5, Math.min(500, Math.round(bpm))) })
+    },
 
     // Status line
     onclear: () => send({ type: 'clearMessage' }),
