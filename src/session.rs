@@ -656,7 +656,7 @@ impl Control {
         }
         self.pump_ots_link();
         self.pump_pedal_releases();
-        self.pump_settings();
+        self.pump_settings(now);
         self.pump_swap_end();
         while self.old_rx.pop().is_ok() {} // drop old styles here, off the RT thread
         while self.old_audition_rx.pop().is_ok() {}
@@ -984,7 +984,7 @@ fn assemble(opts: &Options, engine_out: live::Out, input_out: live::Out, offline
         hardware: false,
     };
     let mut control = control;
-    control.restore_settings();
+    control.restore_settings(opts);
     control.list_sound_fonts();
     if let Some(e) = control.sound.load_error().map(str::to_string) {
         control.say(format!("Sound library not loaded (it will not be saved over): {e}"), true);
@@ -1052,9 +1052,11 @@ impl Session {
         p.control.connect_inputs();
         p.control.sources_ns = rt::now_ns();
 
-        if p.control.set_transpose(opts.transpose).is_err() {
+        let transpose = p.control.start_transpose(&opts);
+        if p.control.set_transpose(transpose).is_err() {
             p.control.transpose = Transpose::default();
         }
+        p.control.restore_synth_settings(opts.audio_out.is_some());
 
         let sh = shared.clone();
         let EngineLoopParts { engine, io } = p.engine;
@@ -1230,6 +1232,7 @@ impl Session {
                 leds.off();
             }
             self.inner.lock().save_live_rack_on_stop();
+            self.inner.lock().flush_settings();
             if let Some(s) = live.synth {
                 let _ = s.stop.send(SynthMsg::Stop);
                 let _ = s.thread.join();
@@ -1241,6 +1244,7 @@ impl Session {
                 o.engine.stop();
             }
             ctl.save_live_rack_on_stop();
+            ctl.flush_settings();
         }
         self.inner.notify(&[Event::Stopped]);
     }

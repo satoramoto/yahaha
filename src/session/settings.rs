@@ -2,8 +2,11 @@
 //! as the state shows them.
 
 use super::{Control, SynthThread};
-use crate::api::{unmapped_text, ChordCmd, CmdError, EngineStats, IoState, MidiSource, OtsCmd, SettingsCmd, SettingsState, StopAcmpMode, SynthState};
-use crate::engine::Button;
+use crate::api::{
+    unmapped_text, ChangeRuleMode, ChordCmd, CmdError, ControllersCmd, EngineStats, IoState, MidiSource, MixerCmd, OtsCmd, OtsLinkTiming, SettingsCmd, SettingsState, StopAcmpMode, SynthState,
+};
+use crate::controllers::{PartTargets, PedalSetup, PEDALS};
+use crate::engine::{AccentMode, AccentSource, Button, IntroEndingTiming, MainTiming, UnisonType};
 use crate::fingering::Fingering;
 use crate::launchkey::{Page, PageOrder};
 use std::path::PathBuf;
@@ -375,27 +378,127 @@ impl Control {
     }
 }
 
-/// The settings' file in the data folder (docs/eyes-free.md): the pad page order and the
-/// Setup pad page's switches, saved whenever they change and restored at start.
+/// The settings' file in the data folder (docs/eyes-free.md, docs/app-api.md `settings`):
+/// the global settings of the Settings screen and the Setup pad page, saved whenever they
+/// change and restored at start. What a rack holds (the split, Keyboard Transpose, Pitch
+/// Bend Range) is the live rack's (session/live_rack.rs), the audio buffer is `audio.json`'s,
+/// and Parameter Lock is `param-locks.json`'s.
 const SETTINGS_FILE: &str = "settings.json";
 
-/// What `settings.json` holds. A missing field (or file) keeps the session's default, so
-/// a data folder from before a setting loads as it always did.
-#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(super) struct Saved {
+/// A live session saves a change once the settings have been still for this long, so a
+/// slider dragged (the master volume, a fade time) is written once, not on every step.
+/// An offline session saves at once; stopping saves what is left.
+const QUIET_NS: u64 = 500_000_000;
+
+/// A field of `settings.json` read on its own: a value this build can't read (a newer
+/// build's, a typo) is None, the default, and the file's other settings still load.
+fn lenient<'de, D, T>(d: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: serde::de::DeserializeOwned,
+{
+    let v = <serde_json::Value as serde::Deserialize>::deserialize(d)?;
+    Ok(serde_json::from_value(v).ok())
+}
+
+/// `Saved`: every field optional, read leniently, and left out of the file when None.
+macro_rules! saved {
+    ($( $(#[doc = $doc:literal])* $name:ident: $ty:ty, )*) => {
+        /// What `settings.json` holds. A missing field (or file) keeps the session's
+        /// default, so a data folder from before a setting loads as it always did.
+        #[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        pub(super) struct Saved {
+            $(
+                $(#[doc = $doc])*
+                #[serde(default, deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+                pub(super) $name: Option<$ty>,
+            )*
+        }
+    };
+}
+
+saved! {
     /// Pad pages 2-5 in order (`setPadPageOrder`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub(super) pad_pages: Option<Vec<Page>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub(super) fingering: Option<crate::fingering::Fingering>,
+    pad_pages: Vec<Page>,
+    // Chord & Split.
+    fingering: Fingering,
     /// Chord Detection Area Upper (false: Lower).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub(super) upper: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub(super) ots_link: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub(super) stop_acmp_mode: Option<StopAcmpMode>,
+    upper: bool,
+    manual_bass: bool,
+    left_hold: bool,
+    chord_settle_ms: u32,
+    // Style.
+    ots_link: bool,
+    ots_link_timing: OtsLinkTiming,
+    stop_acmp_mode: StopAcmpMode,
+    main_timing: MainTiming,
+    intro_ending_timing: IntroEndingTiming,
+    sync_stop_window_ms: u16,
+    fade_in_ms: u16,
+    fade_out_ms: u16,
+    fade_hold_ms: u16,
+    section_reset: bool,
+    retrigger_rate: u8,
+    swing_grid: u8,
+    section_tempo: bool,
+    tempo_change: ChangeRuleMode,
+    parts_change: ChangeRuleMode,
+    /// Section Set: the Main (0-3), or null for Off.
+    section_set: Option<u8>,
+    auto_fill: bool,
+    half_bar_fill: bool,
+    unison_type: UnisonType,
+    dynamics_control: bool,
+    touch: bool,
+    accent: bool,
+    accent_threshold: u8,
+    accent_mode: AccentMode,
+    accent_source: AccentSource,
+    // Keyboard (Keyboard Transpose is the rack's).
+    master_transpose: i8,
+    // Pedals (Pitch Bend Range is the rack's).
+    pedals: [PedalSetup; PEDALS],
+    /// Per keyboard part: which controllers reach it.
+    part_controllers: [Reach; 4],
+    // System.
+    synth_muted: bool,
+    /// The synth's output pair, its first channel 0-based (`setAudioOutput`).
+    audio_output: u8,
+    master_volume: u8,
+    all_inputs: bool,
+    input_names: Vec<String>,
+    palette_leds: bool,
+}
+
+/// Which controllers reach a keyboard part (`setPartControllers`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct Reach {
+    sustain: bool,
+    pitch_bend: bool,
+    modulation: bool,
+}
+
+impl From<PartTargets> for Reach {
+    fn from(t: PartTargets) -> Reach {
+        Reach { sustain: t.sustain, pitch_bend: t.pitch_bend, modulation: t.modulation }
+    }
+}
+
+/// The saved settings the engine keeps (its snapshot shows them).
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct EngineSwitches {
+    stop_acmp_mode: StopAcmpMode,
+    auto_fill: bool,
+    half_bar_fill: bool,
+    unison_type: UnisonType,
+}
+
+impl EngineSwitches {
+    fn of(s: &crate::engine::Snapshot) -> EngineSwitches {
+        EngineSwitches { stop_acmp_mode: s.stop_acmp_mode.into(), auto_fill: s.auto_fill, half_bar_fill: s.half_bar_fill, unison_type: s.unison_type }
+    }
 }
 
 /// `settings.json` and what was last saved to it.
@@ -403,13 +506,15 @@ pub(super) struct Saved {
 pub(super) struct SettingsFile {
     /// None: not saved (sessions without a data folder).
     path: Option<PathBuf>,
+    /// What the file says (after a start, with what it left out filled in as the session
+    /// started: an older file is not rewritten until a setting changes).
     saved: Saved,
-    /// There was no file (or it couldn't be read): nothing is written until a setting
-    /// changes from the defaults it starts with.
-    fresh: bool,
-    /// The Stop ACMP mode restored at start, until the engine's snapshot shows it (the
-    /// engine applies it on its next wake): meanwhile the snapshot's Off is not a change.
-    pending_stop_acmp: Option<StopAcmpMode>,
+    /// The engine switches restored at start, until the engine's snapshot shows them (the
+    /// engine applies them on its next wake): meanwhile the snapshot's defaults are not a
+    /// change.
+    pending: Option<EngineSwitches>,
+    /// A change not saved yet, and when it was last seen to change.
+    unsaved: Option<(Saved, u64)>,
 }
 
 impl SettingsFile {
@@ -418,13 +523,27 @@ impl SettingsFile {
         let Some(dir) = data_dir else { return SettingsFile::default() };
         let path = dir.join(SETTINGS_FILE);
         let saved = std::fs::read_to_string(&path).ok().and_then(|t| serde_json::from_str::<Saved>(&t).ok());
-        SettingsFile { path: Some(path), fresh: saved.is_none(), saved: saved.unwrap_or_default(), pending_stop_acmp: None }
+        SettingsFile { path: Some(path), saved: saved.unwrap_or_default(), ..SettingsFile::default() }
     }
 }
 
+/// `saved` with the fields it leaves out taken from `now`.
+fn filled(saved: &Saved, now: &Saved) -> Saved {
+    let (Ok(serde_json::Value::Object(mut a)), Ok(serde_json::Value::Object(b))) = (serde_json::to_value(saved), serde_json::to_value(now)) else {
+        return now.clone();
+    };
+    for (k, v) in b {
+        a.entry(k).or_insert(v);
+    }
+    serde_json::from_value(serde_json::Value::Object(a)).unwrap_or_else(|_| now.clone())
+}
+
 impl Control {
-    /// Put the saved settings into effect (at start).
-    pub(super) fn restore_settings(&mut self) {
+    /// Put the saved settings into effect (at start, before the synth starts and the MIDI
+    /// inputs connect; the synth's own settings follow in `restore_synth_settings`, Master
+    /// Transpose in `start_transpose`). A setting given on the command line (`opts`: the
+    /// MIDI inputs, palette LEDs) wins over the saved one.
+    pub(super) fn restore_settings(&mut self, opts: &super::Options) {
         let s = self.settings.saved.clone();
         if let Some(order) = s.pad_pages.as_deref().and_then(PageOrder::new) {
             self.shared.page_order.store(order.to_bits(), Relaxed);
@@ -435,48 +554,251 @@ impl Control {
         if let Some(on) = s.upper {
             let _ = self.chord_cmd(ChordCmd::SetUpper { on });
         }
+        // After Upper, which turns Manual Bass on.
+        if let Some(on) = s.manual_bass {
+            let _ = self.chord_cmd(ChordCmd::SetManualBass { on });
+        }
+        if let Some(on) = s.left_hold {
+            let _ = self.chord_cmd(ChordCmd::SetLeftHold { on });
+        }
+        if let Some(ms) = s.chord_settle_ms {
+            let _ = self.chord_cmd(ChordCmd::SetChordSettle { ms });
+        }
         if let Some(on) = s.ots_link {
             let _ = self.ots_cmd(OtsCmd::SetOtsLink { on });
         }
+        if let Some(timing) = s.ots_link_timing {
+            let _ = self.ots_cmd(OtsCmd::SetOtsLinkTiming { timing });
+        }
+
+        // Style settings (Swing is the style's: each style load sets it back to 0).
+        let mut st = self.style_settings;
+        macro_rules! take {
+            ($into:ident: $($f:ident),*) => { $( if let Some(v) = s.$f { $into.$f = v; } )* };
+        }
+        take!(st: main_timing, intro_ending_timing, sync_stop_window_ms, fade_in_ms, fade_out_ms, fade_hold_ms, section_reset, retrigger_rate, swing_grid, section_tempo);
+        let st = st.clamped();
+        if st != self.style_settings && self.engine_cmd(Cmd::StyleSettings(st)).is_ok() {
+            self.style_settings = st;
+        }
+        let mut ch = self.style_change;
+        if let Some(v) = s.tempo_change {
+            ch.tempo = v;
+        }
+        if let Some(v) = s.parts_change {
+            ch.parts = v;
+        }
+        if let Some(v) = s.section_set {
+            ch.section_set = v.map(|m| m.min(3));
+        }
+        if ch != self.style_change && self.engine_cmd(Cmd::ChangeRules(ch.into())).is_ok() {
+            self.style_change = ch;
+        }
+        // Dynamics (the level is the style's: each style load sets it back).
+        let mut d = self.dynamics;
+        if let Some(v) = s.dynamics_control {
+            d.control = v;
+        }
+        if let Some(v) = s.accent_threshold {
+            d.accent_min = v;
+        }
+        take!(d: touch, accent, accent_mode, accent_source);
+        if d != self.dynamics {
+            let _ = self.set_dynamics(d.clamped());
+        }
+
+        // The switches the engine keeps: sent now, applied on its next wake.
+        let was = EngineSwitches::of(&self.snap);
+        let mut want = was;
         if let Some(mode) = s.stop_acmp_mode
-            && mode != StopAcmpMode::from(self.snap.stop_acmp_mode)
+            && mode != was.stop_acmp_mode
             && self.engine_cmd(Cmd::Button(Button::SetStopAcmp(mode.into()))).is_ok()
         {
-            self.settings.pending_stop_acmp = Some(mode);
+            want.stop_acmp_mode = mode;
         }
-        if self.settings.fresh {
-            self.settings.saved = self.settings_now();
+        if let Some(on) = s.auto_fill
+            && on != was.auto_fill
+            && self.engine_cmd(Cmd::Button(Button::AutoFill)).is_ok()
+        {
+            want.auto_fill = on;
         }
+        if let Some(on) = s.half_bar_fill
+            && on != was.half_bar_fill
+            && self.engine_cmd(Cmd::Button(Button::SetHalfBarFill(on))).is_ok()
+        {
+            want.half_bar_fill = on;
+        }
+        if let Some(ty) = s.unison_type
+            && ty != was.unison_type
+            && self.engine_cmd(Cmd::Button(Button::SetUnisonType(ty))).is_ok()
+        {
+            want.unison_type = ty;
+        }
+        if want != was {
+            self.settings.pending = Some(want);
+        }
+
+        if let Some(pedals) = s.pedals {
+            for (i, p) in pedals.into_iter().enumerate() {
+                if self.shared.controllers.pedal(i) != p {
+                    let (cc, function, control_type, reverse, range) = (p.cc, p.function, p.control_type, p.reverse, p.range);
+                    let _ = self.controllers_cmd(ControllersCmd::SetPedal { pedal: i as u8, cc, function, control_type, reverse, range });
+                }
+            }
+        }
+        if let Some(reach) = s.part_controllers {
+            for (i, r) in reach.into_iter().enumerate() {
+                if Reach::from(self.shared.controllers.part_targets(i)) != r {
+                    let (sustain, pitch_bend, modulation) = (r.sustain, r.pitch_bend, r.modulation);
+                    let _ = self.controllers_cmd(ControllersCmd::SetPartControllers { part: i as u8, sustain, pitch_bend, modulation });
+                }
+            }
+        }
+        if !opts.all_inputs && opts.inputs.is_empty() {
+            if let Some(all) = s.all_inputs {
+                self.all_inputs = all;
+            }
+            if let Some(names) = s.input_names {
+                self.input_names = names;
+            }
+        }
+        if !opts.palette_leds
+            && let Some(on) = s.palette_leds
+        {
+            self.palette_leds = on;
+        }
+        self.settings_settled();
     }
 
-    /// The settings as they are now.
-    fn settings_now(&mut self) -> Saved {
-        let snap_mode = StopAcmpMode::from(self.snap.stop_acmp_mode);
-        let f = &mut self.settings;
-        if f.pending_stop_acmp == Some(snap_mode) {
-            f.pending_stop_acmp = None;
+    /// The transpose a session starts with: the keyboard's from `opts` (the live rack
+    /// restores its own later), Master Transpose from `opts` when given, else the saved one.
+    pub(super) fn start_transpose(&self, opts: &super::Options) -> crate::engine::Transpose {
+        let master = if opts.transpose.master != 0 { opts.transpose.master } else { self.settings.saved.master_transpose.unwrap_or(0) };
+        crate::engine::Transpose::new(opts.transpose.keyboard, master)
+    }
+
+    /// Put the synth's saved settings into effect, once it runs: the master volume, synth
+    /// on/off, and the output pair (unless `--out` gave one: `audio_out_given`).
+    pub(super) fn restore_synth_settings(&mut self, audio_out_given: bool) {
+        if self.synth.is_none() {
+            return;
         }
+        let s = self.settings.saved.clone();
+        if let Some(volume) = s.master_volume {
+            let _ = self.mixer_cmd(MixerCmd::SetMasterVolume { volume });
+        }
+        if let Some(on) = s.synth_muted {
+            let _ = self.mixer_cmd(MixerCmd::SetSynthMuted { on });
+        }
+        if !audio_out_given && let Some(first) = s.audio_output {
+            let _ = self.settings_cmd(SettingsCmd::SetAudioOutput { first });
+        }
+        self.settings_settled();
+    }
+
+    /// After a restore: what the file left out is as the session has it, so an older file
+    /// is not rewritten until a setting changes (and no file is written for defaults).
+    fn settings_settled(&mut self) {
+        let now = self.settings_now();
+        self.settings.saved = filled(&self.settings.saved, &now);
+    }
+
+    /// The settings as they are now. The synth's, while there is none, are as saved.
+    fn settings_now(&mut self) -> Saved {
+        let snap = EngineSwitches::of(&self.snap);
+        let f = &mut self.settings;
+        if f.pending == Some(snap) {
+            f.pending = None;
+        }
+        let eng = f.pending.unwrap_or(snap);
+        let saved = &f.saved;
+        let ctl = &self.shared.controllers;
+        let st = self.style_settings;
+        let d = self.dynamics;
+        let (synth_muted, audio_output, master_volume) = match &self.synth {
+            Some(sy) => (Some(sy.control.muted.load(Relaxed)), Some(sy.control.out_ch.load(Relaxed)), Some(sy.control.master.load(Relaxed))),
+            None => (saved.synth_muted, saved.audio_output, saved.master_volume),
+        };
         Saved {
             pad_pages: Some(self.shared.page_order().movable().collect()),
             fingering: Some(Fingering::from_u8(self.shared.fingering.load(Relaxed))),
             upper: Some(self.shared.upper.load(Relaxed)),
+            manual_bass: Some(self.shared.manual_bass.load(Relaxed)),
+            left_hold: Some(ctl.left_hold()),
+            chord_settle_ms: Some(self.chord_settle_ms),
             ots_link: Some(self.shared.parts.ots_link.load(Relaxed)),
-            stop_acmp_mode: Some(f.pending_stop_acmp.unwrap_or(snap_mode)),
+            ots_link_timing: Some(self.ots_timing),
+            stop_acmp_mode: Some(eng.stop_acmp_mode),
+            main_timing: Some(st.main_timing),
+            intro_ending_timing: Some(st.intro_ending_timing),
+            sync_stop_window_ms: Some(st.sync_stop_window_ms),
+            fade_in_ms: Some(st.fade_in_ms),
+            fade_out_ms: Some(st.fade_out_ms),
+            fade_hold_ms: Some(st.fade_hold_ms),
+            section_reset: Some(st.section_reset),
+            retrigger_rate: Some(st.retrigger_rate),
+            swing_grid: Some(st.swing_grid),
+            section_tempo: Some(st.section_tempo),
+            tempo_change: Some(self.style_change.tempo),
+            parts_change: Some(self.style_change.parts),
+            section_set: Some(self.style_change.section_set),
+            auto_fill: Some(eng.auto_fill),
+            half_bar_fill: Some(eng.half_bar_fill),
+            unison_type: Some(eng.unison_type),
+            dynamics_control: Some(d.control),
+            touch: Some(d.touch),
+            accent: Some(d.accent),
+            accent_threshold: Some(d.accent_min),
+            accent_mode: Some(d.accent_mode),
+            accent_source: Some(d.accent_source),
+            master_transpose: Some(self.transpose.master),
+            pedals: Some(std::array::from_fn(|i| ctl.pedal(i))),
+            part_controllers: Some(std::array::from_fn(|i| ctl.part_targets(i).into())),
+            synth_muted,
+            audio_output,
+            master_volume,
+            all_inputs: Some(self.all_inputs),
+            input_names: Some(self.input_names.clone()),
+            palette_leds: Some(self.palette_leds),
         }
     }
 
     /// Save the settings when they changed, however they were changed (the app, a
-    /// Launchkey pad, a rack).
-    pub(super) fn pump_settings(&mut self) {
+    /// Launchkey pad or fader, a pedal, a rack): offline at once, live once they have been
+    /// still for [`QUIET_NS`]. On the control thread, never the engine's or the audio's.
+    pub(super) fn pump_settings(&mut self, now_ns: u64) {
         let now = self.settings_now();
-        let Some(path) = &self.settings.path else { return };
-        if now == self.settings.saved {
+        if self.settings.path.is_none() || now == self.settings.saved {
+            self.settings.unsaved = None;
             return;
         }
+        let quiet = match &self.settings.unsaved {
+            Some((u, since)) if *u == now => now_ns.saturating_sub(*since) >= QUIET_NS,
+            _ => {
+                self.settings.unsaved = Some((now.clone(), now_ns));
+                false
+            }
+        };
+        if quiet || self.offline.is_some() {
+            self.save_settings(now);
+        }
+    }
+
+    /// Save a change not saved yet (the session is stopping).
+    pub(super) fn flush_settings(&mut self) {
+        let now = self.settings_now();
+        if self.settings.path.is_some() && now != self.settings.saved {
+            self.save_settings(now);
+        }
+    }
+
+    fn save_settings(&mut self, now: Saved) {
+        let Some(path) = &self.settings.path else { return };
         let r = serde_json::to_string_pretty(&now).map_err(anyhow::Error::from).and_then(|j| crate::data_files::write_atomic(path, &j));
         // Saved or not, don't try again until the next change: a failing disk would
         // otherwise be written (and reported) on every pump.
         self.settings.saved = now;
+        self.settings.unsaved = None;
         if let Err(e) = r {
             self.say(format!("saving the settings: {e:#}"), true);
         }

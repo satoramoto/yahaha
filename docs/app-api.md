@@ -1478,9 +1478,37 @@ The settings kept in `<data>/settings.json` and restored at start.
 |---|---|---|
 | `padPages` | Page[] | The order of pad pages 2–5 (`setPadPageOrder`); Sections is always page 1. Default `["racks", "chord", "multiPads", "setup"]`. |
 
-The same file keeps the Setup pad page's switches, which the state shows where they act:
-the fingering type and Chord Detection Area (`chord.fingering`, `chord.upper`), OTS Link
-(`ots.link`) and the Stop ACMP mode (`transport.stopAcmpMode`).
+The same file keeps every global setting of the Settings screen, which the state shows
+where it acts. Each is saved when it changes, however it changed (the app, a Launchkey pad
+or fader, a pedal, a rack): offline at once, live once the settings have been still for
+half a second (a dragged slider is written once), and on stop. Saving runs on the control
+thread. At start each is put back before the app sees the state; a field the file lacks,
+or holds a value this build can't read, keeps its default and the rest still load. An
+older file is not rewritten until a setting changes.
+
+| Group | Saved in `settings.json` |
+|---|---|
+| Chord & Split | the fingering type and Chord Detection Area (`chord.fingering`, `chord.upper`), Manual Bass, Left Hold, the chord-settle window (`chord.manualBass`, `chord.leftHold`, `chord.settleMs`) |
+| Style | OTS Link and its timing (`ots.link`, `ots.linkTiming`), the Stop ACMP mode (`transport.stopAcmpMode`), every `styleSettings` field but `swing`, Change Behavior (`styleChange`), Auto Fill, Half Bar Fill, the Unison type (`transport.autoFill`, `transport.halfBarFill`, `transport.unisonType`), Dynamics Control, Touch and Accent (`dynamics` but `level`) |
+| Keyboard | Master Transpose (`chord.transposeMaster`) |
+| Pedals | P1–P3 (`controllers.pedals`: CC, function, control type, reverse, range) and which controllers reach each keyboard part (`controllers.parts[].sustain`, `pitchBend`, `modulation`) |
+| System | synth on/off, the output pair and the master volume (`io.synth.muted`, `io.synth.outputPair`, `mixer.master`; put back when the synth starts, and kept as saved while it doesn't), the MIDI inputs (`io.allInputs` and the sources picked), palette LEDs (`pads.paletteLeds`) |
+| Launchkey | the pad page order (`settings.padPages`) |
+
+A launch option (`--all-inputs`, `--input`, `--palette-leds`, `--audio-out`, a non-zero
+`--master-transpose`) wins over the saved setting. Kept elsewhere:
+
+- **Per rack** (the live rack, `live-rack.json`, and each saved rack): the split point,
+  Keyboard Transpose and each part's Pitch Bend Range (`controllers.parts[].bendRange`).
+- **Per style** (each style load sets them back, so nothing is saved): Swing
+  (`styleSettings.swing`) and the Dynamics level (`dynamics.level`).
+- **Not saved** (performance switches, off at start as on the Genos, where they are not
+  System settings): Style Retrigger on/off (`transport.retrigger`), Sync Stop
+  (`transport.syncStop`, which also cancels itself) and Unison latched
+  (`transport.unisonLatched`).
+- The audio buffer (`audio.json`, `setAudioBuffer`), Parameter Lock (`param-locks.json`)
+  and the app's theme (the app's local storage). The style folders and the SoundFonts are
+  folders the app is started with, not settings.
 
 ### `message`
 `{ seq, text, error }` or null. It holds the last notice or error, for example a style

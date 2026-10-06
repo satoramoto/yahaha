@@ -16,7 +16,11 @@ impl Control {
     }
 
     pub(super) fn dynamics_cmd(&mut self, c: DynamicsCmd) -> Result<(), CmdError> {
-        let s = c.apply(self.dynamics_now());
+        self.set_dynamics(c.apply(self.dynamics_now()))
+    }
+
+    /// Hand the engine these settings, and keep them.
+    pub(super) fn set_dynamics(&mut self, s: DynamicsSettings) -> Result<(), CmdError> {
         self.engine_cmd(Cmd::Dynamics(s))?;
         self.dynamics = s;
         // The level shows at once, before the engine's next snapshot.
