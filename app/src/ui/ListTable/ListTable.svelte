@@ -415,7 +415,8 @@
   .option.dim,
   .option.dim .strong,
   .option.dim .mark {
-    color: var(--absent);
+    /* --m, not --absent: a dim row is still selectable text and must keep AA contrast. */
+    color: var(--m);
   }
   .option.selected {
     background: var(--neutral);
@@ -446,7 +447,7 @@
     color: var(--a);
   }
   .star.dim {
-    color: var(--absent);
+    color: var(--m);
   }
   .star.on {
     color: var(--on-ink);
