@@ -819,15 +819,16 @@ mod tests {
         }
         let mut ots = yahaha_sff::sff::Ots::default();
         ots.parts[RIGHT1].voice = Some((0, 0, 5));
-        ots.parts[RIGHT1].xg.set(0x08, 0x72, 0x46);
+        ots.parts[RIGHT1].xg.set(0x08, 0x72, 0x5B);
         ots.parts[RIGHT1].xg.set(0x08, 0x77, 0x30);
         ots.parts[RIGHT2].voice = Some((0, 0, 7));
-        ots.parts[LEFT].xg.set(0x08, 0x73, 0x3C);
+        ots.parts[LEFT].xg.set(0x08, 0x73, 0x28);
         parts.apply_ots(&ots, 1, true);
-        assert_eq!(parts.eq(RIGHT1), PartEq { low_gain: 6, high_freq: 5_000, ..PartEq::FLAT });
+        // The Genos scale: 5BH +5 dB, 28H -5 dB.
+        assert_eq!(parts.eq(RIGHT1), PartEq { low_gain: 5, high_freq: 5_000, ..PartEq::FLAT });
         assert_eq!(parts.eq(RIGHT2), PartEq::FLAT, "a voice with no EQ");
         assert_eq!(parts.eq(RIGHT3), mine, "nothing for the part");
-        assert_eq!(parts.eq(LEFT), PartEq { high_gain: -4, ..PartEq::FLAT });
+        assert_eq!(parts.eq(LEFT), PartEq { high_gain: -5, ..PartEq::FLAT });
         // The audio thread gets the coefficients at the parts' sample rate.
         parts.set_sample_rate(44_100);
         let mut seen = yahaha_fx::fx::part_eq::EqCell::UNSEEN;
