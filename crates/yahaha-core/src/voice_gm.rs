@@ -174,6 +174,13 @@ pub fn gm_program(msb: u8, program: u8) -> Option<u8> {
     table.iter().find(|p| p.0 == pc).map(|p| p.1)
 }
 
+/// The GM program a keyboard part plays for Genos voice `msb`/`program` (an OTS's or a
+/// registration's): [`gm_program`] where it knows the bank, else the number as it is
+/// (bank 0 and the other GM/XG banks follow GM numbering; 0-127).
+pub fn keyboard_program(msb: u8, program: u8) -> u8 {
+    gm_program(msb, program).unwrap_or(program & 127)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -194,6 +201,15 @@ mod tests {
         assert_eq!(gm_program(8, 100), Some(52), "PopHaa: Choir Aahs, not an FX program");
         assert_eq!(gm_program(8, 33), None, "not a bank 8 number");
         assert_eq!(gm_program(8, 127), None);
+    }
+
+    #[test]
+    fn a_keyboard_part_plays_the_banks_gm_program_or_the_number() {
+        assert_eq!(keyboard_program(8, 4), 29, "HeavyRockGuitar: Overdriven Guitar");
+        assert_eq!(keyboard_program(8, 33), 33, "a number bank 8 doesn't use: as it is");
+        assert_eq!(keyboard_program(0, 4), 4, "bank 0 follows GM");
+        assert_eq!(keyboard_program(104, 5), 5);
+        assert_eq!(keyboard_program(0, 200), 72, "within 0-127");
     }
 
     #[test]
