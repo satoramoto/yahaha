@@ -4126,14 +4126,14 @@ const catalog = {
   },
   'pedal.control_type': {
     title: 'Control type',
-    body: 'How a switch function follows the pedal. Hold A: on while held. Hold B: on while held, the Genos’ second hold style. Toggle: each press switches it on or off. Only for switch functions.',
+    body: 'How a switch function follows the pedal, for switch functions only: Hold A and Hold B (the Genos’ two hold styles) are on while held; Toggle switches it on or off with each press.',
     genos: 'Control Type',
     keys: [],
     launchkey: null,
   },
   'pedal.range': {
     title: 'Pitch bend range',
-    body: 'Which way a Pitch Bend pedal bends. Upper: up only. Lower: down only. Full: down at rest, up when pressed. Only for Pitch Bend.',
+    body: 'Which way a Pitch Bend pedal bends: Upper up only, Lower down only, Full down at rest and up when pressed. Only for Pitch Bend.',
     genos: 'Range',
     keys: [],
     launchkey: null,

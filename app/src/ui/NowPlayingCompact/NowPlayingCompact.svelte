@@ -76,18 +76,19 @@
   }
   .value {
     color: var(--value-ink);
-    font: var(--type-large);
-    letter-spacing: var(--tracking-large);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
     font-variant-numeric: tabular-nums;
   }
   .unit,
   .notes {
     color: var(--caption-ink);
   }
+  /* One size per line: the chord is the strong text size, set apart by its violet, not by size. */
   .chord {
     color: var(--a);
-    font: var(--type-large);
-    letter-spacing: var(--tracking-large);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
   }
   .ext {
     font: var(--type-strong);

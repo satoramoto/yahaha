@@ -8,14 +8,15 @@
   │ StageScreen: the 1440 × 900 Stage, scaled and centred            │
   │   app bar · section row · display · band · status line · keys   │
   │   (another page tab: "Coming soon" under the same app bar;       │
-  │    the Settings tab opens the Settings drawer over the Stage)    │
+  │    the Settings tab and Alt+T show the Settings screen instead:  │
+  │    panels/settings/SettingsScreen, while `ui.settings` is on)    │
   └──────────────────────────────────────────────────────────────────┘
 
   The old panels (header, lead sheet, Launchkey mirror, mixer row, Quick Racks row, key strip,
   Channel view) stay on disk but aren't routed; each page tab brings its page back when its
   spec is built. Until then the Alt keys keep opening today's drawers and Library over the
   Stage (lib/nav.ts), and the Stage's links open them (Stage.md D32): the Rack, Effects,
-  Multi Pads, Looper, Settings, Charts and Harmony drawers (lib/ui/Overlay), the style
+  Multi Pads, Looper, Charts and Harmony drawers (lib/ui/Overlay), the style
   Browser and the Sound Browser stay as they were, unscaled, in the old tokens. Library
   (`ui.view`) takes the Stage's place, unscaled, as before.
 -->
@@ -40,7 +41,7 @@
   import MultiPad from './panels/multipad/MultiPad.svelte'
   import RackPanel from './panels/rack/RackPanel.svelte'
   import Library from './panels/library/Library.svelte'
-  import Settings from './panels/settings/Settings.svelte'
+  import SettingsScreen from './panels/settings/SettingsScreen.svelte'
   import SoundPicker from './panels/sounds/SoundPicker.svelte'
   import StageScreen from './panels/stage/StageScreen.svelte'
   import { stagePage } from './panels/stage/page.svelte'
@@ -84,7 +85,11 @@
 <svelte:window onkeydown={onKey} onkeyup={handleKeyUp} onblur={handleBlur} />
 
 <div class="app">
-  {#if ui.view === 'library'}
+  {#if ui.settings}
+    <!-- Settings (the Settings tab, Alt+T) takes the main slot, whatever ui.view is; Esc
+         (ui.escape) or another page tab leaves it. -->
+    <main class="stage-slot"><SettingsScreen /></main>
+  {:else if ui.view === 'library'}
     <!-- Library replaces the stage (docs/racks.md, "Screens"); the band keeps playing. -->
     <main class="library-slot">
       <Library />
@@ -104,7 +109,6 @@
 {#if ui.effects}<Effects />{/if}
 {#if ui.looper}<Looper />{/if}
 {#if ui.multipad}<MultiPad />{/if}
-{#if ui.settings}<Settings />{/if}
 {#if ui.charts}<Charts />{/if}
 {#if ui.harmony}<Harmony />{/if}
 {#if ui.browser}<Browser />{/if}
