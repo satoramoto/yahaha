@@ -16,7 +16,6 @@ import type {
   SystemChange,
 } from '../../ui/Settings/types'
 import { BUFFERS, DEFAULT_SPLIT } from './model'
-import { SPLIT_MAX, SPLIT_MIN } from './notes'
 
 export interface SettingsDeps {
   /** The latest state. */
@@ -28,6 +27,8 @@ export interface SettingsDeps {
   setTheme: (theme: 'dark' | 'light') => void
   /** Show another Settings page. */
   openPage: (page: SettingsPageId) => void
+  /** Arm or disarm the split pick on the main keyboard (`splitPick.armed`, ../stage/splitPick.svelte.ts). */
+  arm: (armed: boolean) => void
 }
 
 export interface SettingsActions {
@@ -67,8 +68,9 @@ export function settingsActions(d: SettingsDeps): SettingsActions {
         return d.send({ type: 'setChordSettle', ms: c.ms })
       case 'splitStep':
         return d.send({ type: 'moveSplit', delta: c.delta })
-      case 'split':
-        return d.send({ type: 'setSplit', note: clamp(c.note, SPLIT_MIN, SPLIT_MAX) })
+      case 'pick':
+        // A locked split point can't be picked on the keys (the − + steppers still move it).
+        return d.arm(c.armed && !s().paramLocks.splitPoint)
       case 'splitReset':
         return d.send({ type: 'setSplit', note: DEFAULT_SPLIT })
       case 'openKeyboard':

@@ -1,20 +1,22 @@
 <!--
   Settings: the Settings page at 1440 × 900, a full-screen page in place of the Stage. The app bar
-  and the section row as on the Stage; then a left column (the compact now-playing block over the
-  six pages as a list, the open one the chosen block) beside the open page under its header; the
-  status line and the keys at the foot. Every page stays mounted (the others hidden), so switching
-  is instant. Each region takes its data as one object; every change goes out through its page's
-  callback.
+  as on the Stage (no transport row: the owner found it confusing here); then a left column (the
+  compact now-playing block over the six pages as a list, the open one the chosen block, and Panic
+  and help mode's ? at its foot) beside the open page, whose sections start at the top (the chosen
+  page in the list names it); the status line and the keys at the foot. Every page stays mounted
+  (the others hidden), so switching is instant. Each region takes its data as one object; every
+  change goes out through its page's callback. The keys carry their own callbacks: with `onsplit`
+  the split is set on them.
 -->
 <script lang="ts">
   import type { Component, ComponentProps } from 'svelte'
   import type { Action } from 'svelte/action'
   import AppBar from '../AppBar/AppBar.svelte'
+  import Button from '../Button/Button.svelte'
   import GroupHeader from '../GroupHeader/GroupHeader.svelte'
   import Keys from '../Keys/Keys.svelte'
   import NowPlayingCompact from '../NowPlayingCompact/NowPlayingCompact.svelte'
   import PageList from '../PageList/PageList.svelte'
-  import SectionRow from '../SectionRow/SectionRow.svelte'
   import SettingsChord from '../SettingsChord/SettingsChord.svelte'
   import SettingsKeyboard from '../SettingsKeyboard/SettingsKeyboard.svelte'
   import SettingsLaunchkey from '../SettingsLaunchkey/SettingsLaunchkey.svelte'
@@ -58,8 +60,8 @@
   type Props = {
     /** The app bar: pages (Settings chosen), Launchkey, audio health. */
     appBar: Data<typeof AppBar>
-    /** The section row: the transport and the helpers, as on the Stage. */
-    sectionRow: Data<typeof SectionRow>
+    /** Help mode on: the ? at the foot of the left column is lit. */
+    help?: boolean
     /** The compact now-playing block at the head of the left column. */
     nowPlaying: NowPlayingCompactData
     /** The six pages, with what each is set to. */
@@ -90,51 +92,20 @@
     onpedals?: (change: PedalsChange) => void
     /** A change on the System page. */
     onsystem?: (change: SystemChange) => void
-    /** A change on the Launchkey page. */
+    /** A change on the Controller page (the Launchkey's pad page order). */
     onlaunchkey?: (change: LaunchkeyChange) => void
+    /** Panic pressed (all notes off). */
+    onpanic?: () => void
+    /** The ? pressed: help mode asked on (`true`) or off. */
+    onhelp?: (on: boolean) => void
   } & On<typeof AppBar, 'onchoose' | 'onhealth'> &
-    On<
-      typeof SectionRow,
-      | 'onstartstop'
-      | 'onaccomp'
-      | 'onsyncstart'
-      | 'onreset'
-      | 'onfillup'
-      | 'onfilldown'
-      | 'onfade'
-      | 'onmetronome'
-      | 'onmetronomesettings'
-      | 'onunison'
-      | 'onpanic'
-      | 'onhelp'
-    > &
     On<typeof StatusLine, 'onclear'>
 
   let p: Props = $props()
-
-  const current = $derived(p.pages.find((item) => item.id === p.page) ?? p.pages[0])
 </script>
 
 <div class="screen">
   <AppBar {...p.appBar} tipAction={p.tipAction} onchoose={p.onchoose} onhealth={p.onhealth} />
-  <div class="row">
-    <SectionRow
-      {...p.sectionRow}
-      tipAction={p.tipAction}
-      onstartstop={p.onstartstop}
-      onaccomp={p.onaccomp}
-      onsyncstart={p.onsyncstart}
-      onreset={p.onreset}
-      onfillup={p.onfillup}
-      onfilldown={p.onfilldown}
-      onfade={p.onfade}
-      onmetronome={p.onmetronome}
-      onmetronomesettings={p.onmetronomesettings}
-      onunison={p.onunison}
-      onpanic={p.onpanic}
-      onhelp={p.onhelp}
-    />
-  </div>
   <section class="body" aria-label="Settings">
     <div class="side">
       <NowPlayingCompact {...p.nowPlaying} />
@@ -148,13 +119,21 @@
           onchoose={(id) => p.onpage?.(id as SettingsPageId)}
         />
       </div>
+      <div class="helpers">
+        <Button label="Panic" name="Panic: all notes off" tip="transport.panic" tipAction={p.tipAction} onpress={p.onpanic} />
+        <Button
+          label="?"
+          size="icon"
+          on={p.help ?? false}
+          pressed={p.help ?? false}
+          name="Help mode: point at any control to learn what it does"
+          tip="app.help"
+          tipAction={p.tipAction}
+          onpress={() => p.onhelp?.(!(p.help ?? false))}
+        />
+      </div>
     </div>
     <div class="page">
-      <GroupHeader title={current?.label ?? ''} level={2} id="settings-page-title">
-        {#snippet end()}
-          {#if current?.also}<span class="also">{current.also}</span>{/if}
-        {/snippet}
-      </GroupHeader>
       <div class="pages">
         <div class="slot" data-page="chord" hidden={p.page !== 'chord'}>
           <SettingsChord data={p.chord} tipAction={p.tipAction} onchange={p.onchord} />
@@ -195,11 +174,6 @@
     color: var(--t);
     font-family: var(--font-sans);
   }
-  .row {
-    display: flex;
-    flex: none;
-    margin-top: var(--stage-gap-row);
-  }
   .body {
     display: flex;
     flex: 1;
@@ -219,18 +193,18 @@
     display: flex;
     flex-direction: column;
   }
+  /* Panic and help mode's ?: safety and help stay in reach, at the foot of the left column. */
+  .helpers {
+    display: flex;
+    gap: var(--space-8);
+    margin-top: auto;
+  }
   .page {
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: var(--header-gap);
     min-width: 0;
     min-height: 0;
-  }
-  .also {
-    color: var(--caption-ink);
-    font: var(--type-text);
-    letter-spacing: var(--tracking-text);
   }
   .pages {
     flex: 1;

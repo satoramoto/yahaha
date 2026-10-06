@@ -51,8 +51,7 @@ export const chordBoard: ChordPageData = {
   splitMax: 95,
   splitLocked: true,
   zones,
-  keysLow: 36,
-  keysHigh: 95,
+  picking: false,
 }
 
 /** Upper on: chords from the right hand, so Manual Bass is pressable; the split isn't locked. */
@@ -76,6 +75,13 @@ export const chordSingle: ChordPageData = {
   leftHold: true,
   settleMs: 4,
   splitLocked: false,
+}
+
+/** "Set on the keys" pressed: the pick on the main keyboard is armed (the waiting face). */
+export const chordPicking: ChordPageData = {
+  ...chordBoard,
+  splitLocked: false,
+  picking: true,
 }
 
 /** The split moved up to C3: Reset is pressable. */

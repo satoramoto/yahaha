@@ -11,6 +11,7 @@ import type { HeldNote, KnobPage, LibraryList, Meters, Pad, PadPage, SurfaceCont
 import { BREAK, KEYBOARD_PART_NAMES, type AppState, type FaderLayer, type KeyboardPart } from '../../lib/api/types'
 import type { KeyRange } from '../../lib/store.svelte'
 import { RANGES } from '../keystrip/keyboard'
+import { SPLIT_MAX, SPLIT_MIN } from './splitPick.svelte'
 import type { TabItem } from '../../ui/ChosenTabs/types'
 import type { BankLamp, FaderStrip } from '../../ui/FaderBank/types'
 import { firstFailedPart } from '../../ui/HealthSlot/health'
@@ -853,16 +854,22 @@ export function statusHint(input: {
 
 const RIGHT_HUES = ['r1', 'r2', 'r3'] as const
 
-export function keys(state: AppState, range: KeyRange): StageProps['keys'] {
+/** The main keyboard: range, split, held notes, and setting the split on it (`picking`: the pick is armed). */
+export function keys(state: AppState, range: KeyRange, picking = false): StageProps['keys'] {
   const [low, high] = RANGES[range]
   const held: HeldNote[] = state.keyboard.held
   const right = held.filter((h) => h.zone === 'right')
   const part = right.flatMap((h) => h.parts).find((n) => n >= 0 && n < 3)
+  const splitLocked = state.paramLocks.splitPoint
   return {
     range: { low, high },
     split: state.keyboard.leftSplit,
     heldLeft: held.filter((h) => h.zone === 'left').map((h) => h.note),
     heldRight: right.map((h) => h.note),
     rightPart: part === undefined ? 'r1' : RIGHT_HUES[part],
+    splitMin: SPLIT_MIN,
+    splitMax: SPLIT_MAX,
+    splitLocked,
+    picking: picking && !splitLocked,
   }
 }

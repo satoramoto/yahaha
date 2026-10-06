@@ -8,11 +8,10 @@ import {
   chordPage,
   DEFAULT_SPLIT,
   keyboardPage,
-  keysSpan,
   launchkeyPage,
   nowPlayingCompact,
   pedalsPage,
-  settingsPages,
+  SETTINGS_PAGES,
   stylePage,
   systemPage,
 } from './model'
@@ -30,11 +29,11 @@ function mockState(edit?: (s: AppState) => void): AppState {
 
 const APP = { theme: 'dark' as const, cpu: 0.12, dropouts: 0 }
 
-describe('settingsPages', () => {
-  it('lists the six pages with their labels, captions and tips', () => {
-    const pages = settingsPages(mockState())
+describe('SETTINGS_PAGES', () => {
+  it('lists the six pages by name only, the Launchkey page as Controller (its id unchanged)', () => {
+    const pages = SETTINGS_PAGES
     expect(pages.map((p) => p.id)).toEqual(['chord', 'style', 'keyboard', 'pedals', 'system', 'launchkey'])
-    expect(pages.map((p) => p.label)).toEqual(['Chord & Split', 'Style', 'Keyboard', 'Pedals', 'System', 'Launchkey'])
+    expect(pages.map((p) => p.label)).toEqual(['Chord & Split', 'Style', 'Keyboard', 'Pedals', 'System', 'Controller'])
     expect(pages.map((p) => p.tip)).toEqual([
       'settings.tab.chord',
       'settings.tab.style',
@@ -43,33 +42,7 @@ describe('settingsPages', () => {
       'settings.tab.system',
       'settings.tab.launchkey',
     ])
-    expect(pages[0].also).toBe('Also on Pads · Chord and Setup pages')
-    expect(pages[3].also).toBe('P1 Launchkey jack · P2 P3 any MIDI input')
-    expect(pages[4].also).toBe('Audio · MIDI · Library')
-  })
-
-  it('summarises what each page is set to', () => {
-    const s = mockState((s) => {
-      s.chord.fingeringName = 'Fingered'
-      s.chord.splitName = 'F#2'
-      s.styleSettings.mainTiming = 'nextBar'
-      s.chord.transposeKeyboard = 2
-      s.chord.transposeMaster = -1
-      s.paramLocks = { splitPoint: true, fingeringType: false }
-      s.controllers.pedals = s.controllers.pedals.map((p, i) => ({ ...p, cc: [64, 66, null][i] }))
-      s.io.synth = s.io.synth && { ...s.io.synth, bufferFrames: 128 }
-      s.io.allInputs = true
-      s.library.count = 1284
-      s.settings.padPages = ['racks', 'chord', 'setup']
-    })
-    const [chord, style, keyboard, pedals, system, launchkey] = settingsPages(s).map((p) => p.summary)
-    expect(chord).toBe('Fingered · F#2')
-    expect(style).toBe('Next bar')
-    expect(keyboard).toBe('+2 · −1 · Split locked')
-    expect(pedals).toBe('64 66 —')
-    expect(system).toBe(`${s.io.synth ? '128' : 'No synth'} · All inputs · 1,284 styles`)
-    expect(launchkey).toBe('4 of 5 pad pages')
-    expect(settingsPages(s)[5].also).toBe('Pad pages shown 4 of 5')
+    for (const p of pages) expect(Object.keys(p).sort()).toEqual(['id', 'label', 'tip'])
   })
 })
 
@@ -101,13 +74,18 @@ describe('chordPage', () => {
       s.chord.splitName = 'C3'
       s.paramLocks.splitPoint = true
     })
-    const c = chordPage(s, 61)
+    const c = chordPage(s)
     expect(c.fingerings.map((f) => f.id)).toEqual(FINGERINGS.map((f) => f.id))
     expect(c.fingerings[2]).toMatchObject({ label: 'Fingered On Bass', tip: 'fingering.fingered_on_bass', line: 'Your lowest note is the bass: slash chords' })
     expect(c).toMatchObject({ fingering: 'fingeredOnBass', upper: true, settleMs: 12, settleMax: 30, split: 60, splitName: 'C3', splitLocked: true })
     expect([c.splitDefault, c.splitDefaultName]).toEqual([DEFAULT_SPLIT, 'F#2'])
     expect([c.splitMin, c.splitMax]).toEqual([SPLIT_MIN, SPLIT_MAX])
-    expect([c.keysLow, c.keysHigh]).toEqual([36, 95])
+    expect(c.picking).toBe(false)
+  })
+
+  it('shows the pick armed, but never while the split point is locked', () => {
+    expect(chordPage(mockState((s) => (s.paramLocks.splitPoint = false)), true).picking).toBe(true)
+    expect(chordPage(mockState((s) => (s.paramLocks.splitPoint = true)), true).picking).toBe(false)
   })
 
   it('puts Left below the split and the right-hand parts above, off parts faded', () => {
@@ -127,11 +105,6 @@ describe('chordPage', () => {
     expect(z[0].state).toBe('+ the chord')
     expect(z[1].program).toBe(41)
     expect(z[2]).toMatchObject({ state: 'off', on: false })
-  })
-
-  it('spans each key range from a C to a B', () => {
-    expect(keysSpan(49)).toEqual({ low: 36, high: 83 })
-    expect(keysSpan(88)).toEqual({ low: 24, high: 107 })
   })
 })
 

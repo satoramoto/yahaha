@@ -23,6 +23,7 @@
   import { useStatusHint } from '../stage/hint.svelte'
   import { appBar, keys, sectionRow, status } from '../stage/model'
   import { stagePage } from '../stage/page.svelte'
+  import { keysActions, splitPick } from '../stage/splitPick.svelte'
   import { compactNowPlaying, libraryPages, quickRacksBar } from './frameModel'
   import { followPendingEditor, instrumentsActions, instrumentsProps } from './instrumentsModel'
   import { instrumentsState } from './instrumentsState.svelte'
@@ -216,7 +217,9 @@
   const racks = $derived(tab === 'racks' ? { ...racksProps(s, libraryNav, racksState), ...racksCb } : undefined)
   const hint = useStatusHint()
   const statusData = $derived(status(s, hint.current))
-  const keyData = $derived(keys(s, rangeFor(ui.keyRange, s.io.inputs)))
+  // The main keyboard sets the split, as on the Stage (../stage/splitPick.svelte.ts).
+  const keyCb = keysActions({ state: () => app.state, send: (cmd) => app.send(cmd), arm: (on) => (splitPick.armed = on) })
+  const keyData = $derived({ ...keys(s, rangeFor(ui.keyRange, s.io.inputs), splitPick.armed), tipAction, ...keyCb })
 
   // ── Scale to fit
   let box: HTMLDivElement

@@ -20,12 +20,13 @@
   import { openRackDrawerOnPrompt } from '../quickracks/rackPromptDrawer.svelte'
   import { stageActions, type OpenTarget } from '../stage/actions'
   import { useStatusHint } from '../stage/hint.svelte'
-  import { appBar, keys, sectionRow, status } from '../stage/model'
+  import { appBar, keys, status } from '../stage/model'
   import { stagePage } from '../stage/page.svelte'
+  import { keysActions, splitPick } from '../stage/splitPick.svelte'
   import Settings from '../../ui/Settings/Settings.svelte'
   import type { SettingsPageId } from '../../ui/Settings/types'
   import { settingsActions } from './actions'
-  import { chordPage, keyboardPage, launchkeyPage, nowPlayingCompact, pedalsPage, settingsPages, stylePage, systemPage } from './model'
+  import { chordPage, keyboardPage, launchkeyPage, nowPlayingCompact, pedalsPage, SETTINGS_PAGES, stylePage, systemPage } from './model'
   import { nav } from './nav.svelte'
 
   const WIDTH = 1440
@@ -107,7 +108,11 @@
     settingsSend: (cmd) => settings.send(cmd),
     setTheme: (theme) => ui.setTheme(theme),
     openPage: (page) => (nav.page = page),
+    arm: (armed) => (splitPick.armed = armed),
   })
+
+  // ── The main keyboard sets the split, as on the Stage (../stage/splitPick.svelte.ts).
+  const keyCb = keysActions({ state: () => app.state, send: (cmd) => app.send(cmd), arm: (on) => (splitPick.armed = on) })
 
   // ── The regions
   const s = $derived(app.state)
@@ -115,14 +120,12 @@
   const cpu = $derived(meters && meters.channels.length > 0 ? meters.cpu.total : null)
   const recentDropouts = $derived(dropouts.recent(nowMs))
   const appBarData = $derived(appBar({ state: s, meters, page: 'settings', dropouts: recentDropouts }))
-  const sectionRowData = $derived(sectionRow({ state: s, help: tips.help }))
   const hint = useStatusHint()
   const statusData = $derived(status(s, hint.current))
-  const keyData = $derived(keys(s, range))
+  const keyData = $derived({ ...keys(s, range, splitPick.armed), tipAction, ...keyCb })
 
-  const pageList = $derived(settingsPages(s))
   const nowPlaying = $derived(nowPlayingCompact(s))
-  const chord = $derived(chordPage(s, range))
+  const chord = $derived(chordPage(s, splitPick.armed))
   const style = $derived(stylePage(s))
   const keyboard = $derived(keyboardPage(s))
   const pedals = $derived(pedalsPage(s))
@@ -155,11 +158,11 @@
   <div class="artboard" style:transform={`translate(-50%, -50%) scale(${scale})`}>
     <Settings
       appBar={appBarData}
-      sectionRow={sectionRowData}
+      help={tips.help}
       status={statusData}
       keys={keyData}
       {nowPlaying}
-      pages={pageList}
+      pages={SETTINGS_PAGES}
       page={nav.page}
       {chord}
       {style}
@@ -170,16 +173,6 @@
       {tipAction}
       onchoose={stage.onchoose}
       onhealth={stage.onhealth}
-      onstartstop={stage.onstartstop}
-      onaccomp={stage.onaccomp}
-      onsyncstart={stage.onsyncstart}
-      onreset={stage.onreset}
-      onfillup={stage.onfillup}
-      onfilldown={stage.onfilldown}
-      onfade={stage.onfade}
-      onmetronome={stage.onmetronome}
-      onmetronomesettings={stage.onmetronomesettings}
-      onunison={stage.onunison}
       onpanic={stage.onpanic}
       onhelp={stage.onhelp}
       onclear={stage.onclear}

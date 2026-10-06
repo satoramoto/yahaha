@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
-import { expect, fn, userEvent, within } from 'storybook/test'
+import { expect, fireEvent, fn, userEvent, within } from 'storybook/test'
 import Settings from './Settings.svelte'
 import { settingsBoard } from './Settings.fixtures'
 import SettingsPlayground from './SettingsPlayground.svelte'
@@ -10,21 +10,8 @@ const on = (category: string, names: string[]) =>
 
 const CALLBACKS: Record<string, string[]> = {
   AppBar: ['onchoose', 'onhealth'],
-  SectionRow: [
-    'onstartstop',
-    'onaccomp',
-    'onsyncstart',
-    'onreset',
-    'onfillup',
-    'onfilldown',
-    'onfade',
-    'onmetronome',
-    'onmetronomesettings',
-    'onunison',
-    'onpanic',
-    'onhelp',
-  ],
   PageList: ['onpage'],
+  Helpers: ['onpanic', 'onhelp'],
   SettingsChord: ['onchord'],
   SettingsStyle: ['onstyle'],
   SettingsKeyboard: ['onkeyboard'],
@@ -40,9 +27,11 @@ const PAGES = ['chord', 'style', 'keyboard', 'pedals', 'system', 'launchkey']
 
 /**
  * The Settings page at the app's 1440 × 900, in place of the Stage: the app bar (Settings chosen),
- * the section row, the compact now-playing block over the six pages as a list, the open page under
- * its header, the status line and the keys. Each region's data is one object control; each page's
- * changes go out through its own callback, an action grouped under its component.
+ * no transport row; the compact now-playing block over the six pages as a list (names only) with
+ * Panic and help mode's ? at its foot; the open page, its sections starting at the top, each in its
+ * own hue; the status line and the keys, where the split is set. Each region's data is one object
+ * control; each page's changes go out through its own callback, an action grouped under its
+ * component. The Controller page is the Launchkey's pad page order (its id stays `launchkey`).
  */
 const meta = {
   title: 'Screens/Settings',
@@ -51,7 +40,7 @@ const meta = {
   args: { ...settingsBoard, tipAction: fn(), ...actions },
   argTypes: {
     appBar: { control: 'object', table: { category: 'AppBar' } },
-    sectionRow: { control: 'object', table: { category: 'SectionRow' } },
+    help: { control: 'boolean', table: { category: 'Helpers' } },
     nowPlaying: { control: 'object', table: { category: 'NowPlayingCompact' } },
     pages: { control: 'object', table: { category: 'PageList' } },
     page: { control: 'select', options: PAGES, table: { category: 'PageList' } },
@@ -70,17 +59,29 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** The Chord & Split board: Fingered, split F#2 (locked), the page list with each page's summary. */
+/**
+ * The Chord & Split page: Fingered, split F#2 (locked). No transport row and no page header: the
+ * chosen page in the list names it, and the page's own sections start at the top. No page keyboard
+ * either: the split is set on the keys at the foot. Panic and ? sit under the page list.
+ */
 export const Chord: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     const list = canvas.getByRole('navigation', { name: 'Settings pages' })
     await expect(within(list).getByRole('button', { name: /Chord & Split/ })).toHaveAttribute('aria-current', 'page')
-    await expect(canvas.getByRole('heading', { name: 'Chord & Split' })).toBeInTheDocument()
+    await expect(canvas.queryByRole('heading', { name: 'Chord & Split' })).toBeNull()
+    await expect(canvas.queryByRole('toolbar', { name: /Transport/ })).toBeNull()
+    await expect(canvas.queryByRole('button', { name: /Start/ })).toBeNull()
+    await expect(canvas.getByRole('heading', { name: 'Fingering' })).toBeInTheDocument()
+    await expect(canvas.getAllByRole('img', { name: /^Keys:/ })).toHaveLength(1)
     await userEvent.click(within(list).getByRole('button', { name: /System/ }))
     await expect(args.onpage).toHaveBeenCalledWith('system')
     await userEvent.click(canvas.getByRole('button', { name: /^Upper/ }))
     await expect(args.onchord).toHaveBeenCalledWith({ type: 'upper', on: true })
+    await userEvent.click(canvas.getByRole('button', { name: 'Panic: all notes off' }))
+    await expect(args.onpanic).toHaveBeenCalled()
+    await userEvent.click(canvas.getByRole('button', { name: /Help mode/ }))
+    await expect(args.onhelp).toHaveBeenCalledWith(true)
   },
 }
 
@@ -89,7 +90,7 @@ export const Style: Story = {
   args: { page: 'style' },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
-    await expect(canvas.getByRole('heading', { name: 'Style' })).toBeInTheDocument()
+    await expect(canvas.getByRole('heading', { name: 'Sections' })).toBeInTheDocument()
     await userEvent.click(within(canvas.getByRole('tablist', { name: /Main timing/ })).getByRole('tab', { name: 'Immediate' }))
     await expect(args.onstyle).toHaveBeenCalledWith({ key: 'mainTiming', value: 'immediate' })
   },
@@ -124,11 +125,13 @@ export const System: Story = {
   },
 }
 
-/** The Launchkey page open: the pad page order. */
-export const Launchkey: Story = {
+/** The Controller page open: the Launchkey's pad page order. */
+export const Controller: Story = {
   args: { page: 'launchkey' },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
+    const list = canvas.getByRole('navigation', { name: 'Settings pages' })
+    await expect(within(list).getByRole('button', { name: 'Controller' })).toHaveAttribute('aria-current', 'page')
     await userEvent.click(canvas.getByRole('button', { name: 'Move Racks down' }))
     await expect(args.onlaunchkey).toHaveBeenCalledWith({ type: 'move', id: 'racks', delta: 1 })
   },
@@ -137,19 +140,29 @@ export const Launchkey: Story = {
 /**
  * Play with the screen: every control responds. A story-only wrapper (`SettingsPlayground.svelte`)
  * keeps what you change, seeded from the args; each change still logs in the Actions panel. The
- * page list switches pages and its summaries follow (fingering and split, Main timing, transpose,
- * pedal CCs, pad pages shown); the split moves with − + and the page keyboard; the lock link opens
- * the Keyboard page; the theme tabs switch the screen's theme.
+ * split moves with − + on the page, or on the keys at the foot: drag the split line, or press "Set
+ * on the keys" (or click the line) and click a key, black keys included. The lock link opens the
+ * Keyboard page, where locking the split stops the keys moving it; the theme tabs switch the theme.
  */
 export const Playground: Story = {
+  args: { chord: { ...settingsBoard.chord, splitLocked: false } },
   render: (args) => ({ Component: SettingsPlayground, props: args }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const list = canvas.getByRole('navigation', { name: 'Settings pages' })
     await userEvent.click(canvas.getByRole('button', { name: 'Split point one key up' }))
-    await expect(within(list).getByRole('button', { name: /Chord & Split/ })).toHaveTextContent('G2')
+    await expect(canvas.getByRole('img', { name: /^Keys: split G2/ })).toBeInTheDocument()
+    const handle = canvas.getByRole('slider', { name: /^Split point/ })
+    await expect(handle).toHaveAttribute('aria-valuetext', 'G2')
+    handle.focus()
+    await userEvent.keyboard('{ArrowLeft}{ArrowLeft}')
+    await expect(handle).toHaveAttribute('aria-valuetext', 'F2')
+    await userEvent.click(canvas.getByRole('button', { name: /Set on the keys/ }))
+    await expect(canvas.getByRole('button', { name: /Set on the keys/ })).toHaveAttribute('aria-pressed', 'true')
+    await fireEvent.keyDown(window, { key: 'Escape' })
+    await expect(canvas.getByRole('button', { name: /Set on the keys/ })).toHaveAttribute('aria-pressed', 'false')
     await userEvent.click(within(list).getByRole('button', { name: /Keyboard/ }))
     await expect(within(list).getByRole('button', { name: /Keyboard/ })).toHaveAttribute('aria-current', 'page')
-    await expect(canvas.getByRole('heading', { name: 'Keyboard' })).toBeInTheDocument()
+    await expect(canvas.getByRole('heading', { name: 'Transpose' })).toBeInTheDocument()
   },
 }

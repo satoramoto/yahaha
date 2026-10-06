@@ -23,6 +23,7 @@ function setup(edit?: (s: AppState) => void) {
   const settingsSent: SettingsCmd[] = []
   const themes: string[] = []
   const pages: SettingsPageId[] = []
+  const armed: boolean[] = []
   const actions = settingsActions({
     state: () => s.state,
     send: (cmd) => {
@@ -37,10 +38,11 @@ function setup(edit?: (s: AppState) => void) {
     },
     setTheme: (t) => themes.push(t),
     openPage: (p) => pages.push(p),
+    arm: (on) => armed.push(on),
   })
   /** What was sent since the last call, then forget it. */
   const take = () => sent.splice(0)
-  return { s, actions, sent, settingsSent, themes, pages, take }
+  return { s, actions, sent, settingsSent, themes, pages, armed, take }
 }
 
 describe('onchord', () => {
@@ -58,12 +60,24 @@ describe('onchord', () => {
     expect(s.state.chord.leftHold).toBe(!hold)
     actions.onchord({ type: 'settle', ms: 20 })
     expect(s.state.chord.settleMs).toBe(20)
-    actions.onchord({ type: 'split', note: 60 })
-    expect(s.state.chord.split).toBe(60)
     actions.onchord({ type: 'splitStep', delta: 1 })
-    expect(s.state.chord.split).toBe(61)
+    expect(s.state.chord.split).toBe(55)
+    actions.onchord({ type: 'splitStep', delta: -1 })
+    expect(s.state.chord.split).toBe(54)
+    expect(s.state.chord.splitName).toBe('F#2')
     actions.onchord({ type: 'splitReset' })
     expect(s.state.chord.split).toBe(54)
+  })
+
+  it('"Set on the keys" arms and disarms the pick on the main keyboard, not while the split is locked', () => {
+    const { s, actions, armed, take } = setup((st) => (st.paramLocks.splitPoint = false))
+    actions.onchord({ type: 'pick', armed: true })
+    actions.onchord({ type: 'pick', armed: false })
+    expect(armed).toEqual([true, false])
+    s.state.paramLocks.splitPoint = true
+    actions.onchord({ type: 'pick', armed: true })
+    expect(armed).toEqual([true, false, false])
+    expect(take()).toEqual([])
   })
 
   it('sends nothing for the fingering already chosen, or Manual Bass without Upper', () => {

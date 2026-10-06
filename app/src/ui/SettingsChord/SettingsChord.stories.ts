@@ -1,15 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
 import { expect, fn, userEvent, within } from 'storybook/test'
 import SettingsChord from './SettingsChord.svelte'
-import { chordBoard, chordSingle, chordSplitMoved, chordUpper } from './SettingsChord.fixtures'
+import { chordBoard, chordPicking, chordSingle, chordSplitMoved, chordUpper } from './SettingsChord.fixtures'
 
 /**
- * The Chord & Split page of the Settings screen, drawn below the page header the Screen draws. Three
- * columns: the seven fingering types as a radiogroup list (the chosen one a solid `--neutral`
- * block); the left hand's switches (Upper, Manual Bass, which works only with Upper on, Left Hold)
- * and the chord-settle window; the split point with − and +, Reset and the lock note, then who plays
- * on each side. Under them the page keyboard at the page's width, with the white split line to drag
- * or move with the arrows. Controlled: every change goes out through `onchange`.
+ * The Chord & Split page of the Settings screen. Three columns, each section in its own hue: the
+ * seven fingering types as a radiogroup list (the chosen one a solid block); the left hand's
+ * switches (Upper, Manual Bass, which works only with Upper on, Left Hold) and the chord-settle
+ * window; the split point with − and +, "Set on the keys", Reset and the lock note, then who plays
+ * on each side. No page keyboard: the split is set on the main keyboard at the foot of the screen
+ * ("Set on the keys" arms a pick there). Controlled: every change goes out through `onchange`.
  */
 const meta = {
   title: 'Components/SettingsChord',
@@ -57,17 +57,27 @@ export const Board: Story = {
     await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'fingering', id: 'fingeredOnBass' })
     await expect(fingered).toHaveAttribute('aria-checked', 'true')
 
-    // The split line: arrows step it one note.
-    const line = canvas.getByRole('slider', { name: 'Split line: drag to move' })
-    await expect(line).toHaveAttribute('aria-valuetext', 'F#2')
-    await expect(line).toHaveAttribute('data-tip', 'settings.split_strip')
-    line.focus()
-    await userEvent.keyboard('{ArrowRight}')
-    await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'split', note: 55 })
-    await userEvent.keyboard('{ArrowLeft}')
-    await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'split', note: 53 })
+    // No page keyboard: the split is set on the main keyboard. Locked, "Set on the keys" is shown, not pressable.
+    await expect(canvas.queryByRole('img', { name: /^Keys:/ })).toBeNull()
+    await expect(canvas.queryByRole('slider', { name: /Split/ })).toBeNull()
+    const pick = canvas.getByRole('button', { name: 'Set on the keys' })
+    await expect(pick).toHaveAttribute('aria-disabled', 'true')
+    await expect(pick).toHaveAttribute('data-tip', 'settings.split_pick')
 
-    await expect(canvas.getByText('Chords read left of the split')).toBeInTheDocument()
+    await expect(canvas.getByText(/Chords read left of the split/)).toBeInTheDocument()
+  },
+}
+
+/** "Set on the keys" pressed: the waiting face (a 2px ring) until a key is clicked on the main keyboard. */
+export const Picking: Story = {
+  args: { data: chordPicking },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    const pick = canvas.getByRole('button', { name: /^Set on the keys: click a key/ })
+    await expect(pick).toHaveAttribute('aria-pressed', 'true')
+    await expect(pick).toHaveTextContent('Click a key below…')
+    await userEvent.click(pick)
+    await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'pick', armed: false })
   },
 }
 
@@ -83,7 +93,7 @@ export const UpperOn: Story = {
     await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'manualBass', on: false })
     await userEvent.click(canvas.getByRole('button', { name: 'Upper: read chords right of the split' }))
     await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'upper', on: false })
-    await expect(canvas.getByText('Chords read right of the split')).toBeInTheDocument()
+    await expect(canvas.getByText(/Chords read right of the split/)).toBeInTheDocument()
     await expect(canvas.queryByText('Locked')).toBeNull()
   },
 }
@@ -127,10 +137,9 @@ export const SplitMoved: Story = {
     await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'splitStep', delta: 1 })
     await userEvent.click(canvas.getByRole('button', { name: 'Split point one key down' }))
     await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'splitStep', delta: -1 })
-    const line = canvas.getByRole('slider', { name: 'Split line: drag to move' })
-    await expect(line).toHaveAttribute('aria-valuenow', '60')
-    line.focus()
-    await userEvent.keyboard('{Home}')
-    await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'split', note: 36 })
+    const pick = canvas.getByRole('button', { name: 'Set on the keys' })
+    await expect(pick).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(pick)
+    await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'pick', armed: true })
   },
 }

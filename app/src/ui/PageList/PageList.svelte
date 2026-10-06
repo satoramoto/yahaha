@@ -1,6 +1,6 @@
 <!--
-  PageList: a vertical list of pages, one row each, with the page's name and a one-line summary of
-  what it is set to. The open page is the chosen block (a solid neutral fill, its text in the on
+  PageList: a vertical list of pages, one row each, with the page's name alone (no summary: the
+  owner found them more confusing than useful). The open page is the chosen block (a solid neutral fill, its text in the on
   ink), as a chosen tab is; the others are plain rows on hairlines. Page navigation: buttons with
   `aria-current="page"`, ↑ ↓ Home End move between them. A click never moves the choice itself:
   the parent does.
@@ -13,8 +13,6 @@
     id: string
     /** The page's name ("Chord & Split"). */
     label: string
-    /** What it is set to ("Fingered · F#2"). Empty: none. */
-    summary?: string
     /** The tooltip key. */
     tip?: string
   }
@@ -65,7 +63,6 @@
       onkeydown={(e) => keydown(e, i)}
     >
       <span class="name">{page.label}</span>
-      {#if page.summary}<span class="summary">{page.summary}</span>{/if}
     </button>
   {/each}
 </nav>
@@ -104,17 +101,10 @@
     font: var(--type-strong);
     letter-spacing: var(--tracking-strong);
   }
-  .summary {
-    min-width: 0;
-    overflow: hidden;
-    color: var(--caption-ink);
-    text-overflow: ellipsis;
-  }
   .row.chosen {
     background: var(--neutral);
   }
-  .chosen .name,
-  .chosen .summary {
+  .chosen .name {
     color: var(--on-ink);
   }
   .row:focus-visible {

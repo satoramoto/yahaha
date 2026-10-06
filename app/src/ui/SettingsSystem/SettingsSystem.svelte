@@ -39,8 +39,8 @@
 
   /**
    * The label column of every row on the page, in px: the smallest that fits the longest fixed
-   * label ("Master volume", 88 px in 13px DM Sans). A longer MIDI input name is cut with "…" and
-   * keeps its full name as a title.
+   * label ("Master volume", 88 px in 13px DM Sans). The MIDI input rows give the name the column's
+   * width instead, the lamp at the right end.
    */
   const LABEL_WIDTH = 96
 
@@ -252,10 +252,12 @@
       </SettingsRow>
       {#each data.inputs as input (input.name)}
         {@const on = data.allInputs === true ? true : input.listening}
-        <!-- SettingsRow's grid, with the input's full name as the label's title: names are cut to the
-             page's label width so every lamp stands in the one control column. -->
+        <!-- An input row: its name takes the column's width (two Launchkey ports differ only at the
+             end of their names), then "pads" on the DAW port, then its lamp at the right end; the
+             full name is the title when even that is too short. -->
         <div class="input">
           <span class="input-name" title={input.name}>{input.name}</span>
+          {#if input.pads}<span class="caption input-hint">pads</span>{:else}<span></span>{/if}
           <span class="input-lamp">
             <LampButton
               label={on ? 'On' : 'Off'}
@@ -269,7 +271,6 @@
               ontoggle={(next) => onchange?.({ type: 'input', name: input.name, on: next })}
             />
           </span>
-          {#if input.pads}<span class="caption input-hint">pads</span>{/if}
         </div>
       {:else}
         <p class="empty">No MIDI inputs found</p>
@@ -465,7 +466,7 @@
   /* A MIDI input: SettingsRow's columns and height, so its lamp lines up with every control above. */
   .input {
     display: grid;
-    grid-template-columns: var(--system-label-width) auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
     column-gap: var(--space-12);
     min-height: var(--group-header-height);

@@ -46,6 +46,7 @@
 
 <div class="page">
   <div class="pages" style={sectionHue(SECTION_HUES.launchkey.pages)}>
+    <GroupHeader title="Launchkey pad pages" level={3} />
     <table class="order">
       <caption class="hidden">Pad page order</caption>
       <thead>
@@ -206,10 +207,10 @@
   td:last-child {
     padding-right: 0;
   }
-  /* The header row: a GroupHeader's rule in the section's hue, its words on the header baseline. */
+  /* The header row, under the section's GroupHeader: column names in the caption ink on a hairline. */
   th {
-    padding-bottom: calc(var(--group-header-height) - var(--header-baseline) - var(--header-rule-width));
-    border-bottom: var(--header-rule-width) solid var(--header-rule);
+    padding-bottom: calc(var(--group-header-height) - var(--header-baseline) - var(--line-width));
+    border-bottom: var(--line-width) solid var(--line);
     color: var(--caption-ink);
     font: var(--type-text);
     letter-spacing: var(--tracking-text);

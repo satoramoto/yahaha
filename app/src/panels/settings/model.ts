@@ -9,8 +9,6 @@ import { functionGroups } from '../../lib/api/assignable'
 import { settings } from '../../lib/api/settings.svelte'
 import { DEFAULT_PAD_PAGES, FINGERINGS, KEYBOARD_PART_NAMES, PAD_PAGES, CHORD_SETTLE_MAX_MS } from '../../lib/api/types'
 import type { AppState, Fingering, PadPage } from '../../lib/api/types'
-import type { KeyRange } from '../../lib/store.svelte'
-import { RANGES } from '../keystrip/keyboard'
 import { chordNotes, sectionHue, sectionName, splitChord } from '../stage/model'
 import type {
   ChordPageData,
@@ -26,7 +24,7 @@ import type {
   StylePageData,
   SystemPageData,
 } from '../../ui/Settings/types'
-import { noteName, signed, SPLIT_MAX, SPLIT_MIN } from './notes'
+import { noteName, SPLIT_MAX, SPLIT_MIN } from './notes'
 
 /** The split point a reset goes back to (F#2), as the engine starts. */
 export const DEFAULT_SPLIT = 54
@@ -39,60 +37,20 @@ const PART_SHORT = ['R1', 'R2', 'R3', 'L']
 
 // ── The page list ─────────────────────────────────────────────────────────────────────────
 
-const onLocks = (state: AppState): string => {
-  const { splitPoint, fingeringType } = state.paramLocks
-  if (splitPoint && fingeringType) return 'Split and fingering locked'
-  if (splitPoint) return 'Split locked'
-  if (fingeringType) return 'Fingering locked'
-  return 'Nothing locked'
-}
-
-/** The six pages, each with what it is set to at a glance. */
-export function settingsPages(state: AppState): SettingsPageItem[] {
-  const c = state.chord
-  const synth = state.io.synth
-  const view = settings.view(state)
-  const inputs = view.allInputs === false ? `${view.sources.filter((s) => s.listening).length} inputs` : 'All inputs'
-  const shown = state.settings.padPages.length + 1
-  return [
-    { id: 'chord', label: 'Chord & Split', summary: `${c.fingeringName} · ${c.splitName}`, also: 'Also on Pads · Chord and Setup pages', tip: 'settings.tab.chord' },
-    {
-      id: 'style',
-      label: 'Style',
-      summary: state.styleSettings.mainTiming === 'immediate' ? 'Immediate' : 'Next bar',
-      also: 'Also on Knobs · Style page',
-      tip: 'settings.tab.style',
-    },
-    {
-      id: 'keyboard',
-      label: 'Keyboard',
-      summary: `${signed(c.transposeKeyboard)} · ${signed(c.transposeMaster)} · ${onLocks(state)}`,
-      also: 'Transpose · Parameter lock',
-      tip: 'settings.tab.keyboard',
-    },
-    {
-      id: 'pedals',
-      label: 'Pedals',
-      summary: state.controllers.pedals.map((p) => (p.cc === null ? '—' : String(p.cc))).join(' '),
-      also: 'P1 Launchkey jack · P2 P3 any MIDI input',
-      tip: 'settings.tab.controllers',
-    },
-    {
-      id: 'system',
-      label: 'System',
-      summary: `${synth ? (synth.bufferFrames ?? '—') : 'No synth'} · ${inputs} · ${state.library.count.toLocaleString('en-US')} styles`,
-      also: 'Audio · MIDI · Library',
-      tip: 'settings.tab.system',
-    },
-    {
-      id: 'launchkey',
-      label: 'Launchkey',
-      summary: `${shown} of ${PAD_PAGES.length} pad pages`,
-      also: `Pad pages shown ${shown} of ${PAD_PAGES.length}`,
-      tip: 'settings.tab.launchkey',
-    },
-  ]
-}
+/**
+ * The six pages, by name only (the owner: the per-page summaries confused more than they told).
+ * Where a page's settings also live (the Launchkey's Chord and Setup pads, the Style knob page,
+ * which jack a pedal is on) is in each page's tooltip. The Launchkey page shows as "Controller";
+ * its id stays `launchkey`.
+ */
+export const SETTINGS_PAGES: SettingsPageItem[] = [
+  { id: 'chord', label: 'Chord & Split', tip: 'settings.tab.chord' },
+  { id: 'style', label: 'Style', tip: 'settings.tab.style' },
+  { id: 'keyboard', label: 'Keyboard', tip: 'settings.tab.keyboard' },
+  { id: 'pedals', label: 'Pedals', tip: 'settings.tab.controllers' },
+  { id: 'system', label: 'System', tip: 'settings.tab.system' },
+  { id: 'launchkey', label: 'Controller', tip: 'settings.tab.launchkey' },
+]
 
 // ── Now playing ───────────────────────────────────────────────────────────────────────────
 
@@ -128,12 +86,6 @@ const ABOUT: Record<Fingering, { tip: string; line: string }> = {
 
 export const FINGERING_ITEMS: FingeringItem[] = FINGERINGS.map((f) => ({ id: f.id, label: f.name, ...ABOUT[f.id] }))
 
-/** The keys a range shows, from its first C to its last B. */
-export function keysSpan(range: KeyRange): { low: number; high: number } {
-  const [low, high] = RANGES[range]
-  return { low: Math.ceil(low / 12) * 12, high: Math.floor((high + 1) / 12) * 12 - 1 }
-}
-
 /** Who plays where: Left below the split, the right-hand parts above it. */
 function zones(state: AppState): SplitZone[] {
   const parts = state.keyboardParts.slice(0, 4)
@@ -154,9 +106,9 @@ function zones(state: AppState): SplitZone[] {
   return [zone(3, 'Below'), zone(0, 'Above'), zone(1, null), zone(2, null)].filter((z): z is SplitZone => z !== null)
 }
 
-export function chordPage(state: AppState, range: KeyRange = 61): ChordPageData {
+/** The Chord & Split page; `picking`: the pick on the main keyboard is armed (../stage/splitPick.svelte.ts). */
+export function chordPage(state: AppState, picking = false): ChordPageData {
   const c = state.chord
-  const span = keysSpan(range)
   return {
     fingerings: FINGERING_ITEMS,
     fingering: c.fingering,
@@ -173,8 +125,7 @@ export function chordPage(state: AppState, range: KeyRange = 61): ChordPageData 
     splitMax: SPLIT_MAX,
     splitLocked: state.paramLocks.splitPoint,
     zones: zones(state),
-    keysLow: span.low,
-    keysHigh: span.high,
+    picking: picking && !state.paramLocks.splitPoint,
   }
 }
 

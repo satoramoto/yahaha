@@ -153,8 +153,9 @@
       </SettingsRow>
     </div>
     <p class="help">
-      A locked setting stays as it is when you recall a Quick Rack or a One Touch Setting. You can still change it
-      by hand. A rack recall sets only the split point.
+      A locked setting stays as it is when you recall a Quick Rack or a One Touch Setting. A locked split point
+      can't be dragged on the keys either; − and + on the Chord & Split page still move it. A rack recall sets
+      only the split point.
     </p>
     <div class="sub" role="group" aria-labelledby="{uid}-recall">
       <GroupHeader title="A rack recall sets" level={4} id="{uid}-recall" />

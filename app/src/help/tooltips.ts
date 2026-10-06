@@ -2251,8 +2251,8 @@ const catalog = {
     launchkey: null,
   },
   'settings.tab.chord': {
-    title: 'Settings: Chord',
-    body: 'Fingering type, chord detection area (Lower or Upper) and Manual Bass.',
+    title: 'Settings: Chord & Split',
+    body: 'Fingering type, chord detection area (Lower or Upper), Manual Bass and the split point. Also on the Launchkey\'s Chord and Setup pad pages.',
     genos: 'Menu › Split & Fingering',
     keys: [],
     launchkey: `${P5}, top row (fingering, Upper); ${P3}, bottom row, pad 1 (Manual Bass)`,
@@ -2273,7 +2273,7 @@ const catalog = {
   },
   'settings.tab.style': {
     title: 'Settings: Style',
-    body: 'How the band starts, stops and fills: Sync Start/Stop, Auto Fill and Stop Accompaniment.',
+    body: 'How the band starts, stops and fills: Sync Start/Stop, Auto Fill and Stop Accompaniment. Also on the Knobs\' Style page.',
     genos: 'Menu › Style Setting',
     keys: [],
     launchkey: `${P1} (Sync Start, Sync Stop, Auto Fill); ${P3}, bottom row, pad 2 (Stop ACMP); ${P5}, bottom row, pads 2–3 (Stop ACMP mode)`,
@@ -2308,7 +2308,7 @@ const catalog = {
   },
   'settings.split_strip': {
     title: 'Split point',
-    body: 'Drag the marker, or click a key, to set the split (C3 = middle C). Keys at and below it are Left and the chord section, keys above it play Right 1–3. With focus, ←/→ move it a key and PgUp/PgDn an octave.',
+    body: 'Drag the white line on the keys to move the split, black keys included, or click it and then click the key it goes on (Esc cancels); a locked split point stays put. Keys at and below it are Left and the chord section, keys above it play Right 1–3 (C3 = middle C). With focus, ←/→ move it a key, PgUp/PgDn an octave, Enter arms the pick.',
     genos: 'Split Point (Style + Left)',
     keys: ['[', ']'],
     launchkey: `${P3}, bottom row, pads 3–4`,
@@ -2385,7 +2385,7 @@ const catalog = {
   },
   'settings.param_lock_split_point': {
     title: 'Lock Split Point',
-    body: 'On: the split point stays where you set it. Loading a rack or a One Touch Setting leaves it alone; you can still move it yourself.',
+    body: 'On: the split point stays where you set it. Loading a rack or a One Touch Setting leaves it alone, and the split line on the keyboard can\'t be dragged or picked; you can still step it with − and + on the Chord & Split page.',
     genos: 'Parameter Lock: Split Point',
     keys: [],
     launchkey: null,
@@ -2609,7 +2609,7 @@ const catalog = {
   // ── Pedals and wheels (Settings › Pedals) ───────────────────────────────
   'settings.tab.controllers': {
     title: 'Pedals and wheels',
-    body: 'The sustain pedal and footswitches, what each pedal does, and which parts the pedal and the wheels reach.',
+    body: 'The sustain pedal and footswitches, what each pedal does, and which parts the pedal and the wheels reach. P1 is the Launchkey\'s pedal jack; P2 and P3 come from any MIDI input.',
     genos: 'Assignable, Controller',
     keys: [],
     launchkey: null,
@@ -4095,8 +4095,8 @@ const catalog = {
 
   // --- Eyes-free lane D: Settings › Launchkey (docs/eyes-free.md) ---
   'settings.tab.launchkey': {
-    title: 'Settings: Launchkey',
-    body: 'The pad page order: which pad pages Pad Bank ▲/▼ step through after Sections, and in what order.',
+    title: 'Settings: Controller',
+    body: 'The Launchkey\'s pad page order: which pad pages Pad Bank ▲/▼ step through after Sections, and in what order.',
     genos: null,
     keys: [],
     launchkey: 'Pad Bank ▲ / ▼ follow the order',
@@ -4160,9 +4160,16 @@ const catalog = {
     keys: [],
     launchkey: null,
   },
+  'settings.split_pick': {
+    title: 'Set split on the keys',
+    body: 'Arms a pick: the next key you click on the keyboard at the foot of the screen becomes the split point, black keys included. Click again or press Esc to cancel. You can also drag the white split line there, unless the split point is locked.',
+    genos: 'Split Point (Style + Left)',
+    keys: [],
+    launchkey: null,
+  },
   'settings.split_lock_link': {
     title: 'Split point lock',
-    body: 'A locked split point stays where it is when you recall a Quick Rack or a One Touch Setting. Opens the Keyboard page, where the lock is switched.',
+    body: 'A locked split point stays where it is when you recall a Quick Rack or a One Touch Setting, and the split line on the keyboard stays put; − and + here still move it. Opens the Keyboard page, where the lock is switched.',
     genos: 'Parameter Lock',
     keys: [],
     launchkey: null,

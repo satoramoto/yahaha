@@ -29,9 +29,20 @@ export type KeysLayout = {
   blacks: BlackKey[]
   /** The width of one white key, px. */
   whiteWidth: number
-  /** The split line's x (the right edge of the highest white key at or below the split note); null without a split. */
+  /** The split line's x below the black keys (the right edge of the highest white key at or below the split note); null without a split. */
   splitX: number | null
+  /**
+   * Where the split line runs beside the black keys, in half black-key widths from `splitX`: the
+   * line steps round a black key the way the keys' own edges do. +1: the split is a black key
+   * (F#), so up top it runs along that key's right edge; −1: the next key up is black (split F,
+   * F# above), so it runs along that key's left edge; 0: two white keys meet (E|F, B|C).
+   */
+  splitStep: -1 | 0 | 1
 }
+
+/** A black key's width and height, px: the `--keys-black-width` and `--keys-black-height` tokens, for hit-testing. */
+export const BLACK_WIDTH = 22
+export const BLACK_HEIGHT = 32
 
 const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 const BLACK = new Set([1, 3, 6, 8, 10])
@@ -84,12 +95,34 @@ export function layout(
   }
 
   let splitX: number | null = null
+  let splitStep: -1 | 0 | 1 = 0
   if (split !== null && split >= range.low && split < range.high) {
     const highest = whiteNotes.filter((note) => note <= split).length
     splitX = Math.floor(highest * whiteWidth)
+    splitStep = isBlack(split) ? 1 : isBlack(split + 1) ? -1 : 0
   }
 
-  return { whites, blacks, whiteWidth, splitX }
+  return { whites, blacks, whiteWidth, splitX, splitStep }
+}
+
+/**
+ * The key under a point `x`, `y` px from the strip's inner top left: a black key where one covers
+ * the point (the top `blackHeight` px), else the white key. Null without keys.
+ */
+export function noteAt(
+  keys: KeysLayout,
+  x: number,
+  y: number,
+  blackWidth = BLACK_WIDTH,
+  blackHeight = BLACK_HEIGHT,
+): number | null {
+  if (keys.whites.length === 0 || keys.whiteWidth <= 0) return null
+  if (y < blackHeight) {
+    const black = keys.blacks.find((key) => Math.abs(x - key.x) <= blackWidth / 2)
+    if (black) return black.note
+  }
+  const index = Math.max(0, Math.min(keys.whites.length - 1, Math.floor(x / keys.whiteWidth)))
+  return keys.whites[index].note
 }
 
 /** "Keys: split F#2, left hand G A C E, right hand E4 A4, 61 keys" (the left hand as a chord, without octaves). */

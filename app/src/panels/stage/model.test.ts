@@ -809,7 +809,17 @@ describe('keys', () => {
       ]
     })
     const k = keys(s, 61)
-    expect(k).toEqual({ range: { low: 36, high: 96 }, split: 54, heldLeft: [48, 52], heldRight: [64, 67], rightPart: 'r2' })
+    expect(k).toEqual({
+      range: { low: 36, high: 96 },
+      split: 54,
+      heldLeft: [48, 52],
+      heldRight: [64, 67],
+      rightPart: 'r2',
+      splitMin: 24,
+      splitMax: 96,
+      splitLocked: false,
+      picking: false,
+    })
     expect(keys(state(), 49)).toMatchObject({ range: { low: 36, high: 84 }, heldLeft: [], heldRight: [], rightPart: 'r1' })
   })
 })

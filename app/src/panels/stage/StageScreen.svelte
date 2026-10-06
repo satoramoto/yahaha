@@ -25,6 +25,7 @@
   import { useStatusHint } from './hint.svelte'
   import { appBar, beatOf, display, faders, holdPeak, keys, knobs, pads, sectionRow, status, stripMeters, type HoldState } from './model'
   import { stagePage } from './page.svelte'
+  import { keysActions, splitPick } from './splitPick.svelte'
 
   const WIDTH = 1440
   const HEIGHT = 900
@@ -132,7 +133,9 @@
   // The hovered or focused control's tooltip takes the status line's place (hint.svelte.ts).
   const hint = useStatusHint()
   const statusData = $derived(status(s, hint.current))
-  const keyData = $derived(keys(s, rangeFor(ui.keyRange, s.io.inputs)))
+  // The main keyboard sets the split: drag its line, or arm a pick and click a key (splitPick.svelte.ts).
+  const keyCb = keysActions({ state: () => app.state, send: (cmd) => app.send(cmd), arm: (on) => (splitPick.armed = on) })
+  const keyData = $derived({ ...keys(s, rangeFor(ui.keyRange, s.io.inputs), splitPick.armed), tipAction, ...keyCb })
 
   // ── Scale to fit
   let box: HTMLDivElement

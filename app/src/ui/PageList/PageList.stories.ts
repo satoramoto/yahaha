@@ -4,8 +4,8 @@ import PageList from './PageList.svelte'
 import { settingsPages } from './PageList.fixtures'
 
 /**
- * A vertical list of pages, one row each: the page's name in `--type-strong` and a one-line
- * summary of what it is set to in the caption ink, on hairlines. The open page is the chosen
+ * A vertical list of pages, one row each: the page's name in `--type-strong`, on hairlines. The
+ * open page is the chosen
  * block, a solid `--neutral` fill with its text in `--on-ink`, as a chosen tab is. Page navigation:
  * buttons with `aria-current="page"`; ↑ ↓ Home End move focus and call `onchoose`. Controlled: the
  * parent moves `chosen`.
@@ -26,8 +26,8 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 /**
- * The Settings boards' left column: Chord & Split open ("Fingered · F#2"), then Style, Keyboard,
- * Pedals, System and Launchkey with their summaries. A click calls `onchoose` with the page's id
+ * The Settings screen's left column: Chord & Split open, then Style, Keyboard, Pedals, System and
+ * Controller, names only. A click calls `onchoose` with the page's id
  * and leaves `chosen` to the parent.
  */
 export const Board: Story = {
@@ -38,10 +38,10 @@ export const Board: Story = {
     await expect(rows).toHaveLength(6)
     const chord = canvas.getByRole('button', { name: /Chord & Split/ })
     await expect(chord).toHaveAttribute('aria-current', 'page')
-    await expect(chord).toHaveTextContent('Fingered · F#2')
+    await expect(chord).toHaveTextContent(/^Chord & Split$/)
     await expect(chord).toHaveAttribute('data-tip', 'settings.tab.chord')
     for (const row of rows.filter((r) => r !== chord)) await expect(row).not.toHaveAttribute('aria-current')
-    await expect(canvas.getByRole('button', { name: /System/ })).toHaveTextContent('128 · All inputs · 1,284 styles')
+    await expect(canvas.getByRole('button', { name: /System/ })).toHaveTextContent(/^System$/)
     await expect(args.tipAction).toHaveBeenCalledWith(chord, 'settings.tab.chord')
 
     await userEvent.click(canvas.getByRole('button', { name: /Pedals/ }))
@@ -51,7 +51,7 @@ export const Board: Story = {
 }
 
 /**
- * Keys: ↓ from Chord & Split focuses Style and calls `onchoose('style')`; End goes to Launchkey;
+ * Keys: ↓ from Chord & Split focuses Style and calls `onchoose('style')`; End goes to Controller;
  * ↓ from the last wraps to the first; ↑ from the first wraps to the last; Home to the first.
  */
 export const Keys: Story = {
@@ -64,7 +64,7 @@ export const Keys: Story = {
     await expect(row(/^Style/)).toHaveFocus()
     await userEvent.keyboard('{End}')
     await expect(args.onchoose).toHaveBeenLastCalledWith('launchkey')
-    await expect(row(/Launchkey/)).toHaveFocus()
+    await expect(row(/Controller/)).toHaveFocus()
     await userEvent.keyboard('{ArrowDown}')
     await expect(args.onchoose).toHaveBeenLastCalledWith('chord')
     await userEvent.keyboard('{ArrowUp}')

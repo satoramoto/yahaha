@@ -28,7 +28,6 @@
   /** Yamaha numbering: C3 is MIDI 60. */
   const noteName = (n: number) => `${NOTES[((n % 12) + 12) % 12]}${Math.floor(n / 12) - 2}`
   const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
-  const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0')
 
   let page = $derived(p.page)
   let chord = $derived({ ...p.chord })
@@ -39,26 +38,21 @@
   let launchkey = $derived({ ...p.launchkey, pages: p.launchkey.pages.map((x) => ({ ...x })) })
   let appBar = $derived({ ...p.appBar })
 
-  // The page list's summaries follow the state.
-  let pages = $derived(
-    p.pages.map((item) => {
-      if (item.id === 'chord') {
-        const name = chord.fingerings.find((f) => f.id === chord.fingering)?.label ?? ''
-        return { ...item, summary: `${name} · ${chord.splitName}` }
-      }
-      if (item.id === 'style') return { ...item, summary: style.mainTiming === 'immediate' ? 'Immediate' : 'Next bar' }
-      if (item.id === 'keyboard') {
-        const lock = keyboard.lockSplit ? ' · Split locked' : ''
-        return { ...item, summary: `${signed(keyboard.transposeKeyboard)} · ${signed(keyboard.transposeMaster)}${lock}` }
-      }
-      if (item.id === 'pedals') return { ...item, summary: pedals.pedals.map((x) => x.cc ?? '—').join(' ') }
-      if (item.id === 'launchkey') {
-        const shown = launchkey.pages.filter((x) => x.shown).length + 1
-        return { ...item, summary: `${shown} of 5 pad pages` }
-      }
-      return item
-    }),
-  )
+  // The keys follow the split, and set it: drag the line, or arm the pick and click a key.
+  let keys = $derived({
+    ...p.keys,
+    split: chord.split,
+    splitMin: chord.splitMin,
+    splitMax: chord.splitMax,
+    splitLocked: chord.splitLocked,
+    picking: chord.picking,
+    tipAction: p.tipAction,
+    onsplit: (note: number) => {
+      if (!chord.splitLocked) chord = setSplit(chord, note)
+      keyboard = { ...keyboard, splitName: chord.splitName }
+    },
+    onpick: (armed: boolean) => onchord({ type: 'pick', armed }),
+  })
 
   function onpage(id: SettingsPageId) {
     page = id
@@ -78,7 +72,7 @@
     else if (c.type === 'leftHold') chord = { ...chord, leftHold: c.on }
     else if (c.type === 'settle') chord = { ...chord, settleMs: c.ms }
     else if (c.type === 'splitStep') chord = setSplit(chord, chord.split + c.delta)
-    else if (c.type === 'split') chord = setSplit(chord, c.note)
+    else if (c.type === 'pick') chord = { ...chord, picking: c.armed && !chord.splitLocked }
     else if (c.type === 'splitReset') chord = setSplit(chord, chord.splitDefault)
     else if (c.type === 'openKeyboard') page = 'keyboard'
     keyboard = { ...keyboard, splitName: chord.splitName }
@@ -101,7 +95,7 @@
     else if (c.type === 'reset') k = m = 0
     else if (c.type === 'lock') {
       keyboard = c.item === 'splitPoint' ? { ...keyboard, lockSplit: c.on } : { ...keyboard, lockFingering: c.on }
-      if (c.item === 'splitPoint') chord = { ...chord, splitLocked: c.on }
+      if (c.item === 'splitPoint') chord = { ...chord, splitLocked: c.on, picking: chord.picking && !c.on }
       return
     }
     keyboard = { ...keyboard, transposeKeyboard: k, transposeMaster: m, youHear: hear(k, m) }
@@ -178,7 +172,7 @@
     {...p}
     {appBar}
     {page}
-    {pages}
+    {keys}
     {chord}
     {style}
     {keyboard}

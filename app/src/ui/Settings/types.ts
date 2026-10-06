@@ -11,16 +11,12 @@ export type SettingsPageId = 'chord' | 'style' | 'keyboard' | 'pedals' | 'system
 /** A keyboard part's hue. */
 export type PartHue = 'r1' | 'r2' | 'r3' | 'l'
 
-/** One entry of the page list: its name, a one-line summary of what it is set to, and its tooltip. */
+/** One entry of the page list: its name and its tooltip. */
 export interface SettingsPageItem {
   id: SettingsPageId
   /** "Chord & Split". */
   label: string
-  /** What the page is set to, at a glance ("Fingered · F#2"). */
-  summary: string
-  /** Where else these settings live, shown at the right of the page's header ("Pads · Chord and Setup pages"). */
-  also?: string
-  /** The tooltip key. */
+  /** The tooltip key (it also says where else the page's settings live). */
   tip: string
 }
 
@@ -83,9 +79,8 @@ export interface ChordPageData {
   splitLocked: boolean
   /** Who plays where: the Left zone below, the right-hand parts above. */
   zones: SplitZone[]
-  /** The page keyboard's lowest and highest notes (MIDI), starting and ending on a C and a B. */
-  keysLow: number
-  keysHigh: number
+  /** The pick on the main keyboard is armed: the next key clicked there becomes the split. */
+  picking: boolean
 }
 
 export type ChordChange =
@@ -95,8 +90,9 @@ export type ChordChange =
   | { type: 'leftHold'; on: boolean }
   | { type: 'settle'; ms: number }
   | { type: 'splitStep'; delta: -1 | 1 }
-  | { type: 'split'; note: number }
   | { type: 'splitReset' }
+  /** "Set on the keys": arm (or disarm) the pick on the main keyboard. */
+  | { type: 'pick'; armed: boolean }
   /** The lock note's link: open the Keyboard page. */
   | { type: 'openKeyboard' }
 
