@@ -147,7 +147,7 @@
     width: var(--stage-row-width);
     height: var(--display-height);
     border: var(--display-border-width) solid transparent;
-    background: var(--g);
+    background: var(--backdrop-ground);
     overflow: hidden;
   }
   /* Three equal columns inside the display's padding, above the beat bar. */

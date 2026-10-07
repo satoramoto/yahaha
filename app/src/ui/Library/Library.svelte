@@ -167,7 +167,7 @@
     height: var(--screen-height);
     padding: var(--screen-pad);
     overflow: hidden;
-    background: var(--g);
+    background: var(--backdrop-ground);
     color: var(--t);
     font-family: var(--font-sans);
   }

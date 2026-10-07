@@ -8,6 +8,8 @@
 @import './stage-band.css';
 @import './stage-display.css';
 @import './stage-frame.css';
+/* The blooms behind a screen (Blooms) and the ground a screen paints over them. */
+@import './blooms.css';
 /* The layout grid (a proposal, opt-in: Stage's `layout="grid"`). */
 @import './grid.css';
 /* The golden layout (a proposal, opt-in: Stage's `layout="golden"`). */
