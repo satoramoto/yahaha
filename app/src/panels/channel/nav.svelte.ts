@@ -2,20 +2,17 @@
 //
 // `show(part)` is the part opener (Channel.md, Parts list): it makes `part` the open part
 // (`ui.selectedPart`), a keyboard part also the selected part (`selectPart`), and shows the Channel
-// page tab. The parts list and ◀ ▶ use it; a hardware part select (partSelect.svelte.ts) opens
-// the page the same way. The Channel page has no close of its own (CH-D4): the Stage tab, its Alt
-// key or Esc (stagePage.escape) leave it.
+// page tab. The parts list and ◀ ▶ use it. The Channel page has no close of its own (CH-D4): the
+// Stage tab, its Alt key or Esc (stagePage.escape) leave it.
 //
-// A hardware part select opens Channel from any screen (CH-D15). The spec has App.svelte mount
-// that watch; App.svelte isn't this lane's, so this module, which App.svelte already imports,
-// starts it once in the app (`startPartSelect`; not under vitest, where tests start it
-// themselves). Moving the call into App.svelte is a one-line change for the integrator.
+// A part becoming selected doesn't open Channel: a sound pick, F1–F4, a rack slot or a rack load
+// select parts too, and the state can't yet say a select came from the hardware. Opening it on a
+// hardware part select (CH-D15) waits for the contract's `surface.partSelectSeq`.
 
 import { app, ui } from '../../lib/store.svelte'
 import type { ChannelTab } from '../../ui/Channel/types'
 import { stagePage } from '../stage/page.svelte'
 import { STRIP_COUNT } from './channel'
-import { watchPartSelect } from './partSelect.svelte'
 
 class ChannelNav {
   /** The chosen group tab; kept while the page is away, so it comes back as it was left. */
@@ -42,20 +39,3 @@ class ChannelNav {
 }
 
 export const channelNav = new ChannelNav()
-
-let stopPartSelect: (() => void) | null = null
-
-/** Start the hardware part select watch, once: a keyboard part newly selected opens Channel on
- * it. Returns the stop. */
-export function startPartSelect(): () => void {
-  stopPartSelect ??= watchPartSelect((part) => {
-    ui.selectedPart = part
-    stagePage.show('channel')
-  })
-  return () => {
-    stopPartSelect?.()
-    stopPartSelect = null
-  }
-}
-
-if (typeof window !== 'undefined' && !import.meta.env.VITEST) startPartSelect()

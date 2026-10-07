@@ -1,18 +1,14 @@
-// channelNav (nav.svelte.ts): the part opener, the page's close, and the hardware part select
-// watch that opens Channel from any screen.
+// channelNav (nav.svelte.ts): the part opener and the page's close. A part becoming selected
+// elsewhere doesn't open Channel.
 
 import { flushSync } from 'svelte'
 import { afterEach, describe, expect, it } from 'vitest'
 import { MockSession } from '../../lib/api/mock'
 import { app, ui } from '../../lib/store.svelte'
 import { stagePage } from '../stage/page.svelte'
-import { channelNav, startPartSelect } from './nav.svelte'
-
-let stop: (() => void) | null = null
+import { channelNav } from './nav.svelte'
 
 afterEach(() => {
-  stop?.()
-  stop = null
   app.detach()
   channelNav.close()
   ui.selectedPart = 0
@@ -71,17 +67,17 @@ describe('channelNav', () => {
     expect(stagePage.page).toBe('stage')
   })
 
-  it('a hardware part select opens Channel from any screen; the first state opens nothing', () => {
+  it('a part select or a rack load elsewhere leaves the page where it was', () => {
     const s = attach()
-    stop = startPartSelect()
-    flushSync()
-    expect(stagePage.page).toBe('stage')
     ui.view = 'library'
     s.send({ type: 'selectPart', part: 2 })
     s.advance(16)
     flushSync()
-    expect(stagePage.page).toBe('channel')
-    expect(ui.selectedPart).toBe(2)
-    expect(ui.view).toBe('stage')
+    expect(s.state.keyboardParts[2].selected).toBe(true)
+    s.send({ type: 'pressQuickRack', slot: 0 })
+    s.advance(16)
+    flushSync()
+    expect(stagePage.page).toBe('stage')
+    expect(ui.view).toBe('library')
   })
 })
