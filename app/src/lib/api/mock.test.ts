@@ -717,6 +717,42 @@ describe('eyes-free contract (docs/eyes-free.md)', () => {
     expect(quick()).toEqual([0, 1, 2, 3, 4, 5, 6, 7].map((slot) => ({ type: 'pressQuickRack', slot })))
   })
 
+  it('setLayer fader: the pads pick the fader page and layer; released, the page on view comes back', () => {
+    const m = new MockSession({ manual: true })
+    m.send({ type: 'setPadPage', page: 'setup' })
+    const setupPads = m.state.pads.pads.map((p) => p.label)
+    m.send({ type: 'setLayer', layer: { type: 'fader' } })
+    expect(m.state.surface.layer).toEqual({ type: 'fader' })
+    expect(m.state.pads).toMatchObject({ page: 'setup', pageName: 'Faders', pageNumber: 5 })
+    const pads = () => m.state.pads.pads
+    expect(pads().map((p) => p.note)).toEqual([96, 97, 98, 99, 100, 101, 102, 103, 112, 113, 114, 115, 116, 117, 118, 119])
+    expect(pads().map((p) => p.label)).toEqual(['PANEL', 'STYLE', '', '', '', '', '', '', 'VOL', 'PAN', 'REV', 'CHO', 'DLY', '', '', ''])
+    expect(pads().every((p) => p.key === '' && p.anim === 'solid')).toBe(true)
+    expect(pads().map((p) => p.action)).toEqual([
+      { type: 'setFaderPage', page: 'panel' }, { type: 'setFaderPage', page: 'style' }, null, null, null, null, null, null,
+      ...(['volume', 'pan', 'reverb', 'chorus', 'delay'] as const).map((layer) => ({ type: 'setFaderLayer', layer })), null, null, null,
+    ])
+    const levels = () => pads().map((p) => p.level)
+    expect(levels()).toEqual(['bright', 'dim', 'off', 'off', 'off', 'off', 'off', 'off', 'bright', 'dim', 'dim', 'dim', 'dim', 'off', 'off', 'off'])
+    expect(pads().map((p) => p.rgb)).toEqual([
+      [0, 0, 127], [0, 127, 0], ...Array(6).fill([0, 0, 0]),
+      [0, 0, 127], [127, 127, 0], [0, 100, 127], [127, 0, 70], [127, 127, 127], ...Array(3).fill([0, 0, 0]),
+    ])
+    // A picker pad's action: the fader page and layer change, the bright pads follow.
+    m.send(pads()[1].action!)
+    m.send(pads()[12].action!)
+    expect(m.state.mixer).toMatchObject({ faderPage: 'style', faderLayer: 'delay' })
+    expect(levels()).toEqual(['dim', 'bright', 'off', 'off', 'off', 'off', 'off', 'off', 'dim', 'dim', 'dim', 'dim', 'bright', 'off', 'off', 'off'])
+    // PANEL shows the current layer's colour.
+    expect(pads()[0].rgb).toEqual([127, 127, 127])
+    // Released: the page on view, its name and pads; the fader page stays.
+    m.send({ type: 'setLayer', layer: { type: 'none' } })
+    expect(m.state.surface.layer).toEqual({ type: 'none' })
+    expect(m.state.pads).toMatchObject({ page: 'setup', pageName: 'Setup', pageNumber: 5 })
+    expect(pads().map((p) => p.label)).toEqual(setupPads)
+    expect(m.state.mixer.faderPage).toBe('style')
+  })
+
   it('setLayer swap: the knobs are the part\'s (its sound, then its mix) until released; a bad part is refused', () => {
     const m = new MockSession({ manual: true })
     m.send({ type: 'setLayer', layer: { type: 'swap', part: 2 } })

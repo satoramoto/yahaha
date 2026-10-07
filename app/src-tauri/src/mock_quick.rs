@@ -64,7 +64,8 @@ impl MockQuick {
             store_waiting: self.waiting.filter(|w| w.0 == self.bank).map(|w| w.1),
             read_only: false,
         };
-        if layer.pads(st.pads.page) == Page::Racks {
+        // Under the fader hold the pads are the fader picker (`MockSession::derive`).
+        if layer != Layer::Fader && layer.pads(st.pads.page) == Page::Racks {
             let panel = lk::Panel { page: Page::Racks, layer, ..super::lk_panel(st, self.panel(live.as_deref())) };
             st.pads.pads = lk::racks_looks(&panel)
                 .iter()

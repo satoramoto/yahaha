@@ -22,8 +22,9 @@ export type PadPage = 'sections' | 'racks' | 'chord' | 'multiPads' | 'setup'
 /** A held control's layer (docs/eyes-free.md): `sound` while Panel fader button 6 (Sound)
  * is held, the pads acting and lighting as the Racks page from any page; `swap` while a
  * Panel part button is held and a knob turned: knob 1 steps `part`'s sound by number,
- * knobs 2-8 are its mix. */
-export type Layer = { type: 'none' } | { type: 'sound' } | { type: 'swap'; part: number }
+ * knobs 2-8 are its mix; `fader` while the master fader's button is held, the pads a
+ * picker for the fader page (PANEL, STYLE) and layer (VOL, PAN, REV, CHO, DLY). */
+export type Layer = { type: 'none' } | { type: 'sound' } | { type: 'swap'; part: number } | { type: 'fader' }
 
 /** What the Launchkey faders control, like the Genos Mixer's Panel and Style tabs. */
 export type FaderPage = 'panel' | 'style'
@@ -151,8 +152,10 @@ export type AppCmd =
   | { type: 'setPadPageOrder'; pages: PadPage[] }
   /** The held control's layer (`surface.layer`), for the app's mirror of the Launchkey:
    * `sound` holds Sound (the pads are the Racks page, from any page), `swap` holds keyboard
-   * part `part`'s Panel fader button with a knob turned (swap mode), `none` releases
-   * either, as the Launchkey's button release does. Refused for a part outside 0-3. */
+   * part `part`'s Panel fader button with a knob turned (swap mode), `fader` holds the
+   * master fader's button (the pads pick the fader page and layer), `none` releases any
+   * of them, as the Launchkey's button release does (it never switches the fader page).
+   * Refused for a part outside 0-3. */
   | { type: 'setLayer'; layer: Layer }
   | { type: 'setMasterVolume'; volume: number }
   // One Touch Settings
