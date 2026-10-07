@@ -120,18 +120,20 @@ export function tipFor(cmd: AppCmd | null): TipKey {
     case 'setPaletteLeds': return 'midi.palette_leds'
     case 'setAudioBuffer': return 'audio.buffer'
     case 'rescanLibrary': return 'settings.rescan'
-    case 'importCharts': return 'chart.import_link'
-    case 'importChartFile': return 'chart.import_file'
-    case 'selectChart': return 'chart.song'
-    case 'stepChart': return cmd.delta < 0 ? 'chart.prev' : 'chart.next'
-    case 'removeChartPlaylist': return 'chart.remove_playlist'
+    // Charts are out of the app this release (the terminal keeps its chart player): no app
+    // control or pad sends these, so they have no catalog entry of their own.
+    case 'importCharts':
+    case 'importChartFile':
+    case 'selectChart':
+    case 'stepChart':
+    case 'removeChartPlaylist':
     case 'setChartMode':
-    case 'toggleChartMode': return 'chart.mode'
-    case 'setChartChoruses': return 'chart.choruses_up'
-    case 'setChartLoop': return 'chart.loop'
-    case 'setChartIntro': return 'chart.intro'
-    case 'setChartEnding': return 'chart.ending'
-    case 'setChartAutoStyle': return 'chart.auto_style'
+    case 'toggleChartMode':
+    case 'setChartChoruses':
+    case 'setChartLoop':
+    case 'setChartIntro':
+    case 'setChartEnding':
+    case 'setChartAutoStyle': return 'launchkey.unused'
     case 'toggleFade': return 'transport.fade'
     case 'sectionReset': return 'transport.section_reset'
     case 'toggleRetrigger': return 'transport.retrigger'

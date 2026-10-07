@@ -241,7 +241,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Style** | Click to highlight it (and preview it while stopped, with Preview on select). Enter or a double-click loads it. ● marks the loaded style; ◀ and ▶ the ones Track ◀ and Track ▶ would load. | — | — | Track ◀ / Track ▶ load the neighbouring styles |
 | **Load style** | Loads the highlighted style now and goes back to the Stage. While the band plays, it loads on the next bar line instead. Enter does the same. | — | — | — |
 | **Cancel next-bar load** | Would cancel the style waiting for the next bar line. Not available yet: the engine has no command to unqueue a style. | — | — | — |
-| **Open file…** | Opens a style file from any folder, adds it to the library and loads it. Not available yet: the app has no file chooser. | — | — | — |
+| **Open file…** | Opens a style file (.sty .prs .sst .bcs .pcs .pst .fps) from any folder, adds it to the library and loads it. Cancel loads nothing. | — | — | — |
 | **Show** | All instruments, only plugins, only SoundFonts, or the ones that need attention: a plugin that is not installed (its parts are silent) or one that failed to load last time. | — | — | — |
 | **Instrument** | Click to see its details; double-click or Enter browses its sounds. New marks a plugin the last scan found that you have not opened yet; ⚠ one that is missing or failed to load. | — | — | — |
 | **Replace…** | This plugin is not installed, so the parts playing it are silent. Opens Sounds with that part as the target: the sound you pick replaces it and keeps its mix. Off when no part plays it now. | — | — | — |
@@ -327,7 +327,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
-| **Fader page: Panel / Style** | Switches what the Launchkey faders control: Panel is your four keyboard parts, Style is the band's eight parts. On the Launchkey, a tap of the button under the master fader switches; hold it and the pads show the fader page and layer to choose from; with Shift it steps to the next fader layer instead. The button lights in the layer's colour on Panel, green on Style. | Mixer tabs (Panel / Style) | `F9` | Tap the button under the master fader (hold: choose the fader page and layer on the pads) |
+| **Fader page: Panel / Style** | Switches what the Launchkey faders control: Panel is your four keyboard parts, Style is the band's eight parts. A tap of the button under the master fader switches, on the Launchkey or on screen; hold it (on screen, or right-click it) and the pads show the fader page and layer to choose from until you let go; with Shift it steps to the next fader layer instead. The button lights in the layer's colour on Panel, green on Style. | Mixer tabs (Panel / Style) | `F9` | Tap the button under the master fader (hold: choose the fader page and layer on the pads) |
 | **Fader layer: VOL / PAN / REV / CHO / DLY** | Switches what the faders move across the parts, as in a DAW's sends view: each part's volume, or its pan, reverb, chorus or delay send. A fader picks a value up before it moves it. The master fader stays the master. | — | — | Shift + button under the master fader (hold: choose the fader page and layer on the pads) |
 | **Right 1 volume** | Right 1's volume. The fader is channel 1's CC 7 itself, with no hidden gain behind it. | Mixer › Panel › Right 1 Volume | — | Panel fader page: fader 1 |
 | **Right 2 volume** | Right 2's volume. The fader is channel 3's CC 7 itself, with no hidden gain behind it. | Mixer › Panel › Right 2 Volume | — | Panel fader page: fader 2 |
@@ -394,6 +394,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Part** | Opens this part's channel on the Channel page. A keyboard part (Right 1–3, Left) also becomes the part you play and edit, as its part button does. | Mixer › channel | — | Shift + fader buttons 1–4 select a keyboard part (they don't open this page yet) |
 | **Channel group** | Shows one group of the part's channel: Mix (sound, level, on, solo and sends), EQ & Tone (EQ, the voice's tone offsets and how it plays), Compressor, or Inserts. | Mixer › tabs | — | — |
 | **Sound** | The sound this part plays, with its number in your library. Click to choose another in Library › Sounds, loading into this part. | Voice select | — | — |
+| **Part CPU** | How much of each audio buffer this part takes to render, on average over the last second (its SoundFont voices, filter and insert effect, or its plugin), where 100% is the whole buffer. "—": no reading yet, or the part has no synth. A larger audio buffer (Settings) gives a heavy plugin more room. | — | — | — |
 | **Add a send** | Adds a send effect (sends 4–6) of the kind you pick: a reverb, a modulation, a delay or the phaser. Every part can then send to it; the rack keeps it, and the Effects page removes it. | Mixer › Effect › Variation | — | — |
 
 ## Effects
@@ -460,7 +461,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Metronome** | A click on every beat, with the band while it plays and on its own at the tempo while stopped. It sounds on the built-in synth only and never goes out on the MIDI port. | Menu › Metronome › On/Off | `.` | — |
 | **Metronome volume** | The click's own level (0–127). The synth's master volume applies on top of it. | Menu › Metronome › Volume | — | — |
 | **Bell on beat 1** | A higher bell instead of the click on the first beat of each bar. | Menu › Metronome › Bell Sound | — | — |
-| **Metronome settings** | The metronome's settings (the click's volume and the bell on beat 1) will open here in a popover; for now the caret does nothing. | Menu › Metronome | — | — |
+| **Metronome settings** | Opens the metronome's settings: on/off, the click's volume (0–127) and the bell on beat 1. Esc or a click outside closes them. | Menu › Metronome | — | — |
 
 ## Style Dynamics
 
@@ -499,7 +500,8 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Save bank** | Saves the memories to the bank's file, or under the name you typed as a new file. If another bank already has that name, nothing is saved: pick another name, or use Overwrite. | Chord Looper › Save | — | — |
 | **Overwrite bank** | Another Chord Looper bank has the name you typed: replace its file with these memories. | Chord Looper › Save (overwrite) | — | — |
 | **The sequence** | The chords the loop plays, bar by bar; the bar playing is lit. Chord times snap to 16th notes and the loop is whole bars. | Chord Looper (current data) | — | — |
-| **Load bank** | Lists the bank files in the ChordLooper folder; pick one to load its eight memories in place of these. The bank in use is the white block. Esc closes the list. | Chord Looper › Open | — | — |
+| **Load bank** | Lists the bank files in the ChordLooper folder; pick one to load its eight memories in place of these, or From a file… for a bank anywhere. The bank in use is the white block; Esc closes the list. | Chord Looper › Open | — | — |
+| **Load a bank file** | Opens a Chord Looper bank (a .looper.json file) from anywhere on your computer and loads its eight memories in place of these. Cancel loads nothing. | Chord Looper › Open | — | — |
 | **Save as…** | Saves the eight memories as a bank file under a name you type. Enter saves, Esc cancels; left empty, the bank keeps its own name. | Chord Looper › Save | — | — |
 | **Earlier / later bars** | A loop longer than eight bars shows eight at a time: ◀ and ▶ page through them while the loop is stopped or armed. While it loops or records, the lane follows the bar playing. | — | — | — |
 | **Cancel** | Closes the name field without saving. | — | — | — |
@@ -604,23 +606,6 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
 | **Split point** | Where the left-hand section ends (C3 = middle C). Drag the marker, or focus it and use the arrow keys, to move it one key at a time. | Split Point (Style + Left) | `[` `]` | Pad page 3 (Chord), bottom row, pad 3 and 4 |
-
-## iReal Pro chart player
-
-| control | what it does | Genos | key | Launchkey |
-|---|---|---|---|---|
-| **Chart mode** | While the band plays, it takes its chords and Main sections from the chosen chart instead of your left hand. A chord you play still takes over, until the next bar line. Turning it on stops a Chord Looper loop. | — | `Shift+M` | — |
-| **Previous song** | Chooses the song before this one in the playlist. | — | `(` | — |
-| **Next song** | Chooses the song after this one in the playlist. | — | `)` | — |
-| **Open playlist** | Imports an iReal Pro playlist exported as an .html file (in iReal Pro: Share, then HTML). Its songs are kept until you quit. | — | — | — |
-| **Import link** | Imports the songs in the pasted irealb:// link. | — | — | — |
-| **Remove playlist** | Forgets this playlist. If the song playing is in it, chart mode turns off. | — | — | — |
-| **Song** | Chooses this chart for the band. With Auto style on, the style its iReal label suggests loads too; with the band stopped, the tempo becomes the chart's. | — | — | — |
-| **More choruses** | Plays the form one more time before the Ending. | — | — | — |
-| **Chart Intro** | The Intro the band plays before the chart's first bar, or none. An Intro you arm yourself before starting plays instead. | INTRO | — | — |
-| **Chart Ending** | The Ending the band plays after the chart's last bar. With none, the band stops at the end of the last bar. | ENDING/rit. | — | — |
-| **Loop** | Plays the whole song, or one section, over and over instead of ending. Stop the band or press an Ending to finish. | — | — | — |
-| **Auto style** | Choosing a song loads the library style its iReal style label suggests. Pick any other style in the browser to override it. | — | — | — |
 
 ## Quick nav (app bar)
 
