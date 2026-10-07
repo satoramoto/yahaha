@@ -1,26 +1,19 @@
 <!--
   SectionRow: the toolbar between the app bar and the display. The transport at the left, in this
-  order: Start / Stop (wider, first; the same control as pad 16, solid green while running),
-  Accomp, Sync Start, Reset, Fill ▲, Fill ▼ and Fade. The helpers at the right: Metronome joined
-  with its ▾ settings caret, Unison, Panic and help mode's ?. Every control is in the state
-  language at `--control-height`: a 1px outline and label in its hue at rest, a solid fill when
-  on. The count (bar, beat, sections) lives on the display, not here. Every switch is controlled:
-  a press only calls back.
+  order: Start / Stop (first; the same control as pad 16), Accomp, Sync Start, Reset, Fill ▲,
+  Fill ▼ and Fade. The helpers at the right: Metronome joined with its ▾ settings caret, Unison,
+  Panic and help mode's ?. The count (bar, beat, sections) lives on the display, not here. Every
+  switch is controlled: a press only calls back.
 
-  `look="dots"` (a proposal, opt-in) draws the same controls in the display's language instead, at
-  `--tab-block` with no boxes: each switch a dot and a word (the dot filled in the switch's hue
+  The controls are in the display's language, at `--tab-block` with no boxes: each switch a dot and a word (the dot filled in the switch's hue
   when on, a hollow muted ring when off; the size of the display's part dots),
   actions plain words, and Start / Stop "● Playing" in the running hue or "○ Stopped". Words
   brighten on hover; names, pressed state, tooltips and the metronome's ▾ stay as they are.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
-  import Button from '../Button/Button.svelte'
-  import LampButton from '../LampButton/LampButton.svelte'
 
   type Props = {
-    /** `boxes` (default): the state language's outlined buttons. `dots`: the display's language, a dot and a word per switch and plain words for actions (a proposal). */
-    look?: 'boxes' | 'dots'
     /** The style is running: Start / Stop is solid green and aria-pressed. */
     running?: boolean
     /** Accompaniment (ACMP) on. */
@@ -68,7 +61,6 @@
   }
 
   let {
-    look = 'boxes',
     running = false,
     accomp = false,
     syncStart = false,
@@ -126,7 +118,6 @@
   >
 {/snippet}
 
-{#if look === 'dots'}
   <div class="row dots" role="toolbar" aria-label="Transport, switches and helpers">
     <span class="group" role="group" aria-label="Transport">
       <span class="start-word" class:running>
@@ -185,122 +176,24 @@
       )}
     </span>
   </div>
-{:else}
-<div class="row" role="toolbar" aria-label="Transport, switches and helpers">
-  <span class="group" role="group" aria-label="Transport">
-    <span class="start-stop">
-      <LampButton
-        label="Start / Stop"
-        size="cell"
-        hue={running ? 'ok' : 't'}
-        on={running}
-        name={running ? 'Start / Stop, running (Play). The same control as pad 16' : 'Start / Stop, stopped (Play). The same control as pad 16'}
-        tip="transport.start_stop"
-        {tipAction}
-        ontoggle={() => onstartstop?.()}
-      />
-    </span>
-    <LampButton label="Accomp" name="Accomp (ACMP)" hue="t" on={accomp} tip="transport.acmp" {tipAction} ontoggle={onaccomp} />
-    <LampButton label="Sync Start" hue="t" on={syncStart} tip="transport.sync_start" {tipAction} ontoggle={onsyncstart} />
-    <Button
-      label="Reset"
-      name="Section reset: restart the section from its first bar"
-      tip="transport.section_reset"
-      {tipAction}
-      onpress={onreset}
-    />
-    <Button
-      label="Fill"
-      symbol="up"
-      name="Fill Up: a fill, then the next Main up (at Main D, its own fill)"
-      tip="transport.fill_up"
-      {tipAction}
-      onpress={onfillup}
-    />
-    <Button
-      label="Fill"
-      symbol="down"
-      name="Fill Down: a fill, then the next Main down (at Main A, its own fill)"
-      tip="transport.fill_down"
-      {tipAction}
-      onpress={onfilldown}
-    />
-    <Button label="Fade" on={fading} pressed={fading} name="Fade in/out" tip="transport.fade" {tipAction} onpress={onfade} />
-  </span>
-  <span class="group helpers">
-    <span class="joined" role="group" aria-label="Metronome">
-      <LampButton
-        label="Metronome"
-        hue="t"
-        on={metronome}
-        join="start"
-        tip="metronome.on"
-        {tipAction}
-        ontoggle={onmetronome}
-      />
-      <Button
-        symbol="caret"
-        size="caret"
-        join="end"
-        popup="dialog"
-        expanded={metronomeOpen}
-        controls={metronomeControls}
-        name="Metronome settings: on/off, volume, bell on beat 1"
-        tip="metronome.settings"
-        {tipAction}
-        onpress={onmetronomesettings}
-      />
-    </span>
-    <LampButton label="Unison" hue="t" on={unison} tip="transport.unison" {tipAction} ontoggle={onunison} />
-    <Button label="Panic" name="Panic: all notes off" tip="transport.panic" {tipAction} onpress={onpanic} />
-    <Button
-      label="?"
-      size="icon"
-      on={help}
-      pressed={help}
-      name="Help mode: point at any control to learn what it does"
-      tip="app.help"
-      {tipAction}
-      onpress={() => onhelp?.(!help)}
-    />
-  </span>
-</div>
-{/if}
 
 <style>
+  /* The display's language. One row at the tab block's height, words in the small text role. */
   .row {
     display: flex;
     align-items: center;
     gap: var(--space-24);
     width: var(--stage-row-width);
-    height: var(--control-height);
+    height: var(--tab-block);
     white-space: nowrap;
   }
   .group {
     display: flex;
     align-items: center;
-    gap: var(--space-8);
+    gap: var(--space-24);
   }
   .helpers {
     margin-left: auto;
-  }
-  .start-stop {
-    display: flex;
-    flex: none;
-    width: var(--start-stop-width);
-    height: var(--control-height);
-  }
-  .joined {
-    display: flex;
-    gap: var(--line-width);
-  }
-
-  /* Dots: the display's language. One row at the tab block's height, words in the small text role. */
-  .dots {
-    height: var(--tab-block);
-  }
-  .dots .group {
-    gap: var(--space-24);
   }
   .word {
     display: flex;

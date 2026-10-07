@@ -99,7 +99,7 @@ describe('StageScreen', () => {
   it('Start / Stop stops the band', async () => {
     const s = setup()
     expect(s.state.transport.running).toBe(true)
-    await fireEvent.click(button(/^Start \/ Stop, running \(Play\)/, toolbar()))
+    await fireEvent.click(button(/^Playing: Start \/ Stop \(Play\)/, toolbar()))
     expect(s.state.transport.running).toBe(false)
   })
 

@@ -5,8 +5,8 @@
   gap above the keys, and the keys. Each region takes its data as one object; callbacks pass
   through.
 
-  `layout="grid"` (a proposal, opt-in) puts every region on the layout grid (tokens/grid.css: 15
-  columns, an 18px gutter, the 24px margins, a 6px rhythm). It changes no component: it sets the
+  Every region sits on the layout grid (tokens/grid.css: 15 columns, an 18px gutter, the 24px
+  margins, a 6px rhythm). It changes no component: it sets the
   regions' size tokens for the screen's subtree. Rows, in rhythm units from the top: margin 4, app
   bar 6, gap 2, section row 4, gap 2, display 48, gap 4, band 62, status line 4, keys 10, margin 4
   (150 units, 900px). The display's thirds sit on columns 1-5, 6-10 and 11-15 with a shared top
@@ -42,9 +42,7 @@
   type On<C extends Any, K extends keyof ComponentProps<C>> = Pick<ComponentProps<C>, K>
 
   type Props = {
-    /** `board` (default): the board's own sizes. `grid`: every region on the 15-column layout grid and its 6px rhythm (a proposal; tokens/grid.css). */
-    layout?: 'board' | 'grid'
-    /** With `layout="grid"`: draws the 15 columns and the rhythm lines over the screen, to check the alignment. A design aid. */
+    /** Draws the 15 columns and the rhythm lines over the screen, to check the alignment. A design aid. */
     overlay?: boolean
     /** The app bar: pages, Launchkey, audio health. */
     appBar: Data<typeof AppBar>
@@ -130,12 +128,11 @@
 
   const running = $derived(p.sectionRow.running ?? p.transport?.running)
   const fading = $derived(p.sectionRow.fading ?? p.transport?.fading)
-  const grid = $derived(p.layout === 'grid')
   /** One entry per overlay column; the count is the grid's (tokens/grid.css). */
   const COLUMNS = Array.from({ length: 15 }, (_, i) => i)
 </script>
 
-<div class="screen" class:grid>
+<div class="screen grid">
   <AppBar {...p.appBar} tipAction={p.tipAction} onchoose={p.onchoose} onhealth={p.onhealth} />
   <div class="row">
     <SectionRow
@@ -196,7 +193,7 @@
     <StatusLine {...p.status} tipAction={p.tipAction} onclear={p.onclear} />
   </div>
   <Keys {...p.keys} />
-  {#if grid && p.overlay}
+  {#if p.overlay}
     <div class="overlay" aria-hidden="true">
       {#each COLUMNS as i (i)}<span class="column"></span>{/each}
     </div>

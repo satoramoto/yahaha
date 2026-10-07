@@ -583,7 +583,7 @@ describe('pads', () => {
     expect(p.pads[10]).toMatchObject({ state: 'next', name: 'Main C (pad 11), queued' })
     expect(p.pads[11]).toMatchObject({ state: 'dark', name: 'Main D (pad 12) (not in this style)' })
     expect(p.pads[15]).toMatchObject({ family: 'start', state: 'running', name: 'Start / Stop (pad 16), running' })
-    expect(p.legend?.map((l) => l.label)).toEqual(['Intro', 'Main', 'Ending', 'Break', 'Fill'])
+    expect(p.legend).toEqual([])
     expect(p.lit).toBe(true)
     expect(pads({ state: s, beats: 1.75 }).lit).toBe(false)
   })

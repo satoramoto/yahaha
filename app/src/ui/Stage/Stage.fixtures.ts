@@ -6,7 +6,7 @@ import { functionLamps, panelStrips, partLamps, reverbStrips } from '../FaderBan
 import { boardKeys } from '../Keys/Keys.fixtures'
 import { knobPages, styleKnobs } from '../KnobBank/KnobBank.fixtures'
 import type { KnobItem } from '../KnobBank/types'
-import { padBanks, sectionLegend, sectionPads } from '../PadBank/PadBank.fixtures'
+import { padBanks, sectionPads } from '../PadBank/PadBank.fixtures'
 import type { LegendItem, PadItem } from '../PadBank/types'
 import { sectionRowBoard } from '../SectionRow/SectionRow.fixtures'
 import type Stage from './Stage.svelte'
@@ -30,7 +30,9 @@ export const stageBoard = {
     pads: sectionPads,
     banks: padBanks,
     bank: 0,
-    legend: sectionLegend,
+    // No hue legend: at two fifths the Pads header has no room beside the bank tabs, and every
+    // section pad names its section.
+    legend: [],
     lit: true,
   },
   status: { text: null },
@@ -56,19 +58,6 @@ export const stageStopped = {
   keys: { ...boardKeys, heldLeft: [], heldRight: [] },
 } satisfies ComponentProps<typeof Stage>
 
-/**
- * The grid proposal: the board on the layout grid (`layout: 'grid'`), the section row in the
- * display's dots-and-words language (`look: 'dots'`), the overlay off. The Pads header drops its
- * hue legend: at two fifths (546px) it doesn't fit beside the five bank tabs, and every section
- * pad already names its section.
- */
-export const stageGrid = {
-  ...stageBoard,
-  layout: 'grid',
-  overlay: false,
-  sectionRow: { ...stageBoard.sectionRow, look: 'dots' },
-  pads: { ...stageBoard.pads, legend: [] },
-} satisfies ComponentProps<typeof Stage>
 
 /**
  * The Playground's fader values per layer: Vol has all nine strips, the other layers strips 1–4
@@ -139,7 +128,7 @@ const dark = (label: string): PadItem => ({ label, family: 'util', state: 'dark'
  * neutral since they have no section hue.
  */
 export const stagePadBanks: { pads: PadItem[]; legend: LegendItem[] }[] = [
-  { pads: sectionPads, legend: sectionLegend },
+  { pads: sectionPads, legend: [] },
   {
     pads: [
       ...Array.from({ length: 8 }, (_, i) => util(`Rack${NB}${i + 1}`, i === 0 ? 'playing' : i < 5 ? 'idle' : 'dark')),

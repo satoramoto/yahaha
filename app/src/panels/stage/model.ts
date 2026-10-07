@@ -16,7 +16,7 @@ import type { TabItem } from '../../ui/ChosenTabs/types'
 import type { BankLamp, FaderStrip } from '../../ui/FaderBank/types'
 import { firstFailedPart } from '../../ui/HealthSlot/health'
 import type { KnobItem } from '../../ui/KnobBank/types'
-import type { LegendItem, PadItem } from '../../ui/PadBank/types'
+import type { PadItem } from '../../ui/PadBank/types'
 import type Stage from '../../ui/Stage/Stage.svelte'
 import type { StatusHint } from '../../ui/StatusLine/StatusLine.svelte'
 import { TIPS, keyLabel, type TipKey } from '../../help/tooltips'
@@ -683,14 +683,6 @@ const SECTION_PADS: { label: string; family: PadItem['family']; tip: string }[] 
   { label: 'Start / Stop', family: 'start', tip: 'transport.start_stop' },
 ]
 
-export const SECTION_LEGEND: LegendItem[] = [
-  { label: 'Intro', hue: 'intro' },
-  { label: 'Main', hue: 'main' },
-  { label: 'Ending', hue: 'ending' },
-  { label: 'Break', hue: 'brk' },
-  { label: 'Fill', hue: 'fill' },
-]
-
 const FALLBACK_TIP: Record<PadPage, string> = {
   sections: 'launchkey.unused',
   racks: 'padpage.racks',
@@ -795,7 +787,9 @@ export function pads(input: Pick<StageInput, 'state' | 'beats'>): StageProps['pa
     bank: Math.max(0, p.pages.findIndex((x) => x.page === p.page)),
     bankTips: p.pages.map((x) => BANK_TIP[x.page]),
     bankName: p.pageName,
-    legend: sections ? SECTION_LEGEND : [],
+    // No hue legend: on the grid the Pads header has no room beside the bank tabs, and every
+    // section pad names its section.
+    legend: [],
     // Queued pads flash on the LED clock, as the hardware's do.
     lit: input.beats - Math.floor(input.beats) < 0.5,
   }

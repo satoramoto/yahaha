@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
 import { fn } from 'storybook/test'
 import Stage from './Stage.svelte'
-import { stageBoard, stageGrid, stageStopped } from './Stage.fixtures'
+import { stageBoard, stageStopped } from './Stage.fixtures'
 import StagePlayground from './StagePlayground.svelte'
 
 /** Groups a callback's control under its component. */
@@ -66,7 +66,6 @@ const meta = {
   parameters: { layout: 'fullscreen' },
   args: { ...stageBoard, tipAction: fn(), ...actions },
   argTypes: {
-    layout: { control: 'inline-radio', options: ['board', 'grid'], table: { category: 'Layout' } },
     overlay: { control: 'boolean', table: { category: 'Layout' } },
     appBar: { control: 'object', table: { category: 'AppBar' } },
     sectionRow: { control: 'object', table: { category: 'SectionRow' } },
@@ -120,8 +119,7 @@ export const Playground: Story = {
 }
 
 /**
- * A proposal, not in the app: the board on an invisible grid, with the section row in the
- * display's language. Turn on `overlay` (Layout) to see the grid.
+ * The board with `overlay` on: the layout grid every region sits on.
  *
  * - **The grid** (tokens/grid.css): 15 columns of 76px with an 18px gutter inside the 24px margins
  *   (15 divides into thirds and fifths), and a 6px rhythm (900 = 150 × 6; the margin is 4 units,
@@ -136,14 +134,6 @@ export const Playground: Story = {
  *   Every header starts on a column line.
  * - **Keys**: the full width, margin to margin.
  */
-export const GridProposal: Story = {
-  name: 'Grid proposal',
-  args: { ...stageGrid },
-}
-
-/** The grid proposal, stateful like the Playground: the beat bar ticks and the controls respond. */
-export const GridProposalPlayground: Story = {
-  name: 'Grid proposal (Playground)',
-  args: { ...stageGrid },
-  render: (args) => ({ Component: StagePlayground, props: args }),
+export const Grid: Story = {
+  args: { overlay: true },
 }

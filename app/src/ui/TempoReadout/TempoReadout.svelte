@@ -203,21 +203,29 @@
     letter-spacing: var(--tracking-text);
     color: var(--caption-ink);
   }
-  /* + over −, together as tall as the number's line. */
+  /* + over −, together as tall as the number's line (56px): each a 28px square hit area with a
+     28px glyph, over twice the small text's 13px. */
   .steps {
+    --step-size: calc(var(--tab-block) + var(--space-4));
     display: flex;
     flex-direction: column;
   }
   .step {
+    display: flex;
     flex: 1;
-    min-width: var(--tab-block);
+    align-items: center;
+    justify-content: center;
+    min-width: var(--step-size);
+    min-height: var(--step-size);
     margin: 0;
-    padding: 0 var(--space-6);
+    padding: 0;
     border: 0;
     border-radius: var(--radius);
     background: none;
-    font: var(--type-text);
-    letter-spacing: var(--tracking-text);
+    font-family: var(--font-sans);
+    font-size: var(--step-size);
+    font-weight: var(--weight-light);
+    line-height: 1;
     color: var(--m);
     cursor: pointer;
   }
