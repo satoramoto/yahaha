@@ -476,6 +476,11 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Multi Pad reverb** | How much of the Multi Pads goes to the reverb: each pad's own reverb send (CC 91) times this, in the built-in synth only. 100% plays the reverb the pad wrote and 0% is none. | Mixer › Panel › Multi Pad › Effect › Reverb | — | — |
 | **Multi Pad chorus** | How much of the Multi Pads goes to the chorus: each pad's own chorus send (CC 93) times this, in the built-in synth only. 0% at start, as for the band; 100% plays the chorus the pad wrote. | Mixer › Panel › Multi Pad › Effect › Chorus | — | — |
 | **Multi Pad delay** | How much of the Multi Pads goes to the tempo delay: each pad's own variation send (CC 94) times this, in the built-in synth only. 0% at start, because a pad's CC 94 was meant for its own Variation effect, not this delay; turn it up to echo the pads. | Mixer › Panel › Multi Pad › Effect › Variation | — | — |
+| **Send effect** | Opens this send's settings: its type, parameters, return and each part's send. Sends 1–3 are the style's reverb, chorus and delay; 4–6 are yours, saved with the rack. | Mixer › Effect | — | — |
+| **Keep with rack** | Lit, the live rack keeps this send's type over the style's and brings it back when loaded. Off, the style sets it again. | — | — | — |
+| **Part sends** | Each keyboard part's send to this effect, 0–127: drag sideways, scroll, or use the arrow keys. Knobs 1–4 of the effect's knob page and the fader layers set them too. | Mixer › Effect | — | Reverb, Chorus and Delay knob pages, knobs 1–4 |
+| **Style inserts** | Opens the style's insertion effects: each Style part's effect, on or off, and its amount. | Mixer › Effect › Insertion | — | — |
+| **Master** | Opens the Master Compressor and Master EQ, on the whole mix after the effect returns: their types and settings. | Mixer › Master | — | — |
 
 ## Metronome
 
