@@ -805,6 +805,8 @@ fn launchkey_hardware_matches_its_commands() {
         let mut st = (*s.state()).clone();
         (st.version, st.io.last_control) = (0, 0);
         st.io.unmapped.clear();
+        // Only the hardware counts its part selects (CH-D15): the one intended difference.
+        st.surface.part_select_seq = 0;
         // When the state last changed is not what it is: read the clock now.
         st.surface.clock = st.surface.clock.at(ns_to_ms(s.now()));
         (st, s.take_output())
@@ -1066,6 +1068,8 @@ fn launchkey_buttons_are_what_the_state_says() {
         let mut st = (*s.state()).clone();
         (st.version, st.io.last_control) = (0, 0);
         st.io.unmapped.clear();
+        // Only the hardware counts its part selects (CH-D15): the one intended difference.
+        st.surface.part_select_seq = 0;
         // When the state last changed is not what it is: read the clock now.
         st.surface.clock = st.surface.clock.at(ns_to_ms(s.now()));
         (st, s.take_output())

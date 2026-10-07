@@ -451,7 +451,7 @@ describe('Quick Racks in the mock', () => {
     expect([pad(115).label, pad(115).key]).toEqual(['OTS 4', '⇧4'])
     expect([pad(116).action, pad(116).key, pad(116).level, pad(117).level]).toEqual([{ type: 'stepQuickRackBank', delta: -1 }, '⇧O', 'off', 'dim'])
     expect([pad(118).label, pad(118).key, pad(118).action]).toEqual(['STORE', 'F5', { type: 'toggleQuickRackStore' }])
-    expect([pad(119).label, pad(119).key, pad(119).action, pad(119).level]).toEqual(['', '', null, 'off'])
+    expect([pad(119).label, pad(119).key, pad(119).action, pad(119).level]).toEqual(['UNDO', '', { type: 'undoQuickRackStore' }, 'off'])
     s.send({ type: 'toggleQuickRackStore' })
     expect([pad(96).anim, pad(118).anim]).toEqual(['flash', 'flash'])
     s.send({ type: 'pressQuickRack', slot: 0 })

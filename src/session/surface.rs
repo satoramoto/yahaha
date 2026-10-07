@@ -213,6 +213,7 @@ impl Control {
 
         SurfaceState {
             shift: shared.shift.load(Relaxed),
+            part_select_seq: self.part_select_seq,
             layer: pnl.layer,
             controls,
             faders,
@@ -300,6 +301,55 @@ mod tests {
         s.advance(1_000_000);
         assert_eq!(s.state().knobs.page, crate::knobs::KnobPage::Rack, "▲ alone: the knob page before");
         assert!(fast(&s), "and the rotary stays");
+    }
+
+    /// CH-D15: `surface.partSelectSeq` moves on a part select from the Launchkey (Shift +
+    /// fader button 1-4, through the input thread) and on nothing else: not `selectPart`,
+    /// a sound pick, a part's own fader button, or a rack load.
+    #[test]
+    fn part_select_seq_counts_only_hardware_part_selects() {
+        use crate::api::RackCmd;
+        use crate::launchkey::{FADER_BTN_CC, SHIFT_CC};
+        use std::collections::BTreeMap;
+        let s = crate::session::testing::session();
+        let seq = |s: &Session| s.state().surface.part_select_seq;
+        let selected = |s: &Session| s.state().keyboard_parts.iter().position(|p| p.selected);
+        let button = |s: &Session, i: u8, shift: bool| {
+            let cc = *FADER_BTN_CC.start() + i;
+            if shift {
+                s.midi_in(Port::Pads, &[0xB0, SHIFT_CC, 127]);
+            }
+            s.midi_in(Port::Pads, &[0xB0, cc, 127]);
+            s.midi_in(Port::Pads, &[0xB0, cc, 0]);
+            if shift {
+                s.midi_in(Port::Pads, &[0xB0, SHIFT_CC, 0]);
+            }
+            s.advance(1_000_000);
+        };
+        assert_eq!(seq(&s), 0);
+
+        // The app's commands never move it.
+        s.send(PartsCmd::SelectPart { part: 2 }).unwrap();
+        s.send(PartsCmd::StepVoice { delta: 1 }).unwrap();
+        s.send(RackCmd::SaveRackAs { name: "Seq".into(), sound_names: BTreeMap::new() }).ok();
+        s.send(RackCmd::NewRack { discard: true }).ok();
+        s.advance(1_000_000);
+        assert_eq!(seq(&s), 0, "app selects, sound picks and rack loads");
+
+        // A part's fader button without Shift (a tap: on/off) doesn't either.
+        button(&s, 1, false);
+        assert_eq!(seq(&s), 0, "part on/off");
+
+        // Shift + fader button 2 on the Launchkey: Right 2 selected, and the counter moves.
+        button(&s, 1, true);
+        assert_eq!((seq(&s), selected(&s)), (1, Some(1)));
+        // Again on the same part: it moves again, so the app opens Channel again.
+        button(&s, 1, true);
+        assert_eq!(seq(&s), 2);
+        button(&s, 3, true);
+        assert_eq!((seq(&s), selected(&s)), (3, Some(3)));
+        s.send(PartsCmd::SelectPart { part: 0 }).unwrap();
+        assert_eq!(seq(&s), 3, "the app's select after a hardware one");
     }
 
     /// #409: in a send layer the surface faders show and set the layer's value, the same

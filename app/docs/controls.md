@@ -162,7 +162,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Bank −** | Shows the previous bank of eight Quick Racks (B to A, say) on these buttons and the Racks pad page. Nothing loads until you press one. | — | `Shift+O` | Pad page 2 (Racks), bottom row, pad 5 |
 | **Bank +** | Shows the next bank of eight Quick Racks (A to B, say, up to H) on these buttons and the Racks pad page. Nothing loads until you press one. | — | `Shift+P` | Pad page 2 (Racks), bottom row, pad 6 |
 | **Quick Racks bank** | The bank of eight Quick Racks on view, A to H. On the Quick Racks page, tap a letter to view that bank; Bank − and Bank + step through them. Nothing loads until you press a button. | — | — | — |
-| **Undo store** | Takes back the last store: the Quick Rack button gets back the rack it held, or goes empty again. If the store saved over that button's own rack, the rack gets back what it held from the "Previous: <name>" rack the store kept, which then goes; if that rack is loaded, it shows unsaved changes. | — | — | — |
+| **Undo store** | Takes back the last store: the Quick Rack button gets back the rack it held, or goes empty again. If the store saved over that button's own rack, the rack gets back what it held from the "Previous: <name>" rack the store kept, which then goes; if that rack is loaded, it reloads as it was, and changes made since the store are kept as "Recovered: <name>". | — | — | Pad page 2 (Racks), bottom row, pad 8; lit while there is a store to undo |
 | **Clear** | Empties this Quick Rack button. The rack itself stays in your racks. | Regist Bank Edit: Delete | — | — |
 | **Rack name** | The name to save the live rack under, as a new rack of yours. It then goes on the waiting Quick Rack button. | — | — | — |
 | **Save rack** | Saves the live rack (a new one under the name typed, when it has never been saved), then stores it on the waiting Quick Rack button. | — | — | — |
@@ -527,6 +527,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Repeat** | On: the pad loops until you stop it. Off: it plays once. The bank file sets it; a change here lasts until another bank loads. | Repeat (Multi Pad Edit) | — | — |
 | **Chord Match** | On: the pad follows the chord you play, like the band does. Off: it plays exactly as recorded, as drum pads usually do. | Chord Match (Multi Pad Edit) | — | — |
 | **Multi Pad bank** | Loads this bank's four pads. Pads playing stop. The list is every .pad file in your style folders. | Multi Pad Bank Selection | — | — |
+| **Load a bank file** | Opens a .pad file from anywhere on your computer and loads it into the pads. It joins the bank list. Cancel loads nothing. | Multi Pad Bank Selection | — | — |
 | **Previous bank** | Loads the bank before this one in the list (the last, with none loaded). Pads playing stop. | Multi Pad Bank Selection | — | — |
 | **Next bank** | Loads the bank after this one in the list (the first, with none loaded). Pads playing stop. | Multi Pad Bank Selection | — | — |
 | **Clear bank** | Unloads the bank: the pads stop and go dark until you load another. | — | — | — |

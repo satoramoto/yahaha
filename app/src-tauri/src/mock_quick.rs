@@ -37,7 +37,7 @@ impl MockQuick {
 
     /// The bank the Racks page shows, for the live rack `live`.
     fn panel(&self, live: Option<&str>) -> QuickPanel {
-        let mut p = QuickPanel { bank: self.bank, store: self.store, ..QuickPanel::default() };
+        let mut p = QuickPanel { bank: self.bank, store: self.store, undo: self.undo.is_some(), ..QuickPanel::default() };
         for s in 0..SLOTS as u8 {
             if let Some(id) = self.get(self.bank, s) {
                 p.stored |= 1 << s;
@@ -198,15 +198,24 @@ impl MockSession {
         // "Recovered: <name>", as the hardware does.
         let lr = &self.state.live_rack;
         if !discard && lr.modified && lr.id.as_deref() == Some(id.as_str()) {
+            return self.recall_clean(id);
+        }
+        self.rack_cmd(RackCmd::LoadRack { id, discard });
+    }
+
+    /// Load rack `id` with no prompt, keeping unsaved changes first as "Recovered: <name>"
+    /// (the session's `switch_rack_unattended`).
+    fn recall_clean(&mut self, id: String) {
+        let lr = &self.state.live_rack;
+        if lr.modified {
             let racks = self.racks.entries();
             let base = format!("{RECOVERED}{}", lr.name);
             let name = yahaha::racks::quick::unique_name(&base, |n| racks.iter().any(|r| r.name.eq_ignore_ascii_case(n)));
             if self.save_live(Some(name)).is_none() {
                 return self.message("the unsaved rack was not kept", true);
             }
-            return self.rack_cmd(RackCmd::LoadRack { id, discard: true });
         }
-        self.rack_cmd(RackCmd::LoadRack { id, discard });
+        self.rack_cmd(RackCmd::LoadRack { id, discard: true });
     }
 
     /// Before a store saves over rack `id`: keep its content as "Previous: <name>",
@@ -227,8 +236,8 @@ impl MockSession {
     }
 
     /// `undoQuickRackStore`: the button gets back what it held; the "Previous: <name>" rack
-    /// is gone (the mock keeps no rack content to put back, so a live rack that is the
-    /// restored one counts as changed).
+    /// is gone. A live rack that is the restored one reloads, keeping changes made since the
+    /// store as "Recovered: <name>" (the mock keeps no rack content, so only that shows).
     fn undo_quick(&mut self) {
         let Some((u, rack)) = self.quick.undo.take() else {
             return self.message("Nothing to undo", true);
@@ -239,8 +248,8 @@ impl MockSession {
             if let Some(kept) = kept.filter(|k| self.state.live_rack.id.as_deref() != Some(k.id.as_str())) {
                 self.cmd(AppCmd::Rack(RackCmd::DeleteRack { id: kept.id }));
             }
-            if rack.is_some() && self.state.live_rack.id == rack {
-                self.state.live_rack.modified = true;
+            if let Some(id) = rack.clone().filter(|_| self.state.live_rack.id == rack) {
+                self.recall_clean(id);
             }
         }
         self.message(format!("Undid the store on Quick Rack {}", label(u.bank, u.slot)), false);

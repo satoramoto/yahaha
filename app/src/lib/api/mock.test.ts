@@ -764,12 +764,64 @@ describe('eyes-free contract (docs/eyes-free.md)', () => {
     m.send({ type: 'undoQuickRackStore' })
     expect(m.state.racks.map((r) => r.name)).toEqual(['Lit'])
     expect(m.state.quickRacks.buttons[0]).toMatchObject({ rack: id, loaded: true })
-    // The live rack still plays the stored version, so it now shows unsaved changes.
-    expect(m.state.liveRack).toMatchObject({ id, modified: true })
-    expect(m.state.keyboardParts[0].volume).toBe(95)
-    // The saved rack holds what it held before that store.
+    // The live rack reloads as it was before that store, with nothing unsaved and nothing
+    // kept as Recovered (it had no changes since the store).
+    expect(m.state.liveRack).toMatchObject({ id, modified: false })
+    expect(m.state.keyboardParts[0].volume).toBe(90)
     m.send({ type: 'revertRack' })
     expect(m.state.keyboardParts[0].volume).toBe(90)
+  })
+
+  it('undo over the live rack with changes since the store keeps them as "Recovered: <name>" and reloads it', () => {
+    const { m, id } = litRack()
+    m.send({ type: 'setPartVolume', part: 0, volume: 90 })
+    m.send({ type: 'storeRack', slot: 0 })
+    m.send({ type: 'setPartVolume', part: 0, volume: 30 })
+    expect(m.state.liveRack.modified).toBe(true)
+    m.send({ type: 'undoQuickRackStore' })
+    expect(m.state.liveRack).toMatchObject({ id, name: 'Lit', modified: false, prompt: null })
+    expect(m.state.keyboardParts[0].volume).toBe(50)
+    expect(m.state.racks.map((r) => r.name).sort()).toEqual(['Lit', 'Recovered: Lit'])
+    m.send({ type: 'loadRack', id: m.state.racks.find((r) => r.name === 'Recovered: Lit')!.id })
+    expect(m.state.keyboardParts[0].volume).toBe(30)
+  })
+
+  it('the Racks page\'s last pad is UNDO: dim while there is a store to undo, dark otherwise, and acts either way', () => {
+    const m = new MockSession({ manual: true })
+    m.send({ type: 'setPadPage', page: 'racks' })
+    const undo = () => m.state.pads.pads.find((p) => p.note === 119)!
+    const bank = () => m.state.pads.pads.find((p) => p.note === 117)!
+    expect(undo()).toMatchObject({ label: 'UNDO', key: '', action: { type: 'undoQuickRackStore' }, level: 'off' })
+    expect([undo().rgb, undo().anim]).toEqual([bank().rgb, bank().anim])
+    m.send({ type: 'storeRack', slot: 0 })
+    expect(m.state.quickRacks.undo).not.toBeNull()
+    expect(undo().level).toBe('dim')
+    // Under the Sound hold too.
+    m.send({ type: 'setPadPage', page: 'sections' })
+    m.send({ type: 'setLayer', layer: { type: 'sound' } })
+    expect(undo()).toMatchObject({ label: 'UNDO', level: 'dim', action: { type: 'undoQuickRackStore' } })
+    m.send({ type: 'undoQuickRackStore' })
+    expect(undo().level).toBe('off')
+    // Dark, it still acts: "Nothing to undo".
+    m.send(undo().action!)
+    expect(m.state.message).toMatchObject({ text: 'Nothing to undo', error: true })
+  })
+
+  it('surface.partSelectSeq starts at 0 and moves only on a Launchkey part select (hardwareSelectPart)', () => {
+    const m = new MockSession({ manual: true })
+    expect(m.state.surface.partSelectSeq).toBe(0)
+    m.send({ type: 'selectPart', part: 2 })
+    m.send({ type: 'storeRack', slot: 0 })
+    m.send({ type: 'pressQuickRack', slot: 0 })
+    m.advance(100)
+    expect(m.state.keyboardParts[2].selected).toBe(true)
+    expect(m.state.surface.partSelectSeq).toBe(0)
+    m.hardwareSelectPart(1)
+    expect(m.state.surface.partSelectSeq).toBe(1)
+    expect(m.state.keyboardParts.map((p) => p.selected)).toEqual([false, true, false, false])
+    // Selecting the part already selected still counts.
+    m.hardwareSelectPart(1)
+    expect(m.state.surface.partSelectSeq).toBe(2)
   })
 
   it('undoQuickRackStore with nothing to undo fails; clearQuickRack drops the undo', () => {

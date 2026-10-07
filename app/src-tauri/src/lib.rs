@@ -14,6 +14,8 @@
 //!   plugin's settings with the part (`savePartPluginState`)
 //! - event `yahaha` (`Event`): `stateChanged { version }`, `libraryChanged { revision }`,
 //!   `soundsChanged { revision }`, `stopped`
+//! - the dialog plugin's open-file picker (`tauri-plugin-dialog`, `dialog:allow-open` only):
+//!   Load… for a file outside the library, such as a `.pad` bank (app/src/lib/files.ts)
 //!
 //! Behind them is either the real engine (`yahaha::Session`: MIDI, the Launchkey, the
 //! synth) or `mock::MockSession`, a band that plays itself with no I/O:
@@ -497,6 +499,7 @@ pub fn run() {
     }
     let shared: Shared = Arc::new(backend());
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .manage(shared)
         .setup(|app| {
             let handle = app.handle().clone();

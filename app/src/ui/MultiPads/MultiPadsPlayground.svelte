@@ -55,6 +55,9 @@
           pads: pads.map((x, i) => ({ ...x, name: `${bank.name.split(' ')[0]} ${NAMES[i]}`, lamp: 'ready', repeat: i !== 1, chordMatch: true })),
         }
       }
+      case 'loadFile':
+        // No file picker in Storybook: Load… only logs.
+        return data
       case 'clear':
         return { ...data, bank: null, bankName: '', pads: pads.map((x) => ({ ...x, name: '', lamp: 'empty' })) }
       case 'volume':

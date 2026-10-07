@@ -5,17 +5,24 @@
 
   State: multiPad, mixer.multiPadVolume(Waiting), transport.running, clock.beats. Commands:
   triggerMultiPad, stopMultiPad, stopAllMultiPads, armMultiPad, setMultiPadRepeat,
-  setMultiPadChordMatch, loadMultiPad, clearMultiPad, setMultiPadVolume, setMultiPadSynchroStop.
+  setMultiPadChordMatch, loadMultiPad, loadMultiPadPath (Load…, after the system file picker),
+  clearMultiPad, setMultiPadVolume, setMultiPadSynchroStop.
 -->
 <script lang="ts">
   import { app, clock } from '../../lib/store.svelte'
   import MultiPads from '../../ui/MultiPads/MultiPads.svelte'
+  import type { MultiPadsChange } from '../../ui/MultiPads/types'
   import type { PageProps } from '../stage/page.svelte'
-  import { multiPadsCommand, multiPadsData } from './model'
+  import { loadPadFile, multiPadsCommand, multiPadsData } from './model'
 
   let { tipAction }: PageProps = $props()
 
   const data = $derived(multiPadsData(app.state, clock.beats))
+
+  function onchange(change: MultiPadsChange) {
+    if (change.type === 'loadFile') void loadPadFile((cmd) => app.send(cmd))
+    else app.send(multiPadsCommand(change))
+  }
 </script>
 
-<MultiPads {data} {tipAction} onchange={(change) => app.send(multiPadsCommand(change))} />
+<MultiPads {data} {tipAction} {onchange} />

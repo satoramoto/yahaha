@@ -2373,10 +2373,10 @@ const catalog = {
   },
   'quick.undo': {
     title: 'Undo store',
-    body: 'Takes back the last store: the Quick Rack button gets back the rack it held, or goes empty again. If the store saved over that button\'s own rack, the rack gets back what it held from the "Previous: <name>" rack the store kept, which then goes; if that rack is loaded, it shows unsaved changes.',
+    body: 'Takes back the last store: the Quick Rack button gets back the rack it held, or goes empty again. If the store saved over that button\'s own rack, the rack gets back what it held from the "Previous: <name>" rack the store kept, which then goes; if that rack is loaded, it reloads as it was, and changes made since the store are kept as "Recovered: <name>".',
     genos: null,
     keys: [],
-    launchkey: null,
+    launchkey: `${pad(P2, 'bottom', 8)}; lit while there is a store to undo`,
   },
   'quick.clear': {
     title: 'Clear',

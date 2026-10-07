@@ -268,6 +268,7 @@ impl From<Action> for AppCmd {
             Action::QuickRack(i) => QuickRackCmd::PressQuickRack { slot: i, discard: false }.into(),
             Action::QuickRackBank(d) => QuickRackCmd::StepQuickRackBank { delta: d }.into(),
             Action::QuickRackStore => QuickRackCmd::ToggleQuickRackStore.into(),
+            Action::QuickRackUndo => QuickRackCmd::UndoQuickRackStore.into(),
             Action::QuickRackStep(d) => QuickRackCmd::StepQuickRack { delta: d, discard: false }.into(),
             Action::Assign(f) => ControllersCmd::TriggerFunction { function: f }.into(),
             Action::AssignSet(f, on) => function_set(f, on).unwrap_or(ControllersCmd::TriggerFunction { function: f }.into()),

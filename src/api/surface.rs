@@ -30,6 +30,12 @@ pub struct SurfaceState {
     pub track_next: Option<Neighbour>,
     /// The beat clocks, to animate in step with the band and the pads.
     pub clock: ClockState,
+    /// Counts part selects made on the Launchkey (Shift + fader button 1-4), and nothing
+    /// else: not `selectPart` from the app or its F1-F4, a sound pick, or a rack or OTS
+    /// load. The app opens the Channel page on the selected part when it changes (never on
+    /// the first state it sees). Wraps.
+    #[serde(default)]
+    pub part_select_seq: u32,
 }
 
 /// A Launchkey button (not a pad): what it does, with and without Shift, and its light.

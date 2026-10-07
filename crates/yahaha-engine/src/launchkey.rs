@@ -503,6 +503,8 @@ pub enum Action {
     QuickRackBank(i8),
     /// Quick Racks STORE (`F5`): the next Quick Rack button stores.
     QuickRackStore,
+    /// Quick Racks UNDO (the Racks page's last pad): take back the last store.
+    QuickRackUndo,
     /// Previous/next rack in the bank on view (`F7` `F8`; Shift + Track < / >).
     QuickRackStep(i8),
     /// A pedal's assignable function that the control side runs (`controllers.rs`).
@@ -831,6 +833,8 @@ pub struct QuickPanel {
     pub bank: u8,
     /// Store armed.
     pub store: bool,
+    /// A store can be undone (`quickRacks.undo`): the Undo pad lights.
+    pub undo: bool,
 }
 
 impl Panel {
@@ -1270,7 +1274,7 @@ mod tests {
         assert_eq!(act(p, 116), Some(Action::QuickRackBank(-1)));
         assert_eq!(act(p, 117), Some(Action::QuickRackBank(1)));
         assert_eq!(act(p, 118), Some(Action::QuickRackStore));
-        assert_eq!(act(p, 119), None, "the spare is dark");
+        assert_eq!(act(p, 119), Some(Action::QuickRackUndo));
         assert_eq!(act(p, 104), None);
         assert_eq!(cc_control(TRACK_LEFT_CC, true), Some(Control::Act(Action::QuickRackStep(-1))));
         assert_eq!(cc_control(TRACK_RIGHT_CC, true), Some(Control::Act(Action::QuickRackStep(1))));
@@ -1466,10 +1470,10 @@ mod tests {
 
     /// Racks page lamps: red = the loaded rack, blue = a rack, off = empty; all flashing
     /// while Store is armed; OTS 1-4 dark past the style's count and bright on the one
-    /// recalled; the spare dark.
+    /// recalled; Undo dark with nothing to undo, dim while a store can be undone.
     #[test]
     fn racks_page_lamps() {
-        let quick = QuickPanel { stored: 0b101, loaded: 0b100, bank: 0, store: false };
+        let quick = QuickPanel { stored: 0b101, loaded: 0b100, bank: 0, store: false, undo: false };
         let panel = Panel { page: Page::Racks, quick, ..Panel::default() };
         let l = looks(&snap(), &[true; 32], &panel);
         assert_eq!(l, racks_looks(&panel), "the dev mock's Racks page is the same");
@@ -1477,7 +1481,7 @@ mod tests {
         assert_eq!(l[1].1.level, Level::Off);
         assert_eq!((l[2].1.rgb, l[2].1.level), (C_QUICK_LOADED, Level::Bright));
         assert!(l[8..12].iter().all(|(_, l)| l.level == Level::Off), "a style without OTS");
-        assert_eq!((l[15].1.level, l[15].1.label), (Level::Off, ""), "the spare is dark");
+        assert_eq!((l[15].1.level, l[15].1.label), (Level::Off, "UNDO"), "nothing to undo: dark");
         assert_eq!(l[12].1.level, Level::Off, "Bank - is dark on Bank A");
         assert_eq!(l[13].1.level, Level::Dim, "Bank + is lit below Bank H");
         assert_eq!((l[8].1.label, l[8].1.key, l[12].1.label, l[13].1.key, l[14].1.label, l[14].1.key), ("OTS 1", "⇧1", "BANK -", "⇧P", "STORE", "F5"));
@@ -1500,13 +1504,15 @@ mod tests {
         assert_eq!(pad_leds(&snap(), &[true; 32], &armed)[0].1, Led::Flash(DIM_RED, RED));
         let last = Panel { quick: QuickPanel { bank: QUICK_BANKS - 1, ..quick }, ..panel };
         assert_eq!(looks(&snap(), &[true; 32], &last)[13].1.level, Level::Off, "Bank + stops at H");
+        let undo = Panel { quick: QuickPanel { undo: true, ..quick }, ..panel };
+        assert_eq!(pad_leds(&snap(), &[true; 32], &undo)[15].1, Led::Solid(DIM_ORANGE), "Undo lit while a store can be undone");
     }
 
     /// Holding Sound draws the Racks page from any page, on the screen and the pads.
     #[test]
     fn sound_layer_draws_racks() {
         let has = [true; crate::engine::NUM_SLOTS];
-        let quick = QuickPanel { stored: 0b11, loaded: 0b1, bank: 2, store: false };
+        let quick = QuickPanel { stored: 0b11, loaded: 0b1, bank: 2, store: false, undo: true };
         let racks = Panel { page: Page::Racks, quick, ots_count: 2, ..Panel::default() };
         for page in Page::ALL {
             let held = Panel { page, layer: Layer::Sound, ..racks };

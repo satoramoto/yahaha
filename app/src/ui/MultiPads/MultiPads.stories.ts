@@ -67,6 +67,8 @@ export const NoBank: Story = {
     await expect(args.onchange).not.toHaveBeenCalled()
     await userEvent.click(canvas.getByRole('button', { name: 'Previous bank' }))
     await expect(args.onchange).toHaveBeenCalledWith({ type: 'bank', id: '8' })
+    await userEvent.click(canvas.getByRole('button', { name: 'Load a bank file' }))
+    await expect(args.onchange).toHaveBeenCalledWith({ type: 'loadFile' })
   },
 }
 
