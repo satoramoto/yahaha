@@ -185,11 +185,11 @@ Style Section Reset, the Fade In/Out times and the Style Retrigger length. The s
 
 | Command | Fields | Does |
 |---|---|---|
-| `setFaderPage` / `toggleFaderPage` | `page`: `panel` \| `style` | What the Launchkey faders control. |
-| `setFaderLayer` | `layer`: `volume` \| `pan` \| `reverb` \| `chorus` \| `delay` | The fader layer (the mixer's VOL · PAN · REV · CHO · DLY): what the faders move across the parts. Volume: each part's CC7 (as always). A send layer: Panel faders 1–4 move Right 1–3 and Left's pan / CC91 / CC93 / CC94 (as `setPartPan` / `setPartSend`, with soft takeover); Style faders 1–8 move the Style parts' reverb / chorus / delay sends (as `setStylePartSend`, with soft takeover; the Style parts have no pan, so PAN leaves them alone). Faders 5–6 on the Panel page stay the Style and Multi Pad levels, and the master fader stays the master. On the Launchkey, **Shift + the master fader's button** steps the layer; the button alone still switches the page. |
+| `setFaderPage` / `toggleFaderPage` | `page`: `panel` \| `style` | What the Launchkey faders control. On the Launchkey a tap of the master fader's button toggles it (on release); holding the button shows the fader picker on the pads (see `setLayer`). |
+| `setFaderLayer` | `layer`: `volume` \| `pan` \| `reverb` \| `chorus` \| `delay` | The fader layer (the mixer's VOL · PAN · REV · CHO · DLY): what the faders move across the parts. Volume: each part's CC7 (as always). A send layer: Panel faders 1–4 move Right 1–3 and Left's pan / CC91 / CC93 / CC94 (as `setPartPan` / `setPartSend`, with soft takeover); Style faders 1–8 move the Style parts' reverb / chorus / delay sends (as `setStylePartSend`, with soft takeover; the Style parts have no pan, so PAN leaves them alone). Faders 5–6 on the Panel page stay the Style and Multi Pad levels, and the master fader stays the master. On the Launchkey, **Shift + the master fader's button** steps the layer; a tap of the button alone still switches the page, and holding it lets the pads pick the page and layer (the fader picker, `setLayer` `fader`). |
 | `stepFaderLayer` | `delta` | The next/previous fader layer, wrapping (VOL → PAN → REV → CHO → DLY → VOL). |
 | `setPadPage` | `page`: `sections` \| `racks` \| `chord` \| `multiPads` \| `setup` | The Launchkey pad page (see [`pads`](#pads)). Refused (`Failed`, with a message) for a page left out of the page order (`setPadPageOrder`). The old names are still read: `otsParts`, `quickRacks` and `registration` as `racks`, `chordSetup` as `chord`. |
-| `setLayer` | `layer`: Layer | The app's mirror of the Launchkey's holds (parity; see [`surface`](#surface) `layer`): `{"type":"sound"}` does what holding Sound (Panel fader button 6) does: the pads act and light as the Racks page from any page (`pads.pageName` "Racks", `pads.page` unchanged), and a tap on the lit or an empty Quick Rack pad captures the live rack (`storeRack`). `{"type":"swap","part":1}` is a part's Panel fader button held with a knob turned: the knobs are that part's (`knobs.pageName` "Swap R1"…, and `turnKnob` acts as `turnSwapKnob`). `{"type":"none"}` releases either, as the Launchkey's release does (leaving swap mode commits it). Refused (`Failed`) for a part outside 0–3. Example: `{"type":"setLayer","layer":{"type":"swap","part":1}}`. |
+| `setLayer` | `layer`: Layer | The app's mirror of the Launchkey's holds (parity; see [`surface`](#surface) `layer`): `{"type":"sound"}` does what holding Sound (Panel fader button 6) does: the pads act and light as the Racks page from any page (`pads.pageName` "Racks", `pads.page` unchanged), and a tap on the lit or an empty Quick Rack pad captures the live rack (`storeRack`). `{"type":"swap","part":1}` is a part's Panel fader button held with a knob turned: the knobs are that part's (`knobs.pageName` "Swap R1"…, and `turnKnob` acts as `turnSwapKnob`). `{"type":"fader"}` does what holding the master fader's button does: the pads are the fader picker from any page (`pads.pageName` "Faders", `pads.page` unchanged): top row PANEL and STYLE (`setFaderPage`), bottom row VOL, PAN, REV, CHO, DLY (`setFaderLayer`), the current page and layer bright, the other choices dim, the rest dark. `{"type":"none"}` releases any of them, as the Launchkey's release does (leaving swap mode commits it; releasing `fader` here switches no page: the app sends `toggleFaderPage` for a tap). Refused (`Failed`) for a part outside 0–3. Example: `{"type":"setLayer","layer":{"type":"swap","part":1}}`. |
 | `cyclePadPage` | `delta` | Steps the pad page through the page order (`pads.pages`), wrapping. |
 | `setPadPageOrder` | `pages`: Page[] | The order of pad pages 2–5 (Settings › Launchkey), for example `{"type":"setPadPageOrder","pages":["racks","chord","multiPads","setup"]}` (the default). Sections is always page 1; Pad Bank ▲/▼ (which stop at either end) and `cyclePadPage` walk Sections, then `pages`. A page left out can't be paged to, but holding Sound still shows the Racks pads. On a page left out, the pads go to Sections. Refused (`Failed`) if `pages` names `sections`, names a page twice, or has more than four; nothing changes. Saved in `settings.json` (`settings.padPages`). |
 | `setMasterVolume` | `volume` 0–127 | Synth master (100 = unity). Fails when the synth is off. |
@@ -765,12 +765,13 @@ The session owns the Launchkey, so it works the same whichever client is running
   against session-internal atomics), Pad Bank ▲/▼ and the fader-page button. A pad
   pressed straight after a page change must already read the new page. Pad Bank ▲/▼
   walk the page order (`settings.padPages`). The holds are read there too: Sound (fader
-  button 6, either fader page) and a Panel fader button 1–4 held while a knob turns
+  button 6, either fader page), the master fader's button (the fader picker; a tap toggles
+  the fader page on release) and a Panel fader button 1–4 held while a knob turns
   (swap mode) set `surface.layer`; a Panel fader button 1–4 toggles its part on release
   when no knob turned. In swap mode the knobs are the held part's (`turnSwapKnob`). Under
   Sound, a tap on the lit or an empty Quick Rack pad captures the live rack there
   (`storeRack`, one step, no dialog); a pad holding another rack recalls it. The app
-  mirrors both holds with `setLayer`. A Panel fader 1–4
+  mirrors the holds with `setLayer`. A Panel fader 1–4
   that the live rack's controller map gives another target than its own part's level
   becomes `moveRackFader` (Volume layer; none does nothing); the map reaches the MIDI
   thread as a fixed table, updated when it changes.
@@ -930,7 +931,7 @@ control's meaning, and every LED as the hardware shows it.
 | Field | Type | Meaning |
 |---|---|---|
 | `page` | `sections` \| `racks` \| `chord` \| `multiPads` \| `setup` | The current Launchkey pad page (the pages are below). |
-| `pageName` | string | `Sections`, `Racks`, `Chord`, `Multi Pads` or `Setup`. |
+| `pageName` | string | `Sections`, `Racks`, `Chord`, `Multi Pads` or `Setup`: what the pads show (`Racks` while Sound is held; `Faders` while the master fader's button is held). |
 | `pageNumber`, `pageCount` | number | `page`'s 1-based position in the page order, and how many pages the order has: for example 3 and 5 for Chord in the default order. |
 | `pages` | object[] | The page order Pad Bank ▲/▼ and `cyclePadPage` walk: `{ page, name }` for Sections, then each page of `settings.padPages`. |
 | `pads` | Pad[16] | This page: the top row (notes 96–103), then the bottom row (112–119). |
@@ -962,6 +963,15 @@ and light as the Racks page, whatever page is on view (`surface.layer` is `sound
 held captures the live rack there in one step (`storeRack`: the lit rack is overwritten,
 otherwise it is saved as a new rack named from its sounds; no dialog); a pad holding another
 rack recalls it. The app holds Sound with `setLayer`.
+
+**Hold the master fader's button**: while it is held the pads are the fader picker,
+whatever page is on view (`surface.layer` is `fader`, `pageName` "Faders"). Top row: PANEL
+(the rack's parts, lit in the fader layer's colour) and STYLE (the band, green); bottom
+row: VOL, PAN, REV, CHO, DLY, each in its layer colour; the current page and layer bright,
+the other choices dim, the other pads dark. A pad sets the page (`setFaderPage`) or layer
+(`setFaderLayer`) at once. Release gives the page on view back. Released with no pad
+pressed, the button is a tap and switches the fader page, as before; Shift + it steps the
+layer and holds nothing. The app holds it with `setLayer`.
 
 #### Pad
 | Field | Type | Meaning |
@@ -1049,7 +1059,7 @@ The Launchkey beyond the pads.
 | Field | Type | Meaning |
 |---|---|---|
 | `shift` | bool | The Shift button is held. Show the controls' Shift layer (`shiftLabel`, `shiftAction`) while it is. The pads have no Shift layer: the firmware keeps Shift + pad for itself. |
-| `layer` | Layer | A held control has turned the pads or knobs into another surface (docs/eyes-free.md). An object with `type`: `none` (nothing held); `sound` (Panel fader button 6, Sound, is held on either fader page: the pads act and light as the Racks page, from any page); `swap`, with `part` 0–3 (a Panel fader button 1–4 is held and a knob was turned: knob 1 steps that part's sound by number, `swapSound`; knobs 2–8 are its mix; releasing commits). A hold with no knob turned is a tap: the part toggles on release. |
+| `layer` | Layer | A held control has turned the pads or knobs into another surface (docs/eyes-free.md). An object with `type`: `none` (nothing held); `sound` (Panel fader button 6, Sound, is held on either fader page: the pads act and light as the Racks page, from any page); `fader` (the master fader's button is held: the pads are the fader picker, from any page); `swap`, with `part` 0–3 (a Panel fader button 1–4 is held and a knob was turned: knob 1 steps that part's sound by number, `swapSound`; knobs 2–8 are its mix; releasing commits). A hold with no knob turned is a tap: the part toggles on release. |
 | `controls` | SurfaceControl[17] | Every button, in this order: `padBankUp`, `padBankDown`, `trackPrev`, `trackNext`, `play`, `stop`, `scene` (right of the top pad row), `function` (right of the bottom row), `faderButton1`…`faderButton8` (under the faders), `masterButton` (under the master fader). |
 | `faders` | SurfaceFader[9] | Faders 1–8 on the active fader page, then the master fader. |
 | `trackPrev`, `trackNext` | Neighbour? | Where Track ◀ / ▶ (and `stepStyle`) go: `{ id, name, path }` of the previous and next style in library order, skipping files known not to load. Null when there is nowhere to go. |

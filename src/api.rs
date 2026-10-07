@@ -261,6 +261,8 @@ impl From<Action> for AppCmd {
             Action::SelectPart(p) => PartsCmd::SelectPart { part: p }.into(),
             Action::PartVoice(d) => PartsCmd::StepVoice { delta: d }.into(),
             Action::ToggleFaderPage => MixerCmd::ToggleFaderPage.into(),
+            Action::SetFaderPage(page) => MixerCmd::SetFaderPage { page }.into(),
+            Action::SetFaderLayer(layer) => MixerCmd::SetFaderLayer { layer }.into(),
             Action::Style(d) => LibraryCmd::StepStyle { delta: d }.into(),
             Action::RetriggerRate(d) => StyleSettingsCmd::StepRetriggerRate { delta: d }.into(),
             Action::QuickRack(i) => QuickRackCmd::PressQuickRack { slot: i, discard: false }.into(),

@@ -130,8 +130,11 @@ fn keyboard_note_path_does_not_allocate() {
         input.packet(TAG_PADS, 0, &[0xB0, b1 + 1, 127, 0xB0, b1 + 1, 0]);
         input.packet(TAG_PADS, 0, &[0xB0, b1, 127, 0xBF, 21, 65, 0xBF, 22, 65, 0xBF, 23, 63, 0xB0, b1, 0]);
         input.packet(TAG_PADS, 0, &[0xB0, sound, 127, 0x90, 96 + round % 8, 100, 0xB0, sound, 0]);
+        // The master fader's button held: the fader picker's pads set the fader page and
+        // layer (a page pad, a layer pad), then let go; and a tap, which switches the page.
+        input.packet(TAG_PADS, 0, &[0xB0, mb, 127, 0x90, 96 + round % 2, 100, 0x90, 112 + round % 5, 100, 0xB0, mb, 0]);
         if round % 7 == 0 {
-            input.packet(TAG_PADS, 0, &[0xB0, mb, 127]);
+            input.packet(TAG_PADS, 0, &[0xB0, mb, 127, 0xB0, mb, 0]);
         }
         input.end_of_list();
         ctl.reset(&mut |_| {});

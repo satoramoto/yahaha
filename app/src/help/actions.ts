@@ -324,7 +324,7 @@ export function tipFor(cmd: AppCmd | null): TipKey {
     case 'swapSound': return 'part.swap'
     case 'storeRack': return 'quick.store_rack'
     case 'turnSwapKnob': return 'part.swap'
-    case 'setLayer': return cmd.layer.type === 'swap' ? 'part.swap' : 'launchkey.sound'
+    case 'setLayer': return cmd.layer.type === 'swap' ? 'part.swap' : cmd.layer.type === 'fader' ? 'mixer.page' : 'launchkey.sound'
     // --- end eyes-free contract ---
   }
 }

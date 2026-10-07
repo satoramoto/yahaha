@@ -624,8 +624,22 @@ fn launchkey_pads_are_commands() {
     assert!(s.state().keyboard_parts[2].on);
     s.midi_in(Port::Pads, &[0xB0, SHIFT_CC, 127, 0xB0, 38, 127, 0xB0, SHIFT_CC, 0]);
     assert!(s.state().keyboard_parts[1].selected);
-    // The master fader button: the Style page.
+    // The master fader button held: the pads (and the app's mirror) are the fader picker;
+    // REV picks the layer; release gives the pads back and switches no page.
     s.midi_in(Port::Pads, &[0xB0, 45, 127]);
+    let st = s.state();
+    assert_eq!((st.surface.layer, st.pads.page_name.as_str()), (crate::launchkey::Layer::Fader, "Faders"));
+    let labels: Vec<_> = st.pads.pads.iter().map(|p| p.label.as_str()).collect();
+    assert_eq!((&labels[..2], &labels[8..13]), (&["PANEL", "STYLE"][..], &["VOL", "PAN", "REV", "CHO", "DLY"][..]));
+    assert_eq!(st.pads.pads[1].action, Some(MixerCmd::SetFaderPage { page: FaderPage::Style }.into()), "the mirror's pad does what the Launchkey's does");
+    s.midi_in(Port::Pads, &[0x90, 114, 100]);
+    assert_eq!(s.state().mixer.fader_layer, crate::parts::FaderLayer::Reverb);
+    s.midi_in(Port::Pads, &[0xB0, 45, 0]);
+    let st = s.state();
+    assert_eq!((st.surface.layer, st.mixer.fader_page), (crate::launchkey::Layer::None, FaderPage::Panel));
+    s.send(MixerCmd::SetFaderLayer { layer: crate::parts::FaderLayer::Volume }).unwrap();
+    // The master fader button tapped: the Style page.
+    s.midi_in(Port::Pads, &[0xB0, 45, 127, 0xB0, 45, 0]);
     assert_eq!(s.state().mixer.fader_page, FaderPage::Style);
     // Page 1 pads are engine buttons: Start/Stop.
     s.send(PadsCmd::SetPadPage { page: Page::Sections }).unwrap();
