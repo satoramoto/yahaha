@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
-import { fn } from 'storybook/test'
+import { expect, fireEvent, fn, userEvent, within } from 'storybook/test'
 import { faderPageTabs, layerTabs } from '../ChosenTabs/ChosenTabs.fixtures'
 import FaderBank from './FaderBank.svelte'
 import { functionLamps, panelStrips, partLamps, reverbStrips } from './FaderBank.fixtures'
@@ -30,6 +30,8 @@ const meta = {
     onlamplong: fn(),
     onlamprelease: fn(),
     onpagebutton: fn(),
+    onpagelong: fn(),
+    onpagerelease: fn(),
   },
   argTypes: {
     strips: { control: 'object' },
@@ -47,6 +49,22 @@ type Story = StoryObj<typeof meta>
 
 /** The board: Panel page, Vol layer, Right 2 away, Right 3 off and missing, faders 7 and 8 parked. */
 export const Board: Story = {}
+
+/**
+ * The page button under fader 9: a click flips the page (`onpagebutton`); a hold (or right-click)
+ * calls `onpagelong` and its release `onpagerelease`, never `onpagebutton`.
+ */
+export const PageButtonHold: Story = {
+  play: async ({ canvasElement, args }) => {
+    const button = within(canvasElement).getByRole('button', { name: /^Fader page is Panel/ })
+    await userEvent.click(button)
+    await expect(args.onpagebutton).toHaveBeenCalledTimes(1)
+    await fireEvent.contextMenu(button)
+    await expect(args.onpagelong).toHaveBeenCalledTimes(1)
+    await expect(args.onpagerelease).toHaveBeenCalledTimes(1)
+    await expect(args.onpagebutton).toHaveBeenCalledTimes(1)
+  },
+}
 
 /** The Reverb layer: "Faders · Reverb", strips 1–4 white with the layer word, no meters. */
 export const ReverbLayer: Story = {

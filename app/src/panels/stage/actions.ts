@@ -37,6 +37,18 @@ export interface StageDeps {
   toggleHelp: () => void
   /** Tempo − (`dir` −1) or + (1) went down or up (`TempoHold`). */
   tempo: (dir: -1 | 1, down: boolean) => void
+  /** The Metronome ▾ caret was pressed: open or close the metronome's settings popover. None: the caret does nothing. */
+  metronomeSettings?: () => void
+}
+
+/** The metronome settings popover's callbacks (ui/MetronomePopover): each sends its command. */
+export function metronomeActions(send: (cmd: AppCmd) => void) {
+  return {
+    onon: (on: boolean) => send({ type: 'setMetronome', on }),
+    onvolume: (volume: number) =>
+      send({ type: 'setMetronomeVolume', volume: Math.max(0, Math.min(127, Math.round(volume))) }),
+    onbell: (on: boolean) => send({ type: 'setMetronomeBell', on }),
+  }
 }
 
 /** The Stage's callbacks (every `on…` prop it takes). */
@@ -94,6 +106,8 @@ export function stageActions(d: StageDeps): StageActions {
   const partIndex = (id: string) => PART_IDS.indexOf(id)
   /** Sound was switched on by a long press of its lamp: its release switches it off (D18). */
   let soundHeld = false
+  /** The master fader's button is held (the fader picker is showing): its release lets it go. */
+  let faderHeld = false
 
   return {
     // App bar
@@ -103,8 +117,8 @@ export function stageActions(d: StageDeps): StageActions {
     // Section row
     onaccomp: () => send({ type: 'toggleAcmp' }),
     onmetronome: () => send({ type: 'toggleMetronome' }),
-    // No metronome popover yet (#509): the caret does nothing (D32).
-    onmetronomesettings: () => {},
+    // The caret opens (or closes) the metronome's settings popover (#509).
+    onmetronomesettings: () => d.metronomeSettings?.(),
     onunison: () => send({ type: 'toggleUnison' }),
     onpanic: () => send({ type: 'panic' }),
     onhelp: () => d.toggleHelp(),
@@ -175,7 +189,19 @@ export function stageActions(d: StageDeps): StageActions {
         send({ type: 'setLayer', layer: { type: 'none' } })
       }
     },
+    // The master fader's button (#558): a tap (on release) toggles the page, Shift steps the
+    // layer; holding it shows the fader picker on the pads until it is let go, as on the
+    // Launchkey. A hold's release switches no page (the button swallows that click).
     onpagebutton: () => send(d.shift() ? { type: 'stepFaderLayer', delta: 1 } : { type: 'toggleFaderPage' }),
+    onpagelong: () => {
+      faderHeld = true
+      send({ type: 'setLayer', layer: { type: 'fader' } })
+    },
+    onpagerelease: () => {
+      if (!faderHeld) return
+      faderHeld = false
+      send({ type: 'setLayer', layer: { type: 'none' } })
+    },
 
     // Knobs: a page tab chooses its page (KNOB_PAGES' order). Swap mode shows one tab, the
     // swap itself: choosing it changes nothing. The ▲▼ callbacks are deprecated, not drawn.

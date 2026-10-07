@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { emptyState } from '../../lib/api/constants'
 import type { AppCmd, AppState, ControlId, Pad, SurfaceFader } from '../../lib/api/types'
-import { stageActions, type OpenTarget, type StageActions } from './actions'
+import { metronomeActions, stageActions, type OpenTarget, type StageActions } from './actions'
 
 /** A click on a lamp: the lamp passes the state it asks for, which the wiring ignores (it
  * sends a toggle), so pass `true` whatever the lamp shows. */
@@ -289,6 +289,62 @@ describe('faders', () => {
       { type: 'setFaderLayer', layer: 'reverb' },
       { type: 'toggleFaderPage' },
       { type: 'stepFaderLayer', delta: 1 },
+    ])
+  })
+
+  it('holding the page button shows the fader picker; its release lets it go and switches no page', () => {
+    const { actions, take } = fake()
+    actions.onpagelong()
+    expect(take().sent).toEqual([{ type: 'setLayer', layer: { type: 'fader' } }])
+    actions.onpagerelease()
+    expect(take().sent).toEqual([{ type: 'setLayer', layer: { type: 'none' } }])
+    // A second release (no hold under way) sends nothing.
+    actions.onpagerelease()
+    expect(take().sent).toEqual([])
+  })
+
+  it('a tap on the page button toggles the page and holds nothing', () => {
+    const { actions, take } = fake()
+    actions.onpagebutton()
+    actions.onpagerelease()
+    expect(take().sent).toEqual([{ type: 'toggleFaderPage' }])
+  })
+})
+
+describe('metronome settings', () => {
+  it('the caret opens the popover through metronomeSettings', () => {
+    let opened = 0
+    const actions = stageActions({
+      state: () => emptyState(),
+      shift: () => false,
+      send: () => {},
+      open: () => {},
+      toggleHelp: () => {},
+      tempo: () => {},
+      metronomeSettings: () => opened++,
+    })
+    actions.onmetronomesettings()
+    expect(opened).toBe(1)
+  })
+
+  it('without metronomeSettings the caret does nothing', () => {
+    const { actions, take } = fake()
+    actions.onmetronomesettings()
+    expect(take()).toEqual({ sent: [], opened: [] })
+  })
+
+  it('the popover\'s controls send the metronome commands', () => {
+    const sent: AppCmd[] = []
+    const m = metronomeActions((cmd) => sent.push(cmd))
+    m.onon(true)
+    m.onvolume(100.4)
+    m.onvolume(200)
+    m.onbell(false)
+    expect(sent).toEqual([
+      { type: 'setMetronome', on: true },
+      { type: 'setMetronomeVolume', volume: 100 },
+      { type: 'setMetronomeVolume', volume: 127 },
+      { type: 'setMetronomeBell', on: false },
     ])
   })
 })

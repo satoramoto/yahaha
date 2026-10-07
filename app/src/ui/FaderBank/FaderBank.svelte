@@ -4,7 +4,8 @@
   tab style; nine strips, each a Fader over its name button with PartMarks (an off part's name in
   its hue's absent face); the "Part on/off" and "Functions" caption row; and one 32px lamp row:
   the part lamps under faders 1–4 (in the part's hue), the Launchkey function lamps under 5–8
-  (neutral), and the Panel page button under 9. Holds no state: every change is a callback with
+  (neutral), and the Panel page button under 9 (a tap flips the page; a hold calls `onpagelong`,
+  its release `onpagerelease`). Holds no state: every change is a callback with
   the strip's or lamp's id.
 -->
 <script lang="ts">
@@ -52,6 +53,10 @@
     onlamprelease?: (id: string) => void
     /** The Panel page button under fader 9 (flips the page). */
     onpagebutton?: () => void
+    /** The page button was held (as holding the Launchkey's master fader button: the fader picker on the pads). */
+    onpagelong?: () => void
+    /** The hold on the page button ended. */
+    onpagerelease?: () => void
   }
 
   let {
@@ -71,6 +76,8 @@
     onlamplong,
     onlamprelease,
     onpagebutton,
+    onpagelong,
+    onpagerelease,
   }: Props = $props()
 
   let layered = $derived(layerTabs.length > 0 && layer !== layerTabs[0].id)
@@ -180,6 +187,8 @@
         tip="mixer.page"
         {tipAction}
         onpress={onpagebutton}
+        onlongpress={onpagelong}
+        onlongrelease={onpagerelease}
       />
     </div>
   </div>

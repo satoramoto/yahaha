@@ -127,6 +127,8 @@
       | 'onlamplong'
       | 'onlamprelease'
       | 'onpagebutton'
+      | 'onpagelong'
+      | 'onpagerelease'
     > &
     On<typeof KnobBank, 'onpageup' | 'onpagedown' | 'onstep'> &
     On<typeof PadBank, 'onbankup' | 'onbankdown'> &
@@ -198,6 +200,8 @@
       onlamplong={p.onlamplong}
       onlamprelease={p.onlamprelease}
       onpagebutton={p.onpagebutton}
+      onpagelong={p.onpagelong}
+      onpagerelease={p.onpagerelease}
     />
     <div class="middle">
       <KnobBank {...p.knobs} tipAction={p.tipAction} onpage={p.onknobpage} onpress={p.onknobpress} onstep={p.onstep} />
