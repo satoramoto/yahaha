@@ -4,13 +4,14 @@
 //   ?theme=light   start in the light theme (not remembered)
 //   ?help=1        start in help mode
 //   ?tip=<key>     show the help-footer entry of the first control with that catalog key
-//   ?open=browser|settings|rack|mixer|charts|looper|multipad|harmony   open an overlay or drawer
+//   ?open=browser|settings|rack   open the style Browser, the Settings screen or the Rack drawer
+//                  (the display pages have no ?open=: show one with its Alt key, lib/nav.ts)
 //   ?open=library&tab=racks|sounds|instruments|map   Library on that tab, loading into Right 1
 //                  (open=sounds: Library › Sounds; open=sound: Library › Style map; open=quick: Library › Racks)
-//   ?shift=1       latch the Launchkey mirror's Shift layer
+//   ?shift=1       latch the Shift layer
 //   ?styles=N      mock: add N synthetic styles to the library (e.g. 60000; read in api/session.ts)
 //   ?chart=1       mock: import the demo chart playlist, chart mode on (read in api/session.ts)
-//   ?dropouts=N    mock: N audio dropouts after half a second, raising the dropout notice (api/session.ts)
+//   ?dropouts=N    mock: N audio dropouts after half a second, counted in the Stage's health slot (api/session.ts)
 
 import { isTipKey } from '../help/tooltips'
 import { ui } from './store.svelte'
@@ -30,8 +31,7 @@ export function applyUrlParams(search = location.search) {
   if (open === 'sound') ui.openLibrary('map')
   if (open === 'quick') ui.openLibrary('racks')
   if (open === 'parts') ui.toggleDrawer('rack') // the Rack panel's old name
-  if (open === 'mixer') ui.mixer = true // the mixer row's Details layer, not a drawer
-  if (open === 'settings' || open === 'rack' || open === 'effects' || open === 'charts' || open === 'looper' || open === 'multipad' || open === 'harmony') ui.toggleDrawer(open)
+  if (open === 'settings' || open === 'rack') ui.toggleDrawer(open)
   if (p.get('shift') === '1') ui.shiftLatched = true
   const key = p.get('tip')
   if (key && isTipKey(key)) {

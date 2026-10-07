@@ -2,8 +2,8 @@
 //
 // Renders the whole app on the mock session in every state that shows different
 // controls (each overlay, each pad page, each fader page, help mode) and checks every
-// focusable or clickable element (the help footer's own switch included) for a `data-tip`
-// key that exists in the catalog: that entry is what the help footer shows on hover.
+// focusable or clickable element for a `data-tip` key that exists in the catalog: that entry
+// is what the status line above the keys shows on hover.
 // A new panel is covered automatically once it's in App.svelte; if it shows controls only
 // in some state, add that state to STATES below.
 
@@ -16,7 +16,12 @@ import { ui } from '../lib/store.svelte'
 import { tips } from '../lib/tooltip/tip.svelte'
 import { nav as soundNav } from '../panels/sound/nav.svelte'
 import { libraryNav } from '../panels/library/nav.svelte'
+import { instrumentsState } from '../panels/library/instrumentsState.svelte'
+import { racksState } from '../panels/library/racksState.svelte'
+import { soundsPage } from '../panels/library/soundsState.svelte'
 import { channelNav } from '../panels/channel/nav.svelte'
+import { DISPLAY_TABS, PAGES } from '../panels/stage/model'
+import { stagePage } from '../panels/stage/page.svelte'
 import { TIPS, isTipKey } from './tooltips'
 
 export const INTERACTIVE = [
@@ -79,8 +84,9 @@ const STATES: [string, Setup][] = [
   ['pad page 5 (Setup)', (s) => s.send({ type: 'setPadPage', page: 'setup' })],
   ['fader page Style', (s) => s.send({ type: 'toggleFaderPage' })],
   ['Upper + Manual Bass', (s) => s.send({ type: 'toggleUpper' })],
-  ['help mode (expanded help footer)', () => (tips.help = true)],
-  ['pop-up tips on', () => tips.setFloating(true)],
+  ['help mode', () => (tips.help = true)],
+  ['Settings tab (the Settings drawer)', () => click('nav.settings')],
+  ['a message on the status line', (s) => s.send({ type: 'auditionStyle', id: 1 })],
   ['style browser open', () => (ui.browser = true)],
   ['style browser open, stopped (preview buttons)', (s) => (s.send({ type: 'stop' }), (ui.browser = true))],
   ['style browser, previewing', (s) => (s.send({ type: 'stop' }), s.send({ type: 'auditionStyle', id: 1 }), (ui.browser = true))],
@@ -102,17 +108,16 @@ const STATES: [string, Setup][] = [
     s.send({ type: 'setPartPatch', part: 0, id: 'warm-rhodes' })
     ui.openLibrary('sounds', 0)
     flushSync()
-    click('sounds.more')
     click('sound.delete')
   }],
-  ['Library › Instruments, More… on a playing plugin (category, in process, Edit…)', (s) => {
+  ['Library › Instruments, a playing plugin chosen (in process, Edit…)', (s) => {
     s.send({ type: 'setPartPlugin', part: 0, id: 'aumu Smp7 Fake', state: null })
     s.advance(1000)
+    instrumentsState.chosen = 'au:aumu Smp7 Fake'
     ui.openLibrary('instruments', 0)
-    flushSync()
-    document.querySelector<HTMLElement>('section[aria-label="Sampler Deluxe"] [data-tip="library.inst_more"]')!.click()
-    flushSync()
   }],
+  ['Library › Styles, playing (a style queued)', (s) => (s.send({ type: 'queueStyle', id: 1 }), ui.openLibrary('styles'))],
+  ['Library › Styles, stopped (Preview on select)', (s) => (s.send({ type: 'stop' }), ui.openLibrary('styles'))],
   ['Library › Racks, Needs attention on', () => {
     ui.openLibrary('racks', 0)
     flushSync()
@@ -154,34 +159,25 @@ const STATES: [string, Setup][] = [
     click('rack.map')
   }],
   ['rack drawer, Right 2 loading a plugin',(s) => ((ui.rack = true), s.send({ type: 'setPartPlugin', part: 1, id: 'aumu samp appl', state: null }))],
-  ['mixer details open', () => (ui.mixer = true)],
-  ['mixer details, a plugin part', (s) => ((ui.mixer = true), s.send({ type: 'setPartPlugin', part: 0, id: 'aumu dls  appl', state: null }), s.advance(1000))],
-  ['effects screen open', () => (ui.effects = true)],
-  ['effects screen, an added send, send 1 set by the rack', (s) => (
-    (ui.effects = true), s.send({ type: 'addSend', kind: 'phaser' }), s.send({ type: 'setRackSendOverride', send: 0, on: true })
+  ['Effects page', () => stagePage.show('effects')],
+  ['Effects page, an added send, send 1 set by the rack', (s) => (
+    stagePage.show('effects'), s.send({ type: 'addSend', kind: 'phaser' }), s.send({ type: 'setRackSendOverride', send: 0, on: true })
   )],
-  ['channel view, a keyboard part with an insert', (s) => (
-    s.send({ type: 'addSend', kind: 'room' }), s.send({ type: 'setStripInsertKind', strip: 1, slot: 1, kind: 'compressor' }), channelNav.show(1)
-  )],
-  ['channel view, a Style part', () => channelNav.show(6)],
-  ['effects screen, delay free time, no inserts', (s) => (
-    (ui.effects = true),
+  ['Effects page, delay free time, no inserts', (s) => (
+    stagePage.show('effects'),
     s.send({ type: 'setEffectParam', block: 'variation', param: 'delaySync', value: 0 }),
     (s.state.effects.inserts = []),
     s.send({ type: 'setRotaryFast', on: true })
   )],
-  ['harmony drawer open', () => (ui.harmony = true)],
-  ['harmony drawer, arpeggio on, Fixed velocity', (s) => ((ui.harmony = true), s.send({ type: 'setArpPattern', index: 2 }), s.send({ type: 'setArpVelocity', mode: 'fixed', velocity: 90 }), s.send({ type: 'toggleHarmonyArp' }))],
-  ['harmony drawer, Echo type', (s) => ((ui.harmony = true), s.send({ type: 'setHarmonyType', index: 20 }))],
-  ['mixer details, the Master editor open', () => {
-    ui.mixer = true
+  ['Harm/Arp page', () => stagePage.show('harmArp')],
+  ['Harm/Arp page, arpeggio on, Fixed velocity', (s) => (stagePage.show('harmArp'), s.send({ type: 'setArpPattern', index: 2 }), s.send({ type: 'setArpVelocity', mode: 'fixed', velocity: 90 }), s.send({ type: 'toggleHarmonyArp' }))],
+  ['Harm/Arp page, Echo type', (s) => (stagePage.show('harmArp'), s.send({ type: 'setHarmonyType', index: 20 }))],
+  ['Channel page, + Add send\'s kind menu open', () => {
+    stagePage.show('channel')
+    channelNav.tab = 'mix'
     flushSync()
-    click('fx.master_edit')
+    click('mixer.channel.add_send')
   }],
-  ['mixer details open, Style tab',(s) => ((ui.mixer = true), s.send({ type: 'setFaderPage', page: 'style' }))],
-  ['charts drawer, nothing imported', () => (ui.charts = true)],
-  ['charts drawer, a playlist, chart mode playing', (s) => ((ui.charts = true), s.send({ type: 'importCharts', text: 'irealb://demo' }), s.send({ type: 'setChartMode', on: true }))],
-  ['chart in the lead-sheet band', (s) => (s.send({ type: 'importCharts', text: 'irealb://demo' }), s.send({ type: 'setChartMode', on: true }))],
   ['Quick Racks Store armed', (s) => s.send({ type: 'toggleQuickRackStore' })],
   ['Quick Racks: a stored button (clear), pad page 2', (s) => (storeRack(s, 0, 'Ballad'), s.send({ type: 'setPadPage', page: 'racks' }))],
   ['Quick Racks bar: Store waiting for a never-saved rack', (s) => (s.send({ type: 'toggleQuickRackStore' }), s.send({ type: 'pressQuickRack', slot: 2 }))],
@@ -221,19 +217,25 @@ const STATES: [string, Setup][] = [
     flushSync()
     click('library.rack_delete')
   }],
-  ['chord looper drawer open', () => (ui.looper = true)],
-  ['chord looper drawer, recording armed, Memory latched', (s) => ((ui.looper = true), s.send({ type: 'looperRec' }))],
-  ['multi pad drawer, no bank', () => (ui.multipad = true)],
-  ['multi pad drawer, bank loaded, pads playing and armed', (s) => (
-    (ui.multipad = true),
+  ['Looper page', () => stagePage.show('looper')],
+  ['Looper page, recording armed, Memory latched', (s) => (stagePage.show('looper'), s.send({ type: 'looperRec' }))],
+  ['Multi Pads page, no bank', () => stagePage.show('multiPads')],
+  ['Multi Pads page, bank loaded, pads playing and armed', (s) => (
+    stagePage.show('multiPads'),
     s.send({ type: 'loadMultiPad', id: 0 }),
     s.send({ type: 'triggerMultiPad', pad: 0 }),
     s.send({ type: 'armMultiPad', pad: 3 })
   )],
   ['rack drawer, a part on a library patch', (s) => ((ui.rack = true), s.send({ type: 'setPartPatch', part: 0, id: 'warm-rhodes' }))],
-  ['audio dropout notice', (s) => s.dropouts(5)],
+  ['audio dropouts (the health slot)', (s) => s.dropouts(5)],
   ['Shift layer on', () => (ui.shiftLatched = true)],
   ['Shift layer on, fader page Style', (s) => ((ui.shiftLatched = true), s.send({ type: 'toggleFaderPage' }))],
+  // The Stage (panels/stage): its fader layers, the status line, the lamp layers.
+  ['Stage, fader layer Reverb', (s) => s.send({ type: 'setFaderLayer', layer: 'reverb' })],
+  ['Stage, fader layer Pan', (s) => s.send({ type: 'setFaderLayer', layer: 'pan' })],
+  ['Stage, a refused command on the status line', (s) => s.send({ type: 'setChartMode', on: true })],
+  ['Stage, the swap layer held on Right 2', (s) => s.send({ type: 'setLayer', layer: { type: 'swap', part: 1 } })],
+  ['Stage, Sound latched', (s) => s.send({ type: 'setLayer', layer: { type: 'sound' } })],
 ]
 
 // Other files leave hover and focus state in the shared tooltip module (isolate: false).
@@ -250,20 +252,17 @@ afterEach(() => {
   ui.libraryTab = 'sounds'
   ui.libraryPart = 0
   libraryNav.reset()
+  soundsPage.reset()
+  racksState.reset()
+  instrumentsState.reset()
   ui.settings = false
   ui.rack = false
-  ui.mixer = false
-  ui.effects = false
   channelNav.close()
   ui.selectedPart = 0
-  ui.charts = false
-  ui.looper = false
-  ui.multipad = false
-  ui.harmony = false
   soundNav.styleScope = false
   ui.shiftLatched = false
   tips.help = false
-  tips.setFloating(false)
+  stagePage.page = 'stage'
 })
 
 describe('tooltip coverage', () => {
@@ -276,6 +275,22 @@ describe('tooltip coverage', () => {
       flushSync()
       const found = document.body.querySelectorAll(INTERACTIVE).length
       expect(found, 'the app rendered no controls at all').toBeGreaterThan(10)
+      expect(untipped(document.body)).toEqual([])
+    })
+  }
+
+  // Every display page tab: its page in the Stage's display box, the band and keys as on the Stage.
+  // (Library and Settings are screens of their own: their states are in STATES above.)
+  for (const { id: page } of DISPLAY_TABS.filter((t) => t.id !== 'stage')) {
+    it(`every interactive element has a catalog tooltip: page tab ${page}`, () => {
+      const session = new MockSession({ demo: true, manual: true })
+      render(App, { props: { session } })
+      stagePage.page = page
+      session.advance(16)
+      flushSync()
+      expect(document.querySelector('[data-slot="page"]'), 'the page slot').toBeTruthy()
+      expect(document.querySelector('section[aria-label="Faders"]'), 'the band').toBeTruthy()
+      expect(document.querySelectorAll('nav[aria-label="Pages"] button')).toHaveLength(PAGES.length)
       expect(untipped(document.body)).toEqual([])
     })
   }

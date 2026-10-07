@@ -17,7 +17,9 @@
 //!                  OTS Link Acmp Style Acmp Fixed -        | -         -         -           -
 //!
 //! Holding Sound (fader button 6) shows the Racks page on the pads from any page
-//! (`Layer::Sound`); release goes back.
+//! (`Layer::Sound`); release goes back. Holding the master fader's button shows the fader
+//! picker (`Layer::Fader`, `launchkey/pages/faders.rs`): PANEL and STYLE on the top row,
+//! VOL PAN REV CHO DLY on the bottom; a tap with no pad pressed still switches the page.
 //!
 //! Buttons (CC in DAW mode; numbers from the MK4 Programmer's Reference Guide v3.0, p.9,
 //! Figure 3): 115 Play = Start/Stop, 116 Stop, 104 (Scene Launch >) / 105 (Function) =
@@ -31,8 +33,9 @@
 //! turns the encoders' relative output on when it enters DAW mode. Shift + ▼ is [ACMP];
 //! Shift + ▲ is Organ Rotary Slow/Fast, and ▲ is lit while the rotary is fast.
 //!
-//! Faders have two pages, like the Genos Mixer's Panel and Style tabs; the button under
-//! the master fader switches them (see `parts`). Panel: faders 1-4 = Right 1, Right 2,
+//! Faders have two pages, like the Genos Mixer's Panel and Style tabs; a tap of the button
+//! under the master fader switches them (see `parts`), a hold picks the page and the fader
+//! layer on the pads (`Layer::Fader`), Shift + it steps the layer. Panel: faders 1-4 = Right 1, Right 2,
 //! Right 3, Left volumes, their buttons = part on/off on a tap (hold + turn a knob: swap
 //! mode, `Layer::Swap`; Shift: select the part), button 5 HARMONY/ARPEGGIO, 6 SOUND (hold),
 //! 7 LEFT HOLD, 8 CHORD LOOPER ON/OFF (Shift: REC/STOP). Style: faders 1-8 = the Style
@@ -47,6 +50,7 @@ use yahaha_sff::sff::SectionId;
 /// The per-page pad tables: each page's pad actions, palette LEDs and looks.
 mod pages {
     pub mod chord;
+    pub mod faders;
     pub mod multipads;
     pub mod racks;
     pub mod sections;
@@ -403,23 +407,31 @@ impl PageOrder {
 }
 
 /// A held control's layer (docs/eyes-free.md): Sound held (the pads show the Racks page),
-/// or a Panel fader button 1-4 held with a knob turned (swap mode for that part).
+/// the master fader's button held (the pads show the fader picker), or a Panel fader
+/// button 1-4 held with a knob turned (swap mode for that part).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum Layer {
     #[default]
     None,
     Sound,
+    /// The master fader's button held: the pads pick the fader page and layer
+    /// (`launchkey/pages/faders.rs`).
+    Fader,
     Swap { part: u8 },
 }
 
+/// What the pads show under the fader hold (`Panel::shown_name`, `pads.pageName`).
+pub const FADER_PICKER_NAME: &str = "Faders";
+
 impl Layer {
-    /// Packed for an atomic: None 0, Sound 1, Swap 2 + part.
+    /// Packed for an atomic: None 0, Sound 1, Fader 2, Swap 3 + part.
     pub fn to_u8(self) -> u8 {
         match self {
             Layer::None => 0,
             Layer::Sound => 1,
-            Layer::Swap { part } => 2u8.saturating_add(part),
+            Layer::Fader => 2,
+            Layer::Swap { part } => 3u8.saturating_add(part),
         }
     }
 
@@ -427,13 +439,21 @@ impl Layer {
         match v {
             0 => Layer::None,
             1 => Layer::Sound,
-            v => Layer::Swap { part: v - 2 },
+            2 => Layer::Fader,
+            v => Layer::Swap { part: v - 3 },
         }
     }
 
-    /// The page the pads show: Racks while Sound is held, otherwise `page`.
+    /// The pad page underneath: Racks while Sound is held, otherwise `page` (under the
+    /// fader hold too, which draws its picker over it and gives it back on release).
     pub fn pads(self, page: Page) -> Page {
         if self == Layer::Sound { Page::Racks } else { page }
+    }
+
+    /// The name of what the pads show: the fader picker's while the master fader's button
+    /// is held, otherwise `pads(page)`'s.
+    pub fn pads_name(self, page: Page) -> &'static str {
+        if self == Layer::Fader { FADER_PICKER_NAME } else { self.pads(page).name() }
     }
 }
 
@@ -466,8 +486,12 @@ pub enum Action {
     SelectPart(u8),
     /// Previous/next voice for the selected part (`9` `0`).
     PartVoice(i8),
-    /// Fader page Panel/Style (`F9`; the button under the master fader).
+    /// Fader page Panel/Style (`F9`; a tap of the button under the master fader).
     ToggleFaderPage,
+    /// A fader picker pad (the master fader's button held, `Layer::Fader`): this fader page.
+    SetFaderPage(FaderPage),
+    /// A fader picker pad: this fader layer.
+    SetFaderLayer(FaderLayer),
     /// Previous/next style (`←` `→`).
     Style(i8),
     /// Style Retrigger length shorter (+1) / longer (-1) (`}` `{`).
@@ -479,6 +503,8 @@ pub enum Action {
     QuickRackBank(i8),
     /// Quick Racks STORE (`F5`): the next Quick Rack button stores.
     QuickRackStore,
+    /// Quick Racks UNDO (the Racks page's last pad): take back the last store.
+    QuickRackUndo,
     /// Previous/next rack in the bank on view (`F7` `F8`; Shift + Track < / >).
     QuickRackStep(i8),
     /// A pedal's assignable function that the control side runs (`controllers.rs`).
@@ -516,8 +542,12 @@ pub enum Action {
     QuickRackHeld(u8),
 }
 
-/// What a pad does on a page under a layer: the pads of `layer.pads(page)`.
+/// What a pad does on a page under a layer: the fader picker's while the master fader's
+/// button is held, otherwise the pads of `layer.pads(page)`.
 pub fn pad_action(page: Page, layer: Layer, note: u8) -> Option<Action> {
+    if layer == Layer::Fader {
+        return pages::faders::pad_action(note);
+    }
     match layer.pads(page) {
         Page::Sections => pages::sections::pad_action(note),
         Page::Racks => pages::racks::pad_action(note),
@@ -787,6 +817,9 @@ pub struct Panel {
     pub quick: QuickPanel,
     /// Organ Rotary Slow/Fast is at fast (the encoder page ▲ light).
     pub rotary_fast: bool,
+    /// The fader page and layer, for the fader picker (`Layer::Fader`).
+    pub fader_page: FaderPage,
+    pub fader_layer: FaderLayer,
 }
 
 /// The Quick Racks bank on view, as the Racks page shows it.
@@ -800,12 +833,20 @@ pub struct QuickPanel {
     pub bank: u8,
     /// Store armed.
     pub store: bool,
+    /// A store can be undone (`quickRacks.undo`): the Undo pad lights.
+    pub undo: bool,
 }
 
 impl Panel {
-    /// The page the pads show: `layer.pads(page)`.
+    /// The pad page the pads show: `layer.pads(page)`. Under the fader hold the pads show
+    /// the fader picker over it (`shown_name`).
     pub fn shown(&self) -> Page {
         self.layer.pads(self.page)
+    }
+
+    /// The name of what the pads show: `layer.pads_name(page)`.
+    pub fn shown_name(&self) -> &'static str {
+        self.layer.pads_name(self.page)
     }
 
     /// What the Panel page's own fader buttons, and Sound, show.
@@ -833,6 +874,8 @@ impl Default for Panel {
             selected: parts::RIGHT1 as u8,
             quick: QuickPanel::default(),
             rotary_fast: false,
+            fader_page: FaderPage::Panel,
+            fader_layer: FaderLayer::Volume,
         }
     }
 }
@@ -868,6 +911,9 @@ pub enum Led {
 /// Desired LED state for all 16 pads (palette mode) on the page the pads show
 /// (`Panel::shown`).
 pub fn pad_leds(s: &Snapshot, has: &[bool], panel: &Panel) -> [(u8, Led); 16] {
+    if panel.layer == Layer::Fader {
+        return pages::faders::leds(panel);
+    }
     match panel.shown() {
         Page::Sections => pages::sections::leds(s, has),
         Page::Racks => pages::racks::leds(panel),
@@ -982,6 +1028,9 @@ const DIM: f32 = 0.18;
 
 /// Pad looks for the current page.
 pub fn looks(s: &Snapshot, has: &[bool], panel: &Panel) -> [(u8, Look); 16] {
+    if panel.layer == Layer::Fader {
+        return pages::faders::looks(panel);
+    }
     match panel.shown() {
         Page::Sections => pages::sections::looks(s, has),
         Page::Racks => pages::racks::looks(panel),
@@ -995,6 +1044,12 @@ pub fn looks(s: &Snapshot, has: &[bool], panel: &Panel) -> [(u8, Look); 16] {
 /// from this too).
 pub fn racks_looks(p: &Panel) -> [(u8, Look); 16] {
     pages::racks::looks(p)
+}
+
+/// The fader picker's pads (the master fader's button held), from the panel's fader page
+/// and layer alone (the app's dev mock builds its picker from this too).
+pub fn faders_looks(p: &Panel) -> [(u8, Look); 16] {
+    pages::faders::looks(p)
 }
 
 /// A page's pad in the page's colour: bright when on, dim when off, dark when unavailable.
@@ -1219,7 +1274,7 @@ mod tests {
         assert_eq!(act(p, 116), Some(Action::QuickRackBank(-1)));
         assert_eq!(act(p, 117), Some(Action::QuickRackBank(1)));
         assert_eq!(act(p, 118), Some(Action::QuickRackStore));
-        assert_eq!(act(p, 119), None, "the spare is dark");
+        assert_eq!(act(p, 119), Some(Action::QuickRackUndo));
         assert_eq!(act(p, 104), None);
         assert_eq!(cc_control(TRACK_LEFT_CC, true), Some(Control::Act(Action::QuickRackStep(-1))));
         assert_eq!(cc_control(TRACK_RIGHT_CC, true), Some(Control::Act(Action::QuickRackStep(1))));
@@ -1313,14 +1368,19 @@ mod tests {
     /// Layers: packed for an atomic, the JSON shapes, and the page the pads show.
     #[test]
     fn layers() {
-        for l in [Layer::None, Layer::Sound, Layer::Swap { part: 0 }, Layer::Swap { part: 3 }, Layer::Swap { part: 253 }] {
+        for l in [Layer::None, Layer::Sound, Layer::Fader, Layer::Swap { part: 0 }, Layer::Swap { part: 3 }, Layer::Swap { part: 252 }] {
             assert_eq!(Layer::from_u8(l.to_u8()), l);
         }
         for v in 0..=u8::MAX {
             assert_eq!(Layer::from_u8(v).to_u8(), v);
         }
         assert_eq!(Layer::default(), Layer::None);
-        for (l, j) in [(Layer::None, r#"{"type":"none"}"#), (Layer::Sound, r#"{"type":"sound"}"#), (Layer::Swap { part: 0 }, r#"{"type":"swap","part":0}"#)] {
+        for (l, j) in [
+            (Layer::None, r#"{"type":"none"}"#),
+            (Layer::Sound, r#"{"type":"sound"}"#),
+            (Layer::Fader, r#"{"type":"fader"}"#),
+            (Layer::Swap { part: 0 }, r#"{"type":"swap","part":0}"#),
+        ] {
             assert_eq!(serde_json::to_string(&l).unwrap(), j);
             assert_eq!(serde_json::from_str::<Layer>(j).unwrap(), l);
         }
@@ -1328,6 +1388,41 @@ mod tests {
             assert_eq!(Layer::Sound.pads(p), Page::Racks);
             assert_eq!(Layer::None.pads(p), p);
             assert_eq!(Layer::Swap { part: 2 }.pads(p), p);
+            assert_eq!(Layer::Fader.pads(p), p, "the page underneath comes back on release");
+            assert_eq!(Layer::Fader.pads_name(p), "Faders");
+            assert_eq!(Layer::Sound.pads_name(p), "Racks");
+            assert_eq!(Layer::None.pads_name(p), p.name());
+        }
+    }
+
+    /// Holding the master fader's button: from every page the pads are the fader picker
+    /// (PANEL, STYLE; VOL PAN REV CHO DLY), on the pads and in the looks, with the current
+    /// page and layer bright; release (`Layer::None`) gives the page on view back.
+    #[test]
+    fn fader_hold_shows_the_picker_from_every_page() {
+        let has = [true; crate::engine::NUM_SLOTS];
+        for page in Page::ALL {
+            let held = Panel { page, layer: Layer::Fader, fader_page: FaderPage::Style, fader_layer: FaderLayer::Reverb, ..Panel::default() };
+            assert_eq!(held.shown_name(), FADER_PICKER_NAME);
+            assert_eq!(pad_action(page, Layer::Fader, 96), Some(Action::SetFaderPage(FaderPage::Panel)), "{page:?}");
+            assert_eq!(pad_action(page, Layer::Fader, 97), Some(Action::SetFaderPage(FaderPage::Style)), "{page:?}");
+            for (i, l) in FaderLayer::ALL.into_iter().enumerate() {
+                assert_eq!(pad_action(page, Layer::Fader, 112 + i as u8), Some(Action::SetFaderLayer(l)), "{page:?}");
+            }
+            assert_eq!(pad_action(page, Layer::Fader, 119), None);
+            let l = looks(&snap(), &has, &held);
+            assert_eq!(l, faders_looks(&held), "the dev mock's picker is the same");
+            assert_eq!(l.map(|(_, l)| l.label)[..2], ["PANEL", "STYLE"]);
+            assert_eq!(l.map(|(_, l)| l.label)[8..13], ["VOL", "PAN", "REV", "CHO", "DLY"]);
+            let leds = pad_leds(&snap(), &has, &held);
+            assert_eq!((leds[0].1, leds[1].1), (Led::Solid(DIM_CYAN), Led::Solid(GREEN)), "PANEL in the layer's colour, STYLE on");
+            assert_eq!(leds[8..13].iter().map(|(_, l)| *l).collect::<Vec<_>>(), [Led::Solid(DIM_BLUE), Led::Solid(DIM_YELLOW), Led::Solid(CYAN), Led::Solid(DIM_PINK), Led::Solid(DIM_WHITE)]);
+            let released = Panel { layer: Layer::None, ..held };
+            assert_eq!(released.shown(), page);
+            assert_eq!(looks(&snap(), &has, &released), looks(&snap(), &has, &Panel { page, ..Panel::default() }), "{page:?}");
+            for n in PADS {
+                assert_eq!(pad_action(page, Layer::None, n), act(page, n));
+            }
         }
     }
 
@@ -1375,10 +1470,10 @@ mod tests {
 
     /// Racks page lamps: red = the loaded rack, blue = a rack, off = empty; all flashing
     /// while Store is armed; OTS 1-4 dark past the style's count and bright on the one
-    /// recalled; the spare dark.
+    /// recalled; Undo dark with nothing to undo, dim while a store can be undone.
     #[test]
     fn racks_page_lamps() {
-        let quick = QuickPanel { stored: 0b101, loaded: 0b100, bank: 0, store: false };
+        let quick = QuickPanel { stored: 0b101, loaded: 0b100, bank: 0, store: false, undo: false };
         let panel = Panel { page: Page::Racks, quick, ..Panel::default() };
         let l = looks(&snap(), &[true; 32], &panel);
         assert_eq!(l, racks_looks(&panel), "the dev mock's Racks page is the same");
@@ -1386,7 +1481,7 @@ mod tests {
         assert_eq!(l[1].1.level, Level::Off);
         assert_eq!((l[2].1.rgb, l[2].1.level), (C_QUICK_LOADED, Level::Bright));
         assert!(l[8..12].iter().all(|(_, l)| l.level == Level::Off), "a style without OTS");
-        assert_eq!((l[15].1.level, l[15].1.label), (Level::Off, ""), "the spare is dark");
+        assert_eq!((l[15].1.level, l[15].1.label), (Level::Off, "UNDO"), "nothing to undo: dark");
         assert_eq!(l[12].1.level, Level::Off, "Bank - is dark on Bank A");
         assert_eq!(l[13].1.level, Level::Dim, "Bank + is lit below Bank H");
         assert_eq!((l[8].1.label, l[8].1.key, l[12].1.label, l[13].1.key, l[14].1.label, l[14].1.key), ("OTS 1", "⇧1", "BANK -", "⇧P", "STORE", "F5"));
@@ -1409,13 +1504,15 @@ mod tests {
         assert_eq!(pad_leds(&snap(), &[true; 32], &armed)[0].1, Led::Flash(DIM_RED, RED));
         let last = Panel { quick: QuickPanel { bank: QUICK_BANKS - 1, ..quick }, ..panel };
         assert_eq!(looks(&snap(), &[true; 32], &last)[13].1.level, Level::Off, "Bank + stops at H");
+        let undo = Panel { quick: QuickPanel { undo: true, ..quick }, ..panel };
+        assert_eq!(pad_leds(&snap(), &[true; 32], &undo)[15].1, Led::Solid(DIM_ORANGE), "Undo lit while a store can be undone");
     }
 
     /// Holding Sound draws the Racks page from any page, on the screen and the pads.
     #[test]
     fn sound_layer_draws_racks() {
         let has = [true; crate::engine::NUM_SLOTS];
-        let quick = QuickPanel { stored: 0b11, loaded: 0b1, bank: 2, store: false };
+        let quick = QuickPanel { stored: 0b11, loaded: 0b1, bank: 2, store: false, undo: true };
         let racks = Panel { page: Page::Racks, quick, ots_count: 2, ..Panel::default() };
         for page in Page::ALL {
             let held = Panel { page, layer: Layer::Sound, ..racks };
@@ -1472,7 +1569,7 @@ mod tests {
     fn every_page_covers_the_pads_in_order() {
         let has = [true; crate::engine::NUM_SLOTS];
         for page in Page::ALL {
-            for layer in [Layer::None, Layer::Sound, Layer::Swap { part: 3 }] {
+            for layer in [Layer::None, Layer::Sound, Layer::Fader, Layer::Swap { part: 3 }] {
                 let panel = Panel { page, layer, ..Panel::default() };
                 let notes: Vec<u8> = looks(&snap(), &has, &panel).iter().map(|(n, _)| *n).collect();
                 assert_eq!(notes, PADS, "{page:?} {layer:?}");

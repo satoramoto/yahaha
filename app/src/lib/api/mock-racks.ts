@@ -66,6 +66,18 @@ export class MockRacks {
       .map((r) => ({ id: r.id, name: r.name, parts: [...r.names], on: r.parts.map((p) => p.on), needsAttention: false }))
   }
 
+  /**
+   * Rack `to` takes rack `from`'s content, keeping its own id and name (undoing a Quick Rack
+   * store writes the "Previous: <name>" copy back over the rack). False if either is gone.
+   */
+  copyOver(from: string, to: string): boolean {
+    const src = this.racks.find((r) => r.id === from)
+    const dst = this.racks.find((r) => r.id === to)
+    if (!src || !dst) return false
+    Object.assign(dst, { ...structuredClone(src), id: dst.id, name: dst.name })
+    return true
+  }
+
   /** Runs a rack command; true when it went through (false: refused, or a prompt asks). */
   cmd(cmd: RackCmd, ctx: RackCtx): boolean {
     const live = ctx.state.liveRack

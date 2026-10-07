@@ -35,6 +35,7 @@ Audited 2026-09-26 against `develop` at e54b512.
 | OTS/Parts | Voice −/+ | `stepVoice` | mirror only |
 | OTS/Parts | Part on/off, part select | `togglePart` / `selectPart` | parts/PartStrip.svelte; mixer/Mixer.svelte |
 | Quick Racks | Quick Racks 1–8, Bank −/+, Store, Rack −/+ (the bank-file and Freeze pads are dark) | `pressQuickRack` / `stepQuickRackBank` / `toggleQuickRackStore` / `stepQuickRack` | the Quick Racks bar (in the keyboard strip) and the Quick Racks drawer |
+| Quick Racks | Undo (Racks page bottom row pad 8, note 119; dim orange while there is a store to undo) | `undoQuickRackStore` | the Undo button on the Quick Racks bar and drawer |
 | Multi Pads | Pads 1–4, STOP, arm, stop one | `triggerMultiPad` / `stopAllMultiPads` / `armMultiPad` / `stopMultiPad` | multipad/MultiPad.svelte |
 
 ## Buttons
@@ -62,7 +63,9 @@ Audited 2026-09-26 against `develop` at e54b512.
 | Panel faders 1–4, Style level, Multi Pad level, Master | `setPartVolume` / `setStyleVolume` / `setMultiPadVolume` / `setMasterVolume` | mixer/Mixer.svelte, PartStrip, AudioPage |
 | Style faders 1–8 | `setStylePartVolume` | Mixer |
 | Fader page (Master button) | `toggleFaderPage` | Mixer (`setFaderPage`) |
+| Fader picker (hold Master button + pad) | `setFaderPage` / `setFaderLayer` | Mixer bar, Stage band page and layer choosers; the mirror shows it with `setLayer` `fader` |
 | Panel buttons 1–4 / Shift+1–4 | `togglePart` / `selectPart` | PartStrip, Mixer |
+| Shift+Panel buttons 1–4 opens that part's Channel page in the app | `selectPart` (bumps `surface.partSelectSeq`, which opens Channel) | the Channel page, opened on the selected part |
 | Button 5 HARM/ARP | `toggleHarmonyArp` | harmony/Harmony.svelte, Mixer |
 | Button 6 plugin reload | `reloadPartPlugin` | mirror only |
 | Button 7 L Hold | `toggleLeftHold` | Parts, ChordPage |

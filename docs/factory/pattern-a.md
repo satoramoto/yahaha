@@ -12,7 +12,7 @@ One contract PR into `develop`, briefed in [storybook-setup.md](storybook-setup.
 
 The line does not write specs. A separate spec run produces the whole pile up front, and the owner inspects it once (goods inward), before anything is built.
 
-**Input:** the component inventory (primitives, complex components, pages) from the component-library plan, and the Push canvas boards.
+**Input:** the component inventory (primitives, complex components, screens) from the component-library plan, and the Push canvas boards.
 
 **One spec per component**, in `app/src/ui/<Name>/SPEC.md`, written from [spec-template.md](spec-template.md), with its board crops in `crops/`. The spec includes the full story table, so stories are specified before anything is built. The pile is committed in one specs PR before the line starts.
 
@@ -53,11 +53,11 @@ ship: PR opened, review verdict, merged at
 
 ## 5. End of line: integration
 
-After the pilot's parts merge, one integrator assembles a page story from them (for the pilot: the band's lamp row and a pad grid) and compares it with the full board render. Defects found here go back on the line as rework of the part that caused them, never fixed in the page.
+After the pilot's parts merge, one integrator assembles a screen story from them (for the pilot: the band's lamp row and a pad grid) and compares it with the full board render. Defects found here go back on the line as rework of the part that caused them, never fixed in the screen.
 
 ## 6. Pilot
 
-- **Parts:** about ten primitives chosen from different families, e.g. tab, segmented tabs, fader, meter, knob, pad, section pad, beat block, readout numeral. No complex components yet. LampButton is not in the pilot: it is the plant's worked example.
+- **Parts:** about ten primitives chosen from different families, e.g. tab, segmented tabs, fader, meter, knob, pad, section pad, beat block (now BarBeat's beat dots), readout numeral. No complex components yet. LampButton is not in the pilot: it is the plant's worked example.
 - **Report at the end**, per part and for the line: lead time (spec in to merged), first-pass yield (passed Inspect first time), rework loops, andon pulls by station and reason, tokens per merged part, page-stage defects, and the owner's verdict in Storybook (accept / redo).
 - **Then pattern B** builds the next family as one cell, measured the same way.
 

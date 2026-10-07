@@ -343,6 +343,8 @@ const EVERY_CMD: &[&str] = &[
     r#"{"type":"pressQuickRack","slot":0}"#,
     r#"{"type":"pressQuickRack","slot":7,"discard":true}"#,
     r#"{"type":"stepQuickRackBank","delta":-1}"#,
+    r#"{"type":"setQuickRackBank","bank":2}"#,
+    r#"{"type":"undoQuickRackStore"}"#,
     r#"{"type":"toggleQuickRackStore"}"#,
     r#"{"type":"storeRack","slot":0}"#,
     r#"{"type":"clearQuickRack","bank":2,"slot":5}"#,

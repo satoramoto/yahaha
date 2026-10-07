@@ -46,8 +46,11 @@ export function readmeKeys(md: string): Set<string> {
   return keys
 }
 
-/** README keys that aren't app controls (quitting the terminal UI). */
-const TERMINAL_ONLY = new Set(['ctrl+c'])
+/**
+ * README keys that aren't app controls: quitting the terminal UI, and the terminal's chart
+ * player (chart mode, previous/next song), which is out of the app this release.
+ */
+const TERMINAL_ONLY = new Set(['ctrl+c', 'M', '(', ')'])
 /** App keys README doesn't list: the help toggle, and PgUp/PgDn standing in for Tab. */
 const APP_ONLY = new Set(['?', 'PgUp', 'PgDn'])
 

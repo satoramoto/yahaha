@@ -970,8 +970,9 @@ mod tests {
         let pads = [96u8, 97, 98, 99, 100, 101, 102, 103, 112, 113, 114, 115, 116, 117, 118, 119];
         for page in [Page::Racks, Page::Chord, Page::Setup] {
             for a in pads.iter().filter_map(|&n| launchkey::pad_action(page, launchkey::Layer::None, n)) {
-                // The Setup page's Stop ACMP mode pads are Style Settings' choices.
-                if !matches!(a, Action::Fingering(_) | Action::Button(crate::engine::Button::SetStopAcmp(_))) {
+                // The Setup page's Stop ACMP mode pads are Style Settings' choices; Undo
+                // store has no key (the app's Undo button).
+                if !matches!(a, Action::Fingering(_) | Action::Button(crate::engine::Button::SetStopAcmp(_)) | Action::QuickRackUndo) {
                     assert!(keys.contains(&a), "{page:?}: {a:?} has no key");
                 }
             }

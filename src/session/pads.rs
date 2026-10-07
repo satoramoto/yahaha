@@ -34,12 +34,17 @@ impl Control {
     /// `setLayer`: the app's mirror holds or releases Sound or a part button, through the
     /// same steps the input thread runs for the Launchkey's (`live::sound_hold`,
     /// `live::swap`). The pads read `Shared::layer` on the next press, so the Racks page
-    /// (and capture on a tap, `Action::QuickRackHeld`) follows at once.
+    /// (and capture on a tap, `Action::QuickRackHeld`) follows at once. `fader` is the
+    /// master fader's button held: the pads are the fader picker (`live::fader_hold`); its
+    /// release here never switches the fader page (the app sends `toggleFaderPage` for a
+    /// tap).
     fn set_layer(&mut self, to: Layer) -> Result<(), CmdError> {
-        use crate::live::{sound_hold, swap};
+        use crate::live::{fader_hold, sound_hold, swap};
         let now = self.shared.layer();
         let next = match to {
             Layer::Sound => sound_hold::press(now),
+            Layer::Fader => fader_hold::press(now),
+            Layer::None if now == Layer::Fader => fader_hold::release(now),
             Layer::Swap { part } if part as usize >= crate::parts::COUNT => return self.fail(format!("no keyboard part {part}")),
             Layer::Swap { part } => Layer::Swap { part },
             Layer::None if now == Layer::Sound => sound_hold::release(now),
@@ -92,9 +97,9 @@ impl Control {
         let order = pnl.order;
         PadsState {
             page: pnl.page,
-            // The page the pads show: Racks while Sound is held (`page` stays the one on
-            // view, which comes back on release).
-            page_name: pnl.layer.pads(pnl.page).name().to_string(),
+            // What the pads show: Racks while Sound is held, "Faders" while the master
+            // fader's button is (`page` stays the one on view, which comes back on release).
+            page_name: pnl.shown_name().to_string(),
             page_number: order.position(pnl.page).map_or(0, |i| i as u8 + 1),
             page_count: order.len() as u8,
             pages: order.pages().map(|page| PadPageInfo { page, name: page.name().to_string() }).collect(),

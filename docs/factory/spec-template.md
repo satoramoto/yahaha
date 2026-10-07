@@ -2,7 +2,7 @@
 
 Every component in the library gets one spec at `app/src/ui/<Name>/SPEC.md`. The spec is the factory's raw material: the line never invents anything the spec doesn't say. Each station reads only the sections marked for it, so a section must stand on its own.
 
-Board crops live beside the spec in `app/src/ui/<Name>/crops/`, one PNG per story and theme (`<story>-dark.png`, `<story>-light.png`), cut from the Push canvas renders (`../yahaha-research/push-canvas/render/`, 1440×900 at 1x). The spec gives each crop's box on its board, so anyone can cut it again. They are the pictures the Inspect station compares against.
+Board crops live beside the spec in `app/src/ui/<Name>/crops/`, one PNG per story and theme (`<story>-dark.png`, `<story>-light.png`), cut from the Push board renders (`docs/design/push/png/<Board>-Dark.png` and `-Light.png`, 1440×900 at 1x). The spec gives each crop's box on its board, so anyone can cut it again. They are the pictures the Inspect station compares against.
 
 The examples below are LampButton's real ones (`app/src/ui/LampButton/SPEC.md` is the worked example). Copy everything below the line.
 
@@ -64,15 +64,15 @@ Every prop gets a JSDoc comment in the component (it becomes the Storybook docs 
 
 ## Stories (Story station)
 
-- **Title:** `Primitives/<Name>` (or `Components/<Name>`, `Pages/<Name>`).
-- **Layout:** `centered` (real size) unless a row says otherwise; a page is `fullscreen` at 1440×900.
+- **Title:** `Primitives/<Name>` (or `Components/<Name>`, `Screens/<Name>`; axiom 11).
+- **Layout:** `centered` (real size) unless a row says otherwise; a screen is `fullscreen` at 1440×900.
 
 One row per story. Every state in Visual rules has at least one story, and every size variant one. Every story renders in dark and light (the toolbar theme), so there's no separate light story. A crop's box is `<board> x,y w×h` in the render, the same box in the dark and the light board.
 
 | Story | Args | Shows | Crop | Play (interaction check) |
 |---|---|---|---|---|
 | `Off` | `{ label: 'Metronome' }` | the off face: `--btn` fill, grey label | `Off-{dark,light}.png`: Stage 1114,68 107×32 | — |
-| `On` | `{ label: 'Accomp', code: 'ACMP', on: true }` | lime face, ink label, small code | `On-{dark,light}.png`: Stage 24,68 127×32 | — |
+| `On` | `{ label: 'Accomp', code: 'ACMP', on: true }` | white label over a glowing white bar, small code | `On-{dark,light}.png`: Stage 24,68 127×32 | — |
 | `Toggles` | `{ label: 'Unison' }` | — | — | click → `aria-pressed` is `true` and `ontoggle` was called with `true`; press Space → `false` |
 | `Disabled` | `{ label: 'Off', size: 'sm', width: 64, disabled: true, name: 'Manual Bass, works with Upper on' }` | dimmed label, no press | `Disabled-{dark,light}.png`: SettingsChord 858,234 64×28 | click → `ontoggle` not called |
 | `PartOn` | `{ label: 'On', size: 'cell', on: true, name: 'Right 1 on' }`; layout `padded` | the `cell` size filling its container | — (fractional cell widths) | the button named `Right 1 on` is pressed |

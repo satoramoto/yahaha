@@ -217,7 +217,9 @@ export function mockSurface(s: AppState, lib: LibraryList, hw: MockHardware): Su
   )
 
   const near = neighbours(lib, s.library.position)
-  return { shift: false, layer: held, controls, faders, trackPrev: near.prev, trackNext: near.next, clock: hw.clock }
+  // Moved only by a part select on the (imaginary) Launchkey (`MockSession.hardwareSelectPart`).
+  const partSelectSeq = s.surface?.partSelectSeq ?? 0
+  return { shift: false, layer: held, controls, faders, trackPrev: near.prev, trackNext: near.next, clock: hw.clock, partSelectSeq }
 }
 
 /** ClockState read at `t` (ms): bar, beat and phase moved on (the engine's `ClockState::at`). */

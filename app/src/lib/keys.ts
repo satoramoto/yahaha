@@ -83,9 +83,6 @@ export const BINDINGS: Record<string, Binding> = {
   B: c({ type: 'stopAllMultiPads' }),
   a: c({ type: 'nextAudioOutput' }),
   k: c({ type: 'toggleSynthMute' }),
-  M: c({ type: 'toggleChartMode' }),
-  '(': c({ type: 'stepChart', delta: -1 }),
-  ')': c({ type: 'stepChart', delta: 1 }),
   '\\': c({ type: 'panic' }),
   r: c({ type: 'looperRec' }),
   '^': c({ type: 'looperOnOff' }),
@@ -97,7 +94,7 @@ export const BINDINGS: Record<string, Binding> = {
   esc: { app: 'escape' },
   '?': { app: 'help' },
   // The app bar's quick-nav strip (lib/nav.ts): Alt + a letter, by physical key.
-  ...Object.fromEntries([...'bsropemlchyt'].map((k) => [`alt+${k}`, { nav: `alt+${k}` }])),
+  ...Object.fromEntries([...'bsrocepqlhyt'].map((k) => [`alt+${k}`, { nav: `alt+${k}` }])),
 }
 
 const NAMED: Record<string, string> = {

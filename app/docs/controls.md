@@ -50,8 +50,8 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
 | **Tap tempo** | Tap two or more times in time to set the tempo (the last four count); stopped, a whole bar of taps (four in 4/4) starts the style one beat after your last tap, rhythm only until you play a chord. While the band plays, a tap restarts the section instead (Section Reset) and the tempo stays, unless you turn Tap: Section Reset off in Settings › Style. The pad lights on the downbeat while the band plays. | TAP TEMPO | `T` | Pad page 1 (Sections), bottom row, pad 6 |
-| **Tempo −** | Slows the tempo by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together for the style's own tempo. | TEMPO − | `-` | Function button (right of the pads) |
-| **Tempo +** | Speeds the tempo up by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together for the style's own tempo. | TEMPO + | `=` | > (Scene Launch) button (right of the pads) |
+| **Tempo −** | Slows the tempo by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together, or double-click the tempo, for the style's own tempo. | TEMPO − | `-` | Function button (right of the pads) |
+| **Tempo +** | Speeds the tempo up by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together, or double-click the tempo, for the style's own tempo. | TEMPO + | `=` | > (Scene Launch) button (right of the pads) |
 | **Style tempo** | Back to the tempo the style came with, as pressing TEMPO − and + together does on the Genos. Hold one tempo button and press the other, here or on the Launchkey. | TEMPO − and + together | `+` | Function and > (Scene Launch) pressed together |
 | **Tempo** | Sets the tempo directly, 5–500 BPM, as the Tempo knob on the Launchkey does. With focus, the arrow keys move it by 1 BPM. | Tempo | — | Knob 8 on most knob pages |
 
@@ -59,11 +59,9 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
-| **Tempo** | The current tempo in beats per minute. Loading a style sets the style's own tempo. | Tempo | — | — |
-| **Time signature** | The style's time signature, from the style file. | — | — | — |
-| **Bar and beat** | Where the band is: bar, and a light per beat. The section playing now and the one queued next are shown alongside, and for a fill the Main it lands on (⤷). The first press picks the fill; later presses before it ends only change where it lands, and its own Main again repeats it. | — | — | — |
-| **Chord** | The chord the style is following. When Keyboard transpose is not zero, the chord as you fingered it is shown small underneath. | Chord (Home display, Style area) | — | — |
+| **Tempo** | The current tempo in beats per minute. Drag it up or down, or scroll on it, to change it; with focus, ↑ and ↓ step it by 1 BPM. Double-click it for the style's own tempo (Style tempo), which loading a style also sets. | Tempo | — | — |
 | **Status line** | The last message: a loaded style, an error, or a Launchkey note or CC nothing is mapped to, which tells you what a button really sends. | — | — | — |
+| **Band sends** | How much of the band (the eight Style parts) goes to the reverb, the chorus and the delay. A dash means the engine hasn't sent it yet. Click to open Effects, where each effect has its band send. | — | — | — |
 
 ## Style
 
@@ -138,46 +136,48 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
-| **OTS 1** | A sound setup for your own hands that the style's author picked to suit it: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it swaps your keyboard sounds (or loads the rack of yours chosen for it), and the band doesn't change. Dark if the style has none. | ONE TOUCH SETTING 1 | `Shift+1` | Pad page 2 (Racks), bottom row, pad 1 |
-| **OTS 2** | The style's second suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it swaps your keyboard sounds, and the band doesn't change. If you chose one of your racks for it (OTS rack), that rack loads instead. | ONE TOUCH SETTING 2 | `Shift+2` | Pad page 2 (Racks), bottom row, pad 2 |
-| **OTS 3** | The style's third suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it swaps your keyboard sounds, and the band doesn't change. If you chose one of your racks for it (OTS rack), that rack loads instead. | ONE TOUCH SETTING 3 | `Shift+3` | Pad page 2 (Racks), bottom row, pad 3 |
-| **OTS 4** | The style's fourth suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it swaps your keyboard sounds, and the band doesn't change. If you chose one of your racks for it (OTS rack), that rack loads instead. | ONE TOUCH SETTING 4 | `Shift+4` | Pad page 2 (Racks), bottom row, pad 4 |
+| **OTS 1** | A sound setup for your own hands that the style's author picked to suit it: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it applies it at once, swapping your keyboard sounds (or loading the rack of yours chosen for it), and the band doesn't change. Dark if the style has none. | ONE TOUCH SETTING 1 | `Shift+1` | Pad page 2 (Racks), bottom row, pad 1 |
+| **OTS 2** | The style's second suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it applies it at once, swapping your keyboard sounds, and the band doesn't change. If you chose one of your racks for it (OTS rack), that rack loads instead. | ONE TOUCH SETTING 2 | `Shift+2` | Pad page 2 (Racks), bottom row, pad 2 |
+| **OTS 3** | The style's third suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it applies it at once, swapping your keyboard sounds, and the band doesn't change. If you chose one of your racks for it (OTS rack), that rack loads instead. | ONE TOUCH SETTING 3 | `Shift+3` | Pad page 2 (Racks), bottom row, pad 3 |
+| **OTS 4** | The style's fourth suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it applies it at once, swapping your keyboard sounds, and the band doesn't change. If you chose one of your racks for it (OTS rack), that rack loads instead. | ONE TOUCH SETTING 4 | `Shift+4` | Pad page 2 (Racks), bottom row, pad 4 |
 | **OTS rack** | What this OTS button loads while this style is loaded: the style's own setup, or one of your racks instead. The choice is kept for this style in your data folder (the style file isn't touched), and the Racks pad page, the pedals and OTS Link follow it. Style's own puts it back. | — | — | — |
 | **OTS Link** | When on, your hands' sounds follow the band: pressing Main A, B, C or D also recalls OTS 1, 2, 3 or 4. Changing style recalls the setting for the Main that's playing. | OTS LINK | `F10` | Pad page 5 (Setup), bottom row, pad 1; Shift + Pad Bank ▼ |
-| **OTS Link timing** | When OTS Link swaps the setting while the band plays: when the band reaches the Main you pressed (At Main Section Change, the default), or as soon as you press it (Immediate). Change it in Settings, Style. | OTS Link Timing | — | — |
+| **OTS Link timing** | When OTS Link swaps the setting while the band plays: when the band reaches the Main you pressed (At Main Section Change, the default), or as soon as you press it (Immediate). Set it here, on the Quick Racks page, in Library › Racks or in Settings › Style. | OTS Link Timing | — | — |
 
 ## Quick Racks
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
-| **Quick Rack 1** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes. Blue when it holds a rack, red when that rack is loaded, dark when empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [1] | `Shift+Q` | Pad page 2 (Racks), top row, pad 1 |
-| **Quick Rack 2** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes. Blue when it holds a rack, red when that rack is loaded, dark when empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [2] | `Shift+W` | Pad page 2 (Racks), top row, pad 2 |
-| **Quick Rack 3** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes. Blue when it holds a rack, red when that rack is loaded, dark when empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [3] | `Shift+E` | Pad page 2 (Racks), top row, pad 3 |
-| **Quick Rack 4** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes. Blue when it holds a rack, red when that rack is loaded, dark when empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [4] | `Shift+R` | Pad page 2 (Racks), top row, pad 4 |
-| **Quick Rack 5** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes. Blue when it holds a rack, red when that rack is loaded, dark when empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [5] | `Shift+T` | Pad page 2 (Racks), top row, pad 5 |
-| **Quick Rack 6** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes. Blue when it holds a rack, red when that rack is loaded, dark when empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [6] | `Shift+Y` | Pad page 2 (Racks), top row, pad 6 |
-| **Quick Rack 7** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes. Blue when it holds a rack, red when that rack is loaded, dark when empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [7] | `Shift+U` | Pad page 2 (Racks), top row, pad 7 |
-| **Quick Rack 8** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes. Blue when it holds a rack, red when that rack is loaded, dark when empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [8] | `Shift+I` | Pad page 2 (Racks), top row, pad 8 |
+| **Quick Rack 1** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes; tapping the lit one (the loaded rack) recalls it clean with no question, keeping any unsaved changes as a new rack, "Recovered: <name>". On the Quick Racks page the loaded rack is a solid block, a stored one an outline, an empty one a faded outline, and one whose rack is gone shows ⚠; on the pads, blue holds a rack, red is loaded, dark is empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [1] | `Shift+Q` | Pad page 2 (Racks), top row, pad 1 |
+| **Quick Rack 2** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes; tapping the lit one (the loaded rack) recalls it clean with no question, keeping any unsaved changes as a new rack, "Recovered: <name>". On the Quick Racks page the loaded rack is a solid block, a stored one an outline, an empty one a faded outline, and one whose rack is gone shows ⚠; on the pads, blue holds a rack, red is loaded, dark is empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [2] | `Shift+W` | Pad page 2 (Racks), top row, pad 2 |
+| **Quick Rack 3** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes; tapping the lit one (the loaded rack) recalls it clean with no question, keeping any unsaved changes as a new rack, "Recovered: <name>". On the Quick Racks page the loaded rack is a solid block, a stored one an outline, an empty one a faded outline, and one whose rack is gone shows ⚠; on the pads, blue holds a rack, red is loaded, dark is empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [3] | `Shift+E` | Pad page 2 (Racks), top row, pad 3 |
+| **Quick Rack 4** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes; tapping the lit one (the loaded rack) recalls it clean with no question, keeping any unsaved changes as a new rack, "Recovered: <name>". On the Quick Racks page the loaded rack is a solid block, a stored one an outline, an empty one a faded outline, and one whose rack is gone shows ⚠; on the pads, blue holds a rack, red is loaded, dark is empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [4] | `Shift+R` | Pad page 2 (Racks), top row, pad 4 |
+| **Quick Rack 5** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes; tapping the lit one (the loaded rack) recalls it clean with no question, keeping any unsaved changes as a new rack, "Recovered: <name>". On the Quick Racks page the loaded rack is a solid block, a stored one an outline, an empty one a faded outline, and one whose rack is gone shows ⚠; on the pads, blue holds a rack, red is loaded, dark is empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [5] | `Shift+T` | Pad page 2 (Racks), top row, pad 5 |
+| **Quick Rack 6** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes; tapping the lit one (the loaded rack) recalls it clean with no question, keeping any unsaved changes as a new rack, "Recovered: <name>". On the Quick Racks page the loaded rack is a solid block, a stored one an outline, an empty one a faded outline, and one whose rack is gone shows ⚠; on the pads, blue holds a rack, red is loaded, dark is empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [6] | `Shift+Y` | Pad page 2 (Racks), top row, pad 6 |
+| **Quick Rack 7** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes; tapping the lit one (the loaded rack) recalls it clean with no question, keeping any unsaved changes as a new rack, "Recovered: <name>". On the Quick Racks page the loaded rack is a solid block, a stored one an outline, an empty one a faded outline, and one whose rack is gone shows ⚠; on the pads, blue holds a rack, red is loaded, dark is empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [7] | `Shift+U` | Pad page 2 (Racks), top row, pad 7 |
+| **Quick Rack 8** | Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes; tapping the lit one (the loaded rack) recalls it clean with no question, keeping any unsaved changes as a new rack, "Recovered: <name>". On the Quick Racks page the loaded rack is a solid block, a stored one an outline, an empty one a faded outline, and one whose rack is gone shows ⚠; on the pads, blue holds a rack, red is loaded, dark is empty. With Store armed, stores the live rack here instead; so does a long-press or right-click. | REGISTRATION MEMORY [8] | `Shift+I` | Pad page 2 (Racks), top row, pad 8 |
 | **Store** | Arms Store: the next Quick Rack button you press gets the live rack, replacing what it held. The buttons flash while it waits; a rack with unsaved changes, or one never saved, is saved first. Press Store again to cancel. | MEMORY | `F5` | Pad page 2 (Racks), bottom row, pad 7 |
 | **Previous rack** | Loads the rack on the stored button before the lit one in the bank on view (with none lit, the last). It stops at the first; with unsaved changes it asks first. | Registration − (foot pedal) | `F7` | Shift + < Track button |
 | **Next rack** | Loads the rack on the stored button after the lit one in the bank on view (with none lit, the first). It stops at the last; with unsaved changes it asks first. | Registration + (foot pedal) | `F8` | Shift + Track > button |
 | **Bank −** | Shows the previous bank of eight Quick Racks (B to A, say) on these buttons and the Racks pad page. Nothing loads until you press one. | — | `Shift+O` | Pad page 2 (Racks), bottom row, pad 5 |
 | **Bank +** | Shows the next bank of eight Quick Racks (A to B, say, up to H) on these buttons and the Racks pad page. Nothing loads until you press one. | — | `Shift+P` | Pad page 2 (Racks), bottom row, pad 6 |
-| **Quick Racks bank** | The bank of eight Quick Racks on view, A to H. Bank − and Bank + step through them; in the Quick Racks drawer, click a letter to view that bank. | — | — | — |
+| **Quick Racks bank** | The bank of eight Quick Racks on view, A to H. On the Quick Racks page, tap a letter to view that bank; Bank − and Bank + step through them. Nothing loads until you press a button. | — | — | — |
+| **Undo store** | Takes back the last store: the Quick Rack button gets back the rack it held, or goes empty again. If the store saved over that button's own rack, the rack gets back what it held from the "Previous: <name>" rack the store kept, which then goes; if that rack is loaded, it reloads as it was, and changes made since the store are kept as "Recovered: <name>". | — | — | Pad page 2 (Racks), bottom row, pad 8; lit while there is a store to undo |
 | **Clear** | Empties this Quick Rack button. The rack itself stays in your racks. | Regist Bank Edit: Delete | — | — |
 | **Rack name** | The name to save the live rack under, as a new rack of yours. It then goes on the waiting Quick Rack button. | — | — | — |
 | **Save rack** | Saves the live rack (a new one under the name typed, when it has never been saved), then stores it on the waiting Quick Rack button. | — | — | — |
 | **Cancel** | Nothing is saved or stored: Store disarms and the button keeps what it held. | — | — | — |
-| **Store rack** | Puts the live rack on this Quick Rack button of the bank on view, replacing what it held, as Store then the button does. A rack with unsaved changes, or one never saved, is saved first. | MEMORY + REGISTRATION MEMORY | — | Hold Sound and tap a rack pad (Pad page 2 (Racks), top row) |
+| **Store rack** | Puts the live rack on this Quick Rack button of the bank on view, replacing what it held, as Store then the button does. A rack with unsaved changes, or one never saved, is saved first; on the lit button its changes save over that rack, which keeps what it held as "Previous: <name>". Undo store takes it back. | MEMORY + REGISTRATION MEMORY | — | Hold Sound and tap a rack pad (Pad page 2 (Racks), top row) |
+| **Library › Racks** | Opens the Library on its Racks page: every rack of yours, to find, rename, duplicate or delete one. | — | `Alt+R` (terminal: ) | — |
 
 ## Keyboard parts
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
-| **Right 1 on/off** | Turns Right 1 on or off. Right parts that are on sound together, which is how you layer voices. On its mixer strip, press and hold On to swap its sound: the knobs are Right 1's (knob 1 its sound, 2–8 its mix) until you click On again. | PART ON/OFF RIGHT 1 | `5` | Panel fader page: button under fader 1 |
-| **Right 2 on/off** | Turns Right 2 on or off. Turn on Right 1 and Right 2 together to layer, for example piano and strings. On its mixer strip, press and hold On to swap its sound: the knobs are Right 2's (knob 1 its sound, 2–8 its mix) until you click On again. | PART ON/OFF RIGHT 2 | `6` | Panel fader page: button under fader 2 |
-| **Right 3 on/off** | Turns Right 3 on or off, a third layer for the right hand. On its mixer strip, press and hold On to swap its sound: the knobs are Right 3's (knob 1 its sound, 2–8 its mix) until you click On again. | PART ON/OFF RIGHT 3 | `7` | Panel fader page: button under fader 3 |
-| **Left on/off** | Turns the Left voice on or off: your left hand plays it below the split. It can't be turned off while Manual Bass is on. On its mixer strip, press and hold On to swap its sound: the knobs are Left's (knob 1 its sound, 2–8 its mix) until you click On again. | PART ON/OFF LEFT | `8` `L` | Panel fader page: button under fader 4; Shift + Pad Bank ▲ |
+| **Right 1 on/off** | Turns Right 1 on or off. Right parts that are on sound together, which is how you layer voices. On screen, press and hold its part lamp to swap its sound: the knobs are Right 1's (knob 1 its sound, 2–8 its mix) until you click the lamp again. | PART ON/OFF RIGHT 1 | `5` | Panel fader page: button under fader 1 |
+| **Right 2 on/off** | Turns Right 2 on or off. Turn on Right 1 and Right 2 together to layer, for example piano and strings. On screen, press and hold its part lamp to swap its sound: the knobs are Right 2's (knob 1 its sound, 2–8 its mix) until you click the lamp again. | PART ON/OFF RIGHT 2 | `6` | Panel fader page: button under fader 2 |
+| **Right 3 on/off** | Turns Right 3 on or off, a third layer for the right hand. On screen, press and hold its part lamp to swap its sound: the knobs are Right 3's (knob 1 its sound, 2–8 its mix) until you click the lamp again. | PART ON/OFF RIGHT 3 | `7` | Panel fader page: button under fader 3 |
+| **Left on/off** | Turns the Left voice on or off: your left hand plays it below the split. It can't be turned off while Manual Bass is on. On screen, press and hold its part lamp to swap its sound: the knobs are Left's (knob 1 its sound, 2–8 its mix) until you click the lamp again. | PART ON/OFF LEFT | `8` `L` | Panel fader page: button under fader 4; Shift + Pad Bank ▲ |
 | **Edit Right 1** | Picks Right 1 as the part whose voice Voice −/+ changes. | Part select (Right 1) | `F1` | Panel fader page: Shift + button under fader 1 |
 | **Edit Right 2** | Picks Right 2 as the part whose voice Voice −/+ changes. | Part select (Right 2) | `F2` | Panel fader page: Shift + button under fader 2 |
 | **Edit Right 3** | Picks Right 3 as the part whose voice Voice −/+ changes. | Part select (Right 3) | `F3` | Panel fader page: Shift + button under fader 3 |
@@ -192,11 +192,9 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Reload plugin** | Loads the selected part's plugin again, with its saved sound, after it stopped working or failed to load. | — | `S` | — |
 | **Run in process** | Runs this plugin inside yahaha instead of in its own process: a little less CPU for the lightest plugins, but if the plugin crashes, yahaha goes with it. It is remembered for the plugin and applies from its next load: a part already playing it keeps running where it is, and the button shows ↻ until the plugin loads again (pick it again, or the next start). | — | — | — |
 | **Layer** | The Right parts that are on all sound together on every key above the split: that's a layer. Turn on Right 1 and Right 2 to stack, for example, piano and strings. | PART ON/OFF (Right 1–3 layered) | `5` `6` `7` | Panel fader page: buttons under faders 1–3 |
-| **Left hand** | Left plays the keys at and below the split point, with its own voice. Under Manual Bass it plays the style's Bass voice there instead, and the band's own bass goes quiet. | Split Point (Left) | — | — |
 | **As written for** | The voice the style's author wrote this band part for, and its MIDI channel on the yahaha port. Load a matching instrument on that channel in Ableton to hear the style as intended; ≈ marks the nearest General MIDI voice to a Yamaha one. | Style parts (Mixer › Style) | — | — |
-| **Plugin instances** | How many instrument plugins are loaded right now: one for every keyboard or Style part that plays a plugin (each part gets its own), plus one still playing out while its part's next plugin loads. | — | — | — |
 | **Library patch** | The part plays a patch from your sound library. Pick a GM voice instead to go back to it. | Voice Selection | — | — |
-| **Swap sound** | Hold a part's Panel fader button and turn knob 1 to step that part's sound by number, live, keeping its mix; knobs 2–8 are its mix. Let go to keep the sound (dialling back is the cancel); a hold that turns no knob is a tap, which turns the part on or off. On screen, press and hold a keyboard part's On on its mixer strip: swap stays on when you let go, so you can turn the knobs here, and a click on that On ends it. | — | — | Panel fader page: hold the button under fader 1–4 and turn knob 1 |
+| **Swap sound** | Hold a part's Panel fader button and turn knob 1 to step that part's sound by number, live, keeping its mix; knobs 2–8 are its mix. Let go to keep the sound (dialling back is the cancel); a hold that turns no knob is a tap, which turns the part on or off. On screen, press and hold a keyboard part's lamp under its fader: swap stays on when you let go, so you can turn the knobs here, and a click on that lamp ends it. | — | — | Panel fader page: hold the button under fader 1–4 and turn knob 1 |
 
 ## Rack panel
 
@@ -216,11 +214,6 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Harmony / Arp type** | The Keyboard Harmony type or arpeggio pattern this rack plays, saved with the rack. The switch next to it turns Harmony/Arp on or off; the Harmony/Arp drawer has its settings. | Keyboard Harmony/Arpeggio type | — | — |
 | **Controller map** | Shows and sets what Launchkey faders 1–4 (Panel page) and knobs 1–8 (Rack knob page) do while this rack is loaded. It is saved with the rack. | — | — | — |
 | **Controller target** | What this Launchkey fader or knob does while this rack is loaded: a part's level, pan, reverb, chorus, delay, insert on/off or setting, or send 4–6, Harmony/Arp on or off, the rotary speed, the split point, Harmony or Metronome volume, or (knobs only) the tempo. Changing it marks the rack modified; Save rack keeps it. A new rack has the parts' levels on faders 1–4 and knobs 1–4, then Harmony volume, Metronome volume, nothing and Tempo. | — | — | Panel faders 1–4; the eight knobs on the Rack knob page |
-| **Part delay** | The controller sets this part's delay send (send 3). | — | — | Panel faders 1–4; the eight knobs on the Rack knob page |
-| **Part insert on/off** | The controller turns one of this part's insert slots on (upper half) or off (lower half). | — | — | Panel faders 1–4; the eight knobs on the Rack knob page |
-| **Part insert setting** | The controller sets one setting of one of this part's insert slots, across its range. | — | — | Panel faders 1–4; the eight knobs on the Rack knob page |
-| **Part send** | The controller sets this part's level to one of the added send effects (4–6). | — | — | Panel faders 1–4; the eight knobs on the Rack knob page |
-| **Rotary fast/slow** | The controller switches every rotary insert fast (upper half) or slow (lower half). | Rotary Speaker speed (Slow/Fast) | — | Panel faders 1–4; the eight knobs on the Rack knob page |
 | **Insert slot** | The effect in this insert slot of the part's strip. Click to pick its type and set its settings; the lamp beside it turns it on or off. The rack saves both slots. | Mixer › Effect › Insertion Effect | — | — |
 | **Done** | Closes the insert settings (Escape does too). Every change there is already sent. | — | — | — |
 | **Keyboard part** | Makes this part the one you edit: Voice −/+ and Library act on it, as Shift + its Panel fader button does on the Launchkey. Clicking anywhere in the part does the same. | PART SELECT | — | Panel fader page: Shift + buttons under faders 1–4 |
@@ -233,21 +226,28 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
-| **Stage** | Shows the stage: the lead sheet, the Launchkey and the keys. Esc in Library comes back here too. | — | `Alt+B` (terminal: ) | — |
-| **Library** | Shows Library in place of the stage: racks, sounds, instruments and the style map. The band and the drawers keep working while it is open. | Voice Selection | `Alt+B` (terminal: ) | — |
+| **Stage** | Shows the Stage: the display (style, chord, tempo, One Touch Settings), the band of faders, knobs, pads and transport, and the keys. Esc on another page comes back here. | — | `Alt+B` (terminal: ) | — |
+| **Library** | Shows the Library in the Stage's place: styles, sounds, instruments, racks and the style map, while the band keeps playing. A part's sound on the Stage opens it on Sounds for that part; the Stage tab or Esc goes back. | Voice Selection | `Alt+B` (terminal: ) | — |
 
 ## Library
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
-| **Racks** | The live rack (what is under your hands, autosaved) and your racks: load, rename, duplicate or delete them, or start a new one. | Registration Memory | — | — |
+| **Racks** | The live rack (what is under your hands, autosaved) and your racks: load, rename, duplicate or delete them, or start a new one. Alt+R opens Library on this tab. | Registration Memory | `Alt+R` (terminal: ) | — |
 | **Sounds** | Every sound a keyboard part can play: yours, plugin presets and SoundFont voices, by category. Click one to hear it on the target part. | Voice Selection | — | — |
 | **Instruments** | Your plugins and SoundFonts, with New and Missing ones marked. Browse lists an instrument's sounds; + New sound starts from a blank plugin. | — | — | — |
 | **Style map** | The program map that makes every style play your sounds instead of the GM voices it asks for, and Add from SoundFont. | — | `Alt+Y` (terminal: ) | — |
+| **Styles** | The style library by folder, with Favourites and Recent. Filter it, pick a style and load it; while the band plays it loads on the next bar. | Style Selection | — | — |
+| **Style** | Click to highlight it (and preview it while stopped, with Preview on select). Enter or a double-click loads it. ● marks the loaded style; ◀ and ▶ the ones Track ◀ and Track ▶ would load. | — | — | Track ◀ / Track ▶ load the neighbouring styles |
+| **Load style** | Loads the highlighted style now and goes back to the Stage. While the band plays, it loads on the next bar line instead. Enter does the same. | — | — | — |
+| **Cancel next-bar load** | Would cancel the style waiting for the next bar line. Not available yet: the engine has no command to unqueue a style. | — | — | — |
+| **Open file…** | Opens a style file (.sty .prs .sst .bcs .pcs .pst .fps) from any folder, adds it to the library and loads it. Cancel loads nothing. | — | — | — |
+| **Show** | All instruments, only plugins, only SoundFonts, or the ones that need attention: a plugin that is not installed (its parts are silent) or one that failed to load last time. | — | — | — |
+| **Instrument** | Click to see its details; double-click or Enter browses its sounds. New marks a plugin the last scan found that you have not opened yet; ⚠ one that is missing or failed to load. | — | — | — |
+| **Replace…** | This plugin is not installed, so the parts playing it are silent. Opens Sounds with that part as the target: the sound you pick replaces it and keeps its mix. Off when no part plays it now. | — | — | — |
 | **Loads into** | The keyboard part that Sounds and Instruments load into. It starts on the part you came from; switch it here without leaving Library. | PART SELECT | — | — |
 | **Back to Stage** | Closes Library and shows the stage again. Nothing is lost: the live rack keeps what you picked. | — | `Esc` | — |
 | **Search sounds** | Narrows the list by name, instrument or category. ↑ ↓ step through the list and play each sound on the target part; Enter plays the selected one. | — | — | — |
-| **Sound list** | Click a sound to hear it on the target part at once. ↑ ↓ step and play, Enter plays the selected one, Ctrl+D stars it. | Voice Selection | — | — |
 | **Sound** | Click to play it on the target part at once. ▶ marks what the target part plays, and R1…L which parts play it; the badge says Mine, Factory (a plugin preset) or SoundFont. | Voice Selection | — | — |
 | **All** | Your sounds, every plugin with its listed presets, and the SoundFont voice the map plays for each GM program. Instruments › Browse lists every preset of one instrument. | — | — | — |
 | **Mine** | Only the sounds in My Sounds: the ones you saved or copied. | User | — | — |
@@ -259,17 +259,13 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Copy to My Sounds** | Keeps this sound in My Sounds, where you can rename it, file it and find it under Mine. | — | — | — |
 | **Browse** | Opens Sounds showing only this instrument, with every one of its presets. | — | — | — |
 | **+ New sound** | Loads a blank instance of this plugin on the target part and opens its window. Save as… keeps what you make. | — | — | — |
-| **More** | The plugin's housekeeping: the category its sounds file under, whether it runs in yahaha's process, and its window. | — | — | — |
 | **Show racks** | Opens Racks with Needs attention on: the racks with parts on this missing plugin. Those parts are silent until you pick a new sound or reinstall it. | — | — | — |
 | **Needs attention** | Shows only the racks with a part whose plugin is missing. Those parts stay silent until you replace their sound or reinstall the plugin. | — | — | — |
-| **Live rack** | What is under your hands now, with its four parts' sounds. It autosaves, so it comes back when yahaha starts; ● means changed since it was loaded. | — | — | — |
-| **Rack that needs attention** | A saved rack with a part whose plugin is missing. The rack itself is kept as it is; load it and pick a new sound for that part, or reinstall the plugin. | — | — | — |
 | **Search racks** | Narrows the racks to those whose name or part sounds hold every word you type. Esc clears it. | — | — | — |
 | **New rack** | Starts a new rack from the defaults, named New rack until you save it. With unsaved changes it asks first, in the Rack panel. | — | — | — |
 | **Rack** | One of your racks: click to see its details below, double-click to load it (with unsaved changes it asks first, in the Rack panel). Its label, such as A1, is the Quick Rack button in the bank on view that holds it. | Registration Memory | — | — |
 | **Rack name** | Type a new name and press Enter to rename the rack; Esc puts the old one back. Quick Rack buttons keep it under its new name. | — | — | — |
 | **Load** | Loads this rack: all four parts, the split and Harmony/Arp. With unsaved changes it asks first, in the Rack panel. | — | — | — |
-| **Load OTS** | Recalls this OTS button, as the Racks pad page does: the rack of yours chosen for it, or the style's own setup. Loading a rack asks first if the live rack has unsaved changes. | ONE TOUCH SETTING 1–4 | — | — |
 | **Duplicate** | Copies this rack as a new rack of yours named “… copy”, and selects the copy. | — | — | — |
 | **Delete…** | Deletes this rack after you confirm, emptying the Quick Rack buttons that hold it and giving any OTS button that loaded it back to its style. The loaded rack can’t be deleted: load another first. | — | — | — |
 | **Delete** | Deletes the rack for good and empties the Quick Rack buttons named above. | — | — | — |
@@ -295,14 +291,11 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Keep** | Keeps the sound and goes back to the list. | — | — | — |
 | **Details** | Shows the sound's tags and where it comes from. A sound has no level, pan, sends or octave of its own: those belong to the part. | Voice Setting | — | — |
 | **Also as .aupreset** | Also keeps what this part's plugin plays now as a preset of the plugin: a standard .aupreset in ~/Library/Audio/Presets that Logic and MainStage read too. Pick its category; if a preset of that name exists, yahaha asks before replacing it. | Voice Setting › Save | — | — |
-| **Preset name** | The new preset's name, also its file name. If a preset of that name exists, yahaha asks before replacing it (the file is shared with Logic and MainStage). Enter saves, Esc cancels. | — | — | — |
 | **Preset category** | The category the new preset is listed under in the browser. Kept by yahaha; the .aupreset file itself is not changed. | — | — | — |
-| **Save the preset** | Writes the .aupreset and lists it under the plugin. The part then plays that preset. | — | — | — |
 | **Replace** | Replaces the existing preset of this name with what the part's plugin plays now. Logic and MainStage see the new one too. | — | — | — |
 | **Keep the existing preset** | Leaves the existing preset as it is; change the name to save a new one. | — | — | — |
 | **Cancel** | Closes the form without saving. | — | — | — |
 | **Category** | The sounds of one Genos voice category. A preset's category is its General MIDI family, and a plugin's is guessed from its name. | VOICE category buttons | — | — |
-| **Plugin category** | The category the selected plugin or plugin preset is listed under. yahaha guesses it from the name (a preset it can't place goes with its plugin); pick another to file it where you look for it. | — | — | — |
 | **Sound** | Click or Enter plays this sound on the part. SF is a SoundFont preset, AU a plugin or its preset, Mine a sound in My Sounds; in All sounds, "GM 5" says which program the map plays it for. ▶ marks what the part plays. | Voice Selection | — | — |
 | **Sound** | Click or Enter picks this sound for the map rule and closes. SF is a SoundFont preset, AU a plugin or its preset, Mine a sound in My Sounds; in All sounds, "GM 5" says which program the map plays it for. ▶ marks the sound the rule names now. | Voice Selection | — | — |
 | **Plugin that failed** | This plugin failed to load last time (⚠ says why). Picking it tries again; until it loads, the part plays its SoundFont voice. | — | — | — |
@@ -315,13 +308,10 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 |---|---|---|---|---|
 | **Arpeggio Hold pedal** | The Arpeggio Hold pedal switch, from the app. On: the arpeggio plays on after you let go, as with the pedal held down. | Arpeggio Hold (foot pedal) | — | — |
 | **Harmony/Arpeggio** | Turns the selected Keyboard Harmony type or arpeggio on or off for the keys right of the split. Turning it off stops the arpeggio at once; keys you hold keep their harmony notes until you let go. | HARMONY/ARPEGGIO | `Shift+J` | Panel fader page: button under fader 5 |
-| **Harmony types** | Shows the Keyboard Harmony types and selects the one last used: duets, trios, block and 4-way voicings, 1+5, Octave, Strum, Multi Assign, Echo, Tremolo and Trill. | Keyboard Harmony | — | — |
-| **Arpeggio patterns** | Shows the arpeggio patterns and selects the one last used. They are yahaha's own patterns, not Yamaha's. | Arpeggio | — | — |
 | **Harmony type** | Selects this Keyboard Harmony type. The harmony follows the chord you play for the style, and only the top note of your right hand is harmonised. | Keyboard Harmony type | — | — |
 | **Arpeggio pattern** | Selects this arpeggio pattern. The keys you hold right of the split play it, in time with the style (or at the tempo while it is stopped). | Arpeggio type | — | — |
-| **Previous type** | Steps back through the Harmony types and the arpeggios, as one list. | — | — | — |
 | **Next type** | Steps on through the Harmony types and then the arpeggios, as one list. | — | `Shift+L` | — |
-| **Volume** | The level of the added notes, and of the arpeggio. At 127 they play as hard as you do; at 0 they are silent. | Volume (HrmArpVol) | — | — |
+| **Volume** | The level of the added notes, and of the arpeggio. At 127 they play as hard as you do; at 0 they are silent. | Volume (HrmArpVol) | — | Knob 5 on the Rack knob page (with the default controller map); a Panel fader mapped to Harmony volume |
 | **Speed** | How fast Echo, Tremolo and Trill repeat, as a note value at the current tempo. | Speed | — | — |
 | **Assign** | Which Right parts sound the effect. Auto: the added notes and repeats on the first Right part that is on, the arpeggio on every Right part that is on; Multi (Harmony types and Echo only): the melody on the first, the added notes spread over the others; Right 1–3: that part. | Assign | — | — |
 | **Chord Note Only** | Harmonises only melody notes that belong to the chord you are playing. Passing notes play plainly. | Chord Note Only | — | — |
@@ -331,14 +321,14 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Arpeggio velocity** | Where the arpeggio's loudness comes from: the pattern's own accents, how hard you played each key, or one fixed velocity. | — | — | — |
 | **Fixed velocity** | The velocity every arpeggio note plays at when the velocity is Fixed. | — | — | — |
 | **Keep Key On** | The pattern's clock keeps running while no key is held, so the next chord picks up in the middle of the phrase instead of starting it again. | — | — | — |
-| **Close Harmony/Arpeggio** | Closes the Harmony/Arpeggio panel. The effect stays as it is. | — | `Esc` | — |
+| **Category** | Shows this category's Harmony types or arpeggio patterns. The type you have stays until you pick another, so looking around never stops an Echo or an arpeggio. | Keyboard Harmony / Arpeggio type | — | — |
 
 ## Mixer
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
-| **Fader page: Panel / Style** | Switches what the Launchkey faders control: Panel is your four keyboard parts, Style is the band's eight parts. The button lights blue on Panel, green on Style. | Mixer tabs (Panel / Style) | `F9` | Button under the master fader |
-| **Fader layer: VOL / PAN / REV / CHO / DLY** | Switches what the faders move across the parts, as in a DAW's sends view: each part's volume, or its pan, reverb, chorus or delay send. A fader picks a value up before it moves it. The master fader stays the master. | — | — | Shift + button under the master fader |
+| **Fader page: Panel / Style** | Switches what the Launchkey faders control: Panel is your four keyboard parts, Style is the band's eight parts. A tap of the button under the master fader switches, on the Launchkey or on screen; hold it (on screen, or right-click it) and the pads show the fader page and layer to choose from until you let go; with Shift it steps to the next fader layer instead. The button lights in the layer's colour on Panel, green on Style. | Mixer tabs (Panel / Style) | `F9` | Tap the button under the master fader (hold: choose the fader page and layer on the pads) |
+| **Fader layer: VOL / PAN / REV / CHO / DLY** | Switches what the faders move across the parts, as in a DAW's sends view: each part's volume, or its pan, reverb, chorus or delay send. A fader picks a value up before it moves it. The master fader stays the master. | — | — | Shift + button under the master fader (hold: choose the fader page and layer on the pads) |
 | **Right 1 volume** | Right 1's volume. The fader is channel 1's CC 7 itself, with no hidden gain behind it. | Mixer › Panel › Right 1 Volume | — | Panel fader page: fader 1 |
 | **Right 2 volume** | Right 2's volume. The fader is channel 3's CC 7 itself, with no hidden gain behind it. | Mixer › Panel › Right 2 Volume | — | Panel fader page: fader 2 |
 | **Right 3 volume** | Right 3's volume. The fader is channel 4's CC 7 itself, with no hidden gain behind it. | Mixer › Panel › Right 3 Volume | — | Panel fader page: fader 3 |
@@ -348,9 +338,6 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Chorus** | How much of this part goes to the shared chorus: its channel's CC 93 (0 at start: dry). Drag up or down; double-click for 0. It stays where you set it while you play; only recalling a One Touch Setting or a rack that stores sends (or a sound library patch that sets one) changes it. | Mixer › Panel › Effect › Chorus | — | — |
 | **Delay** | How much of this part goes to the tempo delay (the Variation effect): its channel's CC 94 (0 at start: no echo). Drag up or down; double-click for 0. The Delay type in Effects above sets the note length. | Mixer › Panel › Effect › Variation | — | — |
 | **EQ Low** | Boosts or cuts this part's lows, below the Low frequency, by −12 to +12 dB: a shelf yahaha plays on the part's audio, SoundFont voice or plugin, and at 0 dB out of the signal (tone, not level: the fader stays the part's only level). Drag up or down; double-click for 0 dB. A One Touch Setting with an EQ sets it, and a rack saves it. | Mixer › Panel › EQ › Low | — | — |
-| **EQ Low frequency** | Where this part's low shelf starts: 32 Hz to 2 kHz, in the XG EQ frequency steps (80 Hz at start). It changes nothing while EQ Low is at 0 dB. Drag up or down; double-click for 80 Hz. | Voice Edit › EQ › Low Frequency | — | — |
-| **EQ High** | Boosts or cuts this part's highs, above the High frequency, by −12 to +12 dB: a shelf yahaha plays on the part's audio, SoundFont voice or plugin, and at 0 dB out of the signal (tone, not level: the fader stays the part's only level). Drag up or down; double-click for 0 dB. A One Touch Setting with an EQ sets it, and a rack saves it. | Mixer › Panel › EQ › High | — | — |
-| **EQ High frequency** | Where this part's high shelf starts: 500 Hz to 16 kHz, in the XG EQ frequency steps (10 kHz at start). It changes nothing while EQ High is at 0 dB. Drag up or down; double-click for 10 kHz. | Voice Edit › EQ › High Frequency | — | — |
 | **Insert effect** | The effect in this part's insert slot: Distortion (an amp simulator), Compressor, Auto Wah, Tremolo (at the style tempo) or Rotary (a rotary speaker; the Rotary fast switch sets its speed). It plays on the part's own sound, SoundFont voice or plugin, before its fader and sends; picking one doesn't turn the slot on. A One Touch Setting with an insertion effect sets it, and a rack saves it. | Mixer › Effect › Insertion Effect › Type | — | — |
 | **Insert on** | This part's insert slot on or off. Off, the part sounds exactly as with no insert at all. The style's Inserts switch doesn't touch it. | Mixer › Effect › Insertion Effect › On/Off | — | — |
 | **Insert amount** | How hard this part's insert works, 0–127: the distortion's drive, the compressor's squeeze, the wah's sensitivity, or the tremolo's and rotary's depth. The effect sees the part at full volume, so the fader doesn't change how hard it drives. Drag up or down; double-click for 64. | Mixer › Effect › Insertion Effect › Depth | — | — |
@@ -367,16 +354,15 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Make-up** | Gain after the strip compressor, 0 to 24 dB, to make up what it takes away. | — | — | — |
 | **Insert type** | The effect in this insert slot: None, Distortion, Compressor, Auto Wah, Tremolo, Rotary or Phaser. A new type starts at its own settings; on/off stays as it was. | Mixer › Effect › Insertion Effect › Type | — | — |
 | **Insert on** | This insert slot on or off. Off, the strip sounds as with no insert in the slot. | Mixer › Effect › Insertion Effect › On/Off | — | — |
-| **Insert setting 1** | The insert's first setting (its drive, squeeze, sensitivity or depth: what the old single amount was). Drag up or down; double-click for the type's default. | Mixer › Effect › Insertion Effect › Parameter | — | — |
-| **Insert setting 2** | The insert's second setting, named on the knob (tone, attack, resonance, note, drive or rate). Drag up or down; double-click for the type's default. | Mixer › Effect › Insertion Effect › Parameter | — | — |
-| **Insert setting 3** | The insert's third setting, named on the knob. Drag up or down; double-click for the type's default. | Mixer › Effect › Insertion Effect › Parameter | — | — |
-| **Insert setting 4** | The insert's fourth setting, where its type has one (the compressor's output). Drag up or down; double-click for the type's default. | Mixer › Effect › Insertion Effect › Parameter | — | — |
-| **Send level** | How much of this strip goes to this send effect, 0–127. Sends 1–3 are the part's reverb, chorus and delay sends. | Mixer › Effect › Send level | — | — |
-| **Level** | This part's level (its CC 7), 0–127. Drag up or down. | Mixer › Volume | — | Panel faders 1–4 (keyboard parts); Style page faders 1–8 (Style parts) |
-| **Pan** | Where this part sits left to right (CC 10), 64 = centre. Drag up or down; double-click for centre. | Mixer › Pan | — | — |
-| **Previous part** | Shows the part before this one in the Channel view (after Right 1 comes Phrase 2). | — | — | — |
-| **Next part** | Shows the part after this one in the Channel view (after Phrase 2 comes Right 1). | — | — | — |
-| **Close the channel** | Closes the Channel view and puts back what the display showed before. Esc, or clicking the selected strip again, does the same. | — | `Esc` (terminal: ) | — |
+| **Insert setting 1** | The insert's first setting (its drive, squeeze, sensitivity or depth: what the old single amount was). Drag sideways; double-click for the type's default. | Mixer › Effect › Insertion Effect › Parameter | — | — |
+| **Insert setting 2** | The insert's second setting, named on the knob (tone, attack, resonance, note, drive or rate). Drag sideways; double-click for the type's default. | Mixer › Effect › Insertion Effect › Parameter | — | — |
+| **Insert setting 3** | The insert's third setting, named on the knob. Drag sideways; double-click for the type's default. | Mixer › Effect › Insertion Effect › Parameter | — | — |
+| **Insert setting 4** | The insert's fourth setting, where its type has one (the compressor's output). Drag sideways; double-click for the type's default. | Mixer › Effect › Insertion Effect › Parameter | — | — |
+| **Send level** | How much of this strip goes to this send effect, 0–127. Sends 1–3 are the part's reverb, chorus and delay sends. | Mixer › Effect › Send level | — | Reverb, Chorus and Delay fader layers (sends 1–3); swap knob 8 (send 4) |
+| **Level** | This part's level (its CC 7), 0–127. Drag sideways. | Mixer › Volume | — | Panel fader 1–4 |
+| **Pan** | Where this part sits left to right (CC 10), 64 = centre. Drag sideways; double-click for centre. | Mixer › Pan | — | Pan fader layer, fader 1–4 |
+| **Previous part** | Opens the part before this one (after Right 1 comes Phrase 2). | — | — | — |
+| **Next part** | Opens the part after this one (after Phrase 2 comes Right 1). | — | — | — |
 | **Style volume** | The whole band against your hands, in one fader: 100 plays the Style parts at their own levels, lower scales every Style part's CC 7 down together (above 100 raises them, up to 127), the way a Fade In/Out does. The part faders stay where they are. | Balance › Style (Mixer › Panel › Style) | — | Panel fader page: fader 5 |
 | **Multi Pad volume** | All four Multi Pads against the band, in one fader: 100 plays each pad at its own level, lower scales the pads' CC 7 down together (above 100 raises them, up to 127). | Balance › M.Pad (Mixer › Panel › Multi Pad) | — | Panel fader page: fader 6 |
 | **Style part volume** | This band part's volume. The fader is its channel's CC 7 itself (channels 9–16), with no hidden gain behind it, except that a Fade In/Out scales the CC 7 it sends while the fade runs (the fader stays put). Loading a style sets the faders to the style's own levels, and a pattern that changes its volume moves the fader too, until you move it yourself. | Mixer › Style › Volume | — | Style fader page: faders 1–8 (Rhythm 1 … Phrase 2) |
@@ -391,7 +377,6 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Master volume** | The built-in synth's output level (100 = unity), the only gain after the channel faders. A safety soft clipper above −1 dBFS keeps loud passages from hard clipping; below that the output is untouched. It does not change the MIDI output. | MASTER VOLUME | — | Master fader (both fader pages) |
 | **Solo** | Plays only this part, even if it is switched off; press again to end the solo. The Style tab solos a band part, the Panel tab a keyboard part, and the On switches stay as they were. | Mixer › touch and hold a channel (Solo) | — | — |
 | **Style Track Mute** | A knob for the band: fully left leaves one part on, and turning it up brings the others in one by one until all eight play. It switches the Style parts on and off, so the On buttons follow it. | Live Control › Style Track Mute A/B (StyMuteA, StyMuteB) | — | Knobs 4 and 5 on the Style knob page |
-| **Track Mute order** | A starts from Rhythm 2, then Rhythm 1, Bass, Chord 1, Chord 2, Pad, Phrase 1 and Phrase 2. B starts from Chord 1, then Chord 2, Pad, Bass, Phrase 1, Phrase 2 and the rhythm parts last. | Style Track Mute A / B | — | — |
 | **MIDI out channel** | The channel this part plays on at yahaha's MIDI output: Right 1 = 1, Left = 2, Right 2 = 3, Right 3 = 4, the band 9–16. Map a DAW track (Ableton: MIDI From yahaha, this channel) to record or re-voice it. | Part / Style channel | — | — |
 | **Cutoff** | Opens or closes this part's filter, relative to the voice: above 64 brighter, below 64 darker. 64 is the voice's own. | Voice Edit › Filter › Cutoff | — | — |
 | **Resonance** | Boosts the filter around its cutoff, relative to the voice: above 64 a sharper, more peaky tone. 64 is the voice's own. | Voice Edit › Filter › Resonance | — | — |
@@ -402,15 +387,15 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Vibrato depth** | How far the vibrato bends the pitch, relative to the voice: above 64 deeper, below 64 shallower. 64 is the voice's own. | Voice Edit › Vibrato › Depth | — | — |
 | **Vibrato delay** | How long a note plays before the vibrato starts, relative to the voice: above 64 later, below 64 sooner. 64 is the voice's own. | Voice Edit › Vibrato › Delay | — | — |
 | **Mono** | Lit, this part plays one note at a time: a new note cuts off the one before, as on a solo instrument. Off, it plays chords (poly). | Voice Edit › Mono/Poly | — | — |
-| **Portamento** | Lit, this part glides in pitch from one note to the next instead of jumping. Portamento time sets how long the glide takes. | Voice Edit › Portamento | — | — |
-| **Portamento time** | How long the glide between notes takes while Portamento is on, 0–127: higher is slower. | Voice Edit › Portamento Time | — | — |
-| **Mixer strip** | Selects this part: its strip lights up. A keyboard part (Right 1–3, Left) also becomes the part you edit, as the Launchkey's part buttons do. | Mixer › channel | — | — |
-| **Voice** | The sound this part plays. On a keyboard part, click to choose another in Library › Sounds, loading into this part. A Style part plays the voice the style names; the name is cut short on a narrow strip, so hover it for the whole name. | Mixer › Voice | — | — |
-| **Track CPU** | How much of each audio buffer this track takes to render over the last second (its SoundFont voices, filter and insert effect, or its plugin), where 100% is the whole buffer. "pk" is its slowest single buffer, red past half the buffer, where dropouts start. A larger audio buffer (Settings) gives a heavy plugin more room. | — | — | — |
-| **Group CPU** | How much of each audio buffer this group's tracks take together to render over the last second, where 100% is the whole buffer; red past half the buffer. "≤ pk" adds up each track's slowest single buffer. Those need not happen in the same buffer, so it is only an upper bound and never turns the readout red; each strip's own CPU shows its track's real peak. | — | — | — |
-| **CPU, all tracks** | Every track's render time together, as a share of the audio buffer, over the last second, and the slowest single buffer (pk). The effects bus and the output are not in it. Near 100% at the peak, the audio drops out: raise the audio buffer in Settings, or find the expensive track on its strip. | — | — | — |
-| **A fader is the channel's CC 7** | Each fader shows and sends exactly its channel's CC 7 (0–127), with no hidden gain anywhere, so the MIDI output and the synth hear the same level. Loading a style sets the Style faders to the style's own levels. While a Fade In/Out runs, the Style parts' CC 7 goes out scaled by the fade, and the faders stay where they are. | Mixer › Volume | — | The faders, on both fader pages |
+| **Portamento** | Portamento on or off; the strip keeps its glide time. On, this part glides in pitch from one note to the next instead of jumping. | Voice Edit › Portamento | — | — |
+| **Portamento time** | The glide time between notes, 0–127: higher is slower. It applies while Portamento is on; changing it doesn't turn Portamento on. | Voice Edit › Portamento Time | — | — |
+| **Part name** | Opens the part's channel on the Channel page. A keyboard part (Right 1–3, Left) also becomes the part you edit, as the Launchkey's part buttons do. | Mixer › channel | — | — |
 | **Waiting for the fader** | This level moved without the Launchkey fader (a style load, an OTS recall, a pattern, a page switch). The hardware fader does nothing until you move it to within 2 of the level, or across it. | — | — | Soft takeover on every fader |
+| **Part** | Opens this part's channel on the Channel page. A keyboard part (Right 1–3, Left) also becomes the part you play and edit, as its part button does. | Mixer › channel | — | Shift + fader buttons 1–4 select a keyboard part (they don't open this page yet) |
+| **Channel group** | Shows one group of the part's channel: Mix (sound, level, on, solo and sends), EQ & Tone (EQ, the voice's tone offsets and how it plays), Compressor, or Inserts. | Mixer › tabs | — | — |
+| **Sound** | The sound this part plays, with its number in your library. Click to choose another in Library › Sounds, loading into this part. | Voice select | — | — |
+| **Part CPU** | How much of each audio buffer this part takes to render, on average over the last second (its SoundFont voices, filter and insert effect, or its plugin), where 100% is the whole buffer. "—": no reading yet, or the part has no synth. A larger audio buffer (Settings) gives a heavy plugin more room. | — | — | — |
+| **Add a send** | Adds a send effect (sends 4–6) of the kind you pick: a reverb, a modulation, a delay or the phaser. Every part can then send to it; the rack keeps it, and the Effects page removes it. | Mixer › Effect › Variation | — | — |
 
 ## Effects
 
@@ -438,15 +423,13 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Style inserts** | The style's own insertion effects: an effect the style puts on one of its parts, such as an amp simulator on the guitar or a compressor on the bass (listed below: the part, the style's effect, and what plays it here, or dry where yahaha has nothing near it). Lit, they play on the part's sound, in the built-in synth or a plugin playing the part, before its sends; off, every Style part plays dry. The keyboard parts' own insert slots (on their mixer strips) are not affected. | Mixer › Effect › Insertion (Style parts) | — | — |
 | **Part insert** | This Style part's own insertion effect on or off, leaving the other parts' as they are. Lasts until the next style, which brings its own inserts; the Inserts switch still turns them all off together. | Mixer › Effect › Insertion (part on/off) | — | — |
 | **Insert amount** | How hard this Style part's insertion effect works: the amp simulator's drive, the compressor's squeeze, the wah's sensitivity, or the tremolo's and rotary's depth. Starts at the style's own value and lasts until the next style. | Mixer › Effect › Insertion › Parameter | — | — |
-| **Rotary fast** | The rotary speaker switch: lit, every rotary insert spins at its fast speed; off, its slow one. The horn and drum speed up and slow down gradually, as a real rotary speaker does. | Rotary Speaker speed (Slow/Fast) | — | — |
-| **Add send** | Adds a send effect (up to six), returning at 0 dB. Every strip starts with no level to it. The rack saves it. | — | — | — |
+| **Rotary fast** | The rotary speaker switch: lit, every rotary insert spins at its fast speed; off, its slow one. The horn and drum speed up and slow down gradually, as a real rotary speaker does. | Rotary Speaker speed (Slow/Fast) | — | Shift + encoder page ▲ |
+| **Add send** | Adds a send effect (up to six): a Hall reverb returning at 0 dB, whose type you change in its settings. Every strip starts with no level to it. The rack saves it. | — | — | — |
 | **Remove send** | Removes this added send effect; the ones after it move down with every strip's level to them. Sends 1–3 stay. | — | — | — |
 | **Send type** | What this send effect plays. Sends 1–3 take their own family (reverbs, choruses, delays); an added send can play any type. A new type starts at its own parameters. | Mixer › Effect › Type | — | — |
 | **Send parameter** | One of this send effect's parameters, named on the knob. Drag up or down; double-click for the type's default. | Mixer › Effect › Parameter | — | — |
 | **Send return** | How loud this send effect comes back into the mix, 0–127 (64 = 0 dB). | Mixer › Effect › Return level | — | — |
 | **Rack keeps this type** | Lit, the live rack keeps this send's type and brings it back when loaded, over the style's. Off, the style sets it. | — | — | — |
-| **Use style's** | Drops the live rack's type for this send, so the style sets it again. | — | — | — |
-| **New send type** | What the next added send effect plays. Add send adds it. | Mixer › Effect › Type | — | — |
 | **Master Compressor** | A compressor on the whole mix, after the effects and before the output: it evens out the dynamics, bringing loud passages down. Lit, it plays (not on the metronome); off, the mix is untouched. It stays as set until you change it, even after a restart. | Mixer › Master › Compressor | — | — |
 | **Master Compressor type** | The compressor's character: Natural (moderate), Rich (gentle, for acoustic music), Punchy (heavy and fast, for rock), Electronic (for dance music) or Loud (the most). Choosing one sets its Compression, Texture and Output. | Mixer › Master › Compressor type | — | — |
 | **Master editor** | Opens the Master Compressor's parameters and the Master EQ's eight bands. | Mixer › Master › Edit | — | — |
@@ -465,6 +448,11 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Multi Pad reverb** | How much of the Multi Pads goes to the reverb: each pad's own reverb send (CC 91) times this, in the built-in synth only. 100% plays the reverb the pad wrote and 0% is none. | Mixer › Panel › Multi Pad › Effect › Reverb | — | — |
 | **Multi Pad chorus** | How much of the Multi Pads goes to the chorus: each pad's own chorus send (CC 93) times this, in the built-in synth only. 0% at start, as for the band; 100% plays the chorus the pad wrote. | Mixer › Panel › Multi Pad › Effect › Chorus | — | — |
 | **Multi Pad delay** | How much of the Multi Pads goes to the tempo delay: each pad's own variation send (CC 94) times this, in the built-in synth only. 0% at start, because a pad's CC 94 was meant for its own Variation effect, not this delay; turn it up to echo the pads. | Mixer › Panel › Multi Pad › Effect › Variation | — | — |
+| **Send effect** | Opens this send's settings: its type, parameters, return and each part's send. Sends 1–3 are the style's reverb, chorus and delay; 4–6 are yours, saved with the rack. | Mixer › Effect | — | — |
+| **Keep with rack** | Lit, the live rack keeps this send's type over the style's and brings it back when loaded. Off, the style sets it again. | — | — | — |
+| **Part sends** | Each keyboard part's send to this effect, 0–127: drag sideways, scroll, or use the arrow keys. Knobs 1–4 of the effect's knob page and the fader layers set them too. | Mixer › Effect | — | Reverb, Chorus and Delay knob pages, knobs 1–4 |
+| **Style inserts** | Opens the style's insertion effects: each Style part's effect, on or off, and its amount. | Mixer › Effect › Insertion | — | — |
+| **Master** | Opens the Master Compressor and Master EQ, on the whole mix after the effect returns: their types and settings. | Mixer › Master | — | — |
 
 ## Metronome
 
@@ -473,6 +461,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Metronome** | A click on every beat, with the band while it plays and on its own at the tempo while stopped. It sounds on the built-in synth only and never goes out on the MIDI port. | Menu › Metronome › On/Off | `.` | — |
 | **Metronome volume** | The click's own level (0–127). The synth's master volume applies on top of it. | Menu › Metronome › Volume | — | — |
 | **Bell on beat 1** | A higher bell instead of the click on the first beat of each bar. | Menu › Metronome › Bell Sound | — | — |
+| **Metronome settings** | Opens the metronome's settings: on/off, the click's volume (0–127) and the bell on beat 1. Esc or a click outside closes them. | Menu › Metronome | — | — |
 
 ## Style Dynamics
 
@@ -487,6 +476,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Accent mode: Fill** | While a Main plays, an accent plays that Main's own fill from the next beat (as Fill Self; OTS Link does not follow it). With the style stopped, accents play drum hits. | — | — | — |
 | **Accent source: Left** | Only chord-section strikes accent. The default. | — | — | — |
 | **Accent source: Both** | Chord-section and right-hand strikes both accent. | — | — | — |
+| **More accent settings** | Shows or hides the accent mode (Hits: a drum hit; Fill: the Main’s fill while it plays) and its source (Left: chord-section strikes; Both: right-hand strikes too). | — | — | — |
 
 ## Knob Assign pages
 
@@ -500,7 +490,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
 | **Chord Looper REC/STOP** | Records the chords you play, from the next bar line; stopped, it arms Sync Start and your first chord starts the band and the recording together. Press again to stop recording while the band plays on. | CHORD LOOPER [REC/STOP] | `R` | Panel fader page: Shift + button under fader 8 (red while recording) |
-| **Chord Looper ON/OFF** | Loops the recorded chords from the next bar line, feeding them to the band as if you played them, so both hands are free. While it loops your chords are ignored; press again to stop it at once. Arming a loop turns chart mode off. | CHORD LOOPER [ON/OFF] | `^` | Panel fader page: button under fader 8 (green while looping) |
+| **Chord Looper ON/OFF** | Loops the recorded chords from the next bar line, feeding them to the band as if you played them, so both hands are free. While it loops your chords are ignored; press again to stop it at once. A long press is Loop rec: it records the chords you play from the next bar line. | CHORD LOOPER [ON/OFF] | `^` | Panel fader page: button under fader 8 (lime while looping) |
 | **Chord Looper memory** | One of eight memories. Selecting one that holds a sequence makes it the loop; while looping it takes over at the next bar line. | Chord Looper › Memory 1–8 | — | — |
 | **Memory** | Stores the current sequence: press it, then a memory number. The memory is named CLD_001 and on. | Chord Looper › [Memory] | — | — |
 | **Clear** | Empties a memory: press it, then a memory number. | Chord Looper › [Clear] | — | — |
@@ -510,6 +500,11 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Save bank** | Saves the memories to the bank's file, or under the name you typed as a new file. If another bank already has that name, nothing is saved: pick another name, or use Overwrite. | Chord Looper › Save | — | — |
 | **Overwrite bank** | Another Chord Looper bank has the name you typed: replace its file with these memories. | Chord Looper › Save (overwrite) | — | — |
 | **The sequence** | The chords the loop plays, bar by bar; the bar playing is lit. Chord times snap to 16th notes and the loop is whole bars. | Chord Looper (current data) | — | — |
+| **Load bank** | Lists the bank files in the ChordLooper folder; pick one to load its eight memories in place of these, or From a file… for a bank anywhere. The bank in use is the white block; Esc closes the list. | Chord Looper › Open | — | — |
+| **Load a bank file** | Opens a Chord Looper bank (a .looper.json file) from anywhere on your computer and loads its eight memories in place of these. Cancel loads nothing. | Chord Looper › Open | — | — |
+| **Save as…** | Saves the eight memories as a bank file under a name you type. Enter saves, Esc cancels; left empty, the bank keeps its own name. | Chord Looper › Save | — | — |
+| **Earlier / later bars** | A loop longer than eight bars shows eight at a time: ◀ and ▶ page through them while the loop is stopped or armed. While it loops or records, the lane follows the bar playing. | — | — | — |
+| **Cancel** | Closes the name field without saving. | — | — | — |
 
 ## Multi Pads
 
@@ -534,9 +529,12 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Repeat** | On: the pad loops until you stop it. Off: it plays once. The bank file sets it; a change here lasts until another bank loads. | Repeat (Multi Pad Edit) | — | — |
 | **Chord Match** | On: the pad follows the chord you play, like the band does. Off: it plays exactly as recorded, as drum pads usually do. | Chord Match (Multi Pad Edit) | — | — |
 | **Multi Pad bank** | Loads this bank's four pads. Pads playing stop. The list is every .pad file in your style folders. | Multi Pad Bank Selection | — | — |
-| **No bank** | Unloads the bank: the pads go dark. | — | — | — |
-| **Synchro Stop: Style Stop** | On: looping pads stop when the band stops. Off: they play on until you stop them. | Multi Pad Synchro Stop (Style Stop) | — | — |
-| **Synchro Stop: Style Ending** | On: looping pads stop when an Ending starts. Off: they play through the Ending. | Multi Pad Synchro Stop (Style Ending) | — | — |
+| **Load a bank file** | Opens a .pad file from anywhere on your computer and loads it into the pads. It joins the bank list. Cancel loads nothing. | Multi Pad Bank Selection | — | — |
+| **Previous bank** | Loads the bank before this one in the list (the last, with none loaded). Pads playing stop. | Multi Pad Bank Selection | — | — |
+| **Next bank** | Loads the bank after this one in the list (the first, with none loaded). Pads playing stop. | Multi Pad Bank Selection | — | — |
+| **Clear bank** | Unloads the bank: the pads stop and go dark until you load another. | — | — | — |
+| **Synchro Stop: style stops** | On: looping pads stop when the band stops. Off: they play on until you stop them. One-shot pads always play out. | Multi Pad Synchro Stop (Style Stop) | — | — |
+| **Synchro Stop: at the ending** | On: looping pads stop when an Ending starts. Off: they play through the Ending. | Multi Pad Synchro Stop (Style Ending) | — | — |
 
 ## Sound library
 
@@ -545,10 +543,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **GM map** | The drums and all 128 GM programs by family: each rule, the sound each program plays now and which layer decided it. The number counts the programs still on auto. | — | — | — |
 | **Deciding layer** | Which rule decided what this program plays: Drums, Override, Family, or Auto (the best preset in your SoundFonts, nobody chose it). "Style" marks this style's own rule. | — | — | — |
 | **Add from SoundFont** | Browse the presets of the SoundFonts in the SoundFont folder, audition one, and add it as a patch. | — | — | — |
-| **Search** | Shows only the patches whose name, category or tags contain the text. | — | — | — |
 | **Category** | Shows one category of patches, like the tabs of the Genos Voice Selection display. All shows every patch. | Voice category tabs | — | — |
-| **Favourites only** | Shows only the patches marked with a star. | Favorite tab | — | — |
-| **Patch** | Selects the patch to edit it below. A dimmed patch plays the SoundFont fallback; its note says why. | — | — | — |
 | **Favourite** | Marks or unmarks the patch as a favourite. | Favorite | — | — |
 | **Audition** | Plays the sound on its own for a moment: a short arpeggio and a chord, or a beat for a drum kit. Works while the band is stopped. A plugin patch loads its plugin first. | — | — | — |
 | **Stop audition** | Stops the sound playing on its own. | — | — | — |
@@ -558,7 +553,6 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Delete** | Asks (Ctrl/⌘+Delete in the Sound Browser too), then deletes the sound from My Sounds. Map rules that name it are removed, and a part playing it goes back to its GM voice. | — | — | — |
 | **Name** | The sound's name, as the Sound Browser, the parts and the map show it. F2 in the Sound Browser gets here; Enter renames it, Esc keeps the old name. | — | — | — |
 | **Category** | The Genos voice category the sound is listed under. | Voice category | — | — |
-| **Tags** | Words to find the patch by, separated by commas. Press Enter to keep them. | — | — | — |
 | **Play on a part** | Picks the patch for that keyboard part. The part keeps its own level, pan, sends and octave. The part's voice picker has the same list. | Voice Selection | — | — |
 | **Save part's sound** | Saves a keyboard part's sound as a new patch (Save as…): its plugin with its current settings, its own patch, or its GM voice on the synth's SoundFont, with its volume and octave. | — | — | — |
 | **Global / this style** | Which map the rules edit: the global one every style uses, or this style's own rules, which win over it. This style's map is kept in your library, not in the style file. | — | — | — |
@@ -574,8 +568,6 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Add as patch** | Adds the preset to your library as a patch, named after it and filed under its likely category. | — | — | — |
 | **Export** | Writes your library and GM map as a bundle (sound-library-export.json in the data folder): every sound's name, category and settings, plugin sounds' states included. SoundFonts are named by file, not copied: copy them yourself. | — | — | — |
 | **Export .aupreset** | Writes this plugin sound as a standard .aupreset in ~/Library/Audio/Presets, under its plugin, so Logic and MainStage can load it. | — | — | — |
-| **Replace** | Replaces the plugin's existing preset of this name with this sound. Logic and MainStage see the new one too. | — | — | — |
-| **Keep the existing preset** | Leaves the existing preset as it is; rename the sound to export it as a new one. | — | — | — |
 | **Library file** | The path of a sound library file to import: a full library, or a list of patches. | — | — | — |
 | **Import** | Adds a bundle's (or library file's) sounds to your library, clashing ids getting new ones, and its map rules too; nothing you have is replaced. SoundFonts are found by file name in your SoundFont folder; any that are missing are listed, and their sounds are kept for when you add the files. | — | — | — |
 | **Sound number** | Each sound in the Library has a number: what swap mode dials and the Launchkey display shows (R1: 23 Rhodes Soft). The numbers stay put while the Library is unchanged. | — | — | Swap mode: knob 1 steps through them |
@@ -596,89 +588,46 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
-| **Shift** | Hold for the second functions: Pad Bank ▲ = Left on/off, Pad Bank ▼ = OTS Link, the buttons under faders 1–4 on the Panel page = edit that part. On screen, click it to latch the Shift layer, or hold Shift on your computer keyboard. | — | — | Shift button |
-| **Rotary Fast** | The rotary speaker's Fast/Slow switch: lit while every rotary insert spins fast, dark while slow; each click switches it. The horn and drum change speed gradually, as a real rotary speaker does. An assignable pedal set to "Organ Rotary Slow/Fast" does the same. | Organ Rotary Slow/Fast | — | Shift + encoder page ▲ |
 | **Launchkey** | Whether the Launchkey is connected in DAW mode, so its pads and buttons are arranger controls. | — | — | — |
-| **Rack fader** | The loaded rack's controller map gives this Panel fader something other than its part's level: moving it sets what its label says (a pan or send, Harmony/Arp on from halfway up, the split point, a volume). Set it in the Rack panel's Controller map. | — | — | Panel fader page: faders 1–4 |
+| **Rack fader** | The loaded rack's controller map gives this Panel fader something other than its part's level: moving it sets what its label says (a pan or send, Harmony/Arp on from halfway up, the split point, a volume). Set it in the Rack's Controller map; on the Stage, click the fader's name to open the Rack. | — | — | Panel fader page: faders 1–4 |
 | **Unused fader** | On the Panel fader page, faders 5–8 and buttons 6–8 do nothing. Switch to the Style page (the button under the master fader) to mix the band. | — | — | Panel fader page: faders 5–8 and the buttons under faders 6–8 |
 | **Unused pad** | This pad does nothing on this page and stays dark. | — | — | — |
-| **Part sound** | The sound this keyboard part plays: ● when its plugin has unsaved edits, ⚠ when its plugin is missing. Click to open Library › Sounds with this part as the target. | Voice name (Home screen) | — | — |
+| **Part sound** | The sound this keyboard part plays: ● when its plugin has unsaved edits, ⚠ when its plugin is missing. Click to pick another: for now that opens Library › Sounds loading into this part. | Voice name (Home screen) | — | — |
 | **Sound** | Hold it and the pads act and light as the Racks page, from any page: tap a rack pad to load it, or Store to put the live rack there. Let go and the pads go back to the page you were on; it is white while held. On screen, click it to latch the Sound layer and click again to let go, or press and hold it for as long as you want it. | — | — | Panel or Style fader page: button under fader 6 (hold) |
 
 ## Stage layout: hand surface, fader badges, mixer bar
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
-| **Launchkey** | The Launchkey under your hands: its eight knobs over the sixteen pads, with Shift, Pad Bank, Track and the side buttons, each showing what it does on the current pad page and Shift layer. Clicking one does what pressing it does. | — | — | The knobs, the pads and the buttons around them |
-| **Hardware fader** | The Launchkey fader this strip is on: F1–F8 for faders 1–8 (and the button under it), M for the master fader, on the current fader page (Panel or Style) and Shift layer. No badge: no fader reaches this strip on this page. | — | — | Faders 1–8 and the master fader |
-| **Rack** | The loaded rack's name, with ● while it has changes you haven't saved. On the Panel fader page the faders play its keyboard parts. | — | — | — |
-
-## Lead-sheet band
-
-| control | what it does | Genos | key | Launchkey |
-|---|---|---|---|---|
-| **Section playing** | The section the band is playing now, and before the start the Main (and any Intro) it will start with. | Section (MAIN VARIATION, INTRO, ENDING) | — | Pad page 1 (Sections) shows it lit |
-| **Section progress** | One cell per bar of the section, filling beat by beat, so you can see how far into the pattern the band is. This band will also show the chord chart when one is loaded. | — | — | — |
-| **Next section** | The section queued to play next. A Main or Ending takes over at the next bar line, a fill at the next beat. | — | — | Pad page 1 (Sections): the queued pad flashes |
-| **Chord chart** | The iReal Pro chart the band is playing, eight bars to a line, with the bar playing ringed. Section letters mark where Main A–D take over; an amber ring means your left hand has taken over until the next bar line. | — | — | — |
+| **Rack** | The loaded rack's name, with ● while it has changes you haven't saved. On the Panel fader page the faders play its keyboard parts. Click it to open the Rack. | — | — | — |
 
 ## Keyboard strip
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
-| **Keyboard** | The keys you are holding, coloured by the part that sounds them: Right 1–3 above the split, Left below it, grey where a key only feeds chord detection. The shaded band is where chord detection listens, and dots mark the tones of the recognised chord, the ringed one its bass. The engine doesn't report held keys or chord tones yet; until it does, the strip shows only the split and the detection area. | Keyboard (Split Point, chord detection area) | — | The Launchkey's keys |
 | **Split point** | Where the left-hand section ends (C3 = middle C). Drag the marker, or focus it and use the arrow keys, to move it one key at a time. | Split Point (Style + Left) | `[` `]` | Pad page 3 (Chord), bottom row, pad 3 and 4 |
-| **Keyboard size** | How many keys the strip shows: 49 or 61 like your Launchkey, or a full 88. It matches the connected Launchkey until you pick one; pick the lit one again to go back to matching. | — | — | — |
-
-## iReal Pro chart player
-
-| control | what it does | Genos | key | Launchkey |
-|---|---|---|---|---|
-| **Chart mode** | While the band plays, it takes its chords and Main sections from the chosen chart instead of your left hand. A chord you play still takes over, until the next bar line. Turning it on stops a Chord Looper loop. | — | `Shift+M` | — |
-| **Previous song** | Chooses the song before this one in the playlist. | — | `(` | — |
-| **Next song** | Chooses the song after this one in the playlist. | — | `)` | — |
-| **Open playlist** | Imports an iReal Pro playlist exported as an .html file (in iReal Pro: Share, then HTML). Its songs are kept until you quit. | — | — | — |
-| **iReal Pro link** | Paste an irealb:// link here (a song or a whole playlist, as iReal Pro shares it), then press Import. | — | — | — |
-| **Import link** | Imports the songs in the pasted irealb:// link. | — | — | — |
-| **Playlist** | Shows this playlist's songs. | — | — | — |
-| **Remove playlist** | Forgets this playlist. If the song playing is in it, chart mode turns off. | — | — | — |
-| **Song** | Chooses this chart for the band. With Auto style on, the style its iReal label suggests loads too; with the band stopped, the tempo becomes the chart's. | — | — | — |
-| **Fewer choruses** | Plays the form one time fewer before the Ending. | — | — | — |
-| **More choruses** | Plays the form one more time before the Ending. | — | — | — |
-| **Chart Intro** | The Intro the band plays before the chart's first bar, or none. An Intro you arm yourself before starting plays instead. | INTRO | — | — |
-| **Chart Ending** | The Ending the band plays after the chart's last bar. With none, the band stops at the end of the last bar. | ENDING/rit. | — | — |
-| **Loop** | Plays the whole song, or one section, over and over instead of ending. Stop the band or press an Ending to finish. | — | — | — |
-| **Auto style** | Choosing a song loads the library style its iReal style label suggests. Pick any other style in the browser to override it. | — | — | — |
-| **Suggested style** | The library style that best matches the chart's iReal style label. Press it to load that style now. | — | — | — |
 
 ## Quick nav (app bar)
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
 | **Styles** | Opens the style browser. Press again to close. | Style Selection | `Alt+S` (terminal: ) | — |
-| **Quick Racks** | Opens Library on its Racks tab: your racks to load, each with the Quick Rack button that holds it in the bank on view. Press again to go back to Stage. | REGISTRATION MEMORY | `Alt+R` (terminal: ) | — |
-| **Rack** | Opens the Rack: what's under your hands (the four keyboard parts with their sounds and mix, the split, Harmony/Arp, transpose) and the style's One Touch Settings. Press again to close. | Voice Setting, ONE TOUCH SETTING | `Alt+O` (terminal: ) | — |
-| **Multi Pads** | Opens the Multi Pads drawer. Press again to close. | MULTI PAD CONTROL | `Alt+P` (terminal: ) | — |
-| **Effects** | Opens the Effects screen: the Reverb, Chorus and Delay cards (type, settings, return and the band's and pads' sends) and the style's inserts. Press again to close. | Mixer (Effect) | `Alt+E` (terminal: ) | — |
-| **Mixer details** | Shows the mixer row's details: its bar (fader page and layer, metronome, Track Mute, Style and Multi Pad volume, CPU) and, on every strip, its Chorus send, EQ, insert and CPU. Press again to hide them. | Mixer | `Alt+M` (terminal: ) | — |
-| **Chord Looper** | Opens the Chord Looper. Press again to close. | Menu › Chord Looper | `Alt+L` (terminal: ) | — |
-| **Charts** | Opens the iReal Pro chart player. Press again to close. | — | `Alt+C` (terminal: ) | — |
-| **Harmony/Arp** | Opens the Keyboard Harmony and Arpeggio panel. Press again to close. | HARMONY/ARPEGGIO | `Alt+H` (terminal: ) | — |
+| **Quick Racks** | Shows the Quick Racks page: your racks on the Quick Rack buttons in banks A to H, Store, and One Touch 1 to 4 with Link. Alt+Q shows it. | REGISTRATION MEMORY | `Alt+Q` (terminal: ) | — |
+| **Rack** | Opens the Rack: what's under your hands (the four keyboard parts with their sounds and mix, the split, Harmony/Arp, transpose) and the style's One Touch Settings. On the Stage, click the rack readout; Alt+O opens or closes it anywhere. | Voice Setting, ONE TOUCH SETTING | `Alt+O` (terminal: ) | — |
+| **Multi Pads** | Shows the Multi Pads page: the bank's four pads with Select, Stop, Repeat and Chord Match, Synchro Stop and the Multi Pad volume. Alt+P, or the Multi Pad strip's name on the Stage, shows it. | MULTI PAD CONTROL | `Alt+P` (terminal: ) | — |
+| **Effects** | Shows the Effects page: the send list and the open bus's editor (Reverb, Chorus, Delay), with the style's inserts and the Master Compressor and EQ. Alt+E, or the Master strip's name on the Stage, shows it. | Mixer (Effect) | `Alt+E` (terminal: ) | — |
+| **Channel** | Shows the Channel page: one part's sound, level, tone, sends, EQ, compressor, inserts and play settings. A part's strip name on the Stage selects that part and shows this page; Alt+C shows it. | — | `Alt+C` (terminal: ) | — |
+| **Chord Looper** | Shows the Chord Looper page: Rec / Stop and On / Off, the loop's state, its chords bar by bar and the memories. Alt+L shows it. | Menu › Chord Looper | `Alt+L` (terminal: ) | — |
+| **Harmony/Arp** | Shows the Harm/Arp page: the Keyboard Harmony / Arpeggio switch, the type, and that type's settings. Alt+H shows it. | HARMONY/ARPEGGIO | `Alt+H` (terminal: ) | — |
 | **Library** | Switches between the stage and Library, where you pick racks, sounds and instruments. Library opens loading into the selected part (Right 1 if none). | Voice Selection | `Alt+B` (terminal: ) | — |
-| **Settings** | Opens the settings. Press again to close. | — | `Alt+T` (terminal: ) | — |
+| **Settings** | Shows the Settings page, coming soon. Until then Alt+T opens the settings, and the audio health on the Stage opens them on Audio. | — | `Alt+T` (terminal: ) | — |
 
 ## Panels around the hardware view
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
 | **Rack** | Opens the Rack: Right 1–3 and Left with their sounds and mix, the split, Harmony/Arp, transpose, the controller map and the style's One Touch Settings. Alt+O too. | PART ON/OFF, Voice Setting, ONE TOUCH SETTING | — | Panel fader page buttons 1–4 turn the parts on and off; Pad page 2 (Racks) has the OTS buttons |
-| **Mixer details** | Shows the mixer row's details: its bar (fader page and layer, metronome, Track Mute, Style and Multi Pad volume, CPU) and, on every strip, its Chorus send, EQ, insert and CPU. Press again to hide them. | Mixer (Panel / Style tabs) | — | The faders and the buttons under them |
-| **Effects** | Opens the Effects screen: the Reverb, Chorus and Delay cards and the style's inserts. Beside it, the type each effect plays now; each strip's own sends stay on its knobs here. | Mixer › Effect | — | — |
-| **Charts** | Opens the iReal Pro chart player: import playlists, pick a song, and set how the band plays it. | — | — | — |
-| **Harmony/Arpeggio** | Opens the Keyboard Harmony and Arpeggio panel: the switch, the type and its settings. | HARMONY/ARPEGGIO, Keyboard Harmony/Arpeggio settings | — | Panel fader page: the button under fader 5 is the on/off switch |
-| **Chord Looper** | Opens the Chord Looper: record a chord progression, loop it, and keep it in one of eight memories. | Menu › Chord Looper | — | — |
 | **Close** | Closes this panel. The band keeps playing. | — | `Esc` | — |
-| **Multi Pads** | Opens the Multi Pads: four short phrases from a pad bank that you trigger over the band, and the bank list. | MULTI PAD CONTROL | — | — |
 | **Library** | Opens Library on Sounds, loading into the selected part: click a sound to hear it on that part at once. | Voice Selection | `Alt+B` (terminal: ) | — |
 
 ## Settings
@@ -686,17 +635,16 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
 | **Unison bass** | What the Bass plays in Unison. Root: the chord's root under your line. Melody: your line itself, down in the bass range. | — | — | — |
-| **Settings** | Chord detection, split, transpose, style behaviour, audio, MIDI and the style library. Changes apply at once. | — | — | — |
 | **Close settings** | Closes the settings panel. | — | `Esc` | — |
-| **Settings: Chord** | Fingering type, chord detection area (Lower or Upper) and Manual Bass. | Menu › Split & Fingering | — | Pad page 5 (Setup), top row (fingering, Upper); Pad page 3 (Chord), bottom row, pad 1 (Manual Bass) |
+| **Settings: Chord & Split** | Fingering type, chord detection area (Lower or Upper), Manual Bass and the split point. Also on the Launchkey's Chord and Setup pad pages. | Menu › Split & Fingering | — | Pad page 5 (Setup), top row (fingering, Upper); Pad page 3 (Chord), bottom row, pad 1 (Manual Bass) |
 | **Settings: Split point** | Where the keyboard divides between the chord section and the right hand. | Menu › Split & Fingering › Split Point | — | Pad page 3 (Chord), bottom row, pads 3–4 |
 | **Settings: Transpose** | Keyboard and Master transpose, in semitones. | Menu › Transpose | — | Pad page 3 (Chord), bottom row, pads 5–7 |
-| **Settings: Style** | How the band starts, stops and fills: Sync Start/Stop, Auto Fill and Stop Accompaniment. | Menu › Style Setting | — | Pad page 1 (Sections) (Sync Start, Sync Stop, Auto Fill); Pad page 3 (Chord), bottom row, pad 2 (Stop ACMP); Pad page 5 (Setup), bottom row, pads 2–3 (Stop ACMP mode) |
+| **Settings: Style** | How the band starts, stops and fills: Sync Start/Stop, Auto Fill and Stop Accompaniment. Also on the Knobs' Style page. | Menu › Style Setting | — | Pad page 1 (Sections) (Sync Start, Sync Stop, Auto Fill); Pad page 3 (Chord), bottom row, pad 2 (Stop ACMP); Pad page 5 (Setup), bottom row, pads 2–3 (Stop ACMP mode) |
 | **Settings: Parameter Lock** | Lock the split point or the fingering type, so rack and One Touch Setting recalls leave them as you set them. | Menu › Utility › Parameter Lock | — | — |
 | **Settings: Audio** | The built-in synth: on or off, which output pair it plays on, its SoundFont and its master volume. | — | — | — |
 | **Settings: MIDI** | Which MIDI inputs play yahaha, the yahaha output port, and the Launchkey connection. | Menu › MIDI | — | — |
 | **Settings: Library** | The folders yahaha looks for style files in, and a rescan. | Style selection (USB / User folders) | — | — |
-| **Split point** | Drag the marker, or click a key, to set the split (C3 = middle C). Keys at and below it are Left and the chord section, keys above it play Right 1–3. With focus, ←/→ move it a key and PgUp/PgDn an octave. | Split Point (Style + Left) | `[` `]` | Pad page 3 (Chord), bottom row, pads 3–4 |
+| **Split point** | Drag the white line on the keys to move the split, black keys included, or click it and then click the key it goes on (Esc cancels); a locked split point stays put. Keys at and below it are Left and the chord section, keys above it play Right 1–3 (C3 = middle C). With focus, ←/→ move it a key, PgUp/PgDn an octave, Enter arms the pick. | Split Point (Style + Left) | `[` `]` | Pad page 3 (Chord), bottom row, pads 3–4 |
 | **Section change timing: to Main** | When a Main you press (or a style you load while a Main plays) takes over; a style loaded during an Ending waits for it to end. Next Bar: at once if you press within the bar's first beat, otherwise at the next bar line. Immediate: at the next beat, carrying on from that beat, except with Auto Fill on, where a Main change is always Next Bar. | Section Change Timing – To Main [A]–[D] | — | — |
 | **Section change timing: inside Intro/Ending** | When you switch to another Intro or Ending while one plays. Next Bar: as for Mains. End of Section: the one playing finishes first, except Intro to Intro (Next Bar) and anything into Ending I (the next bar line). | Section Change Timing – Inside Intro/Ending | — | — |
 | **OTS Link timing** | With OTS Link on and the band playing: At Main Section Change (the default) swaps your sounds when the Main you pressed starts (after its fill, if any), never while the old section still plays; Immediate swaps them the moment you press it. A new style's sounds come when that style takes over. Stopped, both swap at once. | OTS Link Timing | — | — |
@@ -707,7 +655,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Part on/off on style change** | What choosing another style does to the style parts you muted. Lock keeps them muted, Hold keeps them muted only while the band plays, and Reset turns every part back on. | Change Behavior: Part On/Off | — | — |
 | **Section on style change** | The Main a style you choose while stopped starts on (the nearest one it has), or Off to keep the Main you had. | Change Behavior: Section Set | — | — |
 | **Chord settle** | How long a new chord must hold still before the style follows it (0–30 ms; 0 follows every change at once). A chord whose keys land a few ms apart is then one chord change, not two, so no note is struck on the passing chord and cut a moment later. Only the accompaniment's chord parts wait (also Stop Accompaniment, and Multi Pads with Chord Match, even with the style stopped), and only when you change the chord on or just before their notes; drums keep time, and a chord struck a little ahead of the beat costs nothing. | — | — | — |
-| **Lock Split Point** | On: the split point stays where you set it. Loading a rack or a One Touch Setting leaves it alone; you can still move it yourself. | Parameter Lock: Split Point | — | — |
+| **Lock Split Point** | On: the split point stays where you set it. Loading a rack or a One Touch Setting leaves it alone, and the split line on the keyboard can't be dragged or picked; you can still step it with − and + on the Chord & Split page. | Parameter Lock: Split Point | — | — |
 | **Lock Fingering Type** | On: the fingering type and the Chord Detection Area (Upper, Manual Bass) stay as you set them. Loading a rack or a One Touch Setting leaves them alone; you can still change them yourself. | Parameter Lock: Fingering Type | — | — |
 | **Synchro Stop window** | With Sync Stop on: hold a chord longer than this and Sync Stop turns itself off, so the style keeps playing when you let go. A quicker release still stops the style. Off (all the way left): Sync Stop never turns itself off. | Synchro Stop Window | — | — |
 | **Fade in time** | How long a fade in takes to reach full volume, from 0 to 20 seconds. | Fade In Time | — | — |
@@ -716,16 +664,19 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Written tempo changes** | Plays the tempo changes a style writes inside its sections, mostly the slow-downs at the end of Endings and Intros, scaled to the tempo you play at. The tempo comes back when the section ends or the band stops. | — | — | — |
 | **Tap: Section Reset** | On (the default, as on the Genos): Tap while the band plays restarts the section from its top and keeps the tempo. Off: Tap always sets the tempo. | Tap Tempo › Style Section Reset | — | — |
 | **Retrigger length** | How much of the Main's start Retrigger loops: a whole note (1) down to a 32nd (1/32). | Style Retrigger Rate (RtgRate) | — | Shift + > (Scene Launch) / Shift + Function buttons |
-| **Style folders** | The folders yahaha reads style files from (.sty, .prs, .sst and more), with subfolders as categories. Pass them on the command line or set YAHAHA_STYLES. | Style selection (User / USB) | — | — |
 | **Rescan styles** | Reads the style folders again, picking up files you added, changed or removed. The band keeps playing. | — | — | — |
-| **Pedals and wheels** | The sustain pedal and footswitches, what each pedal does, and which parts the pedal and the wheels reach. | Assignable, Controller | — | — |
+| **Pedals and wheels** | The sustain pedal and footswitches, what each pedal does, and which parts the pedal and the wheels reach. P1 is the Launchkey's pedal jack; P2 and P3 come from any MIDI input. | Assignable, Controller | — | — |
 | **Pad page order** | Which pad pages Pad Bank ▲/▼ step through after Sections, and in what order. Leave a page out to skip it; hold Sound still shows Racks. Kept in your settings. | — | — | Pad Bank ▲ / ▼ follow it |
-| **Settings: Launchkey** | The pad page order: which pad pages Pad Bank ▲/▼ step through after Sections, and in what order. | — | — | Pad Bank ▲ / ▼ follow the order |
+| **Settings: Controller** | The Launchkey's pad page order: which pad pages Pad Bank ▲/▼ step through after Sections, and in what order. | — | — | Pad Bank ▲ / ▼ follow the order |
 | **Move page up** | Moves this pad page one place earlier in the order, so Pad Bank ▼ reaches it sooner. Kept in your settings. | — | — | — |
 | **Move page down** | Moves this pad page one place later in the order. Kept in your settings. | — | — | — |
-| **Leave page out** | Takes this pad page out of the order: Pad Bank ▲/▼ and Tab skip it. If the pads are showing it, they go back to Sections. Hold Sound still shows Racks. | — | — | — |
-| **Add page back** | Puts a pad page you left out back into the order, last. | — | — | — |
 | **Default page order** | Puts every pad page back in the default order: Sections, Racks, Chord, Multi Pads, Setup. | — | — | — |
+| **Settings: Keyboard** | Keyboard and Master transpose, and the parameter locks that keep the split point and the fingering type when you recall a Quick Rack or a One Touch Setting. | Menu › Transpose, Utility › Parameter Lock | — | Pad page 3 (Chord), bottom row (Kbd Tr −, Kbd Tr +, Tr Reset) |
+| **Settings: System** | Audio (the built-in synth, the output pair, the buffer, master volume), MIDI (which inputs yahaha listens to, its output, the Launchkey LEDs), the style folders and SoundFonts, and the theme. | — | — | — |
+| **Reset split point** | Puts the split point back at the default, F#2. Nothing to reset while it is there. | — | — | — |
+| **Set split on the keys** | Arms a pick: the next key you click on the keyboard at the foot of the screen becomes the split point, black keys included. Click again or press Esc to cancel. You can also drag the white split line there, unless the split point is locked. | Split Point (Style + Left) | — | — |
+| **Split point lock** | A locked split point stays where it is when you recall a Quick Rack or a One Touch Setting, and the split line on the keyboard stays put; − and + here still move it. Opens the Keyboard page, where the lock is switched. | Parameter Lock | — | — |
+| **Shown** | Lit: Pad Bank ▲/▼ steps through this pad page. Off: the page is left out and Pad Bank skips it; switch it back on and it goes last. Hold Sound still shows Racks. | — | — | Pad Bank ▲ / ▼ follow the order |
 
 ## Audio
 
@@ -733,8 +684,6 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 |---|---|---|---|---|
 | **Audio output** | The output pair the built-in synth plays on. `--audio-out N` sets it at launch. | — | `A` | — |
 | **Audio buffer** | Frames the built-in synth renders at a time: 64 (1.3 ms at 48 kHz) feels tightest; 128 or 256 give heavy plugins and a busy computer more time per block, and 512 (10.7 ms) or 1024 (21.3 ms) stop stubborn dropouts at a latency you will feel. Changing it reopens the output with a moment of silence; held notes and plugins carry over. It is remembered, and `--buffer N` sets it at launch. | — | — | — |
-| **Audio dropouts** | The audio device missed buffers several times in a short while: clicks or gaps in the sound, from a heavy plugin, a busy computer or a buffer too small for either. Opens Settings › Audio, where a larger buffer size gives each block more time, at a little more latency. | — | — | — |
-| **Dismiss** | Hides the dropout notice for ten minutes. Choosing a new buffer size also clears it. | — | — | — |
 | **Mute synth** | Silences the built-in synth, for when you play Ableton's sounds from the yahaha MIDI port instead. | — | `K` | — |
 | **Built-in synth** | Turns the built-in SoundFont synth's sound on or off. The yahaha MIDI port keeps playing either way, for Ableton or other sounds. | — | `K` | — |
 
@@ -744,7 +693,6 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 |---|---|---|---|---|
 | **MIDI input** | Whether this MIDI source plays yahaha. The Launchkey's DAW port carries its pads and buttons. | — | — | — |
 | **Inputs: all or selected** | All: every MIDI source plays yahaha, merged. Selected: only the sources you switch on below. `--all-inputs` and `--input name` set it at launch. | — | — | — |
-| **yahaha MIDI output** | The virtual MIDI port yahaha plays the band and your parts on. Pick it as a MIDI input in Ableton to use your own sounds. | MIDI Transmit | — | — |
 | **Palette LEDs** | Lights the Launchkey with its built-in palette colours and hardware flashing instead of exact RGB colours. Try it if the pads look wrong or lag. `--palette-leds` sets it at launch. | — | — | Every pad and button light |
 
 ## Pedals and wheels
@@ -756,22 +704,18 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Learn** | Press this, then the pedal: it takes that pedal's CC. Press again to stop waiting. | — | — | The sustain jack (CC 64) |
 | **Try** | Runs the pedal's function now, as a press would. Sustain, Sostenuto and Soft switch on or off, and stay that way until you press Try again. Modulation and Pitch Bend follow the pedal, so there is nothing to try here. | — | — | — |
 | **Reverse polarity** | For a pedal that works the wrong way round (nothing when pressed, something when let go). | Polarity | — | — |
-| **Hold A** | On while the pedal is held, off when it is let go: how a sustain pedal works. | Control Type: Hold A | — | — |
-| **Hold B** | Off while the pedal is held, on when it is up: picking it with the pedal up turns the function on at once. | Control Type: Hold B | — | — |
-| **Toggle** | Each press switches it on or off. | Control Type: Toggle | — | — |
-| **Bend up** | An expression pedal bends the pitch up: heel down is no bend, toe down the full Pitch Bend Range. | Range: Upper | — | — |
-| **Bend down** | An expression pedal bends the pitch down: heel down is no bend, toe down the full range down. | Range: Lower | — | — |
-| **Bend both ways** | The pedal sweeps the whole bend: heel down is fully down, the middle no bend, toe down fully up. | Range: Full | — | — |
 | **Sustain on this part** | Whether the sustain pedal (and Sostenuto and Soft) reach this part. A part only takes it while it is on. | Sustain (part settings) | — | — |
 | **Pitch bend on this part** | Whether the pitch-bend wheel (or a Pitch Bend pedal) bends this part. | Joystick (X): Pitch Bend | — | The pitch wheel |
 | **Modulation on this part** | Whether the modulation wheel adds vibrato to this part. By default Right 1–3 take it and Left doesn't. | Joystick (Y): Modulation | — | The modulation wheel |
 | **Pitch Bend Range down** | One semitone less bend for this part (0–12; 2 is the default). | Pitch Bend Range | — | — |
 | **Pitch Bend Range up** | One semitone more bend for this part (0–12). | Pitch Bend Range | — | — |
+| **Control type** | How a switch function follows the pedal, for switch functions only: Hold A and Hold B (the Genos’ two hold styles) are on while held; Toggle switches it on or off with each press. | Control Type | — | — |
+| **Pitch bend range** | Which way a Pitch Bend pedal bends: Upper up only, Lower down only, Full down at rest and up when pressed. Only for Pitch Bend. | Range | — | — |
 
 ## App
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
-| **Help mode** | Grows the help footer to show the whole entry, and keeps the last control you hovered or tabbed to there while you try it. Controls keep working. | — | `?` | — |
-| **Pop-up tips** | Also shows each entry in a pop-up next to the control, as well as in the help footer. Off by default, because a pop-up covers the controls while you play. | — | — | — |
+| **Audio health** | How the audio is doing: "Audio" when all is well, "Audio off" when the built-in synth isn't running. A keyboard part whose plugin failed ("R3 failed") opens its Channel when clicked. Dropouts in the last 30 seconds ("2 dropouts", with "buffer 256?" when the buffer is under 1024) or the synth's CPU at 70% or more ("CPU 74%") open the audio settings, where a larger buffer gives each block more time. | — | — | — |
+| **Help mode** | Keeps the last control you hovered or tabbed to in the status line above the keys while you try it, instead of the line going back to its message. Controls keep working. | — | `?` | — |
 | **Light / dark** | Switches between the dark stage theme and a light one. | — | — | — |

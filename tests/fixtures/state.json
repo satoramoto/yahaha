@@ -2217,7 +2217,8 @@
       "sectionAnchorBeats": -16.0,
       "ledAnchorMs": 0.0,
       "ledAnchorBeats": 0.0
-    }
+    },
+    "partSelectSeq": 0
   },
   "io": {
     "outputPort": "",
@@ -3358,7 +3359,8 @@
     ],
     "store": false,
     "storeWaiting": null,
-    "readOnly": false
+    "readOnly": false,
+    "undo": null
   },
   "settings": {
     "padPages": [

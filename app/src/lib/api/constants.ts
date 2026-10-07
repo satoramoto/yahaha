@@ -135,7 +135,7 @@ export function emptyState(): AppState {
     },
     message: null,
     styleChange: { tempo: 'hold', parts: 'hold', sectionSet: null },
-    surface: { shift: false, layer: { type: 'none' }, controls: CONTROL_IDS.map(control), faders: Array.from({ length: 9 }, fader), trackPrev: null, trackNext: null, clock },
+    surface: { shift: false, layer: { type: 'none' }, controls: CONTROL_IDS.map(control), faders: Array.from({ length: 9 }, fader), trackPrev: null, trackNext: null, clock, partSelectSeq: 0 },
     preview: { audition: null, queued: null },
     chart: {
       on: false, playlists: [], selected: null, song: null, choruses: 1, intro: 0, ending: 0, loop: null,

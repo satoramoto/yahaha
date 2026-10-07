@@ -1,9 +1,9 @@
 /*
  * The light theme: the same roles as dark.css, mapped onto the palette's light entries
- * (Stage-Light.dc.html). Applies under `data-theme="light"` on the root element. Glows are none.
+ * (Stage-Light.dc.html). Applies under `data-theme="light"`. Glows are none.
  */
 
-:root[data-theme='light'] {
+[data-theme='light'] {
   color-scheme: light;
 
   --g: var(--stone-94);
@@ -23,10 +23,23 @@
   /* Ink and code differ from the canvas (#111, code at 0.6) to pass AA 4.5:1 on the light lamp. */
   --lamp-ink: var(--black);
   --code-opacity: 1;
+  --lamp-line: var(--lime-750); /* --lamp on the ground is 3.74:1; this lime passes */
   --solid-ink: var(--white);
   --rec: var(--red-700);
   --warn: var(--orange-700);
   --ok: var(--green-700);
+
+  /* The state language: as dark. Light hues are dark, so the ink on a fill is white. */
+  --neutral: var(--t);
+  --on-ink: var(--white);
+  --absent-mix: 45%; /* light hues over a light ground fade faster: keep a little more */
+  --tab-rest: var(--t2);
+  --wait-fill-opacity: 0.14;
+
+  --caption-ink: var(--m);
+  --value-ink: var(--t);
+  --header-ink: var(--t);
+  --header-rule: var(--t);
 
   --a: var(--violet-600);
 
@@ -47,4 +60,5 @@
   --bw: none;
   --bm: none;
   --bl: none;
+  --dot-glow-mix: 0%;
 }
