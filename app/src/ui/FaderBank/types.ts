@@ -40,8 +40,12 @@ export type BankLamp = {
   label: string
   /** Lit. */
   on: boolean
-  /** The lamp's colour token: the part hue for a part lamp, `t` (neutral) for a function. `m` is a deprecated alias of `t`. */
-  hue?: 't' | 'r1' | 'r2' | 'r3' | 'l' | 'ok' | 'm'
+  /** The lamp's colour token: the part hue for a part lamp, `t` (neutral) for a function, `lamp` lime (the Looper looping or loop armed). `m` is a deprecated alias of `t`. */
+  hue?: 't' | 'r1' | 'r2' | 'r3' | 'l' | 'ok' | 'lamp' | 'm'
+  /** Record lamp: lit and waiting draw in record red (LampButton `rec`). */
+  rec?: boolean
+  /** The waiting (armed) face while not lit (LampButton `waiting`). */
+  waiting?: boolean
   /** The accessible name ("Right 1 on. Long press: swap mode …"). */
   name?: string
   /** The tooltip key. */

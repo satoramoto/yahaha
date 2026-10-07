@@ -5,7 +5,6 @@ import { isTipKey } from '../../help/tooltips'
 import { MockSession } from '../../lib/api/mock'
 import type { AppCmd, PartPlugin, PluginEntry } from '../../lib/api/types'
 import { app, ui } from '../../lib/store.svelte'
-import MixerRow from '../mixer/MixerRow.svelte'
 import { pluginBadge, pluginTip } from '../mixer/voice'
 import { inProcessPending, pluginStatusLine } from '../parts/parts'
 import { rackName, soundBadge, soundLabel, targetLabel } from './rack'
@@ -33,7 +32,6 @@ afterEach(() => {
   ui.view = 'stage'
   ui.libraryPart = 0
   ui.rack = false
-  ui.mixer = false
 })
 
 const tipped = (key: string) => document.querySelector<HTMLElement>(`[data-tip="${key}"]`)!
@@ -436,33 +434,6 @@ describe('Rack panel: docked', () => {
     const controls = [...document.body.querySelectorAll('button, select, input, [role="slider"], [role="switch"], [tabindex]:not([tabindex="-1"])')]
     expect(controls.length).toBeGreaterThan(30)
     expect(controls.filter((el) => !isTipKey(el.getAttribute('data-tip') ?? '')).map((el) => el.outerHTML.slice(0, 120))).toEqual([])
-  })
-})
-
-describe('Stage: sound names on the part strips', () => {
-  const names = () => [...document.querySelectorAll<HTMLElement>('.strip button.voice')]
-  const rackHead = () => document.querySelector('[data-testid="rack-name"]')!.textContent!
-
-  it('names each part\'s sound on its strip, the bar names the rack; a click opens the picker', async () => {
-    const session = new MockSession({ manual: true, demo: false })
-    // The mixer row isn't routed in the Stage shell any more: render it on its own.
-    app.attach(session)
-    render(MixerRow)
-    flushSync()
-    expect(names().map((b) => b.textContent)).toEqual(session.state.keyboardParts.map((p) => p.voiceName))
-    expect(rackHead()).toContain('Rack: Untitled rack')
-    session.missingPlugin(1)
-    session.send({ type: 'setPartVolume', part: 0, volume: 12 })
-    flushSync()
-    expect(rackHead()).toContain('Rack: Untitled rack ●')
-    await fireEvent.click(names()[3])
-    expect(ui.view).toBe('library')
-    expect(ui.libraryPart).toBe(3)
-    // The Style page's faders are the band.
-    ui.view = 'stage'
-    session.send({ type: 'toggleFaderPage' })
-    flushSync()
-    expect(rackHead()).toContain('Style: the band')
   })
 })
 

@@ -64,7 +64,10 @@
         if (d.play) d.play.mono = !d.play.mono
         break
       case 'portamento':
-        if (d.play) d.play.portamento = { on: c.time > 0, time: c.time }
+        if (d.play) d.play.portamento.time = c.time
+        break
+      case 'portamentoOn':
+        if (d.play) d.play.portamento.on = !d.play.portamento.on
         break
       case 'octave':
         if (d.play) d.play.octave = clamp(d.play.octave + c.step, -2, 2)

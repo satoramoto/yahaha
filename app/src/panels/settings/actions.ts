@@ -1,6 +1,5 @@
 // What the Settings screen's pages do: each page's change (ui/Settings/types.ts) as the command
-// the old drawer's page sends for it (ChordPage, SplitPage, TransposePage, LockPage, StylePage,
-// ChangeBehavior, PedalsPage, AudioPage, MidiPage, LibraryPage, LaunchkeyPage in this folder).
+// the old Settings drawer's pages sent for it (those pages were removed in the rewrite).
 // Pure of Svelte: SettingsScreen.svelte passes the stores in as `SettingsDeps`, tests pass fakes.
 
 import { functionInfo } from '../../lib/api/assignable'

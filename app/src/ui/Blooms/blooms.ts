@@ -79,6 +79,34 @@ export function phaseMs(beat: number, beatsPerBreath: number, breath: number, ph
   return f * breath
 }
 
+/** A phase drift no bigger than this fraction of an animation's length is left alone. */
+export const DRIFT = 0.02
+/** The slowest and fastest a breath runs while it eases back onto the clock. */
+export const RATE_MIN = 0.5
+export const RATE_MAX = 1.5
+
+/**
+ * The signed phase error of an animation `length` ms long that is at `now` ms and should be at
+ * `want` ms, the short way round the loop: positive when it lags, in [-length / 2, length / 2).
+ */
+export function phaseError(now: number, want: number, length: number): number {
+  const L = Math.max(1, length)
+  return ((((want - now) % L) + L * 1.5) % L) - L / 2
+}
+
+/**
+ * The playback rate that eases an animation back onto the clock instead of snapping it: the error
+ * closes over about one `breath` (ms), since the animation gains `rate - 1` ms on the clock per ms.
+ * Asked again at each sync, the remaining error shrinks smoothly to nothing. A drift within DRIFT of
+ * the length is left alone (rate 1); the rate stays within RATE_MIN..RATE_MAX, so a breath never
+ * visibly races, stops or runs backwards.
+ */
+export function relockRate(now: number, want: number, length: number, breath: number): number {
+  const e = phaseError(now, want, length)
+  if (Math.abs(e) <= DRIFT * length) return 1
+  return Math.min(RATE_MAX, Math.max(RATE_MIN, 1 + e / Math.max(1, breath)))
+}
+
 /** The overall level (0..1) from the master RMS (linear): -42 dBFS is 0, -9 dBFS is 1. */
 export function levelOf(rms: readonly number[] | undefined): number {
   const x = Math.max(0, ...(rms ?? [0]))

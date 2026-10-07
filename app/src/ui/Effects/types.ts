@@ -31,7 +31,7 @@ export interface SendRowData {
   name: string
   /** "Hall · Mine", "Celeste · From style", "Added send". */
   subtitle: string
-  /** The return, 0–127. */
+  /** The return, 0–127, shown in dB (64 = 0 dB, 127 = +6 dB, 0 = Off). */
   returnLevel: number
   /** Sends 1–3: the rack keeps its type. The badge "Set by rack" shows in place of the return. */
   setByRack: boolean
@@ -162,8 +162,10 @@ export interface EqBandData {
   gain: number
   /** Hz. */
   freq: number
-  /** The frequencies it can take, low to high (Hz). */
-  freqSteps: number[]
+  /** The lowest frequency it takes (Hz); it takes any whole Hz from here to `freqMax`. */
+  freqMin: number
+  /** The highest frequency it takes (Hz). */
+  freqMax: number
   /** Q in tenths (7 = 0.7), 1..120. */
   q: number
   /** A shelf (bands 1 and 8 only). */

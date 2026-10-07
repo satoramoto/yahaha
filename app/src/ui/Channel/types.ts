@@ -224,6 +224,9 @@ export type ChannelChange =
   | { type: 'eq'; field: keyof ChannelEq; value: number }
   | { type: 'tone'; control: ToneId; value: number }
   | { type: 'mono' }
+  /** Portamento on or off; the strip keeps its time. */
+  | { type: 'portamentoOn' }
+  /** The portamento time (0–127); the switch stays as it is. */
   | { type: 'portamento'; time: number }
   | { type: 'octave'; step: -1 | 1 }
   | { type: 'bend'; step: -1 | 1 }

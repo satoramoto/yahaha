@@ -2,7 +2,7 @@
   ChannelEqTone: the Channel page's EQ & Tone tab body (docs/specs/push/Channel.md, Groups › B and
   D's Play rows, fitted to the display box's 1110×240 body): four 264px columns, 18px apart. Column
   1 the EQ (low and high shelf gain and frequency), columns 2–3 the Tone (eight offsets on the
-  sound, 64 the voice's own), column 4 Play (Mono, Portamento, Octave, Bend range). A Style part
+  sound, 64 the voice's own), column 4 Play (Mono, Portamento time with its own on/off switch, Octave, Bend range). A Style part
   has no tone or play: those rows are shown, not editable. Neutral controls draw in `--neutral`,
   which the open part's hue takes. Controlled: every edit goes out through `onchange`.
 -->
@@ -21,7 +21,7 @@
     data: ChannelData
     /** The app's `use:tip` action, passed in by the wiring and applied to every control with a tooltip. */
     tipAction?: Action<HTMLElement, string>
-    /** Called with each change asked for (eq, tone, mono, portamento, octave, bend). */
+    /** Called with each change asked for (eq, tone, mono, portamento on/off and time, octave, bend). */
     onchange?: (change: ChannelChange) => void
   }
 
@@ -152,19 +152,34 @@
           ontoggle={() => change({ type: 'mono' })}
         />
       </div>
-      <BarReadout
-        label="Portamento"
-        value={play?.portamento.time ?? 0}
-        min={0}
-        max={127}
-        default={0}
-        disabled={play === null}
-        name="Portamento"
-        suffix={play && !play.portamento.on ? ', off' : ''}
-        tip="mixer.channel.portamento"
-        {tipAction}
-        onchange={(time) => change({ type: 'portamento', time })}
-      />
+      <div class="row">
+        <div class="grow">
+          <BarReadout
+            label="Portamento"
+            value={play?.portamento.time ?? 0}
+            min={0}
+            max={127}
+            default={0}
+            disabled={play === null}
+            name="Portamento time"
+            suffix={play && !play.portamento.on ? ', off' : ''}
+            tip="mixer.channel.portamento_time"
+            {tipAction}
+            onchange={(time) => change({ type: 'portamento', time })}
+          />
+        </div>
+        <LampButton
+          label={play?.portamento.on ? 'On' : 'Off'}
+          on={play?.portamento.on ?? false}
+          size="sm"
+          width={52}
+          disabled={play === null}
+          name={play?.portamento.on ? 'Portamento on' : 'Portamento off'}
+          tip="mixer.channel.portamento"
+          {tipAction}
+          ontoggle={() => change({ type: 'portamentoOn' })}
+        />
+      </div>
       <div class="row">
         <span class="label">Octave</span>
         <Stepper
@@ -243,6 +258,10 @@
     height: var(--row-height, var(--control-height));
     min-width: 0;
     white-space: nowrap;
+  }
+  .grow {
+    flex: 1;
+    min-width: 0;
   }
   .label {
     flex: none;

@@ -95,13 +95,89 @@ describe('Looper page', () => {
     expect(screen.queryByRole('menu')).toBeNull()
   })
 
-  it('every control has a tooltip', async () => {
-    setup()
+  it('a stopped 12-bar loop pages to bars 9–16; while looping the lane follows the playing bar', async () => {
+    const s = setup()
+    await recordLoop(s, 12)
+    expect(s.state.looper.mode).toBe('looping')
+    expect(s.state.looper.bars).toBe(12)
+    flushSync()
+    const lane = () => screen.getByRole('list', { name: /The loop/ })
+    const firstBar = () => within(lane()).getAllByRole('listitem')[0].getAttribute('aria-label')
+    expect(firstBar()).toMatch(/^Bar 1:/)
+    // Looping: the window holds the playing bar, ◀ ▶ rest.
+    expect(button('Later bars').getAttribute('aria-disabled')).toBe('true')
+    for (let ms = 0; s.state.looper.bar !== 10 && ms < 12 * barMs(s); ms += 20) s.advance(20)
+    flushSync()
+    expect(firstBar()).toMatch(/^Bar 9:/)
+    expect(within(lane()).getByRole('listitem', { current: true }).getAttribute('aria-label')).toMatch(/^Bar 10:/)
+
+    // Stopped: back to bars 1–8, paged by hand.
+    await fireEvent.click(button('On / Off'))
+    flushSync()
+    expect(s.state.looper.mode).toBe('off')
+    expect(firstBar()).toMatch(/^Bar 1:/)
+    expect(button('Earlier bars').getAttribute('aria-disabled')).toBe('true')
+    await fireEvent.click(button('Later bars'))
+    flushSync()
+    const items = within(lane()).getAllByRole('listitem')
+    expect(items.map((e) => e.getAttribute('aria-label')?.split(':')[0])).toEqual([9, 10, 11, 12, 13, 14, 15, 16].map((n) => `Bar ${n}`))
+    expect(items[4].getAttribute('aria-label')).toBe('Bar 13: empty')
+    expect(screen.getByText(/bars 9–12 of 12/)).toBeTruthy()
+    expect(button('Later bars').getAttribute('aria-disabled')).toBe('true')
+    await fireEvent.click(button('Earlier bars'))
+    flushSync()
+    expect(firstBar()).toMatch(/^Bar 1:/)
+  })
+
+  it('every control has a tooltip: a paged long loop, Save as… (and Overwrite), the Load list', async () => {
+    const s = setup()
+    const untipped = () =>
+      [...document.querySelectorAll('button, input, [role="slider"], [tabindex]:not([tabindex="-1"])')].filter(
+        (e) => !isTipKey(e.getAttribute('data-tip') ?? ''),
+      )
+    await recordLoop(s, 12)
+    await fireEvent.click(button('On / Off'))
+    flushSync()
+    await fireEvent.click(button('Later bars'))
+    flushSync()
+    expect(screen.getByText(/bars 9–12 of 12/)).toBeTruthy()
+    expect(untipped()).toEqual([])
+
+    // Save as…: the name field, Save and Cancel; then save a bank so the Load list has one.
+    await fireEvent.click(button('Save the bank as'))
+    flushSync()
+    expect(screen.getByRole('textbox', { name: 'Bank name' })).toBeTruthy()
+    expect(button('Cancel saving')).toBeTruthy()
+    expect(untipped()).toEqual([])
+    await fireEvent.input(screen.getByRole('textbox', { name: 'Bank name' }), { target: { value: 'Gig' } })
+    await fireEvent.click(button('Save the bank'))
+    await fireEvent.click(button('New bank'))
+    flushSync()
+
+    // A name another bank has: Overwrite.
+    await fireEvent.click(button('Save the bank as'))
+    flushSync()
+    await fireEvent.input(screen.getByRole('textbox', { name: 'Bank name' }), { target: { value: 'Gig' } })
+    flushSync()
+    expect(button('Overwrite')).toBeTruthy()
+    expect(untipped()).toEqual([])
+    await fireEvent.click(button('Cancel saving'))
+    flushSync()
+
     await fireEvent.click(button('Load a bank'))
     flushSync()
-    const bad = [...document.querySelectorAll('button, input, [role="slider"], [tabindex]:not([tabindex="-1"])')].filter(
-      (e) => !isTipKey(e.getAttribute('data-tip') ?? ''),
-    )
-    expect(bad).toEqual([])
+    const menu = screen.getByRole('menu', { name: 'Bank files' })
+    expect(within(menu).getAllByRole('menuitem').length).toBeGreaterThan(0)
+    expect(untipped()).toEqual([])
   })
 })
+
+/** Records a loop of `bars` bars on the mock while the band plays, and loops it. */
+async function recordLoop(s: MockSession, bars: number) {
+  await fireEvent.click(button('Rec / Stop'))
+  for (let ms = 0; s.state.looper.mode === 'recArmed' && ms < 2 * barMs(s); ms += 20) s.advance(20)
+  s.advance(bars * barMs(s) - 200)
+  await fireEvent.click(button('On / Off'))
+  s.advance(400)
+  flushSync()
+}

@@ -5,7 +5,9 @@
 
   - The header: "Chord Looper", the bank's name, and New bank, Load… (a list of the bank files) and
     Save as… (an inline name field; Overwrite when another bank has that name).
-  - The lane: the loop bar by bar, eight at a time (the window that holds the current bar). Each
+  - The lane: the loop bar by bar, eight at a time: while looping or recording the window that
+    holds the current bar; otherwise the window `laneFirst` picks, paged with ◀ ▶ (shown in a loop
+    longer than eight bars, resting while the lane follows the playing bar). Each
     bar's number over a 2px line, then its chords at the large size. The current bar and its
     playhead take the state's face: lime while looping, red while recording; armed outlines bar 1
     in the hue it waits for; past bars grey, coming bars white; empty slots dashes.
@@ -22,7 +24,7 @@
   import type { Action } from 'svelte/action'
   import Button from '../Button/Button.svelte'
   import GroupHeader from '../GroupHeader/GroupHeader.svelte'
-  import { barFace, barName, LANE_BARS, loopFace, modeText, READOUT, windowStart } from './faces'
+  import { barFace, barName, LANE_BARS, laneFollows, laneStart, lastWindow, loopFace, modeText, READOUT } from './faces'
   import type { LooperChange, LooperPageData } from './types'
 
   type Props = LooperPageData & {
@@ -38,6 +40,7 @@
     bar,
     bars,
     sequence,
+    laneFirst,
     playhead,
     running,
     memories,
@@ -62,8 +65,11 @@
 
   const face = $derived(loopFace(mode, hasData))
   const recording = $derived(mode === 'recording' || mode === 'recArmed')
-  /** The lane's window: eight bars from `first`. */
-  const first = $derived(windowStart(mode === 'looping' || mode === 'recording' ? bar : null))
+  /** The lane's window: eight bars from `first`, following the playing bar, else paged. */
+  const first = $derived(laneStart(mode, bar, bars, laneFirst))
+  /** ◀ ▶ page the lane in a loop longer than eight bars; they rest while the lane follows. */
+  const paging = $derived(bars > LANE_BARS)
+  const follows = $derived(laneFollows(mode))
   const slots = $derived(
     Array.from({ length: LANE_BARS }, (_, i) => {
       const n = first + i
@@ -185,7 +191,31 @@
   <div class="lane-wrap">
   <div class="lane-head">
     <span class="caption">{laneCaption}</span>
-    {#if position}<span class="caption">Bar <span class="value">{position}</span></span>{/if}
+    <span class="lane-tools">
+      {#if position}<span class="caption">Bar <span class="value">{position}</span></span>{/if}
+      {#if paging}
+        <span class="pager" role="group" aria-label="Page the loop">
+          <Button
+            symbol="prev"
+            size="icon"
+            name="Earlier bars"
+            disabled={follows || first <= 1}
+            tip="looper.lane_page"
+            {tipAction}
+            onpress={() => send({ type: 'lanePage', first: Math.max(1, first - LANE_BARS) })}
+          />
+          <Button
+            symbol="next"
+            size="icon"
+            name="Later bars"
+            disabled={follows || first >= lastWindow(bars)}
+            tip="looper.lane_page"
+            {tipAction}
+            onpress={() => send({ type: 'lanePage', first: Math.min(lastWindow(bars), first + LANE_BARS) })}
+          />
+        </span>
+      {/if}
+    </span>
   </div>
   <div class="lane" role="list" aria-label="The loop, bar by bar" data-tip="looper.sequence" use:tipped={'looper.sequence'}>
     {#each slots as s (s.bar)}
@@ -435,7 +465,18 @@
   }
   .lane-head {
     display: flex;
+    align-items: center;
     justify-content: space-between;
+  }
+  .lane-tools,
+  .pager {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+  }
+  /* ◀ ▶ at the compact height, so the lane's head stays a short row. */
+  .pager :global(.btn) {
+    height: var(--control-height-compact);
   }
   .bar {
     position: relative;

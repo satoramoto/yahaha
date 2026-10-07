@@ -65,6 +65,12 @@ export interface LooperPageData {
   bars: number
   /** The sequence, bar by bar (empty while recording: the chords arrive when it stops). */
   sequence: LoopBarItem[]
+  /**
+   * The first bar of the lane's window of eight when the loop isn't playing or recording (paged
+   * with ◀ ▶ in a loop longer than eight bars); default 1. Ignored while looping or recording:
+   * the lane then follows the playing bar.
+   */
+  laneFirst?: number
   /** Where the playhead is in the current bar, 0–1, while looping or recording; null: none drawn. */
   playhead: number | null
   /** The transport runs: armed states start at the next bar line, not with the band. */
@@ -97,6 +103,8 @@ export type LooperChange =
   | { type: 'pick'; pick: 'store' | 'clear' | null }
   | { type: 'memory'; index: number }
   | { type: 'newBank' }
+  /** Page the lane: show the eight bars from `first`. */
+  | { type: 'lanePage'; first: number }
   | { type: 'loadOpen'; open: boolean }
   | { type: 'load'; path: string }
   | { type: 'saveAsOpen'; open: boolean }

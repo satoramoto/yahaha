@@ -501,8 +501,20 @@ describe('lamps on Panel', () => {
     })
     const f = faders({ state: s, meters: null, holds: [] })
     expect(f.functionLamps.map((l) => `${l.id}:${l.on}`)).toEqual(['harmArp:true', 'sound:true', 'leftHold:false', 'looper:true'])
-    expect(f.functionLamps[3].hue).toBe('t')
+    expect(f.functionLamps[3].rec).toBe(true)
     expect(faders({ state: state(), meters: null, holds: [] }).functionLamps[1].on).toBe(false)
+  })
+
+  it('the Looper lamp: lime looping, red recording, an outline when armed, white when off', () => {
+    const look = (mode: 'off' | 'recArmed' | 'recording' | 'loopArmed' | 'looping') => {
+      const l = faders({ state: state((st) => void (st.looper.mode = mode)), meters: null, holds: [] }).functionLamps[3]
+      return { on: l.on, hue: l.hue, rec: l.rec, waiting: l.waiting }
+    }
+    expect(look('off')).toEqual({ on: false, hue: 't', rec: false, waiting: false })
+    expect(look('looping')).toEqual({ on: true, hue: 'lamp', rec: false, waiting: false })
+    expect(look('recording')).toEqual({ on: true, hue: 't', rec: true, waiting: false })
+    expect(look('recArmed')).toEqual({ on: false, hue: 't', rec: true, waiting: true })
+    expect(look('loopArmed')).toEqual({ on: false, hue: 'lamp', rec: false, waiting: true })
   })
 })
 
@@ -662,7 +674,8 @@ describe('pads, page by page, as develop lit them', () => {
     expect(face(m.state, empty)).toBe(loaded ? 'ending:playing' : 'r1:playing')
     expect(face(m.state, 12)).toBe(m.state.quickRacks.bank > 0 ? 'r3:idle' : 'r3:dark') // Bank −
     expect(face(m.state, 14)).toBe('r3:idle') // Store
-    expect(pads({ state: m.state, beats: 0 }).pads[15]).toMatchObject({ family: 'util', state: 'dark' })
+    // Undo (#564): lit in the page's orange while there's a store to undo.
+    expect(pads({ state: m.state, beats: 0 }).pads[15]).toMatchObject({ label: 'UNDO', family: 'r3', state: 'idle' })
     m.send({ type: 'toggleQuickRackStore' })
     expect(face(m.state, 14)).toBe('ending:next') // Store armed: flashing red
   })

@@ -41,6 +41,15 @@ export const Default: Story = {
     await fireEvent.keyDown(canvas.getByRole('slider', { name: 'EQ band 1 gain' }), { key: 'ArrowRight' })
     await expect(args.onchange).toHaveBeenCalledWith({ type: 'eqBand', band: 0, gain: 1, freq: 80, q: 7, shelf: true })
 
+    // Any whole Hz: an arrow key steps off the XG frequencies, typed digits and Enter set one exactly.
+    await fireEvent.keyDown(canvas.getByRole('slider', { name: 'EQ band 1 frequency' }), { key: 'ArrowRight' })
+    await expect(args.onchange).toHaveBeenCalledWith({ type: 'eqBand', band: 0, gain: 0, freq: 82, q: 7, shelf: true })
+    const band2 = canvas.getByRole('slider', { name: 'EQ band 2 frequency' })
+    for (const key of ['1', '2', '3', '4']) await fireEvent.keyDown(band2, { key })
+    await expect(band2).toHaveTextContent('1234')
+    await fireEvent.keyDown(band2, { key: 'Enter' })
+    await expect(args.onchange).toHaveBeenCalledWith({ type: 'eqBand', band: 1, gain: 0, freq: 1234, q: 7, shelf: false })
+
     const shelf = canvas.getByRole('button', { name: 'EQ band 8 shelf' })
     await expect(shelf).toHaveAttribute('aria-pressed', 'true')
     await expect(shelf).toHaveTextContent('High')

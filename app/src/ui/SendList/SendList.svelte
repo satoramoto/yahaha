@@ -10,6 +10,7 @@
 <script lang="ts">
   import type { Action } from 'svelte/action'
   import GroupHeader from '../GroupHeader/GroupHeader.svelte'
+  import { returnText } from '../Effects/returnText'
   import type { EffectsBus, ListData, SendRowData } from '../Effects/types'
 
   type Props = {
@@ -49,7 +50,7 @@
   }
 
   function label(row: SendRowData): string {
-    const end = row.setByRack ? ', type set by the rack' : `, return ${row.returnLevel}`
+    const end = row.setByRack ? ', type set by the rack' : `, return ${returnText(row.returnLevel)}`
     return `Send ${row.send + 1}, ${row.name}, ${row.subtitle}${end}${bus === row.send ? ', open' : ''}`
   }
 
@@ -113,7 +114,7 @@
       {#if row.setByRack}
         <span class="badge">Set by rack</span>
       {:else}
-        <span class="return">{row.returnLevel}</span>
+        <span class="return">{returnText(row.returnLevel)}</span>
       {/if}
     </button>
   {/each}

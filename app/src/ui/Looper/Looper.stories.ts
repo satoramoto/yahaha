@@ -6,6 +6,7 @@ import {
   looperEmpty,
   looperLoopArmed,
   looperLong,
+  looperLongStopped,
   looperRecArmed,
   looperRecording,
   looperStopped,
@@ -136,6 +137,22 @@ export const Long: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByText(/bars 9–16 of 16/)).toBeInTheDocument()
+  },
+}
+
+/** Twelve bars, stopped, paged to bars 9–12 with ▶; ◀ pages back to bars 1–8. */
+export const LongStopped: Story = {
+  name: 'Twelve bars, stopped',
+  args: { looper: looperLongStopped, sectionRow: { ...stageBoard.sectionRow, running: false } },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByText(/bars 9–12 of 12/)).toBeInTheDocument()
+    const lane = canvas.getByRole('list', { name: /The loop/ })
+    await expect(within(lane).getAllByRole('listitem')[0]).toHaveAccessibleName('Bar 9: Fmaj7')
+    await expect(within(lane).getByRole('listitem', { name: 'Bar 13: empty' })).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Later bars' })).toHaveAttribute('aria-disabled', 'true')
+    await userEvent.click(canvas.getByRole('button', { name: 'Earlier bars' }))
+    await expect(args.onlooper).toHaveBeenCalledWith({ type: 'lanePage', first: 1 })
   },
 }
 

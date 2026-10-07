@@ -13,8 +13,6 @@ import { NAV } from '../../lib/nav'
 import { MockSession } from '../../lib/api/mock'
 import { quickLook } from '../../lib/api/quick-racks'
 import { app, ui } from '../../lib/store.svelte'
-import KnobRackPanel from '../knobracks/KnobRackPanel.svelte'
-import Launchkey from '../launchkey/Launchkey.svelte'
 import { tip } from '../../lib/tooltip/tip.svelte'
 import { stagePage } from '../stage/page.svelte'
 import QuickRacksPage from './QuickRacksPage.svelte'
@@ -38,7 +36,7 @@ function setup() {
 
 const q = <T extends Element = HTMLButtonElement>(sel: string) => document.querySelector<T>(sel)!
 const tipped = <T extends Element = HTMLButtonElement>(key: string) => [...document.querySelectorAll<T>(`[data-tip="${key}"]`)]
-/** The stage's Quick Racks row (panels/knobracks). */
+/** The old stage's Quick Racks row, now gone: nothing may ask there. */
 const STAGE = 'section[aria-label="Quick Racks"]'
 const names = () => [...document.querySelectorAll('.slot .text')].map((e) => e.textContent)
 /** The bank letter on view: the chosen bank tab. */
@@ -69,17 +67,6 @@ afterEach(() => {
 })
 
 describe('Quick Racks page', () => {
-  it('replaces the Registration bar, in the Quick Racks row (panels/knobracks)', () => {
-    app.attach(new MockSession({ demo: true, manual: true }))
-    render(KnobRackPanel)
-    flushSync()
-    const bar = q<HTMLElement>(STAGE)
-    expect(document.querySelector('section[aria-label="Registration"]')).toBeNull()
-    // Bank ◀ ▶, eight buttons and Store; no Freeze, Sequence, Playlist or Panel.
-    expect(bar.querySelectorAll('[data-tip^="quick."]').length).toBeGreaterThanOrEqual(11)
-    expect(bar.textContent).not.toMatch(/Freeze|Sequence|Playlist|Panel/)
-  })
-
   it('starts on bank A with eight empty buttons', () => {
     setup()
     renderPage()
@@ -499,23 +486,10 @@ describe('Quick Racks in the mock', () => {
     for (const k of ['F6', 'F11', 'F12', '<', '>']) expect(BINDINGS[k], k).toBeUndefined()
   })
 
-  it('a Racks page pad on the mirror loads its rack', async () => {
-    const s = setup()
-    s.send({ type: 'toggleQuickRackStore' })
-    s.send({ type: 'pressQuickRack', slot: 2 })
-    s.send({ type: 'saveRackAs', name: 'Organ' })
-    s.send({ type: 'newRack' })
-    s.send({ type: 'setPadPage', page: 'racks' })
-    flushSync()
-    render(Launchkey)
-    await click(q('.pad[data-note="98"]'))
-    expect(s.state.liveRack.name).toBe('Organ')
-    expect(s.state.quickRacks.buttons[2].loaded).toBe(true)
-  })
 })
 
 describe('Library › Racks', () => {
-  it('opens from nav "Quick Racks" (Alt+R) and loads your racks (double-click), labelled with their Quick Rack button', async () => {
+  it('opens with Alt+R and loads your racks (double-click), labelled with their Quick Rack button', async () => {
     const s = setup()
     render(App, { props: { session: s } })
     s.send({ type: 'toggleQuickRackStore' })
@@ -524,8 +498,9 @@ describe('Library › Racks', () => {
     s.send({ type: 'newRack' })
     s.send({ type: 'setPartVoice', part: 0, program: 3 })
     flushSync()
-    // The quick-nav strip isn't routed in the Stage shell any more; its Alt key still is.
-    expect(NAV.find((n) => n.label === 'Quick Racks')!.key).toBe('alt+r')
+    // Alt+Q shows the Quick Racks page tab; Alt+R is Library › Racks.
+    expect(NAV.find((n) => n.label === 'Quick Racks')!.key).toBe('alt+q')
+    expect(NAV.find((n) => n.key === 'alt+r')!.tip).toBe('library.tab_racks')
     await fireEvent.keyDown(window, { key: 'r', code: 'KeyR', altKey: true })
     flushSync()
     expect(ui.view).toBe('library')

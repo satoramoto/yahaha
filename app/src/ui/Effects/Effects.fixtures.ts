@@ -2,12 +2,9 @@
 // sends (the chorus kept by the rack, a Phaser added), the Delay open with tempo sync on, the
 // Master Compressor on (Natural), the EQ off (Flat), one style insert on Chord 1.
 
+import { returnText } from './returnText'
 import type { BusData, EffectsData, EqBandData, InsertsData, ListData, MasterData, MixData, PartSendItem } from './types'
 
-const STEPS = [
-  32, 36, 40, 45, 50, 56, 63, 70, 80, 90, 100, 110, 125, 140, 160, 180, 200, 225, 250, 280, 315, 355, 400, 450, 500, 560, 630, 700, 800, 900, 1000,
-  1100, 1200, 1400, 1600, 1800, 2000, 2200, 2500, 2800, 3200, 3600, 4000, 4500, 5000, 5600, 6300, 7000, 8000, 9000, 10000, 11000, 12000, 14000, 16000,
-]
 const RANGES: [number, number][] = [[32, 2000], [100, 10000], [100, 10000], [100, 10000], [100, 10000], [100, 10000], [100, 10000], [500, 16000]]
 const FREQS = [80, 250, 500, 630, 800, 1000, 4000, 8000]
 
@@ -16,7 +13,8 @@ export function eqBands(gains: number[]): EqBandData[] {
   return gains.map((gain, i) => ({
     gain,
     freq: FREQS[i],
-    freqSteps: STEPS.filter((f) => f >= RANGES[i][0] && f <= RANGES[i][1]),
+    freqMin: RANGES[i][0],
+    freqMax: RANGES[i][1],
     q: 7,
     shelf: i === 0 || i === 7,
     canShelf: i === 0 || i === 7,
@@ -75,7 +73,7 @@ export const delayBus: BusData = {
     { id: 'delayTone', label: 'Tone', value: 50, min: 10, max: 200, defaultValue: 50, display: '5.0 kHz', code: 'K7', tip: 'fx.param.delay_tone' },
   ],
   levels: [
-    { id: 'return', label: 'Return', value: 36, min: 0, max: 127, defaultValue: 64, display: '36', code: 'K8', tip: 'fx.variation_return' },
+    { id: 'return', label: 'Return', value: 36, min: 0, max: 127, defaultValue: 64, display: returnText(36), code: 'K8', tip: 'fx.variation_return' },
     { id: 'band', label: 'Band send', value: 0, min: 0, max: 127, defaultValue: 0, display: '0%', code: '', tip: 'fx.variation_band' },
     { id: 'pad', label: 'Pad send', value: 20, min: 0, max: 127, defaultValue: 0, display: '20%', code: '', tip: 'fx.variation_pad' },
   ],
@@ -106,7 +104,7 @@ export const reverbBus: BusData = {
     { id: 'reverbTone', label: 'Tone', value: 45, min: 10, max: 200, defaultValue: 45, display: '4.5 kHz', code: 'K7', tip: 'fx.param.reverb_tone' },
   ],
   levels: [
-    { id: 'return', label: 'Return', value: 64, min: 0, max: 127, defaultValue: 64, display: '64', code: 'K8', tip: 'fx.reverb_return' },
+    { id: 'return', label: 'Return', value: 64, min: 0, max: 127, defaultValue: 64, display: returnText(64), code: 'K8', tip: 'fx.reverb_return' },
     { id: 'band', label: 'Band send', value: 100, min: 0, max: 127, defaultValue: 100, display: '100%', code: '', tip: 'fx.reverb_band' },
     { id: 'pad', label: 'Pad send', value: 100, min: 0, max: 127, defaultValue: 100, display: '100%', code: '', tip: 'fx.reverb_pad' },
   ],
@@ -135,7 +133,7 @@ export const chorusBus: BusData = {
     { id: 'chorusDepth', label: 'Depth', value: 9, min: 0, max: 100, defaultValue: 9, display: '0.9 ms', code: 'K6', tip: 'fx.param.chorus_depth' },
   ],
   levels: [
-    { id: 'return', label: 'Return', value: 48, min: 0, max: 127, defaultValue: 64, display: '48', code: 'K8', tip: 'fx.chorus_return' },
+    { id: 'return', label: 'Return', value: 48, min: 0, max: 127, defaultValue: 64, display: returnText(48), code: 'K8', tip: 'fx.chorus_return' },
     { id: 'band', label: 'Band send', value: 0, min: 0, max: 127, defaultValue: 0, display: '0%', code: '', tip: 'fx.chorus_band' },
     { id: 'pad', label: 'Pad send', value: 0, min: 0, max: 127, defaultValue: 0, display: '0%', code: '', tip: 'fx.chorus_pad' },
   ],
@@ -173,7 +171,7 @@ export const phaserBus: BusData = {
     { id: 'p1', label: 'Rate', value: 50, min: 5, max: 500, defaultValue: 50, display: '0.50 Hz', code: '', tip: 'fx.send_param' },
     { id: 'p2', label: 'Feedback', value: 40, min: 0, max: 90, defaultValue: 40, display: '40%', code: '', tip: 'fx.send_param' },
   ],
-  levels: [{ id: 'return', label: 'Return', value: 20, min: 0, max: 127, defaultValue: 64, display: '20', code: '', tip: 'fx.send_return' }],
+  levels: [{ id: 'return', label: 'Return', value: 20, min: 0, max: 127, defaultValue: 64, display: returnText(20), code: '', tip: 'fx.send_return' }],
   parts: parts([0, 0, 0, 0]),
   partsCode: '',
   note: 'Saved with the rack. No knob page moves it.',

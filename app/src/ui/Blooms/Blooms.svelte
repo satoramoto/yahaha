@@ -3,7 +3,8 @@
   breathe with the band. Purely decorative and cheap: each bloom is a radial gradient painted once;
   only its `transform` and `opacity` animate (Web Animations, on the compositor), so a breath
   repaints nothing. No frame loop: while playing, the breaths are phase-locked to the clock
-  (`beat`), one per `barsPerBreath` bars, re-checked every few seconds; the overall `level` lifts the
+  (`beat`), one per `barsPerBreath` bars, re-checked every few seconds; when the clock jumps (a section change, a fill) they ease
+  back onto it over about a breath, by their playback rate, rather than snap. The overall `level` lifts the
   whole backdrop's opacity a little, at most twice a second, through a slow CSS transition. Stopped,
   the breaths hold still and the backdrop settles to a calm, dimmer rest. Under
   `prefers-reduced-motion` nothing moves.
@@ -26,6 +27,7 @@
     gradient,
     hues,
     phaseMs,
+    relockRate,
     type BloomMotion,
     type BloomPalette,
     type BloomSection,
@@ -68,11 +70,14 @@
   const SYNC_MS = 4000
   /** The most often the level changes the backdrop's opacity. */
   const LEVEL_MS = 500
-  /** A phase drift smaller than this fraction of a breath is left alone. */
-  const DRIFT = 0.02
 
   const colours = $derived(hues(palette, section))
-  const spots = $derived(SPOTS.slice(0, colours.length))
+  // Through the count, so a new section (a new hue, the same number of blooms) keeps the same spots
+  // and so the same animations: rebuilding them would restart every breath, a visible jump.
+  const count = $derived(colours.length)
+  const spots = $derived(SPOTS.slice(0, count))
+  // Derived too, so only a real change of motion rebuilds the animations.
+  const moves = $derived(MOTION[motion])
 
   // The level, held: it moves the opacity only in steps of 0.15 and at most every LEVEL_MS.
   let held = $state(0.5)
@@ -109,7 +114,7 @@
   let animations: Animation[] = $state.raw([])
 
   $effect(() => {
-    const m = MOTION[motion]
+    const m = moves
     const els = spots.map((_, i) => [swells[i], drifts[i]] as const)
     if (reduced || els.some(([a, b]) => !a || !b || typeof a.animate !== 'function')) return
     const anims = els.flatMap(([swell, drift], i) => {
@@ -145,8 +150,20 @@
     }
   })
 
-  /** Sets each animation's length from the tempo and, if it has drifted, its phase from the clock. */
-  function sync(force: boolean) {
+  /** Sets an animation's playback rate, the smooth way where the browser has it. */
+  function setRate(a: Animation, rate: number) {
+    if (a.playbackRate === rate) return
+    if (typeof a.updatePlaybackRate === 'function') a.updatePlaybackRate(rate)
+    else a.playbackRate = rate
+  }
+
+  /**
+   * Sets each animation's length from the tempo and locks its phase to the clock. `snap` (starting
+   * to play from still) jumps straight to the clock's phase; otherwise (a section change, a fill, a
+   * new tempo) the breath eases back onto it over about a breath through its playback rate
+   * (relockRate), so nothing visibly jumps.
+   */
+  function sync(snap: boolean) {
     const breath = breathMs(bpm, beatsPerBar, barsPerBreath)
     const perBreath = Math.max(1, barsPerBreath) * Math.max(1, beatsPerBar || 4)
     // Untracked: the clock ticks every frame, and the breaths must not follow it per frame.
@@ -155,15 +172,18 @@
       const i = k >> 1
       const span = k % 2 === 0 ? 1 : 2
       const length = breath * span
-      const timing = a.effect?.getTiming()
-      if (timing && timing.duration !== length) {
+      const was = Number(a.effect?.getTiming().duration) || length
+      // Where it is, as ms into a breath of the new length (the same fraction of the breath).
+      const now = ((Number(a.currentTime ?? 0) % was) / was) * length
+      if (was !== length) {
         a.effect?.updateTiming({ duration: length })
-        force = true
+        if (!snap) a.currentTime = now
       }
       const want = phaseMs(at, perBreath * span, length, spots[i]?.phase ?? 0)
-      const now = Number(a.currentTime ?? 0) % length
-      const off = Math.min(Math.abs(now - want), length - Math.abs(now - want))
-      if (force || off > DRIFT * length) a.currentTime = want
+      if (snap) {
+        setRate(a, 1)
+        a.currentTime = want
+      } else setRate(a, relockRate(now, want, length, breath))
     })
   }
 
@@ -178,7 +198,8 @@
       for (const a of animations) a.pause()
       return
     }
-    sync(true)
+    // Starting from still: jump onto the clock. Already breathing (a new tempo or metre): ease on.
+    sync(animations.some((a) => a.playState !== 'running'))
     for (const a of animations) a.play()
     const t = setInterval(() => sync(false), SYNC_MS)
     return () => clearInterval(t)

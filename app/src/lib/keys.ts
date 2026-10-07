@@ -97,7 +97,7 @@ export const BINDINGS: Record<string, Binding> = {
   esc: { app: 'escape' },
   '?': { app: 'help' },
   // The app bar's quick-nav strip (lib/nav.ts): Alt + a letter, by physical key.
-  ...Object.fromEntries([...'bsropemlchyt'].map((k) => [`alt+${k}`, { nav: `alt+${k}` }])),
+  ...Object.fromEntries([...'bsrocepqlhyt'].map((k) => [`alt+${k}`, { nav: `alt+${k}` }])),
 }
 
 const NAMED: Record<string, string> = {

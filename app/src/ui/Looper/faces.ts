@@ -53,6 +53,26 @@ export function windowStart(bar: number | null): number {
   return Math.floor((bar - 1) / LANE_BARS) * LANE_BARS + 1
 }
 
+/** The lane follows the playing bar while looping or recording; otherwise it is paged by hand. */
+export function laneFollows(mode: LoopMode): boolean {
+  return mode === 'looping' || mode === 'recording'
+}
+
+/** The last window's first bar for a loop of `bars` (1 for eight bars or fewer). */
+export function lastWindow(bars: number): number {
+  return windowStart(Math.max(1, bars))
+}
+
+/**
+ * The first bar of the lane's window: the window holding the playing bar while looping or
+ * recording; otherwise the paged-to window (`paged`, default 1), snapped to a window of eight and
+ * kept within the loop.
+ */
+export function laneStart(mode: LoopMode, bar: number | null, bars: number, paged: number | undefined): number {
+  if (laneFollows(mode)) return windowStart(bar)
+  return Math.min(windowStart(paged ?? 1), lastWindow(bars))
+}
+
 /** A bar's face in the lane: the current bar takes the state's face, past bars are grey, coming
  *  bars white; armed outlines the bar it starts on (bar 1); empty slots are plain off. */
 export function barFace(

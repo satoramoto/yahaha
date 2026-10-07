@@ -13,6 +13,7 @@
   import { stageBoard } from '../Stage/Stage.fixtures'
   import { splitUnit } from '../Readout/readout'
   import Effects from './Effects.svelte'
+  import { returnText } from './returnText'
   import { chorusBus, delayBus, eqBands, phaserBus, reverbBus } from './Effects.fixtures'
   import type { BusChange, BusData, EffectsBus, EffectsData, InsertsChange, MasterChange, MixChange, ParamRow } from './types'
 
@@ -39,6 +40,7 @@
 
   /** A row with a new value, its shown value keeping its unit. */
   function moved(row: ParamRow, value: number): ParamRow {
+    if (row.id === 'return') return { ...row, value, display: returnText(value) }
     const unit = splitUnit(row.display)[1]
     const sep = unit === '%' || unit === '' ? '' : ' '
     return { ...row, value, display: unit ? `${value}${sep}${unit}` : String(value) }

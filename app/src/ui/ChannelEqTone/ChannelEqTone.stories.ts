@@ -6,7 +6,7 @@ import { channelBoard, channelStylePart } from '../Channel/Channel.fixtures'
 /**
  * The Channel page's EQ & Tone tab body: four 264px columns in the display's 1110×240 body. EQ
  * (low and high shelf gain and frequency), Tone across two columns (eight offsets on the sound, 64
- * the voice's own), and Play (Mono, Portamento, Octave, Bend range). A Style part has no tone or
+ * the voice's own), and Play (Mono, Portamento time and its on/off switch, Octave, Bend range). A Style part has no tone or
  * play: those rows are shown, not editable. Neutral controls take the open part's hue.
  * Controlled: every edit is reported through `onchange` and the tab moves only when `data` does.
  */
@@ -38,7 +38,16 @@ export const Board: Story = {
     await userEvent.keyboard('{ArrowRight}')
     await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'tone', control: 'cutoff', value: 77 })
 
-    await expect(canvas.getByRole('slider', { name: 'Portamento' })).toHaveAttribute('aria-valuetext', 'Portamento 0, off')
+    const glide = canvas.getByRole('slider', { name: 'Portamento time' })
+    await expect(glide).toHaveAttribute('aria-valuetext', 'Portamento time 0, off')
+    await expect(glide).toHaveAttribute('data-tip', 'mixer.channel.portamento_time')
+    glide.focus()
+    await userEvent.keyboard('{ArrowRight}')
+    await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'portamento', time: 1 })
+    const porta = canvas.getByRole('button', { name: 'Portamento off' })
+    await expect(porta).toHaveAttribute('data-tip', 'mixer.channel.portamento')
+    await userEvent.click(porta)
+    await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'portamentoOn' })
 
     await userEvent.click(canvas.getByRole('button', { name: 'Octave down' }))
     await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'octave', step: -1 })
@@ -63,7 +72,8 @@ export const StylePart: Story = {
     await expect(canvas.getByRole('button', { name: 'Octave down' })).toHaveAttribute('aria-disabled', 'true')
     await expect(canvas.getByRole('button', { name: 'Octave up' })).toHaveAttribute('aria-disabled', 'true')
     await expect(canvas.getByRole('button', { name: 'Mono off' })).toHaveAttribute('aria-disabled', 'true')
-    await expect(canvas.getByRole('slider', { name: 'Portamento' })).toHaveAttribute('aria-disabled', 'true')
+    await expect(canvas.getByRole('slider', { name: 'Portamento time' })).toHaveAttribute('aria-disabled', 'true')
+    await expect(canvas.getByRole('button', { name: 'Portamento off' })).toHaveAttribute('aria-disabled', 'true')
     await expect(canvas.getByRole('heading', { level: 3, name: /^Tone\b.*the style's voice$/ })).toBeInTheDocument()
   },
 }

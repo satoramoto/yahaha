@@ -588,8 +588,12 @@ function lamps(state: AppState): { partLamps: BankLamp[]; functionLamps: BankLam
       {
         id: 'looper',
         label: 'Looper',
+        // Owner's rule: lime while looping, red while recording, an outline (the waiting face)
+        // when armed, red for rec armed and lime for loop armed; white (neutral) when off.
         on: looper === 'looping' || looper === 'recording',
-        hue: looper === 'recording' || looper === 'recArmed' ? 't' : 'm',
+        hue: looper === 'looping' || looper === 'loopArmed' ? 'lamp' : 't',
+        rec: looper === 'recording' || looper === 'recArmed',
+        waiting: looper === 'recArmed' || looper === 'loopArmed',
         long: true,
         tip: 'looper.on_off',
         name: `Chord Looper on/off${looper === 'off' ? '' : `, ${looper}`}. Long press: Loop rec`,

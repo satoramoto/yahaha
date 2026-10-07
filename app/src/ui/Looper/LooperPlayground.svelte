@@ -120,6 +120,9 @@
       case 'newBank':
         s = { ...s, memories: s.memories.map(() => ({ name: null, bars: 0, summary: '' })), memory: null, bankName: 'New Bank', bankSaved: false, bankPath: null }
         break
+      case 'lanePage':
+        s.laneFirst = c.first
+        break
       case 'loadOpen':
         s.loadOpen = c.open
         break

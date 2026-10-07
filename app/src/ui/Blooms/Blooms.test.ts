@@ -7,12 +7,29 @@ import { cleanup, render } from '@testing-library/svelte'
 import { tick } from 'svelte'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Blooms from './Blooms.svelte'
-import { PLAY_LOUD, PLAY_QUIET, REST, SPOTS, alphaAt, breathMs, gradient, hues, levelOf, phaseMs } from './blooms'
+import {
+  DRIFT,
+  PLAY_LOUD,
+  PLAY_QUIET,
+  RATE_MAX,
+  RATE_MIN,
+  REST,
+  SPOTS,
+  alphaAt,
+  breathMs,
+  gradient,
+  hues,
+  levelOf,
+  phaseError,
+  phaseMs,
+  relockRate,
+} from './blooms'
 
 type Fake = {
   keyframes: Keyframe[]
   duration: number
   currentTime: number
+  playbackRate: number
   playState: 'running' | 'paused' | 'idle'
   play: () => void
   pause: () => void
@@ -29,6 +46,7 @@ function fakeAnimate(this: Element, keyframes: Keyframe[], options: KeyframeAnim
     keyframes,
     duration: Number(options.duration),
     currentTime: 0,
+    playbackRate: 1,
     playState: 'running',
     play: () => (a.playState = 'running'),
     pause: () => (a.playState = 'paused'),
@@ -123,6 +141,56 @@ describe('Blooms', () => {
     expect(beat.mock.calls.length).toBe(first + 1)
   })
 
+  it('eases back onto the clock after it jumps (a section change, a fill), never snapping', async () => {
+    vi.useFakeTimers()
+    let pos = 0
+    render(Blooms, { playing: true, bpm: 120, beat: () => pos })
+    await tick()
+    const swell = live()[0]
+    expect(swell.currentTime).toBe(0)
+    // The clock jumps 4 beats on (a quarter breath) while the animation stands where it was.
+    pos = 4
+    vi.advanceTimersByTime(4000)
+    expect(swell.currentTime).toBe(0)
+    expect(swell.playbackRate).toBeGreaterThan(1)
+    expect(swell.playbackRate).toBeLessThanOrEqual(RATE_MAX)
+    // Caught up: back to its own pace.
+    swell.currentTime = 2000
+    vi.advanceTimersByTime(4000)
+    expect(swell.playbackRate).toBe(1)
+  })
+
+  it('keeps its place in the breath across a tempo change, and eases on', async () => {
+    let pos = 0
+    const view = render(Blooms, { playing: true, bpm: 120, beat: () => pos })
+    await tick()
+    const swell = live()[0]
+    swell.currentTime = 2000 // a quarter of an 8 s breath
+    pos = 4
+    await view.rerender({ playing: true, bpm: 60, beat: () => pos })
+    await tick()
+    expect(swell.playState).toBe('running')
+    expect(swell.duration).toBe(16000)
+    expect(swell.currentTime).toBeCloseTo(4000)
+    expect(swell.playbackRate).toBe(1)
+  })
+
+  it('keeps breathing through a section change: the same animations, not restarted', async () => {
+    for (const palette of ['aurora', 'section'] as const) {
+      fakes = []
+      const view = render(Blooms, { palette, section: 'main', playing: true, beat: () => 0 })
+      await tick()
+      const before = live()
+      before[0].currentTime = 3000
+      await view.rerender({ palette, section: 'ending', playing: true, beat: () => 8 })
+      await tick()
+      expect(fakes).toHaveLength(before.length)
+      expect(live()).toEqual(before)
+      expect(before[0].currentTime).toBe(3000)
+      cleanup()
+    }
+  })
+
   it('moves nothing under prefers-reduced-motion', async () => {
     reducedMotion(true)
     const { container } = render(Blooms, { playing: true, beat: () => 0 })
@@ -156,6 +224,44 @@ describe('blooms.ts', () => {
     expect(phaseMs(0, 16, 8000, 0)).toBe(0)
     expect(phaseMs(20, 16, 8000, 0)).toBe(2000)
     expect(phaseMs(0, 16, 8000, 0.25)).toBe(2000)
+  })
+
+  it('measures a phase error the short way round the loop', () => {
+    expect(phaseError(1000, 3000, 8000)).toBe(2000)
+    expect(phaseError(3000, 1000, 8000)).toBe(-2000)
+    expect(phaseError(7500, 500, 8000)).toBe(1000)
+    expect(phaseError(500, 7500, 8000)).toBe(-1000)
+  })
+
+  it('leaves a small drift alone', () => {
+    expect(relockRate(0, DRIFT * 8000, 8000, 8000)).toBe(1)
+    expect(relockRate(100, 0, 8000, 8000)).toBe(1)
+    expect(relockRate(0, 0, 8000, 8000)).toBe(1)
+  })
+
+  it('closes a phase error over about a breath, without a jump', () => {
+    // Re-asked every 4 s, as the blooms sync, on an 8 s breath, a quarter-breath behind: the
+    // animation runs a little fast, its time only ever moving forwards, smoothly.
+    const breath = 8000
+    const step = 4000
+    let now = 0
+    let want = 2000
+    const errors: number[] = []
+    for (let t = 0; t < 4; t++) {
+      const rate = relockRate(now, want, breath, breath)
+      expect(rate).toBeGreaterThanOrEqual(RATE_MIN)
+      expect(rate).toBeLessThanOrEqual(RATE_MAX)
+      now = (now + rate * step) % breath
+      want = (want + step) % breath
+      errors.push(Math.abs(phaseError(now, want, breath)))
+    }
+    // After one breath (two syncs) most of the error is gone; after two it is within the drift.
+    expect(errors[1]).toBeLessThanOrEqual(2000 / 4)
+    expect(errors[3]).toBeLessThanOrEqual(DRIFT * breath)
+    // Ahead of the clock it slows down instead, but never stops or runs backwards.
+    expect(relockRate(2000, 0, breath, breath)).toBeLessThan(1)
+    expect(relockRate(4000, 0, breath, breath)).toBeGreaterThanOrEqual(RATE_MIN)
+    expect(relockRate(0, 3999, breath, breath)).toBeLessThanOrEqual(RATE_MAX)
   })
 
   it('maps the master RMS to a level', () => {

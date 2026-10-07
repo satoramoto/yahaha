@@ -102,6 +102,8 @@
     label={item.label}
     on={item.on}
     hue={item.hue}
+    rec={item.rec}
+    waiting={item.waiting}
     size="cell"
     name={item.name}
     tip={item.tip}

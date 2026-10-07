@@ -2,7 +2,8 @@
   LampButton: the canvas's on/off control (Accomp, Metronome, part On, Sound, Looper), in the state
   language. Off is no fill, a 1px outline and the label in its hue (off keeps its colour); on is a
   solid fill in the hue with the label and code in --on-ink; waiting (armed) is a 2px ring over a
-  faint fill of the hue; record draws on and waiting in record red; disabled is a 1px outline and
+  faint fill of the hue; record draws on and waiting in record red; lime (`lamp`) lights in --lamp
+  with --lamp-ink and outlines in --lamp-line; disabled is a 1px outline and
   the label in the lamp's own hue at reduced strength (its --absent-<hue>), no fill. No lamp is
   grey: the deprecated `m` draws exactly as the neutral `t`. Fully controlled: the face and aria-pressed follow `on` alone, and a click
   only asks for `!on` through ontoggle. Long press (and right-click) comes from the shared
@@ -17,8 +18,8 @@
     label: string
     /** Lit (solid fill in its hue) or off. Controlled: a click asks for `!on` through `ontoggle` and changes nothing itself. */
     on?: boolean
-    /** The hue of every face: `t` neutral (Accomp, Metronome, the function lamps), a part (`r1` `r2` `r3` `l`), `ok` green (Start / Stop); disabled draws the same hue at reduced strength. `m` is a deprecated alias of `t` and draws exactly as it: no lamp is grey. */
-    hue?: 't' | 'r1' | 'r2' | 'r3' | 'l' | 'ok' | 'm'
+    /** The hue of every face: `t` neutral (Accomp, Metronome, the function lamps), a part (`r1` `r2` `r3` `l`), `ok` green (Start / Stop), `lamp` lime (the Looper while looping or loop armed); disabled draws the same hue at reduced strength. `m` is a deprecated alias of `t` and draws exactly as it: no lamp is grey. */
+    hue?: 't' | 'r1' | 'r2' | 'r3' | 'l' | 'ok' | 'lamp' | 'm'
     /** Small code after the label, e.g. `ACMP`. */
     code?: string
     /** Shown, not pressable: no toggle and no long press. Stays focusable. */
@@ -117,6 +118,9 @@
   .lamp {
     --hue: var(--neutral);
     --hue-absent: var(--absent-neutral);
+    /* The on fill and its label: the hue and --on-ink, except lime (its own fill and ink). */
+    --hue-fill: var(--hue);
+    --hue-ink: var(--on-ink);
     position: relative;
     isolation: isolate;
     display: inline-flex;
@@ -158,6 +162,14 @@
     --hue: var(--ok);
     --hue-absent: var(--absent-ok);
   }
+  /* Lime: --lamp-line for the outline, label and ring on the ground (it passes AA there in light
+     too); the lit face is --lamp with --lamp-ink. */
+  .lamp[data-hue='lamp'] {
+    --hue: var(--lamp-line);
+    --hue-absent: var(--absent-lamp);
+    --hue-fill: var(--lamp);
+    --hue-ink: var(--lamp-ink);
+  }
   .lamp[data-hue='rec'] {
     --hue: var(--rec);
     --hue-absent: var(--absent-rec);
@@ -192,11 +204,11 @@
     opacity: var(--code-opacity);
   }
 
-  /* On (and record): a solid fill in the hue, the label and code in --on-ink. */
+  /* On (and record): a solid fill in the hue, the label and code in --on-ink (lime: --lamp, --lamp-ink). */
   .face-on,
   .face-record {
-    background: var(--hue);
-    color: var(--on-ink);
+    background: var(--hue-fill);
+    color: var(--hue-ink);
   }
   .face-on .sub,
   .face-record .sub {

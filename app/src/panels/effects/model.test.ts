@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest'
 import { MockSession } from '../../lib/api/mock'
 import type { AppState, SendState } from '../../lib/api/types'
-import { busCommand, busData, effectsData, freeText, insertsCommand, listData, masterCommand, masterData, mixCommand, shownBus, typeLabel } from './model'
+import { busCommand, busData, effectsData, freeText, insertsCommand, listData, masterCommand, masterData, mixCommand, returnText, shownBus, typeLabel } from './model'
 
 function mockState(edit?: (s: MockSession) => void): AppState {
   const session = new MockSession({ demo: true, manual: true })
@@ -37,6 +37,25 @@ describe('typeLabel', () => {
     expect(typeLabel('Delay 1/4')).toBe('1/4')
     expect(typeLabel('Ping-Pong')).toBe('Ping-pong')
     expect(typeLabel('Hall')).toBe('Hall')
+  })
+})
+
+describe('returnText', () => {
+  it('reads a return in dB: 0 = Off, 64 = 0 dB, 127 = +6 dB', () => {
+    expect(returnText(0)).toBe('Off')
+    expect(returnText(64)).toBe('+0.0 dB')
+    expect(returnText(127)).toBe('+6.0 dB')
+    expect(returnText(32)).toBe('-6.0 dB')
+    expect(returnText(100)).toBe('+3.9 dB')
+  })
+  it('shows the editor\'s Return and the list in dB, still set on 0–127', () => {
+    const state = mockState()
+    const bus = busData(state, 0)!
+    const ret = bus.levels.find((l) => l.id === 'return')!
+    expect([ret.min, ret.max, ret.value]).toEqual([0, 127, state.effects.blocks[0].returnLevel])
+    expect(ret.display).toBe(returnText(ret.value))
+    const added = busData({ ...state, effects: { ...state.effects, sends: [...(state.effects.sends ?? []), phaser] } }, 3)!
+    expect(added.levels[0].display).toBe('-10.1 dB')
   })
 })
 
@@ -155,6 +174,7 @@ describe('commands', () => {
     expect(masterCommand({ type: 'compParam', id: 'texture', value: 51 })).toEqual({ type: 'setMasterCompressorParam', param: 'texture', value: 51 })
     expect(masterCommand({ type: 'eqType', preset: 'loudness' })).toEqual({ type: 'setMasterEqPreset', preset: 'loudness' })
     expect(masterCommand({ type: 'eqBand', band: 0, gain: 1, freq: 80, q: 7, shelf: true })).toEqual({ type: 'setMasterEqBand', band: 0, gain: 1, freq: 80, q: 7, shelf: true })
+    expect(masterCommand({ type: 'eqBand', band: 3, gain: 0, freq: 1234, q: 7, shelf: false })).toEqual({ type: 'setMasterEqBand', band: 3, gain: 0, freq: 1234, q: 7, shelf: false })
     expect(insertsCommand({ type: 'on', part: 3, on: false })).toEqual({ type: 'setPartInsertOn', part: 3, on: false })
     expect(insertsCommand({ type: 'amount', part: 3, amount: 65 })).toEqual({ type: 'setPartInsertAmount', part: 3, amount: 65 })
     expect(mixCommand({ type: 'insertsOn', on: false })).toEqual({ type: 'setInsertsOn', on: false })
@@ -162,12 +182,13 @@ describe('commands', () => {
     expect(mixCommand({ type: 'compOn', on: true })).toEqual({ type: 'setMasterCompressorOn', on: true })
     expect(mixCommand({ type: 'eqOn', on: true })).toEqual({ type: 'setMasterEqOn', on: true })
   })
-  it('gives the Master editor the eight bands with their frequency steps', () => {
+  it('gives the Master editor the eight bands with their documented frequency ranges', () => {
     const m = masterData(mockState())
     expect(m.bands).toHaveLength(8)
     expect(m.bands[0].canShelf).toBe(true)
     expect(m.bands[3].canShelf).toBe(false)
-    for (const b of m.bands) expect(b.freqSteps).toContain(b.freq)
+    expect(m.bands.map((b) => [b.freqMin, b.freqMax])).toEqual([[32, 2000], [100, 10000], [100, 10000], [100, 10000], [100, 10000], [100, 10000], [100, 10000], [500, 16000]])
+    for (const b of m.bands) expect(b.freq).toBeGreaterThanOrEqual(b.freqMin)
     expect(m.comp.map((r) => r.id)).toEqual(['compression', 'texture', 'output'])
   })
 })
