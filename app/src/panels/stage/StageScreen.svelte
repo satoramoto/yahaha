@@ -21,6 +21,8 @@
   import { rangeFor } from '../keystrip/keyboard'
   import { openRackDrawerOnPrompt } from '../quickracks/rackPromptDrawer.svelte'
   import { nav as settingsNav } from '../settings/nav.svelte'
+  import Blooms from '../../ui/Blooms/Blooms.svelte'
+  import { levelOf } from '../../ui/Blooms/blooms'
   import Stage from '../../ui/Stage/Stage.svelte'
   import ChannelPage from '../channel/ChannelPage.svelte'
   import EffectsPage from '../effects/EffectsPage.svelte'
@@ -178,6 +180,14 @@
 
 <div class="scaler" data-theme={ui.theme} bind:this={box}>
   <div class="artboard" style:transform={`translate(-50%, -50%) scale(${scale})`}>
+    <Blooms
+      playing={s.transport.running}
+      bpm={s.transport.tempo}
+      beatsPerBar={s.transport.beatsPerBar}
+      level={levelOf(meters?.masterRms)}
+      section={displayBase.nowPlaying.hue}
+      beat={() => clock.pos}
+    />
     <Stage
       appBar={appBarData}
       sectionRow={sectionRowData}
@@ -216,5 +226,7 @@
     width: 1440px;
     height: 900px;
     transform-origin: center;
+    /* The blooms behind the screen show through its ground. */
+    --backdrop-ground: transparent;
   }
 </style>

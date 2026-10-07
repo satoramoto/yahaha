@@ -13,7 +13,7 @@
   import { settings } from '../../lib/api/settings.svelte'
   import type { Meters } from '../../lib/api/types'
   import { dropouts } from '../../lib/dropouts.svelte'
-  import { app, ui } from '../../lib/store.svelte'
+  import { app, clock, ui } from '../../lib/store.svelte'
   import { TempoHold } from '../../lib/tempoHold'
   import { tip, tips } from '../../lib/tooltip/tip.svelte'
   import { rangeFor } from '../keystrip/keyboard'
@@ -23,6 +23,8 @@
   import { appBar, keys, status } from '../stage/model'
   import { stagePage } from '../stage/page.svelte'
   import { keysActions, splitPick } from '../stage/splitPick.svelte'
+  import Blooms from '../../ui/Blooms/Blooms.svelte'
+  import { levelOf } from '../../ui/Blooms/blooms'
   import Settings from '../../ui/Settings/Settings.svelte'
   import type { SettingsPageId } from '../../ui/Settings/types'
   import { settingsActions } from './actions'
@@ -153,6 +155,13 @@
 
 <div class="scaler" data-theme={ui.theme} bind:this={box}>
   <div class="artboard" style:transform={`translate(-50%, -50%) scale(${scale})`}>
+    <Blooms
+      playing={s.transport.running}
+      bpm={s.transport.tempo}
+      beatsPerBar={s.transport.beatsPerBar}
+      level={levelOf(meters?.masterRms)}
+      beat={() => clock.pos}
+    />
     <Settings
       appBar={appBarData}
       help={tips.help}
@@ -197,5 +206,7 @@
     width: 1440px;
     height: 900px;
     transform-origin: center;
+    /* The blooms behind the screen show through its ground. */
+    --backdrop-ground: transparent;
   }
 </style>

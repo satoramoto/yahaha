@@ -227,7 +227,8 @@
     height: var(--screen-height);
     padding: var(--screen-pad);
     overflow: hidden;
-    background: var(--g);
+    /* The ground, unless a backdrop (Blooms) sits behind the screen: then transparent. */
+    background: var(--backdrop-ground);
     color: var(--t);
     font-family: var(--font-sans);
   }

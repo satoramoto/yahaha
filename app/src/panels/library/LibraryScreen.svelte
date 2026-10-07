@@ -13,8 +13,10 @@
   import type { Action } from 'svelte/action'
   import type { Meters } from '../../lib/api/types'
   import { dropouts } from '../../lib/dropouts.svelte'
-  import { app, ui, type LibraryTab } from '../../lib/store.svelte'
+  import { app, clock, ui, type LibraryTab } from '../../lib/store.svelte'
   import { tip, tips } from '../../lib/tooltip/tip.svelte'
+  import Blooms from '../../ui/Blooms/Blooms.svelte'
+  import { levelOf } from '../../ui/Blooms/blooms'
   import Library from '../../ui/Library/Library.svelte'
   import { prefs } from '../browser/prefs.svelte'
   import { rangeFor } from '../keystrip/keyboard'
@@ -242,6 +244,13 @@
 
 <div class="scaler" data-theme={ui.theme} bind:this={box}>
   <div class="artboard" style:transform={`translate(-50%, -50%) scale(${scale})`}>
+    <Blooms
+      playing={app.state.transport.running}
+      bpm={app.state.transport.tempo}
+      beatsPerBar={app.state.transport.beatsPerBar}
+      level={levelOf(meters?.masterRms)}
+      beat={() => clock.pos}
+    />
     <Library
       appBar={appBarData}
       help={tips.help}
@@ -290,5 +299,7 @@
     width: 1440px;
     height: 900px;
     transform-origin: center;
+    /* The blooms behind the screen show through its ground. */
+    --backdrop-ground: transparent;
   }
 </style>
