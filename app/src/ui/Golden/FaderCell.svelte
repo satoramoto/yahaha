@@ -1,16 +1,20 @@
 <!--
-  FaderCell: one strip as a Golden tree. A box in the fader's shape (the tuning decides it; a
-  fader stands tall) cut in steps from the top: the track (the real Fader, its value moved out,
-  filling the step), the value (square in the Phi tuning), then the strip's name. The value and
-  the name are one line each, centred, and end in an ellipsis when they don't fit, so the overlay
-  reports them.
-  Two optional bands make it a whole Stage strip (the golden Stage's faders, Option C: each part's
-  sound moved onto its own strip): `sound` takes a tab-block band off the top for the part's sound
-  name (a button when `onsound` is set), and `lamp` a control-height band off the bottom for the
-  strip's lamp. With `onopen`, the strip's name is the name button (opens Channel, with its marks).
-  Without them the cell is the track, the value and the name alone.
-  The cell fills the slot it is given; inside a grid fitted to a cell shape, the grid fits it. On
-  its own (outside any Golden slot) it takes the size the Stage gives one fader cell.
+  FaderCell: one strip as a Golden tree that grows like a stem. From the foot up, each node is one
+  band, and the gaps between them (the internodes, fib steps) shrink toward the tip; the track
+  takes everything the foot leaves (well over 61.8 % of a Stage strip):
+    GoldenBand tab-block, top → [sound, …]                          (with `sound`)
+      GoldenBand control-height, bottom, gap fib-8 → [lamp, …]      (with `lamp`)
+        GoldenBand label-height, bottom, gap fib-5 → [name, …]
+          GoldenBand label-height, bottom, gap fib-3 → [value, track]
+  The track is the real Fader, its value moved out into the value band. The value and the name are
+  one line each, centred, and end in an ellipsis when they don't fit, so the overlay reports them.
+  `sound` (a button when `onsound` is set) puts the part's sound name on top (the golden Stage's
+  faders, Option C); `lamp` puts the strip's lamp at the foot. With `onopen`, the strip's name is
+  the name button (opens Channel, with its marks).
+  `kind="parked"`: an unused fader, narrow enough for half a live strip: no value, no sound text,
+  the name "—" in the dim ink, and the Fader's parked look.
+  The cell fills the slot it is given, at any width (the Stage gives live strips twice a parked
+  one's width). On its own (outside any Golden slot) it takes the size the Stage gives one fader.
 -->
 <script lang="ts">
   import type { Snippet } from 'svelte'
@@ -18,8 +22,6 @@
   import Fader from '../Fader/Fader.svelte'
   import PartMarks from '../PartMarks/PartMarks.svelte'
   import GoldenBand from './GoldenBand.svelte'
-  import GoldenBox from './GoldenBox.svelte'
-  import GoldenSteps from './GoldenSteps.svelte'
 
   type Hue = 'r1' | 'r2' | 'r3' | 'l' | 'a' | 't2' | 't'
 
@@ -108,7 +110,10 @@
   }: Props = $props()
 
   let ink = $derived(layered ? 't' : kind === 'off' ? 'd' : hue)
-  let live = $derived(kind !== 'off' && kind !== 'parked')
+  let parked = $derived(kind === 'parked')
+  let live = $derived(kind !== 'off' && !parked)
+  /** The tree's outermost band, which draws the overlay when it's on. */
+  let top = $derived(sound !== undefined ? 'sound' : lamp ? 'lamp' : 'stem')
   /** The name button's colour: the hue when live, its absent face when off (neutral hues have none). */
   let nameInk = $derived(
     live ? `var(--${hue})` : hue === 't' || hue === 't2' ? 'var(--absent-neutral)' : `var(--absent-${hue})`,
@@ -127,15 +132,11 @@
   }
 </script>
 
-{#snippet steps()}
-  <GoldenSteps>
-    <div class="track">
-      <Fader {name} value="" {level} {meter} {meter2} {peak} {away} {kind} {hue} {layered} {tip} {tipAction} {onlevel} />
-    </div>
-    <div class="text value" aria-hidden="true">
-      <span style:color="var(--{ink})">{kind === 'parked' ? '' : value}</span>
-    </div>
-    {#if onopen && kind !== 'parked'}
+{#snippet stem()}
+  <GoldenBand size="label-height" from="bottom" gap="fib-5" name="name" overlay={overlay && top === 'stem'}>
+    {#if parked}
+      <div class="text name" aria-hidden="true"><span class="rest">—</span></div>
+    {:else if onopen}
       <div class="text name">
         <button
           type="button"
@@ -153,45 +154,53 @@
     {:else}
       <div class="text name" aria-hidden="true"><span>{label}</span></div>
     {/if}
-  </GoldenSteps>
+    <GoldenBand size="label-height" from="bottom" gap="fib-3" name="value">
+      <div class="text value" aria-hidden="true">
+        <span style:color="var(--{ink})">{parked ? '' : value}</span>
+      </div>
+      <div class="track">
+        <Fader {name} value="" {level} {meter} {meter2} {peak} {away} {kind} {hue} {layered} {tip} {tipAction} {onlevel} />
+      </div>
+    </GoldenBand>
+  </GoldenBand>
 {/snippet}
 
 {#snippet withLamp()}
   {#if lamp}
-    <GoldenBand size="control-height" from="bottom">
+    <GoldenBand size="control-height" from="bottom" gap="fib-8" name="lamp" overlay={overlay && top === 'lamp'}>
       <div class="lamp">{@render lamp()}</div>
-      {@render steps()}
+      {@render stem()}
     </GoldenBand>
   {:else}
-    {@render steps()}
+    {@render stem()}
   {/if}
 {/snippet}
 
-<div class="cell">
-  <GoldenBox shape="fader" {overlay}>
-    {#if sound !== undefined}
-      <GoldenBand size="tab-block" from="top">
-        <div class="text sound">
-          {#if onsound}
-            <button
-              type="button"
-              class="sound-button"
-              title={sound}
-              aria-label={soundName ?? sound}
-              data-tip={soundTip}
-              use:tipped={soundTip}
-              onclick={() => onsound?.()}>{sound}</button
-            >
-          {:else}
-            <span title={sound}>{sound}</span>
-          {/if}
-        </div>
-        {@render withLamp()}
-      </GoldenBand>
-    {:else}
+<div class="cell" class:parked>
+  {#if sound !== undefined}
+    <GoldenBand size="tab-block" from="top" name="sound" {overlay}>
+      <div class="text sound">
+        {#if parked}
+          <span></span>
+        {:else if onsound}
+          <button
+            type="button"
+            class="sound-button"
+            title={sound}
+            aria-label={soundName ?? sound}
+            data-tip={soundTip}
+            use:tipped={soundTip}
+            onclick={() => onsound?.()}>{sound}</button
+          >
+        {:else}
+          <span title={sound}>{sound}</span>
+        {/if}
+      </div>
       {@render withLamp()}
-    {/if}
-  </GoldenBox>
+    </GoldenBand>
+  {:else}
+    {@render withLamp()}
+  {/if}
 </div>
 
 <style>
@@ -219,7 +228,7 @@
     height: calc(var(--cell-band) - 2 * var(--fib-13) - var(--group-header-height));
   }
 
-  /* The track: the Fader filling its step, its value shown in the next step instead. */
+  /* The track: the Fader filling the rest of the stem, its value shown in the value band instead. */
   .track {
     container-type: size;
     --fader-height: 100cqh;
@@ -249,6 +258,10 @@
     color: var(--t2);
     font: var(--type-text);
     letter-spacing: var(--tracking-text);
+  }
+  /* A parked strip's name: the rest mark, in the dim ink. */
+  .name .rest {
+    color: var(--d);
   }
   .name .tag {
     color: var(--hue);

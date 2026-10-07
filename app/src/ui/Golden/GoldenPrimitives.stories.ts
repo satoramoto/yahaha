@@ -48,6 +48,9 @@ const meta = {
     },
     gap: { control: 'select', options: FIBS },
     inset: { control: 'select', options: FIBS },
+    weights: { control: 'object' },
+    spiralFrom: { control: 'inline-radio', options: SIDES },
+    spiralTurn: { control: 'inline-radio', options: ['ccw', 'cw'] },
   },
 } satisfies Meta<typeof GoldenSample>
 
@@ -128,6 +131,38 @@ export const Grid: Story = {
     const slots = slotsOf(canvasElement)
     await expect(slots?.children.length).toBe(8)
     await expect(slots?.dataset.orient).toBe('tall')
+  },
+}
+
+/**
+ * GoldenGrid with `weights`: each column's share an interval, here a phi² column, three phi
+ * columns and two unison ones (a live fader strip next to parked ones would be `octave` next to
+ * `unison`). The rows stay equal.
+ */
+export const WeightedGrid: Story = {
+  name: 'Grid with weighted columns',
+  args: { primitive: 'grid', weights: ['phi2', 'phi', 'phi', 'phi', 'unison', 'unison'], rows: 1, inset: 'fib-5' },
+  play: async ({ canvasElement }) => {
+    const slots = slotsOf(canvasElement)
+    await expect(slots?.dataset.weights).toBe('phi2 phi phi phi unison unison')
+    await expect(slots?.dataset.cell).toBeUndefined()
+    await expect(slots?.getAttribute('style')).toContain('--golden-tracks: minmax(0, 2.618034fr)')
+    await expect(slots?.children.length).toBe(6)
+  },
+}
+
+/**
+ * A phi box whose spiral is turned: cut from the right, clockwise (right, bottom, left, top), so its
+ * pole sits left of centre, high up. The overlay rings the pole where the eye lands.
+ */
+export const SpiralTurned: Story = {
+  name: 'Spiral turned cw from the right',
+  args: { primitive: 'box', shape: 'phi', spiralFrom: 'right', spiralTurn: 'cw', inset: 'fib-8' },
+  play: async ({ canvasElement }) => {
+    const slots = slotsOf(canvasElement)
+    await expect(slots?.dataset.spiralFrom).toBe('right')
+    await expect(slots?.dataset.spiralTurn).toBe('cw')
+    await waitFor(() => expect(canvasElement.querySelector('[data-golden="overlay"] [data-golden-pole]')).not.toBeNull())
   },
 }
 

@@ -1,6 +1,21 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
+import { createRawSnippet, mount, unmount, type ComponentProps } from 'svelte'
 import { expect, fireEvent, fn, within } from 'storybook/test'
+import GoldenGrid from '../Golden/GoldenGrid.svelte'
 import TempoReadout from './TempoReadout.svelte'
+
+/** A one-cell GoldenGrid whose leaf is a size container holding the readout, as the grid Stage gives it. */
+function inCell(args: ComponentProps<typeof TempoReadout>) {
+  return createRawSnippet(() => ({
+    render: () => '<div style="container-type: size; width: 100%; height: 100%"></div>',
+    setup: (root: Element) => {
+      const tempo = mount(TempoReadout, { target: root, props: args })
+      return () => {
+        void unmount(tempo)
+      }
+    },
+  }))
+}
 
 /**
  * The display's tempo block: the number at the section's size (drag it, scroll on it, or use the
@@ -17,6 +32,7 @@ const meta = {
     unit: { control: 'text' },
     min: { control: { type: 'number', min: 5, max: 500, step: 1 } },
     max: { control: { type: 'number', min: 5, max: 500, step: 1 } },
+    cells: { control: 'boolean' },
   },
 } satisfies Meta<typeof TempoReadout>
 
@@ -47,5 +63,41 @@ export const AtMax: Story = {
   play: async ({ canvasElement, args }) => {
     await fireEvent.keyDown(within(canvasElement).getByRole('spinbutton'), { key: 'ArrowUp' })
     await expect(args.ontempo).not.toHaveBeenCalled()
+  },
+}
+
+/**
+ * In cells (`cells`): it fills a 360 × 80 size container of the grid Stage; "104 BPM" flush left
+ * on its foot, + over − as outlined squares at its right edge, each half its height.
+ */
+export const Cells: Story = {
+  args: { bpm: 104, unit: 'BPM', min: 5, max: 500, cells: true },
+  parameters: { sample: { width: 360, height: 80 } },
+  render: (args) => ({
+    // GoldenGrid hosts the story; Storybook types `Component` and `props` as TempoReadout's.
+    Component: GoldenGrid as unknown as typeof TempoReadout,
+    props: { columns: 1, overlay: true, name: 'Tempo', children: inCell(args) } as unknown as typeof args,
+  }),
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    const tempo = canvasElement.querySelector('[data-cells]') as HTMLElement
+    await expect(tempo).toHaveClass('cells')
+    const plus = c.getByRole('button', { name: 'Tempo up (Scene Launch)' })
+    const minus = c.getByRole('button', { name: 'Tempo down (Function)' })
+    const whole = tempo.getBoundingClientRect()
+    // Real layout only (jsdom has none): two squares, each half the height, at the right edge.
+    if (whole.height > 0) {
+      for (const step of [plus, minus]) {
+        const box = step.getBoundingClientRect()
+        await expect(Math.abs(box.width - box.height)).toBeLessThan(1)
+        await expect(Math.abs(box.height - whole.height / 2)).toBeLessThan(1)
+        await expect(Math.abs(box.right - whole.right)).toBeLessThan(1)
+      }
+      await expect(plus.getBoundingClientRect().bottom).toBeLessThanOrEqual(minus.getBoundingClientRect().top + 1)
+    }
+    await fireEvent.pointerDown(plus, { button: 0 })
+    await fireEvent.pointerUp(plus)
+    await expect(args.onplus).toHaveBeenNthCalledWith(1, true)
+    await expect(args.onplus).toHaveBeenNthCalledWith(2, false)
   },
 }

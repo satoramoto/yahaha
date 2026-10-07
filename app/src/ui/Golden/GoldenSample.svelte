@@ -13,7 +13,7 @@
   import GoldenSpiral from './GoldenSpiral.svelte'
   import GoldenSplit from './GoldenSplit.svelte'
   import GoldenSteps from './GoldenSteps.svelte'
-  import type { BandSize, Cell, Fib, GoldenReport, Orient, Ratio, Side, Take } from './golden'
+  import type { BandSize, Cell, Fib, GoldenReport, Interval, Orient, Ratio, Side, Take, Turn } from './golden'
 
   type Props = {
     /** The primitive shown. */
@@ -38,6 +38,12 @@
     rows?: number
     /** GoldenGrid: fit each leaf to this shape. */
     cell?: Ratio
+    /** GoldenGrid: each column's share, an interval each (then `columns` and `cell` are ignored). */
+    weights?: Interval[]
+    /** GoldenBox, GoldenSplit: the side the overlay's spiral cuts its first square off. */
+    spiralFrom?: Side
+    /** GoldenBox, GoldenSplit: the way the overlay's spiral turns. */
+    spiralTurn?: Turn
     /** GoldenBand: the token the band is sized by. */
     size?: BandSize
     /** GoldenBand: the fib step between the band and the rest. */
@@ -60,7 +66,10 @@
     columns = 3,
     rows = 2,
     cell,
-    size = 'group-header-height',
+    weights,
+    spiralFrom,
+    spiralTurn,
+    size ='group-header-height',
     gap,
     inset,
     onreport,
@@ -72,7 +81,7 @@
       : primitive === 'row' || primitive === 'column'
         ? cells.length
         : primitive === 'grid'
-          ? columns * rows
+          ? (weights?.length || columns) * rows
           : primitive === 'box'
             ? 1
             : Math.max(1, Math.min(8, Math.round(count))),
@@ -88,9 +97,9 @@
 
 <GoldenOverlay report {onreport}>
   {#if primitive === 'box'}
-    <GoldenBox shape={shape ?? 'phi'} {orient} {inset} name="box">{@render fill()}</GoldenBox>
+    <GoldenBox shape={shape ?? 'phi'} {orient} {inset} {spiralFrom} {spiralTurn} name="box">{@render fill()}</GoldenBox>
   {:else if primitive === 'split'}
-    <GoldenSplit {take} {from} {shape} {orient} {inset} name="split">{@render fill()}</GoldenSplit>
+    <GoldenSplit {take} {from} {shape} {orient} {inset} {spiralFrom} {spiralTurn} name="split">{@render fill()}</GoldenSplit>
   {:else if primitive === 'steps'}
     <GoldenSteps {step} {from} {shape} {orient} {inset} name="steps">{@render fill()}</GoldenSteps>
   {:else if primitive === 'spiral'}
@@ -100,7 +109,7 @@
   {:else if primitive === 'column'}
     <GoldenColumn {cells} {shape} {orient} {inset} name="column">{@render fill()}</GoldenColumn>
   {:else if primitive === 'grid'}
-    <GoldenGrid {columns} {rows} {cell} {shape} {orient} {inset} name="grid">{@render fill()}</GoldenGrid>
+    <GoldenGrid {columns} {rows} {cell} {weights} {shape} {orient} {inset} name="grid">{@render fill()}</GoldenGrid>
   {:else}
     <GoldenBand {size} {from} {gap} {inset} name="band">{@render fill()}</GoldenBand>
   {/if}

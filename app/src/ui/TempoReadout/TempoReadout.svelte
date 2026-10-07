@@ -7,6 +7,10 @@
   press calls with `true` then `false`. No boxes: the glyphs and the number brighten on hover and
   show the focus ring on keyboard focus. Holds no tempo and no timers: every change is asked for
   through a callback, and the number shows `bpm` as given.
+
+  `cells` (the golden Stage): it fills its container, which must be a size container
+  (`container-type: size`). The number and its unit sit flush left on the container's foot, and
+  + over − are outlined neutral squares at its right edge, each half the container's height.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -30,9 +34,22 @@
     onminus?: (down: boolean) => void
     /** The number double-clicked: back to the style's own tempo. */
     onreset?: () => void
+    /** Fill the size container it sits in: the number on its foot, + over − as squares at its right. */
+    cells?: boolean
   }
 
-  let { bpm, unit = 'BPM', min = 5, max = 500, tipAction, ontempo, onplus, onminus, onreset }: Props = $props()
+  let {
+    bpm,
+    unit = 'BPM',
+    min = 5,
+    max = 500,
+    tipAction,
+    ontempo,
+    onplus,
+    onminus,
+    onreset,
+    cells = false,
+  }: Props = $props()
 
   /** Pixels of drag per BPM. */
   const DRAG_PX = 4
@@ -117,7 +134,7 @@
   }
 </script>
 
-<div class="tempo">
+<div class="tempo" class:cells data-cells={cells || undefined}>
   <span class="reading">
     <span
       class="bpm"
@@ -231,5 +248,42 @@
   }
   .step:hover {
     color: var(--t);
+  }
+
+  /* Cells: the whole size container. The reading flush left on the foot: its line boxes trimmed
+     to the alphabetic baseline, so the number stands on the bottom edge. */
+  .tempo.cells {
+    display: flex;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    gap: 0;
+  }
+  .cells .reading {
+    flex: 1 1 auto;
+    align-self: flex-end;
+    min-width: 0;
+  }
+  /* The trimmed-off descent (no ink for digits or capitals) clipped, so it doesn't spill below. */
+  .cells .bpm,
+  .cells .unit {
+    text-box: trim-end cap alphabetic;
+    overflow: clip;
+  }
+  /* + over −, each a square half the container's height, at its right edge. */
+  .cells .steps {
+    flex: none;
+    margin-left: auto;
+  }
+  .cells .step {
+    flex: none;
+    width: 50cqh;
+    height: 50cqh;
+    min-width: 0;
+    min-height: 0;
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
+    box-shadow: inset 0 0 0 var(--outline-width) var(--neutral);
+    color: var(--neutral);
   }
 </style>

@@ -101,27 +101,76 @@ export const Helpers: Story = {
 }
 
 /**
- * The transport in cells (`cells`, `groups` transport) in a 7-cell GoldenGrid, its cuts drawn: no
- * wrapper, each control one top-level element filling its cell, the word centred; "● Playing" keeps
- * the running hue. The grid's toolbar element supplies the role.
+ * The transport in cells (`cells`, `groups` transport) in a 6-cell GoldenGrid, its cuts drawn: no
+ * wrapper, each control one outlined face filling its cell: Start / Stop solid green while running,
+ * Accomp solid (on), Sync Start, Fill (▲ and ▼ the two halves of one cell), Fade, then Reset at
+ * the far end. The grid's toolbar element supplies the role.
  */
 export const Cells: Story = {
-  args: { running: true, groups: 'transport', cells: true },
+  args: { running: true, accomp: true, groups: 'transport', cells: true },
   parameters: { sample: { width: 610, height: 55 } },
   render: (args) => ({
     // GoldenGrid hosts the story; Storybook types `Component` and `props` as SectionRow's.
     Component: GoldenGrid as unknown as typeof SectionRow,
-    props: { columns: 7, overlay: true, name: 'Transport', children: inGrid(args) } as unknown as typeof args,
+    props: { columns: 6, overlay: true, name: 'Transport', children: inGrid(args) } as unknown as typeof args,
   }),
   play: async ({ canvasElement }) => {
     const toolbar = within(canvasElement).getByRole('toolbar', { name: 'Transport' })
     const controls = [...toolbar.children]
-    await expect(controls).toHaveLength(7)
-    await expect(controls.every((el) => el.tagName === 'BUTTON')).toBe(true)
+    await expect(controls).toHaveLength(6)
     await expect(toolbar.parentElement).toHaveAttribute('data-golden-slots', 'grid')
+    await expect(controls[0]).toHaveTextContent('Start / Stop')
     await expect(controls[0]).toHaveAttribute('aria-pressed', 'true')
-    await expect(controls[0]).toHaveClass('running')
-    await expect(canvasElement.querySelector('.group, .pair, .start-word, .row')).toBeNull()
+    await expect(controls[0]).toHaveAttribute('data-face', 'on')
+    await expect(controls[1]).toHaveAttribute('data-face', 'on')
+    await expect(controls[2]).toHaveAttribute('data-face', 'off')
+    const fill = within(toolbar).getByRole('group', { name: 'Fill' })
+    await expect(controls[3]).toBe(fill)
+    await expect(within(fill).getAllByRole('button')).toHaveLength(2)
+    await expect(controls[4]).toHaveAccessibleName('Fade in/out')
+    await expect(controls[5]).toHaveAccessibleName('Section reset: restart the section from its first bar')
+    await expect(canvasElement.querySelector('.group, .pair, .start-word, .row, .dot')).toBeNull()
+  },
+}
+
+/** A toolbar laying the helpers out as max-content columns, the grid a `cells` row sits in. */
+function inColumns(args: ComponentProps<typeof SectionRow>) {
+  return createRawSnippet(() => ({
+    render: () =>
+      '<div role="toolbar" aria-label="Helpers" style="display: grid; grid-auto-flow: column; grid-auto-columns: max-content; height: 100%"></div>',
+    setup: (root: Element) => {
+      const row = mount(SectionRow, { target: root, props: args })
+      return () => {
+        void unmount(row)
+      }
+    },
+  }))
+}
+
+/**
+ * The helpers in cells (`cells`, `groups` helpers) in max-content columns: Metronome with its ▾ as
+ * two halves of one outlined cell (lit: on), Unison, ?, then Panic in the warning hue, set apart.
+ */
+export const HelperCells: Story = {
+  args: { metronome: true, groups: 'helpers', cells: true },
+  parameters: { sample: { width: 610, height: 34 } },
+  render: (args) => ({
+    // GoldenGrid hosts the story; Storybook types `Component` and `props` as SectionRow's.
+    Component: GoldenGrid as unknown as typeof SectionRow,
+    props: { columns: 1, name: 'Helpers', children: inColumns(args) } as unknown as typeof args,
+  }),
+  play: async ({ canvasElement }) => {
+    const toolbar = within(canvasElement).getByRole('toolbar', { name: 'Helpers' })
+    const controls = [...toolbar.children]
+    await expect(controls).toHaveLength(4)
+    const metronome = within(toolbar).getByRole('group', { name: 'Metronome' })
+    await expect(controls[0]).toBe(metronome)
+    const halves = within(metronome).getAllByRole('button')
+    await expect(halves).toHaveLength(2)
+    await expect(halves[0]).toHaveAttribute('data-face', 'on')
+    await expect(controls[1]).toHaveTextContent('Unison')
+    await expect(controls[2]).toHaveTextContent('?')
+    await expect(controls[3]).toHaveAccessibleName('Panic: all notes off')
   },
 }
 

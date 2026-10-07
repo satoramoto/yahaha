@@ -2,7 +2,9 @@
   GoldenOverlay: draws the Golden tree inside it (its children) as it is rendered: every slot's
   cut line (in a shade for its nesting depth, thinner and fainter the deeper it is), each leaf's
   inset (dashed) and a golden spiral at every level: in each phi box (wide or tall) and in each
-  golden-section split (`major`, `minor`), turning from the split's `from` side. It checks the rules
+  golden-section split (`major`, `minor`), turning from the split's `from` side. A node's
+  `data-spiral-from` / `data-spiral-turn` (a primitive's `spiralFrom` / `spiralTurn`) orient its
+  spiral instead, give any split one, and mark the spiral's pole with a small ring. It checks the rules
   as it goes and draws what breaks one red: a slot whose content overflows it (or has text cut
   short), and a row or column whose cells don't add up to its box. What it finds is data: the
   wrapper carries `data-overflow` and `data-rows-off` (counts), `onreport` gets the whole report,
@@ -16,6 +18,7 @@
     lineAddsUp,
     report as makeReport,
     spiralPath,
+    spiralPole,
     summary,
     type BoxMeasure,
     type GoldenReport,
@@ -25,6 +28,7 @@
     type Side,
     type SlotMeasure,
     type SpiralMeasure,
+    type Turn,
   } from './golden'
 
   /** The depth shades cycle through this many tokens (`--golden-overlay-depth-0` …). */
@@ -122,8 +126,18 @@
       const depth = depthOf(holder, top)
       const cells = [...holder.children] as HTMLElement[]
       const take = holder.getAttribute('data-take')
-      if (kind === 'cut' && (take === 'major' || take === 'minor')) {
-        spirals.push({ ...within(origin, holder), from: (holder.getAttribute('data-from') as Side | null) ?? 'top', depth })
+      const spiralFrom = holder.getAttribute('data-spiral-from') as Side | null
+      const spiralTurn = holder.getAttribute('data-spiral-turn') as Turn | null
+      // A split set to a phi shape with its own orientation is drawn once, by its phi box (below).
+      const phiOwned = holder.parentElement?.getAttribute('data-shape') === 'phi' && (spiralFrom ?? spiralTurn) !== null
+      if (kind === 'cut' && !phiOwned && (take === 'major' || take === 'minor' || spiralFrom !== null)) {
+        spirals.push({
+          ...within(origin, holder),
+          from: spiralFrom ?? (holder.getAttribute('data-from') as Side | null) ?? 'top',
+          turn: spiralTurn ?? 'ccw',
+          depth,
+          explicit: spiralFrom !== null || spiralTurn !== null,
+        })
       }
       for (const el of cells) {
         const cut = el.hasAttribute('data-golden')
@@ -185,8 +199,11 @@
       const shape = fit.getAttribute('data-shape') ?? ''
       boxes.push({ shape, rect, slot })
       if (shape === 'phi') {
-        const from: Side = fit.getAttribute('data-orient') === 'tall' ? 'top' : 'left'
-        spirals.push({ ...rect, from, depth: depthOf(fit, top) })
+        const own = fit.querySelector(':scope > [data-golden-slots]')
+        const spiralFrom = own?.getAttribute('data-spiral-from') as Side | null | undefined
+        const spiralTurn = own?.getAttribute('data-spiral-turn') as Turn | null | undefined
+        const from: Side = spiralFrom ?? (fit.getAttribute('data-orient') === 'tall' ? 'top' : 'left')
+        spirals.push({ ...rect, from, turn: spiralTurn ?? 'ccw', depth: depthOf(fit, top), explicit: Boolean(spiralFrom ?? spiralTurn) })
       }
     }
 
@@ -269,8 +286,19 @@
         <path
           class="spiral {shade(r.depth ?? 0)}"
           style:--golden-depth={Math.min(r.depth ?? 0, SHADES - 1)}
-          d={spiralPath(r, 12, r.from)}
+          d={spiralPath(r, 12, r.from, r.turn)}
         />
+        {#if r.explicit}
+          {@const [px, py] = spiralPole(r, r.from, r.turn)}
+          <circle
+            class="pole {shade(r.depth ?? 0)}"
+            style:--golden-depth={Math.min(r.depth ?? 0, SHADES - 1)}
+            data-golden-pole
+            cx={px}
+            cy={py}
+            r="5"
+          />
+        {/if}
       {/each}
     </svg>
   {/if}
@@ -317,6 +345,11 @@
   }
   .spiral {
     stroke-width: calc(var(--header-rule-width) / (1 + var(--golden-depth, 0) * 0.35));
+  }
+  /* A set spiral's pole: a small ring where the eye lands, in the spiral's shade. */
+  .pole {
+    r: var(--fib-5);
+    stroke-width: var(--header-rule-width);
   }
   .d0 {
     stroke: var(--golden-overlay-depth-0);

@@ -3,29 +3,36 @@
   `layout="golden"`, Storybook only for now). The same regions and data as Stage, placed by the
   Golden primitives (Golden/), so every size comes from a cut, never from a px. The method is
   recursive (docs/factory/golden.md): the page lays out groups, each group is a new frame that
-  lays out its items, and a control is a frame of its own again. Numbers at 1440 × 900:
+  lays out its items, and a control is a frame of its own again. Every cell has a job, its size
+  follows its use, and the control fills its cell. Numbers at 1440 × 900:
   - Page: the whole screen is the frame, a phi box (1398 × 864) between fib-21 side margins. Its
     minor part off the top is the top half (330), the rest the bottom half (534). Each half takes a
     phi⁴ step off its outer edge: the app bar (48) off the top half, the keys (78) off the bottom.
-  - Hero (1398 × 282), two tiers: its major part off the top is the reading tier (174), in thirds:
-    the style line over the chord, the section over what comes next, the tempo over the beat bar.
-    The rest is the controls tier (108): its major part off the left is the transport, a row of
-    seven controls; the rest One Touch, its words and 1–4 in a row. No parts here (Option C: each
-    part's sound is on its own fader strip).
-  - Band (1398 × 456): its major part off the left is the faders (864), a header band over nine
-    strips, each a FaderCell (sound, track, value, name, lamp); the rest (534) is cut minor off the
-    top into knobs (a header band over eight KnobCells) over pads (a header band over a 4 × 4 grid).
+    The page's spiral is turned cw from the right, so its pole (388, 238) lands on the section
+    block: on what comes next.
+  - Hero (1398 × 282), two tiers: a phi³ step off its bottom is the controls tier (67): its major
+    part off the left the transport (six outlined cells graded by phi: Start / Stop φ², Accomp,
+    Sync Start and the fills φ, Fade and Reset 1), the rest One Touch (its caption, then 1–4). The
+    reading tier (215) above it: a phi³ step off its left is the chord (330, the spiral's square);
+    the rest is halved into the section and the tempo (534 each). Each reading cell's major part
+    off the top ends on one shared line, the hero values' baseline: the chord, Main B and the
+    tempo stand on it, flush left. Under it: the chord's notes; what comes next (a waiting chip in
+    its hue, then when); the beat bar (one segment a beat) over the style line (‹ › as cells).
+  - Band (1398 × 456): its major part off the left is the faders (864): a header band, then the
+    lamp row (a control-height band off the bottom: the part lamps under their strips, a sub-cut,
+    then the functions), then nine strips weighted by use (a live strip an octave of a parked
+    one). The rest (534) is cut minor off the top into knobs (a header band over eight knob
+    cells, an unused knob half as wide) over pads (a header band over a 4 × 4 grid).
   Each group sits in a `group` wrapper inset fib-13 from its block's cuts; inside a group the cuts
   sit edge to edge. The status line sits at the faders header's right end.
   Each leaf is a size container: the components' size tokens are set from its content box (cq
-  units). It changes no component's default: it uses their additive props (SectionRow `cells`,
-  OneTouchPicker `cells`, NowPlaying `show`, AppBar `end`, FaderCell `sound` and `lamp`). With
+  units). It changes no component's default: it uses their additive props (SectionRow,
+  OneTouchPicker, StyleLine and TempoReadout `cells`, AppBar `end`, FaderCell `sound`). With
   `overlay`, the whole tree is drawn and checked by a GoldenOverlay.
 -->
 <script lang="ts">
   import type { ComponentProps } from 'svelte'
   import AppBar from '../AppBar/AppBar.svelte'
-  import BarBeat from '../BarBeat/BarBeat.svelte'
   import Button from '../Button/Button.svelte'
   import ChordReadout from '../ChordReadout/ChordReadout.svelte'
   import ChosenTabs from '../ChosenTabs/ChosenTabs.svelte'
@@ -36,19 +43,21 @@
   import GoldenBox from '../Golden/GoldenBox.svelte'
   import GoldenGrid from '../Golden/GoldenGrid.svelte'
   import GoldenSplit from '../Golden/GoldenSplit.svelte'
+  import type { Interval } from '../Golden/golden'
   import KnobCell from '../Golden/KnobCell.svelte'
   import GroupHeader from '../GroupHeader/GroupHeader.svelte'
   import HueLegend from '../HueLegend/HueLegend.svelte'
   import Keys from '../Keys/Keys.svelte'
   import LampButton from '../LampButton/LampButton.svelte'
-  import NowPlaying from '../NowPlaying/NowPlaying.svelte'
   import OneTouchPicker from '../OneTouchPicker/OneTouchPicker.svelte'
   import Pad from '../Pad/Pad.svelte'
+  import SectionName from '../SectionName/SectionName.svelte'
   import SectionRow from '../SectionRow/SectionRow.svelte'
   import Separator from '../Separator/Separator.svelte'
   import type Stage from '../Stage/Stage.svelte'
   import StatusLine from '../StatusLine/StatusLine.svelte'
   import StyleLine from '../StyleLine/StyleLine.svelte'
+  import TempoReadout from '../TempoReadout/TempoReadout.svelte'
 
   /** The Stage's props (the same regions and callbacks), with the running and fading Stage resolved. */
   type Props = ComponentProps<typeof Stage> & {
@@ -79,23 +88,40 @@
   }
 
   const display = $derived(p.display)
+  const now = $derived(display.nowPlaying)
   const style = $derived({
     styleName: display.styleLine.styleName,
     category: display.styleLine.category,
     timeSignature: display.styleLine.timeSignature,
     queued: display.styleLine.queued,
   })
-  const song = $derived({
-    playing: display.nowPlaying.playing,
-    hue: display.nowPlaying.hue,
-    next: display.nowPlaying.next,
-    fill: display.nowPlaying.fill,
-    bar: display.nowPlaying.bar,
-    bars: display.nowPlaying.bars,
-    bpm: display.nowPlaying.bpm,
-    running: display.nowPlaying.running,
-    syncStart: display.nowPlaying.syncStart,
+
+  type SectionHue = 'intro' | 'main' | 'ending' | 'brk' | 'fill'
+  /** A section's hue from its shown name ("Main C" → main), as the pads colour it. */
+  function hueOf(name: string): SectionHue | undefined {
+    const word = name.trim().split(/\s+/)[0]?.toLowerCase()
+    return word === 'intro'
+      ? 'intro'
+      : word === 'main'
+        ? 'main'
+        : word === 'ending'
+          ? 'ending'
+          : word === 'break'
+            ? 'brk'
+            : word === 'fill'
+              ? 'fill'
+              : undefined
+  }
+  const next = $derived((now.next ?? '').trim())
+  const nextHue = $derived(hueOf(next) ?? now.hue ?? 'main')
+  /** The words after the chip: when the change lands, or the bar, or the stopped state. */
+  const when = $derived.by(() => {
+    if (!now.running) return now.syncStart ? 'Sync Start armed' : 'Stopped'
+    if (next) return now.fill ?? ''
+    return (now.bar ?? 0) > 0 && (now.bars ?? 0) > 0 ? `bar ${now.bar} of ${now.bars}` : ''
   })
+  const beats = $derived(Math.max(1, now.beats ?? 4))
+  const beat = $derived(now.running ? (now.beat ?? 0) : 0)
 
   /** Each part, by the strip's id (right1 … left): Option C puts its sound on top of the part's strip. */
   const parts = $derived(new Map(display.soundRow.parts.map((part) => [part.id as string, part])))
@@ -105,9 +131,13 @@
   const layerWord = $derived(layered ? faders.layerTabs.find((tab) => tab.id === faders.layer)?.label : undefined)
   const pageLabel = $derived(faders.pageTabs.find((tab) => tab.id === faders.page)?.label ?? '')
   const otherLabel = $derived(faders.pageTabs.find((tab) => tab.id !== faders.page)?.label ?? '')
-  /** The lamp under each strip: the part lamps under 1–4, the function lamps under 5–8; the last strip has the page button. */
-  const lamps = $derived([...faders.partLamps, ...faders.functionLamps])
   const isPart = (strip: FaderStrip) => strip.kind === 'part' || strip.kind === 'off'
+  /** Size follows use: a live strip is an octave of a parked one (the unused faders give their width away). */
+  const stripWeights: Interval[] = $derived(faders.strips.map((s) => (s.kind === 'parked' ? 'unison' : 'octave')))
+  /** The same for the knobs: an unused knob is half a live one. */
+  const knobWeights: Interval[] = $derived(p.knobs.knobs.map((k) => (k.unused ? 'unison' : 'octave')))
+  /** The transport graded by use, in phi steps: Start / Stop, then Accomp, Sync Start and the fills, then Fade and Reset. */
+  const TRANSPORT: Interval[] = ['phi2', 'phi', 'phi', 'phi', 'unison', 'unison']
 
   const knobTabs: TabItem[] = $derived(
     (p.knobs.pages?.length ? p.knobs.pages : [p.knobs.pageLabel ?? '']).map((label, i) => ({
@@ -143,85 +173,36 @@
   />
 {/snippet}
 
-{#snippet pageButton()}
-  <Button
-    label={pageLabel}
-    size="cell"
-    name={`Fader page is ${pageLabel}: click for ${otherLabel}`}
-    tip="mixer.page"
-    tipAction={p.tipAction}
-    onpress={p.onpagebutton}
-    onlongpress={p.onpagelong}
-    onlongrelease={p.onpagerelease}
-  />
-{/snippet}
-
 <div class="screen">
-  <GoldenBox shape="phi" inset="fib-13" name="page" overlay={p.overlay ?? false}>
-    <GoldenSplit take="minor" from="top" name="halves">
+  <GoldenBox shape="phi" inset="fib-13" name="page" spiralFrom="right" spiralTurn="cw" overlay={p.overlay ?? false}>
+    <GoldenSplit take="minor" from="top" name="halves" spiralFrom="right" spiralTurn="cw">
       <GoldenSplit take="phi4" of="length" from="top" name="top half">
         <div class="leaf bar">
           <!-- The bar fills its cut: the grid Stage's fixed px width is dropped. -->
           <AppBar {...p.appBar} width={undefined} tipAction={p.tipAction} onchoose={p.onchoose} onhealth={p.onhealth}>
             {#snippet end()}
-              <SectionRow
-                {...p.sectionRow}
-                groups="helpers"
-                orientation="horizontal"
-                running={p.running}
-                fading={p.fading}
-                tipAction={p.tipAction}
-                onmetronome={p.onmetronome}
-                onmetronomesettings={p.onmetronomesettings}
-                onunison={p.onunison}
-                onpanic={p.onpanic}
-                onhelp={p.onhelp}
-              />
+              <span class="helpers" role="toolbar" aria-label="Helpers">
+                <SectionRow
+                  {...p.sectionRow}
+                  groups="helpers"
+                  cells
+                  running={p.running}
+                  fading={p.fading}
+                  tipAction={p.tipAction}
+                  onmetronome={p.onmetronome}
+                  onmetronomesettings={p.onmetronomesettings}
+                  onunison={p.onunison}
+                  onpanic={p.onpanic}
+                  onhelp={p.onhelp}
+                />
+              </span>
             {/snippet}
           </AppBar>
         </div>
-        <GoldenSplit take="major" from="top" name="hero">
-          <GoldenGrid columns={3} name="reading">
-            <div class="group">
-              <GoldenBand size="tab-block" from="top" name="chord">
-                <div class="leaf third">
-                  <StyleLine {...style} tipAction={p.tipAction} onprev={p.onprev} onnext={p.onnext} onbrowse={p.onbrowse} />
-                </div>
-                <div class="leaf third foot chord"><ChordReadout {...display.nowPlaying.chord} /></div>
-              </GoldenBand>
-            </div>
-            <div class="group">
-              <GoldenBand size="tab-block" from="bottom" name="section">
-                <div class="leaf foot"><NowPlaying {...song} show="next" /></div>
-                <div class="leaf foot"><NowPlaying {...song} show="section" /></div>
-              </GoldenBand>
-            </div>
-            <div class="group">
-              <GoldenBand size="tab-block" from="bottom" name="tempo">
-                <div class="leaf beat">
-                  <BarBeat
-                    beat={display.nowPlaying.running ? (display.nowPlaying.beat ?? 0) : 0}
-                    beats={display.nowPlaying.beats ?? 4}
-                    hue={display.nowPlaying.hue}
-                  />
-                </div>
-                <div class="leaf middle">
-                  <NowPlaying
-                    {...song}
-                    show="tempo"
-                    tipAction={p.tipAction}
-                    ontempoup={p.ontempoup}
-                    ontempodown={p.ontempodown}
-                    onstyletempo={p.onstyletempo}
-                    ontempo={p.ontempo}
-                  />
-                </div>
-              </GoldenBand>
-            </div>
-          </GoldenGrid>
+        <GoldenSplit take="phi3" of="length" from="bottom" name="hero">
           <GoldenSplit take="major" from="left" name="controls">
             <div class="group" role="toolbar" aria-label="Transport">
-              <GoldenGrid columns={7} name="transport">
+              <GoldenGrid weights={TRANSPORT} name="transport">
                 <SectionRow
                   {...p.sectionRow}
                   groups="transport"
@@ -254,6 +235,60 @@
                 />
               </GoldenGrid>
             </div>
+          </GoldenSplit>
+          <GoldenSplit take="phi3" of="length" from="left" name="reading">
+            <div class="group">
+              <div class="leaf chord"><ChordReadout {...now.chord} /></div>
+            </div>
+            <GoldenGrid columns={2} name="now and tempo">
+              <div class="group">
+                <div class="leaf section">
+                  <div class="stand"><SectionName label={now.playing} hue={now.hue} idle={!now.running} /></div>
+                  <div class="next" role="group" aria-label="Next section">
+                    {#if next}
+                      <span class="then">then</span>
+                      <span class="chip" style:--hue="var(--{nextHue})" data-face="waiting" data-hue={nextHue}>{next}</span>
+                    {/if}
+                    {#if when}<span class="when" class:sync={!now.running && now.syncStart}>{when}</span>{/if}
+                  </div>
+                </div>
+              </div>
+              <div class="group">
+                <GoldenSplit take="major" from="top" name="tempo">
+                  <div class="leaf tempo">
+                    <TempoReadout
+                      cells
+                      bpm={now.bpm}
+                      tipAction={p.tipAction}
+                      ontempo={p.ontempo}
+                      onplus={p.ontempoup}
+                      onminus={p.ontempodown}
+                      onreset={p.onstyletempo}
+                    />
+                  </div>
+                  <GoldenBand size="label-height" from="top" gap="fib-8" name="beat and style">
+                    <div class="leaf beats" role="img" aria-label={beat > 0 ? `Beat ${beat} of ${beats}` : `${beats} beats, stopped`}>
+                      {#each { length: beats } as _, i (i)}
+                        <span class="beat" class:now={i + 1 === beat} style:--hue="var(--{now.hue ?? 'main'})"></span>
+                      {/each}
+                    </div>
+                    <GoldenBand size="control-height" from="bottom">
+                      <div class="leaf style">
+                        <StyleLine
+                          {...style}
+                          cells
+                          tipAction={p.tipAction}
+                          onprev={p.onprev}
+                          onnext={p.onnext}
+                          onbrowse={p.onbrowse}
+                        />
+                      </div>
+                      <div class="leaf"></div>
+                    </GoldenBand>
+                  </GoldenBand>
+                </GoldenSplit>
+              </div>
+            </GoldenGrid>
           </GoldenSplit>
         </GoldenSplit>
       </GoldenSplit>
@@ -291,41 +326,57 @@
                   {/snippet}
                 </GroupHeader>
               </div>
-              <GoldenGrid columns={9} cell="fader" name="strips">
-                {#each faders.strips as strip, i (strip.id)}
-                  {@const part = parts.get(strip.id)}
-                  {#snippet stripLamp()}
-                    {#if i < lamps.length}{@render lamp(lamps[i])}{:else}{@render pageButton()}{/if}
-                  {/snippet}
-                  <FaderCell
-                    name={strip.faderName}
-                    label={strip.tag}
-                    value={strip.value}
-                    level={strip.level}
-                    meter={strip.meter}
-                    meter2={strip.meter2}
-                    peak={strip.peak}
-                    away={strip.away}
-                    kind={strip.kind}
-                    hue={strip.hue}
-                    layered={layered && isPart(strip)}
-                    tip={strip.tip}
-                    sound={part?.sound ?? ''}
-                    soundName={part ? `${part.partName} sound: ${part.sound}. Opens the quick sound list` : undefined}
-                    soundTip={part ? 'launchkey.fader_sound' : undefined}
-                    onsound={part ? () => p.onsound?.(part.id) : undefined}
-                    onopen={() => p.onopen?.(strip.id)}
-                    openName={strip.openName}
-                    openTip={strip.openTip}
-                    edited={strip.edited}
-                    missing={strip.missing}
-                    failed={strip.failed}
-                    lamp={i < lamps.length || i === faders.strips.length - 1 ? stripLamp : undefined}
-                    tipAction={p.tipAction}
-                    onlevel={(level) => p.onlevel?.(strip.id, level)}
-                  />
-                {/each}
-              </GoldenGrid>
+              <GoldenBand size="control-height" from="bottom" gap="fib-8" name="strips and lamps">
+                <GoldenGrid columns={2} name="lamps">
+                  <div class="leaf lamps" role="group" aria-label="Parts on and off">
+                    {#each faders.partLamps as item (item.id)}{@render lamp(item)}{/each}
+                  </div>
+                  <div class="leaf lamps functions" role="group" aria-label="Functions">
+                    {#each faders.functionLamps as item (item.id)}{@render lamp(item)}{/each}
+                    <Button
+                      label={pageLabel}
+                      size="cell"
+                      name={`Fader page is ${pageLabel}: click for ${otherLabel}`}
+                      tip="mixer.page"
+                      tipAction={p.tipAction}
+                      onpress={p.onpagebutton}
+                      onlongpress={p.onpagelong}
+                      onlongrelease={p.onpagerelease}
+                    />
+                  </div>
+                </GoldenGrid>
+                <GoldenGrid weights={stripWeights} name="strips">
+                  {#each faders.strips as strip (strip.id)}
+                    {@const part = parts.get(strip.id)}
+                    <FaderCell
+                      name={strip.faderName}
+                      label={strip.tag}
+                      value={strip.value}
+                      level={strip.level}
+                      meter={strip.meter}
+                      meter2={strip.meter2}
+                      peak={strip.peak}
+                      away={strip.away}
+                      kind={strip.kind}
+                      hue={strip.hue}
+                      layered={layered && isPart(strip)}
+                      tip={strip.tip}
+                      sound={part?.sound ?? ''}
+                      soundName={part ? `${part.partName} sound: ${part.sound}. Opens the quick sound list` : undefined}
+                      soundTip={part ? 'launchkey.fader_sound' : undefined}
+                      onsound={part ? () => p.onsound?.(part.id) : undefined}
+                      onopen={() => p.onopen?.(strip.id)}
+                      openName={strip.openName}
+                      openTip={strip.openTip}
+                      edited={strip.edited}
+                      missing={strip.missing}
+                      failed={strip.failed}
+                      tipAction={p.tipAction}
+                      onlevel={(level) => p.onlevel?.(strip.id, level)}
+                    />
+                  {/each}
+                </GoldenGrid>
+              </GoldenBand>
             </GoldenBand>
           </section>
           <GoldenSplit take="minor" from="top" name="knobs and pads">
@@ -343,7 +394,7 @@
                     />
                   </GroupHeader>
                 </div>
-                <GoldenGrid columns={8} cell="knob" name="knob row">
+                <GoldenGrid weights={knobWeights} name="knob row">
                   {#each p.knobs.knobs as knob, i (i)}
                     <KnobCell
                       label={knob.label}
@@ -436,6 +487,14 @@
     padding: 0;
     --bar-height: 100cqh;
   }
+  /* The helpers: outlined cells, each as wide as its words, a control-height tall. */
+  .helpers {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    column-gap: var(--fib-5);
+    height: var(--control-height);
+  }
   /* The keys fill theirs; the black keys are the keys' height over phi. */
   .screen .keys {
     padding: 0;
@@ -443,36 +502,86 @@
     --keys-black-height: calc(100cqh / var(--interval-phi));
   }
 
-  /* The reading tier's blocks measure a third of --stage-row-width less the display's padding,
-     border and gaps (Display's own tokens); with those at zero, a third is the leaf's width. */
-  .third,
-  .beat {
+  /* The chord: its hero row is the cell's major part, so the chord stands on the reading tier's
+     shared line (the section's and the tempo's major cut); its notes sit under it. The hero type
+     is scaled to the row (--type-hero's own 128 / 104); the readout is the leaf's width. */
+  .chord {
+    height: 100%;
     --stage-row-width: calc(3 * 100cqw);
     --display-pad-left: 0px;
     --display-border-width: 0px;
     --display-thirds-gap: 0px;
-  }
-  .beat {
-    display: flex;
-    align-items: center;
-    --stage-row-width: 100cqw;
-  }
-  /* The chord fills what the style line's band leaves: its hero row is the leaf less the notes
-     line and its gap, the hero type scaled to that row (--type-hero's own 128 / 104). */
-  .chord {
-    --hero-height: calc(100cqh - var(--space-8) - var(--label-height));
+    --hero-height: calc(100cqh / var(--interval-phi));
     --type-hero: var(--weight-light) calc(var(--hero-height) * 128 / 104) / var(--hero-height) var(--font-sans);
   }
-  /* The chord, the section and the tempo stand on their block's cut. */
-  .foot {
-    display: flex;
-    align-items: flex-end;
+  /* The hero face's baseline sits 0.0815 of its 128 / 104 line above the line's foot (its
+     descent less the half-leading, measured); the readout drops by that much, so the chord's
+     baseline lands on the shared line exactly, as Main B's and the tempo's do (their boxes are
+     trimmed to the baseline with text-box, which the chord's fitted row can't take). */
+  .chord > :global(*) {
+    margin-top: calc(var(--hero-height) * 0.0815);
   }
-  /* The tempo, centred in its block: standing on the cut, its light digits' overhang would spill
-     past it. */
-  .middle {
+  /* The section cell, one leaf (like the chord's, so a name's descenders stay inside it): Main B
+     stands on the shared line, the cell's major part off the top, flush left (its box trimmed to
+     the baseline); what comes next fills the rest, standing on the cell's foot. */
+  .section {
     display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  .stand {
+    display: flex;
+    flex: none;
+    align-items: flex-end;
+    height: calc(100cqh / var(--interval-phi));
+  }
+  .stand > :global(*) {
+    text-box: trim-end cap alphabetic;
+  }
+  /* What comes next: "then", the next section as a waiting chip in its hue (the pads' NEXT: a
+     2px ring), then when it lands. One line, the small size. */
+  .next {
+    display: flex;
+    flex: 1;
+    align-items: flex-end;
+    gap: var(--space-8);
+    white-space: nowrap;
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
+    color: var(--caption-ink);
+  }
+  .chip {
+    display: inline-flex;
     align-items: center;
+    box-sizing: border-box;
+    height: var(--control-height);
+    padding: 0 var(--space-12);
+    box-shadow: inset 0 0 0 var(--outline-width-wait) var(--hue);
+    color: var(--hue);
+  }
+  .then,
+  .when {
+    line-height: var(--control-height);
+  }
+  .when.sync {
+    color: var(--ok);
+  }
+  /* The beat bar: one segment a beat, a label-height tall; the current beat solid, the others
+     outlined in the section's hue. */
+  .beats {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    column-gap: var(--fib-5);
+  }
+  .beat {
+    box-shadow: inset 0 0 0 var(--outline-width) var(--hue);
+  }
+  .beat.now {
+    background: var(--hue);
+  }
+  .style {
+    display: flex;
   }
 
   /* The headers: the group's width. */
@@ -497,6 +606,21 @@
     display: flex;
     min-width: 0;
     overflow: hidden;
+  }
+
+  /* The lamp row: the part lamps under their four strips; a sub-cut (fib-13), then the functions
+     and the page button, so a function never reads as a strip's state. */
+  .lamps {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+  }
+  .lamps.functions {
+    padding-left: var(--fib-13);
+  }
+  .lamps > :global(*) {
+    width: 100%;
+    min-width: 0;
   }
 
   /* A pad fills its cell, less the pads' gap. */

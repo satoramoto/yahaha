@@ -5,12 +5,12 @@ import FaderCell from './FaderCell.svelte'
 import KnobCell from './KnobCell.svelte'
 
 /**
- * The band's controls as Golden trees, each at the size the Stage gives one cell. A knob: a box in
- * the knob's shape, a square off its top for the dial, then the name in a label-height band at the
- * foot and the value above it. A fader: a box in the fader's shape cut in steps, the track, the
- * value and the strip's name; as a whole Stage strip it also takes the part's sound in a band off
- * its top and its lamp in a band off its foot. The overlay draws the cuts and reports what doesn't
- * fit; the Tuning toolbar switches the shapes.
+ * The band's controls as Golden trees, each at the size the Stage gives one cell; each fills its
+ * cell. A knob: a strip as deep as the cell's width over phi off its top for the dial, then the
+ * value in a label-height band, then the name (up to two lines). A fader grows like a stem: the
+ * track takes everything the foot doesn't, the value tight under it (fib-3), then the name (fib-5);
+ * as a whole Stage strip it also takes the part's sound in a band off its top, and optionally its
+ * lamp in a band off its foot (fib-8). The overlay draws the cuts and reports what doesn't fit.
  */
 const meta = {
   title: 'Golden/Controls',
@@ -26,7 +26,11 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** One knob cell, its cuts drawn: "Retrig rate" is wider than the cell, so its name ends in an ellipsis. */
+/**
+ * One knob cell, its cuts drawn: the dial in a strip the cell's width over φ deep, the value in a
+ * label-height band under it, the name in the rest. "Retrig rate" wraps to two lines; nothing is
+ * cut short.
+ */
 export const Knob: Story = {
   args: {
     label: 'Retrig rate',
@@ -49,17 +53,23 @@ export const Knob: Story = {
     overlay: { control: 'boolean' },
   },
   play: async ({ canvasElement }) => {
-    const box = canvasElement.querySelector('[data-golden="box"]')
-    await expect(box?.querySelector('[data-golden-fit][data-shape="knob"]')).not.toBeNull()
-    const split = box?.querySelector('[data-golden-slots="cut"][data-take="square"]')
-    await expect(split).not.toBeNull()
-    const band = split?.querySelector('[data-golden-slots="cut"][data-band="label-height"]')
+    // The cell fills its slot: no box fitted to a shape.
+    await expect(canvasElement.querySelector('[data-golden-fit][data-shape]')).toBeNull()
+    // The dial's strip off the top, the cell's width over φ deep; then the rest.
+    const split = canvasElement.querySelector('[data-golden-slots="cut"][data-take="phi"][data-from="top"]')
+    await expect(split?.children.length).toBe(2)
+    await expect(split?.children[0]?.querySelector('button svg')).not.toBeNull()
+    // The rest: the value in a label-height band off its top, then the name.
+    const band = split?.children[1]?.querySelector(':scope > * > [data-golden-slots="cut"][data-band="label-height"][data-from="top"]')
     await expect(band?.children.length).toBe(2)
-    await expect(canvasElement.querySelector('[data-golden="overlay"]')).not.toBeNull()
+    await expect(band?.children[0]?.textContent?.trim()).toBe('1/8')
+    await expect(band?.children[1]?.textContent?.trim()).toBe('Retrig rate')
+    const overlay = canvasElement.querySelector('[data-golden="overlay"]')
+    await expect(overlay).not.toBeNull()
   },
 }
 
-/** One fader cell, its cuts drawn: the track, the value (square in the Phi tuning) and the strip's name. */
+/** One fader cell, its cuts drawn: a stem of the track, then the value and the strip's name close under it. */
 export const Fader: StoryObj<typeof FaderCell> = {
   // The meta's knob actions (onpress, onstep) aren't the fader's.
   render: (args) => {
@@ -96,18 +106,39 @@ export const Fader: StoryObj<typeof FaderCell> = {
     overlay: { control: 'boolean' },
   },
   play: async ({ canvasElement }) => {
-    const box = canvasElement.querySelector('[data-golden="box"]')
-    await expect(box?.querySelector('[data-golden-fit][data-shape="fader"]')).not.toBeNull()
-    const steps = box?.querySelector('[data-golden-slots="steps"]')
-    await expect(steps?.children.length).toBe(3)
-    await expect(canvasElement.querySelector('[data-golden="overlay"]')).not.toBeNull()
+    const stem = expectStem(canvasElement)
+    // No sound, no lamp: the stem is the whole cell, and it draws the overlay.
+    await expect(stem.closest('[data-golden="overlay"]')).not.toBeNull()
+    await expect(canvasElement.querySelector('[data-band="tab-block"]')).toBeNull()
+    await expect(canvasElement.querySelector('[data-band="control-height"]')).toBeNull()
   },
 }
 
 /**
+ * Asserts the strip's stem: the name and the value in label-height bands off the foot, with
+ * internodes of fib-5 and fib-3, and the track (the Fader) taking the rest. No phi steps and no
+ * fitted fader box: those left the dead bands. Returns the name band's slots.
+ */
+function expectStem(canvasElement: HTMLElement): Element {
+  expect(canvasElement.querySelector('[data-golden-slots="steps"]')).toBeNull()
+  expect(canvasElement.querySelector('[data-golden-fit][data-shape]')).toBeNull()
+  const stem = canvasElement.querySelector('[data-golden-slots="cut"][data-band="label-height"][data-from="bottom"]')
+  expect(stem).not.toBeNull()
+  expect(stem?.getAttribute('style')).toContain('--fib-5')
+  expect(stem?.children[0]?.classList.contains('name')).toBe(true)
+  const value = stem?.children[1]?.querySelector(':scope > * > [data-golden-slots="cut"][data-band="label-height"]')
+  expect(value).not.toBeNull()
+  expect(value?.getAttribute('style')).toContain('--fib-3')
+  expect(value?.children[0]?.textContent?.trim()).toBe('90')
+  expect(value?.children[1]?.querySelector('[data-kind]')).not.toBeNull()
+  return stem as Element
+}
+
+/**
  * A whole Stage strip, as the golden Stage draws it (Option C): the part's sound in a tab-block
- * band off the top (it opens the part's sound list), the track, the value and the name button
- * (it opens Channel) in steps, and the strip's lamp in a control-height band off the foot.
+ * band off the top (it opens the part's sound list), the track running long under it, the value
+ * and the name button (it opens Channel) close under the track, and the strip's lamp in a
+ * control-height band off the foot, fib-8 below the name.
  */
 export const Strip: StoryObj<typeof FaderCell> = {
   // The lamp is content (a snippet), not an arg: a plain lamp button stands in for the LampButton.
@@ -138,9 +169,15 @@ export const Strip: StoryObj<typeof FaderCell> = {
     edited: { control: 'boolean' },
   },
   play: async ({ args, canvasElement }) => {
-    const box = canvasElement.querySelector('[data-golden="box"]')
-    await expect(box?.querySelector('[data-golden-slots="cut"][data-band="tab-block"]')).not.toBeNull()
-    await expect(box?.querySelector('[data-golden-slots="cut"][data-band="control-height"]')).not.toBeNull()
+    // sound (top) → lamp (bottom, fib-8) → the stem, each the rest of the band before it.
+    const top = canvasElement.querySelector('[data-golden-slots="cut"][data-band="tab-block"][data-from="top"]')
+    await expect(top?.closest('[data-golden="overlay"]')).not.toBeNull()
+    const foot = top?.children[1]?.querySelector(':scope > * > [data-golden-slots="cut"][data-band="control-height"]')
+    await expect(foot?.getAttribute('data-from')).toBe('bottom')
+    await expect(foot?.getAttribute('style')).toContain('--fib-8')
+    await expect(foot?.children[0]?.querySelector('button[aria-pressed]')).not.toBeNull()
+    const stem = expectStem(canvasElement)
+    await expect(foot?.children[1]?.contains(stem)).toBe(true)
     const sound = canvasElement.querySelector<HTMLButtonElement>('button[aria-label^="Right 1 sound"]')
     sound?.click()
     await expect(args.onsound).toHaveBeenCalled()

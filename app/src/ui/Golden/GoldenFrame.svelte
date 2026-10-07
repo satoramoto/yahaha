@@ -9,11 +9,14 @@
   Golden primitive is a leaf: it gets the `--golden-inset` padding (the nearest `inset`, inherited
   down the tree). `over` is drawn over all the slots, inset alike (the Stage's beat bar).
   With `overlay`, the frame is wrapped in a GoldenOverlay that draws its cuts and checks them.
+  `spiralFrom` and `spiralTurn` orient the spiral the overlay draws in this node (its pole on the
+  page's focus); they are written as `data-spiral-from` / `data-spiral-turn` on the slots element
+  and change nothing in the layout.
 -->
 <script lang="ts">
   import type { Snippet } from 'svelte'
   import GoldenOverlay from './GoldenOverlay.svelte'
-  import { fibVar, orientOf, ratioVar, type Fib, type GoldenReport, type Orient, type Ratio } from './golden'
+  import { fibVar, orientOf, ratioVar, type Fib, type GoldenReport, type Orient, type Ratio, type Side, type Turn } from './golden'
 
   type Props = {
     /** The primitive: what the slots element is marked with, and which rules cut it. */
@@ -30,6 +33,10 @@
     slotStyle?: string
     /** Extra data attributes on the slots element (the side, a row's check). */
     attrs?: Record<string, string | undefined>
+    /** The side the overlay's spiral in this node starts from; its default rule when absent. */
+    spiralFrom?: Side
+    /** Which way the overlay's spiral in this node turns (`ccw` when absent). */
+    spiralTurn?: Turn
     /** Draw the cuts over this frame (a GoldenOverlay around it). */
     overlay?: boolean
     /** With `overlay`: the report under it. */
@@ -42,8 +49,22 @@
     children?: Snippet
   }
 
-  let { kind, shape, orient, inset, name, slotStyle, attrs = {}, overlay = false, report = false, onreport, over, children }: Props =
-    $props()
+  let {
+    kind,
+    shape,
+    orient,
+    inset,
+    name,
+    slotStyle,
+    attrs = {},
+    spiralFrom,
+    spiralTurn,
+    overlay = false,
+    report = false,
+    onreport,
+    over,
+    children,
+  }: Props = $props()
 
   let tall = $derived(shape !== undefined && orientOf(shape, orient) === 'tall')
 </script>
@@ -59,7 +80,14 @@
       data-orient={shape !== undefined ? (tall ? 'tall' : 'wide') : undefined}
       style:--golden-fit={shape ? ratioVar(shape) : undefined}
     >
-      <div class="golden-slots" data-golden-slots={kind} style={slotStyle} {...attrs}>
+      <div
+        class="golden-slots"
+        data-golden-slots={kind}
+        style={slotStyle}
+        data-spiral-from={spiralFrom}
+        data-spiral-turn={spiralTurn}
+        {...attrs}
+      >
         {@render children?.()}
       </div>
       {#if over}
@@ -269,11 +297,15 @@
     grid-auto-rows: 0;
   }
 
-  /* grid: equal cells; with a cell shape, each child is fitted into its cell (contain). */
+  /* grid: equal cells, or weighted columns (--golden-tracks, from `weights`); with a cell shape,
+     each child is fitted into its cell (contain). */
   .golden-slots[data-golden-slots='grid'] {
     display: grid;
     grid-template-columns: repeat(var(--golden-columns), minmax(0, 1fr));
     grid-template-rows: repeat(var(--golden-rows), minmax(0, 1fr));
+  }
+  .golden-slots[data-golden-slots='grid'][data-weights] {
+    grid-template-columns: var(--golden-tracks);
   }
   .golden-slots[data-golden-slots='grid'][data-cell] > :global(*) {
     place-self: center;

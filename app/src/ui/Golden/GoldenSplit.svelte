@@ -4,11 +4,15 @@
   strip in an interval (as deep as the box is across over the interval). Two children: the part
   taken, then the rest. A square taken off a box that is too short for it overflows, and the
   overlay draws it red.
+  `spiralFrom` and `spiralTurn` orient the spiral the overlay draws in this split (so its pole sits
+  on the page's focus): a `major`/`minor` split's spiral otherwise starts from `from` and turns ccw,
+  and with `spiralFrom` set any split gets a spiral, whatever it takes. They change nothing in the
+  layout.
 -->
 <script lang="ts">
   import type { Snippet } from 'svelte'
   import GoldenFrame from './GoldenFrame.svelte'
-  import { ratioVar, type Fib, type GoldenReport, type Orient, type Ratio, type Side, type Take } from './golden'
+  import { ratioVar, type Fib, type GoldenReport, type Orient, type Ratio, type Side, type Take, type Turn } from './golden'
 
   type Props = {
     /** What is taken: `square`, `major`, `minor`, or an interval or shape (a strip that deep: the box's width over it). */
@@ -30,6 +34,10 @@
     inset?: Fib
     /** What the overlay calls this split in a report. */
     name?: string
+    /** The side the overlay's spiral starts from; `from` when absent. Set, any split gets a spiral. */
+    spiralFrom?: Side
+    /** Which way the overlay's spiral turns: `ccw` (left, bottom, right, top; the default) or `cw`. */
+    spiralTurn?: Turn
     /** Draw the cuts over this split and check them (GoldenOverlay). */
     overlay?: boolean
     /** With `overlay`: the report line under it. */
@@ -50,6 +58,8 @@
     orient,
     inset,
     name,
+    spiralFrom,
+    spiralTurn,
     overlay = false,
     report = false,
     onreport,
@@ -76,6 +86,8 @@
   {orient}
   {inset}
   {name}
+  {spiralFrom}
+  {spiralTurn}
   {overlay}
   {report}
   {onreport}

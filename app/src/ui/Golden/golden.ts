@@ -122,6 +122,14 @@ export function cellTrack(cell: Cell, cross: 'cqh' | 'cqw'): string {
   return `calc(100${cross} ${inverse ? '/' : '*'} ${ratioVar(ratio)})`
 }
 
+/**
+ * A weighted grid's column tracks: each column's share its interval, as `minmax(0, <n>fr)` (the
+ * number computed here, since CSS can't multiply an `fr`).
+ */
+export function weightTracks(weights: Interval[]): string {
+  return weights.map((w) => `minmax(0, ${+INTERVALS[w].toFixed(6)}fr)`).join(' ')
+}
+
 /** A cell's value when it is a fixed interval; undefined for a shape (the tuning decides it). */
 export function cellValue(cell: Cell): number | undefined {
   const { ratio, inverse } = parseCell(cell)
@@ -203,34 +211,77 @@ function cutSquare(r: Rect, side: Side): { s: number; start: [number, number]; e
 }
 
 /**
- * The golden spiral's SVG path in a rectangle, wide or tall: a quarter arc in each square cut off
- * it in turn, the first off `from`, then round in the order left, bottom, right, top, …, until the
- * squares are under a px. A side that can't take a square (`left` off a tall box) passes its turn
- * to the next, so a spiral from the left of a tall box starts at its bottom. In a phi box the arcs
- * join up; in any other box a straight segment bridges each gap.
+ * Which way a spiral turns. `ccw` cuts its squares off in the order left, bottom, right, top, …
+ * (the default, and the only order before `Turn` existed); `cw` is its mirror, left, top, right,
+ * bottom, …, so `from: 'right', turn: 'cw'` cuts right, bottom, left, top.
  */
-export function spiralPath(box: Rect, turns = 12, from: Side = 'left'): string {
+export type Turn = 'cw' | 'ccw'
+
+/** A side seen in the mirror (top and bottom swap): a cw spiral is a ccw one mirrored top to bottom. */
+const MIRROR: Record<Side, Side> = { left: 'left', right: 'right', top: 'bottom', bottom: 'top' }
+
+type Arc = { s: number; start: [number, number]; end: [number, number] }
+
+/**
+ * The ccw squares cut off a rectangle in turn, the first off `from`, until they are under `min` or
+ * `turns` have been cut: each one's arc (start, size, end), and the rectangle left.
+ */
+function spiralCuts(box: Rect, turns: number, from: Side, min: number): { arcs: Arc[]; rest: Rect } {
   let r = { ...box }
   let k = SPIRAL_SIDES.indexOf(from)
-  let d = ''
-  let at: [number, number] | undefined
+  const arcs: Arc[] = []
   for (let i = 0; i < turns; i++) {
-    if (Math.min(r.w, r.h) < 1) break
+    if (Math.min(r.w, r.h) < min) break
     let cut = cutSquare(r, SPIRAL_SIDES[k % 4])
     if (!cut) {
       k++
       cut = cutSquare(r, SPIRAL_SIDES[k % 4])
     }
     if (!cut) break
-    const [sx, sy] = cut.start
-    if (!at) d = `M ${sx} ${sy}`
-    else if (Math.abs(at[0] - sx) > 0.5 || Math.abs(at[1] - sy) > 0.5) d += ` L ${sx} ${sy}`
-    d += ` A ${cut.s} ${cut.s} 0 0 0 ${cut.end[0]} ${cut.end[1]}`
-    at = cut.end
+    arcs.push({ s: cut.s, start: cut.start, end: cut.end })
     r = cut.rest
     k++
   }
+  return { arcs, rest: r }
+}
+
+/**
+ * The golden spiral's SVG path in a rectangle, wide or tall: a quarter arc in each square cut off
+ * it in turn, the first off `from`, then round in the order left, bottom, right, top, … (`ccw`, the
+ * default) or its mirror, left, top, right, bottom, … (`cw`), until the squares are under a px. A
+ * side that can't take a square (`left` off a tall box) passes its turn to the next, so a ccw spiral
+ * from the left of a tall box starts at its bottom. In a phi box the arcs join up; in any other box
+ * a straight segment bridges each gap.
+ */
+export function spiralPath(box: Rect, turns = 12, from: Side = 'left', turn: Turn = 'ccw'): string {
+  const cw = turn === 'cw'
+  // A cw spiral is the ccw spiral from the mirrored side, mirrored top to bottom about the box.
+  const flip = (p: [number, number]): [number, number] => (cw ? [p[0], 2 * box.y + box.h - p[1]] : p)
+  const { arcs } = spiralCuts(box, turns, cw ? MIRROR[from] : from, 1)
+  let d = ''
+  let at: [number, number] | undefined
+  for (const arc of arcs) {
+    const [sx, sy] = flip(arc.start)
+    const [ex, ey] = flip(arc.end)
+    if (!at) d = `M ${sx} ${sy}`
+    else if (Math.abs(at[0] - sx) > 0.5 || Math.abs(at[1] - sy) > 0.5) d += ` L ${sx} ${sy}`
+    d += ` A ${arc.s} ${arc.s} 0 0 ${cw ? 1 : 0} ${ex} ${ey}`
+    at = [ex, ey]
+  }
   return d || `M ${box.x} ${box.y}`
+}
+
+/**
+ * The spiral's pole: the point its squares converge on (where the eye lands), for the same `from`
+ * and `turn` as `spiralPath`. In a 1398 × 864 box it is about (1010, 238) from the left ccw, and
+ * about (388, 238) from the right cw.
+ */
+export function spiralPole(box: Rect, from: Side = 'left', turn: Turn = 'ccw'): [number, number] {
+  const cw = turn === 'cw'
+  const { rest } = spiralCuts(box, 64, cw ? MIRROR[from] : from, 1e-3)
+  const x = rest.x + rest.w / 2
+  const y = rest.y + rest.h / 2
+  return [x, cw ? 2 * box.y + box.h - y : y]
 }
 
 /** One slot as measured: its box, its content's scroll size, and what it is called. */
@@ -260,8 +311,12 @@ export type LineMeasure = { name: string; rect: Rect; along: number; sum: number
 /** A named node (`data-golden-name`) as measured: its root's rect, and its fitted box if it has a shape. */
 export type GroupMeasure = { name: string; depth: number; rect: Rect; fit?: Rect }
 
-/** A spiral to draw: its box, the side its first square is cut off, and the depth it is at. */
-export type SpiralMeasure = Rect & { from?: Side; depth?: number }
+/**
+ * A spiral to draw: its box, the side its first square is cut off, which way it turns (`ccw` when
+ * absent), the depth it is at, and whether its orientation was set on the node (`data-spiral-from`
+ * or `data-spiral-turn`): then the overlay also marks its pole.
+ */
+export type SpiralMeasure = Rect & { from?: Side; turn?: Turn; depth?: number; explicit?: boolean }
 
 /**
  * A named node in the report: its size, its spare (for a fitted node, the room its fit leaves in its

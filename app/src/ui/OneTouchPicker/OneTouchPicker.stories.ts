@@ -68,12 +68,12 @@ export const Vertical: Story = {
 }
 
 /**
- * Cells (`cells`) in a 5-cell GoldenGrid, its cuts drawn: no wrapper, the label (visible, spoken)
- * and 1-4 each one top-level element filling its cell, centred. The grid's group element supplies
- * the role.
+ * Cells (`cells`) in a 5-cell GoldenGrid, its cuts drawn: no wrapper, the label a plain caption
+ * flush left and 1-4 each an outlined face filling its cell, the applied one (2) solid with dark
+ * ink, 4 past the style's three settings disabled. The grid's group element supplies the role.
  */
 export const Cells: Story = {
-  args: { applied: 2, cells: true },
+  args: { applied: 2, count: 3, cells: true },
   parameters: { sample: { width: 610, height: 55 } },
   render: (args) => ({
     Component: GoldenGrid,
@@ -87,7 +87,11 @@ export const Cells: Story = {
     await expect(items[0]).toHaveTextContent('One Touch')
     await expect(items[0]).not.toHaveAttribute('aria-hidden')
     await expect(group.parentElement).toHaveAttribute('data-golden-slots', 'grid')
-    await expect(within(group).getAllByRole('button')[1]).toHaveAttribute('aria-pressed', 'true')
+    await expect(items[0].tagName).toBe('SPAN')
+    const numbers = within(group).getAllByRole('button')
+    await expect(numbers.map((b) => b.getAttribute('data-face'))).toEqual(['off', 'on', 'off', 'disabled'])
+    await expect(numbers[1]).toHaveAttribute('aria-pressed', 'true')
+    await expect(numbers[3]).toBeDisabled()
     await expect(canvasElement.querySelector('.ots')).toBeNull()
   },
 }

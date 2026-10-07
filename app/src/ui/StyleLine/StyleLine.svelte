@@ -5,6 +5,9 @@
   word and glyph; no boxes: each control is plain text that brightens on hover and shows the focus
   ring on keyboard focus. A long style name ends in an ellipsis (its full name in `title`); the
   category and metre keep their width up to half the line.
+
+  `cells` (the grid Stage): the line fills its container (width and height 100%; give it a size,
+  about a control-height band), and ‹ › become outlined neutral squares as tall as the line.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -26,9 +29,21 @@
     onnext?: () => void
     /** Called when the style's name is pressed (opens Library › Styles). */
     onbrowse?: () => void
+    /** Fill the container (the grid Stage's band), ‹ › as outlined squares as tall as the line. */
+    cells?: boolean
   }
 
-  let { styleName, category = '', timeSignature = '', queued = '', tipAction, onprev, onnext, onbrowse }: Props = $props()
+  let {
+    styleName,
+    category = '',
+    timeSignature = '',
+    queued = '',
+    tipAction,
+    onprev,
+    onnext,
+    onbrowse,
+    cells = false,
+  }: Props = $props()
 
   const name = $derived(styleName.trim() || 'No style')
   const hasQueued = $derived(queued.trim() !== '')
@@ -40,7 +55,7 @@
   }
 </script>
 
-<div class="line">
+<div class="line" class:cells data-cells={cells || undefined}>
   <button
     type="button"
     class="glyph"
@@ -141,5 +156,26 @@
   }
   .arrow {
     color: var(--m);
+  }
+
+  /* Cells: the whole container; ‹ › outlined neutral squares as tall as the line, glyph centred. */
+  .line.cells {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+  }
+  .cells button {
+    height: 100%;
+  }
+  .cells .glyph {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    padding: 0;
+    box-shadow: inset 0 0 0 var(--outline-width) var(--neutral);
+    color: var(--neutral);
+  }
+  .cells .glyph:first-child {
+    margin-left: 0;
   }
 </style>

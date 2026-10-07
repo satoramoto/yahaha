@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { addsUp, cellTrack, groupLines, overflows, PHI, report, spiralPath, spiralSlots, summary, type SlotMeasure } from './golden'
+import {
+  addsUp,
+  cellTrack,
+  groupLines,
+  overflows,
+  PHI,
+  report,
+  spiralPath,
+  spiralPole,
+  spiralSlots,
+  summary,
+  weightTracks,
+  type SlotMeasure,
+} from './golden'
 
 /** A spiral path's points: where it starts, then each arc's end (and any bridging line's). */
 const points = (d: string): [number, number][] => {
@@ -111,6 +124,57 @@ describe('spiralPath', () => {
       expect(y).toBeLessThanOrEqual(box.y + box.h + 1e-6)
     }
   })
+})
+
+describe('spiral turn', () => {
+  const stage = { x: 0, y: 0, w: 1398, h: 864 }
+  const wide = { x: 0, y: 0, w: 100 * PHI, h: 100 }
+
+  it('the default is ccw from the left, unchanged', () => {
+    expect(spiralPath(wide)).toBe(spiralPath(wide, 12, 'left', 'ccw'))
+    expect(spiralPath(stage, 12, 'right')).toBe(spiralPath(stage, 12, 'right', 'ccw'))
+    expect(spiralPath(wide)).not.toContain(' 0 0 1 ')
+  })
+
+  it("the pole: about (1010, 238) from the left ccw, and its mirror (388, 238) from the right cw", () => {
+    const [x, y] = spiralPole(stage)
+    expect(Math.abs(x - 1010)).toBeLessThanOrEqual(2)
+    expect(Math.abs(y - 238)).toBeLessThanOrEqual(2)
+    const [cx, cy] = spiralPole(stage, 'right', 'cw')
+    expect(Math.abs(cx - 388)).toBeLessThanOrEqual(2)
+    expect(Math.abs(cy - 238)).toBeLessThanOrEqual(2)
+  })
+
+  it('cw from the right starts at the right edge and cuts right, bottom, left, top; its arcs join up', () => {
+    const d = spiralPath(wide, 12, 'right', 'cw')
+    const [start, first, second, third] = points(d)
+    // The first square is the right one (as tall as the box), entered at its top right.
+    near(start, 100 * PHI, 0)
+    near(first, 100 * PHI - 100, 100)
+    // Then the bottom of what is left, then its left.
+    near(second, 100 * PHI - 100 - 100 / PHI, 100 - 100 / PHI)
+    // The left square, as wide as what is left is tall: its inner corner 1 / phi² in.
+    expect(third[0]).toBeCloseTo(100 / PHI ** 2, 3)
+    expect(d).not.toContain('L')
+    expect(d).toContain(' 0 0 1 ')
+  })
+
+  it('cw is ccw mirrored top to bottom about the box', () => {
+    const box = { x: 20, y: 30, w: 100 * PHI, h: 100 }
+    const ccw = points(spiralPath(box, 12, 'left'))
+    const cw = points(spiralPath(box, 12, 'left', 'cw'))
+    expect(cw.length).toBe(ccw.length)
+    cw.forEach((p, i) => near(p, ccw[i][0], 2 * box.y + box.h - ccw[i][1]))
+    const pole = spiralPole(box, 'left', 'cw')
+    const mirror = spiralPole(box, 'left', 'ccw')
+    expect(pole[0]).toBeCloseTo(mirror[0], 3)
+    expect(pole[1]).toBeCloseTo(2 * box.y + box.h - mirror[1], 3)
+  })
+})
+
+it('weightTracks: each column its interval in fr', () => {
+  expect(weightTracks(['octave', 'unison'])).toBe('minmax(0, 2fr) minmax(0, 1fr)')
+  expect(weightTracks(['phi'])).toBe(`minmax(0, ${+PHI.toFixed(6)}fr)`)
 })
 
 describe('overflow', () => {

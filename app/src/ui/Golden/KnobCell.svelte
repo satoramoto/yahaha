@@ -1,17 +1,19 @@
 <!--
-  KnobCell: one band knob as a Golden tree. A box in the knob's shape (the tuning decides it; a
-  knob stands tall), a square taken off its top for the dial (the real Knob, drawn as its ring
-  alone, filling the square), and the rest: the name in a label-height band at the foot (a line of
-  text is a fixed token, which a phi step left a px or two short at 1280 × 800), the value above
-  it. The value and the name are one line each, centred, and end in an ellipsis when they don't
-  fit, so the overlay reports them ("Retrig rate").
-  The cell fills the slot it is given; inside a grid fitted to a cell shape, the grid fits it. On
-  its own (outside any Golden slot) it takes the size the Stage gives one knob cell.
+  KnobCell: one band knob as a Golden tree that fills the slot it is given (no fit to a shape, so
+  no spare). Its tree:
+  - a strip off the top as deep as the cell's width over φ (`GoldenSplit take="phi"`: 100cqw / φ),
+    holding the dial: the real Knob drawn as its ring alone, its diameter the strip's depth,
+    centred, so the gutters between neighbouring dials come from the ratio;
+  - the rest, cut by a label-height band off its top (`GoldenBand size="label-height"`; a line of
+    text is a fixed token): the value in that band, tight under the dial, then the name in what is
+    left, top-aligned and centred. The name wraps to two lines (a single long word breaks with a
+    hyphen rather than an ellipsis), so nothing is cut short.
+  Inside a grid fitted to a cell shape, the grid sizes it. On its own (outside any Golden slot) it
+  takes the size the Stage gives one knob cell.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
   import Knob from '../Knob/Knob.svelte'
-  import GoldenBox from './GoldenBox.svelte'
   import GoldenSplit from './GoldenSplit.svelte'
   import GoldenBand from './GoldenBand.svelte'
 
@@ -58,20 +60,18 @@
   let spoken = $derived(unused ? 'unused' : `${label}${code ? ` (${code})` : ''} ${value}${unit}`)
 </script>
 
-<div class="cell">
-  <GoldenBox shape="knob" {overlay}>
-    <GoldenSplit take="square" from="top">
-      <div class="dial">
-        <Knob {label} {code} value="" unit="" {fraction} {unused} name={spoken} {tip} {tipAction} {onpress} {onstep} />
+<div class="cell" lang="en">
+  <GoldenSplit take="phi" from="top" {overlay}>
+    <div class="dial">
+      <Knob {label} {code} value="" unit="" {fraction} {unused} name={spoken} {tip} {tipAction} {onpress} {onstep} />
+    </div>
+    <GoldenBand size="label-height" from="top">
+      <div class="text value" class:unused aria-hidden="true">
+        <span>{unused ? '' : value}{unused ? '' : unit}</span>
       </div>
-      <GoldenBand size="label-height" from="bottom">
-        <div class="text name" class:unused aria-hidden="true"><span>{label}</span></div>
-        <div class="text value" class:unused aria-hidden="true">
-          <span>{unused ? '' : value}{unused ? '' : unit}</span>
-        </div>
-      </GoldenBand>
-    </GoldenSplit>
-  </GoldenBox>
+      <div class="text name" class:unused aria-hidden="true"><span>{label}</span></div>
+    </GoldenBand>
+  </GoldenSplit>
 </div>
 
 <style>
@@ -99,7 +99,8 @@
     height: calc(var(--cell-band) / var(--interval-phi2) - 2 * var(--fib-13) - var(--group-header-height));
   }
 
-  /* The dial: the Knob's ring alone, filling the square; its label and code take no room. */
+  /* The dial: the Knob's ring alone, as wide as the strip is deep (the cell's width over φ),
+     centred; its label and code take no room. */
   .dial {
     display: grid;
     place-items: center;
@@ -115,16 +116,29 @@
 
   .text {
     display: flex;
-    align-items: center;
     justify-content: center;
+    text-align: center;
+  }
+  .value {
+    align-items: center;
+  }
+  /* The name: from the top of what is left, wrapping (two words to two lines; one long word
+     breaks with a hyphen), never cut short. */
+  .name {
+    align-items: flex-start;
   }
   .text span {
     min-width: 0;
     max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     font-variant-numeric: tabular-nums;
+  }
+  .value span {
+    white-space: nowrap;
+  }
+  .name span {
+    white-space: normal;
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
   .value span {
     color: var(--a);
