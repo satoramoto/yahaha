@@ -1,38 +1,50 @@
 <!--
-  QuickRacksPage: the Quick Racks display page, in the Stage's display box (ui/Stage's `page` slot,
-  sized by --page-width × --page-height). A stub until its lane builds it
-  (docs/design/push/QuickRacks-Dark.dc.html).
+  QuickRacksPage: the Quick Racks display page, in the Stage's display box (ui/Stage's `page`
+  slot). The wiring of ui/QuickRacks: state → props through model.ts, each control → its command.
+
+  State: quickRacks, liveRack, racks, ots. Commands: pressQuickRack, storeRack, clearQuickRack,
+  stepQuickRackBank, stepQuickRack, toggleQuickRackStore, saveRack / saveRackAs (a waiting Store),
+  recallOts, setOtsRack / clearOtsRack, toggleOtsLink, setOtsLinkTiming. Library › Racks opens the
+  Library on its Racks page, where the rack files are browsed. The rack prompts (unsaved changes,
+  sound names) are asked in the Rack drawer, which opens when one appears (openRackDrawerOnPrompt).
 -->
 <script lang="ts">
+  import { app, ui } from '../../lib/store.svelte'
+  import QuickRacks from '../../ui/QuickRacks/QuickRacks.svelte'
   import type { PageProps } from '../stage/page.svelte'
+  import { bankCmds, clearCmd, otsRackCmd, quickRacksView, saveCmd, slotCmd, storeCmd, timingCmd } from './model'
+  import { openRackDrawerOnPrompt } from './rackPromptDrawer.svelte'
 
   let { tipAction }: PageProps = $props()
+
+  /** The name typed for a waiting Store of a never-saved rack; null: the live rack's name. */
+  let rackName = $state<string | null>(null)
+
+  const view = $derived(quickRacksView(app.state, rackName))
+
+  // A Store with nothing waiting forgets the name typed.
+  $effect(() => {
+    if (app.state.quickRacks.storeWaiting === null) rackName = null
+  })
+
+  openRackDrawerOnPrompt()
 </script>
 
-<section class="soon" aria-label="Quick Racks: coming soon" use:tipAction={'nav.quick'}>
-  <h1>Coming soon</h1>
-  <p>The Quick Racks page is being rebuilt.</p>
-</section>
-
-<style>
-  .soon {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    width: var(--page-width);
-    height: var(--page-height);
-  }
-  h1 {
-    margin: 0;
-    font-size: 44px;
-    font-weight: 300;
-    letter-spacing: -1px;
-  }
-  p {
-    margin: 0;
-    color: var(--m);
-    font-size: 14px;
-  }
-</style>
+<QuickRacks
+  {...view}
+  {tipAction}
+  onbank={(to) => bankCmds(app.state.quickRacks.bank, to).forEach((c) => app.send(c))}
+  onstep={(delta) => app.send({ type: 'stepQuickRack', delta })}
+  onstore={() => app.send({ type: 'toggleQuickRackStore' })}
+  onslot={(i) => app.send(slotCmd(i))}
+  onslotlong={(i) => app.send(storeCmd(i))}
+  onclear={(i) => app.send(clearCmd(app.state, i))}
+  onlibrary={() => ui.openLibrary('racks')}
+  onots={(i) => app.send({ type: 'recallOts', index: i })}
+  onotsrack={(i, rack) => app.send(otsRackCmd(i, rack))}
+  onlink={() => app.send({ type: 'toggleOtsLink' })}
+  ontiming={(t) => app.send(timingCmd(t))}
+  onname={(name) => (rackName = name)}
+  onsave={() => app.send(saveCmd(app.state, rackName))}
+  oncancel={() => app.send({ type: 'toggleQuickRackStore' })}
+/>
