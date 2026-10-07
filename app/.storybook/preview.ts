@@ -15,16 +15,39 @@ import { THEMES, asTheme, followGround } from './theme'
 // page's root element, which would theme Storybook's own UI and docs pages too.
 DecoratorHelpers.initializeThemeState(Object.keys(THEMES), 'dark')
 
-/** Wraps each story in an element carrying the toolbar's theme; the tokens apply under it. */
+/** The Golden tunings (tokens/golden.css): the toolbar's choices. */
+const TUNINGS = ['phi', 'just', 'root2']
+
+/**
+ * Wraps each story in an element carrying the toolbar's theme and Golden tuning; the tokens apply
+ * under it. A story's `parameters.screen` sizes the screen tokens for it.
+ */
 const withTheme: Decorator = (_, context) => {
   const theme = asTheme(context.globals.theme)
   followGround(theme, context.globals.backgrounds)
-  return { Component: ThemeFrame, props: { theme } }
+  const tuning = TUNINGS.includes(context.globals.tuning) ? context.globals.tuning : 'phi'
+  const { screen, sample } = context.parameters
+  return { Component: ThemeFrame, props: { theme, tuning, screen, sample } }
 }
 
 const preview: Preview = {
   tags: ['autodocs'],
   decorators: [withTheme],
+  globalTypes: {
+    tuning: {
+      description: 'Golden tuning: the shapes controls are drawn in',
+      toolbar: {
+        title: 'Tuning',
+        icon: 'grid',
+        items: [
+          { value: 'phi', title: 'Phi' },
+          { value: 'just', title: 'Just' },
+          { value: 'root2', title: 'Root-two' },
+        ],
+        dynamicTitle: true,
+      },
+    },
+  },
   parameters: {
     layout: 'centered',
     // The backgrounds tool sets the canvas; its options are the two themes' ground (--g), named
@@ -38,7 +61,7 @@ const preview: Preview = {
     controls: { expanded: true },
     a11y: { test: 'error' },
   },
-  initialGlobals: { theme: 'dark' },
+  initialGlobals: { theme: 'dark', tuning: 'phi' },
 }
 
 export default preview

@@ -1,10 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
 import { createRawSnippet } from 'svelte'
-import { fn } from 'storybook/test'
+import { expect, fn, waitFor } from 'storybook/test'
 import Stage from './Stage.svelte'
 import { stageBoard, stageStopped } from './Stage.fixtures'
 import StagePlayground from './StagePlayground.svelte'
-import GoldenStory from '../StageGolden/GoldenStory.svelte'
 
 /** Groups a callback's control under its component. */
 const on = (category: string, names: string[]) =>
@@ -70,6 +69,7 @@ const meta = {
   parameters: { layout: 'fullscreen' },
   args: { ...stageBoard, tipAction: fn(), ...actions },
   argTypes: {
+    layout: { control: 'inline-radio', options: ['grid', 'golden'], table: { category: 'Layout' } },
     overlay: { control: 'boolean', table: { category: 'Layout' } },
     appBar: { control: 'object', table: { category: 'AppBar' } },
     sectionRow: { control: 'object', table: { category: 'SectionRow' } },
@@ -162,41 +162,62 @@ export const PageSlot: Story = {
   args: { page: placeholderPage, appBar: { ...stageBoard.appBar, chosen: 'effects' } },
 }
 
-/** The Golden stories' own control: the overlay lives in the story-only wrapper (GoldenStory), not in Stage's props. */
-const GOLDEN_ARG_TYPES = {
-  showGrid: { control: 'boolean', table: { category: 'Layout' } },
-} as unknown as Story['argTypes']
-
 /**
- * A proposal: the Stage laid out by golden subdivision (`layout="golden"`, StageGolden,
- * tokens/stage-golden.css). Turn on `showGrid` to see the cuts, each block's inner padding, the
- * beat bar's line and the golden spiral.
+ * A proposal: the Stage laid out as a Golden tree (`layout="golden"`, StageGolden, built from the
+ * Golden primitives), here at 1440 × 900. Every size comes from a cut; turn on `overlay` to see them.
  *
- * - **App bar**, y 20–56, the frame's width (1217): the page tabs, then the helpers (Metronome ▾,
- *   Unison, Panic, ?), then the Launchkey and audio health.
- * - **The frame**, 1217 × 752 (= φ), x 111–1328, y 64–816; no section row.
- * - **Display row**, 287 tall: chord (287 square: the style line, the chord, its notes), song (287
- *   square: the section, "then …", the tempo with + over −), transport (178: a list, "● Playing",
- *   Accomp, Sync Start, Reset, Fill ▲ Fill ▼, Fade), One Touch (178: 1–4 stacked), parts (287
- *   square: the four part rows). The beat bar runs under all five, ¾ of the way down.
- * - **Band**, 465 tall: faders 752 × 465, the status line at their foot; the 465 square cut into
- *   knobs (178) over pads (287, a 4 × 4 grid, pads 1–4 to 13–16 row by row).
- * - **Keys**, y 824–880, black keys 35 tall (56 / φ).
- * - Every block keeps a 13px inner padding, so its edges sit on the cut lines.
+ * - **Screen**: a fib-21 margin, then a stack as wide as the frame: the app bar on top (a
+ *   bar-height band: the page tabs, the helpers Metronome ▾, Unison, Panic, ?, then the Launchkey
+ *   and audio health), the keys at the foot (a keys-height band, black keys keys-height / φ), a
+ *   fib-8 gap each; no section row.
+ * - **Frame**: a phi box (about 1214 × 750 here) between the two bands.
+ * - **Cut 1**, the frame's minor part off the top: the display row, cells square, square, 1:φ, 1:φ,
+ *   square (= φ³): chord (the style line, the chord, its notes), song (the section on the chord's
+ *   line, "then …", the tempo), transport (a list: "● Playing", Accomp, Sync Start, Reset, Fill ▲
+ *   Fill ▼, Fade), One Touch (1–4 stacked), parts (the four part rows). The beat bar runs over all
+ *   five, ¾ of the way down.
+ * - **Cut 2**, a square off the band's right: knobs (its minor part, on top) over pads (a 4 × 4
+ *   grid). The faders take the rest of the band, the status line at their foot.
+ * - **Leaves**: each region sits in a leaf with a fib-13 inset, so its content stays inside the cuts;
+ *   its size tokens come from the leaf's box (container query units).
  */
 export const Golden: Story = {
-  args: { showGrid: false } as Partial<Story['args']>,
-  argTypes: GOLDEN_ARG_TYPES,
-  render: (args) => ({ Component: GoldenStory, props: args }),
+  args: { layout: 'golden', overlay: false },
+}
+
+/**
+ * The golden layout with `overlay` on: a GoldenOverlay draws every cut, each leaf's inset (dashed)
+ * and the golden spiral in the phi frame, and draws red whatever breaks a rule (a row whose cells
+ * don't add up, a slot whose content overflows). The display row adds up: φ³.
+ */
+export const GoldenOverlay: Story = {
+  name: 'Golden › overlay',
+  args: { layout: 'golden', overlay: true },
+  play: async ({ canvasElement }) => {
+    const overlay = canvasElement.querySelector('[data-golden="overlay"]')
+    await expect(overlay).not.toBeNull()
+    await waitFor(() => expect(overlay?.getAttribute('data-rows-off')).toBe('0'))
+    const row = canvasElement.querySelector('[data-golden-name="display"] [data-golden-slots="row"]')
+    await expect(row?.getAttribute('data-golden-adds')).toBe('yes')
+  },
+}
+
+/**
+ * The golden layout at a smaller window, 1280 × 800 (`parameters.screen` sets --screen-width and
+ * --screen-height), with `overlay` on: the same tree, every cut scaled with the screen.
+ */
+export const GoldenSmall: Story = {
+  name: 'Golden › 1280 × 800',
+  args: { layout: 'golden', overlay: true },
+  parameters: { screen: { width: 1280, height: 800 } },
 }
 
 /**
  * The golden layout, interactive: the Playground's wrapper (StagePlayground) in `layout="golden"`.
  * Transport, tempo, One Touch, the part rows, faders, knobs and pads respond as in the Playground;
- * while running, a story-only ticker moves the beat bar. `showGrid` draws the cuts over it.
+ * while running, a story-only ticker moves the beat bar. `overlay` draws the cuts over it.
  */
 export const GoldenPlayground: Story = {
-  args: { showGrid: false } as Partial<Story['args']>,
-  argTypes: GOLDEN_ARG_TYPES,
-  render: (args) => ({ Component: GoldenStory, props: { ...args, playground: true } }),
+  args: { layout: 'golden', overlay: false },
+  render: (args) => ({ Component: StagePlayground, props: args }),
 }

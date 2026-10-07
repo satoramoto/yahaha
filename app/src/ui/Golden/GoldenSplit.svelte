@@ -1,0 +1,78 @@
+<!--
+  GoldenSplit: one cut. It takes a part off one side of its box (`from`): a square (as deep as the
+  box is across), the golden section's `major` (61.8 % of the length) or `minor` (38.2 %), or a
+  strip in an interval (as deep as the box is across over the interval). Two children: the part
+  taken, then the rest. A square taken off a box that is too short for it overflows, and the
+  overlay draws it red.
+-->
+<script lang="ts">
+  import type { Snippet } from 'svelte'
+  import GoldenFrame from './GoldenFrame.svelte'
+  import { ratioVar, type Fib, type GoldenReport, type Orient, type Ratio, type Side, type Take } from './golden'
+
+  type Props = {
+    /** What is taken: `square`, `major`, `minor`, or an interval or shape (a strip that deep: the box's width over it). */
+    take?: Take
+    /** The side it is taken from. */
+    from?: Side
+    /** Fit the split itself into its slot in this interval (contain); by default it fills the slot. */
+    shape?: Ratio
+    /** With `shape`: `wide` or `tall`. */
+    orient?: Orient
+    /** Padding inside each leaf, from the fib scale; nested primitives inherit it. */
+    inset?: Fib
+    /** What the overlay calls this split in a report. */
+    name?: string
+    /** Draw the cuts over this split and check them (GoldenOverlay). */
+    overlay?: boolean
+    /** With `overlay`: the report line under it. */
+    report?: boolean
+    /** With `overlay`: what the overlay finds, each time it changes. */
+    onreport?: (report: GoldenReport) => void
+    /** Drawn over both parts, not in one. */
+    over?: Snippet
+    /** Two children: the part taken, then the rest. */
+    children?: Snippet
+  }
+
+  let {
+    take = 'square',
+    from = 'top',
+    shape,
+    orient,
+    inset,
+    name,
+    overlay = false,
+    report = false,
+    onreport,
+    over,
+    children,
+  }: Props = $props()
+
+  /** The cross size: the box's width for a cut from the top or bottom, its height from a side. */
+  let cross = $derived(from === 'top' || from === 'bottom' ? '100cqw' : '100cqh')
+  let size = $derived(
+    take === 'square'
+      ? cross
+      : take === 'major'
+        ? 'calc(100% / var(--interval-phi))'
+        : take === 'minor'
+          ? 'calc(100% / var(--interval-phi2))'
+          : `calc(${cross} / ${ratioVar(take)})`,
+  )
+</script>
+
+<GoldenFrame
+  kind="cut"
+  {shape}
+  {orient}
+  {inset}
+  {name}
+  {overlay}
+  {report}
+  {onreport}
+  {over}
+  {children}
+  slotStyle={`--golden-take: ${size}`}
+  attrs={{ 'data-from': from, 'data-take': take }}
+/>
