@@ -6,8 +6,8 @@ import KnobCell from './KnobCell.svelte'
 
 /**
  * The band's controls as Golden trees, each at the size the Stage gives one cell; each fills its
- * cell. A knob: a strip as deep as the cell's width over phi off its top for the dial, then the
- * value in a label-height band, then the name (up to two lines). A fader grows like a stem: the
+ * cell. A knob: the name and the value in two label-height bands off its foot (one line each), the
+ * dial in all the rest. A fader grows like a stem: the
  * track takes everything the foot doesn't, the value tight under it (fib-3), then the name (fib-5);
  * as a whole Stage strip it also takes the part's sound in a band off its top, and optionally its
  * lamp in a band off its foot (fib-8). The overlay draws the cuts and reports what doesn't fit.
@@ -27,9 +27,9 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 /**
- * One knob cell, its cuts drawn: the dial in a strip the cell's width over φ deep, the value in a
- * label-height band under it, the name in the rest. "Retrig rate" wraps to two lines; nothing is
- * cut short.
+ * One knob cell, its cuts drawn: two label-height bands off its foot (the name, then the value
+ * over it) and the dial in the rest, as big as the cell allows. The name is one line: when
+ * "Retrig rate" doesn't fit, the knob's code ("RtgRate") is shown, the full name in its title.
  */
 export const Knob: Story = {
   args: {
@@ -55,15 +55,18 @@ export const Knob: Story = {
   play: async ({ canvasElement }) => {
     // The cell fills its slot: no box fitted to a shape.
     await expect(canvasElement.querySelector('[data-golden-fit][data-shape]')).toBeNull()
-    // The dial's strip off the top, the cell's width over φ deep; then the rest.
-    const split = canvasElement.querySelector('[data-golden-slots="cut"][data-take="phi"][data-from="top"]')
-    await expect(split?.children.length).toBe(2)
-    await expect(split?.children[0]?.querySelector('button svg')).not.toBeNull()
-    // The rest: the value in a label-height band off its top, then the name.
-    const band = split?.children[1]?.querySelector(':scope > * > [data-golden-slots="cut"][data-band="label-height"][data-from="top"]')
-    await expect(band?.children.length).toBe(2)
-    await expect(band?.children[0]?.textContent?.trim()).toBe('1/8')
-    await expect(band?.children[1]?.textContent?.trim()).toBe('Retrig rate')
+    // Two label-height bands off the foot: the name, then the value; the dial takes the rest.
+    const [outer, inner] = canvasElement.querySelectorAll('[data-golden-slots="cut"][data-band="label-height"][data-from="bottom"]')
+    await expect(outer?.children.length).toBe(2)
+    await expect(inner?.children.length).toBe(2)
+    await expect(inner?.children[0]?.textContent?.trim()).toBe('1/8')
+    await expect(inner?.children[1]?.querySelector('button svg')).not.toBeNull()
+    // The name is one line: the full name, or (when it doesn't fit) the short code with the full
+    // name in its title.
+    const name = outer?.children[0] as HTMLElement
+    const shown = name.querySelector('span')?.textContent?.trim()
+    await expect(['Retrig rate', 'RtgRate']).toContain(shown)
+    if (shown === 'RtgRate') await expect(name).toHaveAttribute('title', 'Retrig rate')
     const overlay = canvasElement.querySelector('[data-golden="overlay"]')
     await expect(overlay).not.toBeNull()
   },

@@ -11,23 +11,25 @@
     The page's spiral is turned cw from the right, so its pole (388, 238) lands on the section
     block: on what comes next.
   - Hero (1398 × 282), two tiers: a phi³ step off its bottom is the controls tier (67): its major
-    part off the left the transport (six outlined cells graded by phi: Start / Stop φ², Accomp,
-    Sync Start and the fills φ, Fade and Reset 1), the rest One Touch (its caption, then 1–4). The
-    reading tier (215) above it: a phi³ step off its left is the chord (330, the spiral's square);
-    the rest is halved into the section and the tempo (534 each). Each reading cell's major part
-    off the top ends on one shared line, the hero values' baseline: the chord, Main B and the
-    tempo stand on it, flush left. Under it: the chord's notes; what comes next (a waiting chip in
-    its hue, then when); the beat bar (one segment a beat) over the style line (‹ › as cells).
-  - Band (1398 × 456): its major part off the left is the faders (864): a header band, then the
-    lamp row (a control-height band off the bottom: the part lamps under their strips, a sub-cut,
-    then the functions), then nine strips weighted by use (a live strip an octave of a parked
-    one). The rest (534) is cut minor off the top into knobs (a header band over eight knob
-    cells, an unused knob half as wide) over pads (a header band over a 4 × 4 grid).
+    part off the left the transport (six outlined cells sized by use and risk: the Fill ▲ ▼ pair
+    φ², Start / Stop φ, Accomp, Sync Start and Fade 1, Reset 1 at the far end behind a sub-cut),
+    the rest One Touch (its caption, then 1–4). The reading tier (215) above it, one group, reads
+    style → chord → section → next: a control-height band off its top is the style line; under
+    it, a phi³ step off the left is the chord (324), the rest halved into the section and the
+    tempo (524 each). Each reading cell is a hero row over one small line (a label-height line, a
+    fib-8 gap): the chord, Main B and the tempo stand on the row's foot, one shared line, flush
+    left. Under it: the chord's notes; "then Main C · fill after bar 4" (text, Main C in its hue);
+    the beat bar (thin bars, faded, the current beat solid). + and − sit beside the tempo.
+  - Band (1398 × 456): its major part off the left is the faders (864): a header band over nine
+    strips, each with its own foot (the part lamps under the part strips, then a sub-cut and the
+    functions and the page button), so every lamp sits on its fader's column. The rest (534) is
+    cut minor off the top into knobs (a header band over eight knob cells, an unused knob half as
+    wide) over pads (a header band over a 4 × 4 grid).
   Each group sits in a `group` wrapper inset fib-13 from its block's cuts; inside a group the cuts
   sit edge to edge. The status line sits at the faders header's right end.
   Each leaf is a size container: the components' size tokens are set from its content box (cq
   units). It changes no component's default: it uses their additive props (SectionRow,
-  OneTouchPicker, StyleLine and TempoReadout `cells`, AppBar `end`, FaderCell `sound`). With
+  OneTouchPicker, StyleLine and TempoReadout `cells`, AppBar `end`, FaderCell `sound` and `lamp`). With
   `overlay`, the whole tree is drawn and checked by a GoldenOverlay.
 -->
 <script lang="ts">
@@ -132,12 +134,23 @@
   const pageLabel = $derived(faders.pageTabs.find((tab) => tab.id === faders.page)?.label ?? '')
   const otherLabel = $derived(faders.pageTabs.find((tab) => tab.id !== faders.page)?.label ?? '')
   const isPart = (strip: FaderStrip) => strip.kind === 'part' || strip.kind === 'off'
-  /** Size follows use: a live strip is an octave of a parked one (the unused faders give their width away). */
-  const stripWeights: Interval[] = $derived(faders.strips.map((s) => (s.kind === 'parked' ? 'unison' : 'octave')))
-  /** The same for the knobs: an unused knob is half a live one. */
+  /**
+   * The strips' foot, one module a strip on the strip's own column: the part lamps under the part
+   * strips, then the function lamps and the page button under the rest (a sub-cut before the first
+   * function, so a function never reads as a strip's state). Every strip is full width, a parked
+   * one too (faded): half a strip can't hold a function's word.
+   */
+  type Foot = BankLamp | 'page'
+  const foot: Foot[] = $derived([...faders.partLamps, ...faders.functionLamps, 'page'])
+  const footCut = $derived(faders.partLamps.length)
+  /** Size follows use: an unused knob is half a live one. */
   const knobWeights: Interval[] = $derived(p.knobs.knobs.map((k) => (k.unused ? 'unison' : 'octave')))
-  /** The transport graded by use, in phi steps: Start / Stop, then Accomp, Sync Start and the fills, then Fade and Reset. */
-  const TRANSPORT: Interval[] = ['phi2', 'phi', 'phi', 'phi', 'unison', 'unison']
+  /**
+   * The transport graded by how often each is pressed, and what a slip costs: the Fill ▲ ▼ pair
+   * (many times a song) φ², Start / Stop (twice a song) φ, Accomp, Sync Start and Fade 1, then
+   * Reset 1 at the far end, set apart from Fade by a sub-cut (a slip onto it is heard).
+   */
+  const TRANSPORT: Interval[] = ['phi', 'unison', 'unison', 'phi2', 'unison', 'unison']
 
   const knobTabs: TabItem[] = $derived(
     (p.knobs.pages?.length ? p.knobs.pages : [p.knobs.pageLabel ?? '']).map((label, i) => ({
@@ -236,60 +249,52 @@
               </GoldenGrid>
             </div>
           </GoldenSplit>
-          <GoldenSplit take="phi3" of="length" from="left" name="reading">
-            <div class="group">
-              <div class="leaf chord"><ChordReadout {...now.chord} /></div>
-            </div>
-            <GoldenGrid columns={2} name="now and tempo">
-              <div class="group">
-                <div class="leaf section">
-                  <div class="stand"><SectionName label={now.playing} hue={now.hue} idle={!now.running} /></div>
-                  <div class="next" role="group" aria-label="Next section">
-                    {#if next}
-                      <span class="then">then</span>
-                      <span class="chip" style:--hue="var(--{nextHue})" data-face="waiting" data-hue={nextHue}>{next}</span>
-                    {/if}
-                    {#if when}<span class="when" class:sync={!now.running && now.syncStart}>{when}</span>{/if}
-                  </div>
-                </div>
+          <div class="group">
+            <GoldenBand size="control-height" from="top" gap="fib-8" name="reading">
+              <div class="leaf style">
+                <StyleLine {...style} cells tipAction={p.tipAction} onprev={p.onprev} onnext={p.onnext} onbrowse={p.onbrowse} />
               </div>
-              <div class="group">
-                <GoldenSplit take="major" from="top" name="tempo">
-                  <div class="leaf tempo">
-                    <TempoReadout
-                      cells
-                      bpm={now.bpm}
-                      tipAction={p.tipAction}
-                      ontempo={p.ontempo}
-                      onplus={p.ontempoup}
-                      onminus={p.ontempodown}
-                      onreset={p.onstyletempo}
-                    />
+              <GoldenSplit take="phi3" of="length" from="left" name="now">
+                <div class="leaf reading chord"><ChordReadout {...now.chord} /></div>
+                <GoldenGrid columns={2} name="section and tempo">
+                  <div class="leaf reading section">
+                    <div class="stand"><SectionName label={now.playing} hue={now.hue} idle={!now.running} /></div>
+                    <div class="next" role="group" aria-label="Next section">
+                      {#if next}
+                        <span class="then">then</span>
+                        <span class="next-name" style:--hue="var(--{nextHue})" data-hue={nextHue}>{next}</span>
+                      {/if}
+                      {#if next && when}<span class="dot" aria-hidden="true">·</span>{/if}
+                      {#if when}<span class="when" class:sync={!now.running && now.syncStart}>{when}</span>{/if}
+                    </div>
                   </div>
-                  <GoldenBand size="label-height" from="top" gap="fib-8" name="beat and style">
-                    <div class="leaf beats" role="img" aria-label={beat > 0 ? `Beat ${beat} of ${beats}` : `${beats} beats, stopped`}>
+                  <div class="leaf reading tempo">
+                    <div class="stand">
+                      <TempoReadout
+                        cells
+                        bpm={now.bpm}
+                        tipAction={p.tipAction}
+                        ontempo={p.ontempo}
+                        onplus={p.ontempoup}
+                        onminus={p.ontempodown}
+                        onreset={p.onstyletempo}
+                      />
+                    </div>
+                    <div class="beats" role="img" aria-label={beat > 0 ? `Beat ${beat} of ${beats}` : `${beats} beats, stopped`}>
                       {#each { length: beats } as _, i (i)}
-                        <span class="beat" class:now={i + 1 === beat} style:--hue="var(--{now.hue ?? 'main'})"></span>
+                        <span
+                          class="beat"
+                          class:now={i + 1 === beat}
+                          style:--hue="var(--{now.hue ?? 'main'})"
+                          style:--faded="var(--absent-{now.hue ?? 'main'})"
+                        ></span>
                       {/each}
                     </div>
-                    <GoldenBand size="control-height" from="bottom">
-                      <div class="leaf style">
-                        <StyleLine
-                          {...style}
-                          cells
-                          tipAction={p.tipAction}
-                          onprev={p.onprev}
-                          onnext={p.onnext}
-                          onbrowse={p.onbrowse}
-                        />
-                      </div>
-                      <div class="leaf"></div>
-                    </GoldenBand>
-                  </GoldenBand>
-                </GoldenSplit>
-              </div>
-            </GoldenGrid>
-          </GoldenSplit>
+                  </div>
+                </GoldenGrid>
+              </GoldenSplit>
+            </GoldenBand>
+          </div>
         </GoldenSplit>
       </GoldenSplit>
       <GoldenSplit take="phi4" of="length" from="bottom" name="bottom half">
@@ -326,29 +331,30 @@
                   {/snippet}
                 </GroupHeader>
               </div>
-              <GoldenBand size="control-height" from="bottom" gap="fib-8" name="strips and lamps">
-                <GoldenGrid columns={2} name="lamps">
-                  <div class="leaf lamps" role="group" aria-label="Parts on and off">
-                    {#each faders.partLamps as item (item.id)}{@render lamp(item)}{/each}
-                  </div>
-                  <div class="leaf lamps functions" role="group" aria-label="Functions">
-                    {#each faders.functionLamps as item (item.id)}{@render lamp(item)}{/each}
-                    <Button
-                      label={pageLabel}
-                      size="cell"
-                      name={`Fader page is ${pageLabel}: click for ${otherLabel}`}
-                      tip="mixer.page"
-                      tipAction={p.tipAction}
-                      onpress={p.onpagebutton}
-                      onlongpress={p.onpagelong}
-                      onlongrelease={p.onpagerelease}
-                    />
-                  </div>
-                </GoldenGrid>
-                <GoldenGrid weights={stripWeights} name="strips">
-                  {#each faders.strips as strip (strip.id)}
+              <GoldenGrid columns={faders.strips.length} name="strips">
+                  {#each faders.strips as strip, i (strip.id)}
                     {@const part = parts.get(strip.id)}
+                    {@const item = foot[i]}
+                    {#snippet footOf()}
+                      <span class="foot" class:cut={i === footCut}>
+                        {#if item === 'page'}
+                          <Button
+                            label={pageLabel}
+                            size="cell"
+                            name={`Fader page is ${pageLabel}: click for ${otherLabel}`}
+                            tip="mixer.page"
+                            tipAction={p.tipAction}
+                            onpress={p.onpagebutton}
+                            onlongpress={p.onpagelong}
+                            onlongrelease={p.onpagerelease}
+                          />
+                        {:else if item}
+                          {@render lamp(item)}
+                        {/if}
+                      </span>
+                    {/snippet}
                     <FaderCell
+                      lamp={item ? footOf : undefined}
                       name={strip.faderName}
                       label={strip.tag}
                       value={strip.value}
@@ -375,8 +381,7 @@
                       onlevel={(level) => p.onlevel?.(strip.id, level)}
                     />
                   {/each}
-                </GoldenGrid>
-              </GoldenBand>
+              </GoldenGrid>
             </GoldenBand>
           </section>
           <GoldenSplit take="minor" from="top" name="knobs and pads">
@@ -502,86 +507,107 @@
     --keys-black-height: calc(100cqh / var(--interval-phi));
   }
 
-  /* The chord: its hero row is the cell's major part, so the chord stands on the reading tier's
-     shared line (the section's and the tempo's major cut); its notes sit under it. The hero type
-     is scaled to the row (--type-hero's own 128 / 104); the readout is the leaf's width. */
-  .chord {
+  /* The style line: the reading tier's header, a control-height band (‹ › 32px squares). */
+  .style {
+    display: flex;
+  }
+
+  /* The reading cells (chord, section, tempo), one leaf each, so descenders stay inside: a hero
+     row (--row: all the cell but a label-height line and a fib-8 gap under it) whose foot is the
+     shared line every hero value stands on, flush left; then one small line (the chord's notes,
+     what comes next, the beat bar). The hero line (--hero-row) is the row less a fib-13 step. The
+     chord is --type-hero scaled to it (its own 128 / 104); the section and the tempo are the
+     chord's --hero-4 step over the same line (96 / 104), so the section reads nearly as strongly
+     as the chord. A fib-13 gutter before the next cut. */
+  .reading {
+    --row: calc(100cqh - var(--label-height) - var(--fib-8));
+    --hero-row: calc(var(--row) - var(--fib-13));
+    --type-poster: var(--weight-light) calc(var(--hero-row) * 96 / 104) / calc(var(--hero-row) * 96 / 104) var(--font-sans);
+    --tracking-poster: var(--tracking-hero-4);
+    display: flex;
+    flex-direction: column;
+    row-gap: var(--fib-8);
+    box-sizing: border-box;
     height: 100%;
+    min-width: 0;
+  }
+  .chord,
+  .section {
+    padding-right: var(--fib-13);
+  }
+  .chord {
+    display: block;
     --stage-row-width: calc(3 * 100cqw);
     --display-pad-left: 0px;
     --display-border-width: 0px;
     --display-thirds-gap: 0px;
-    --hero-height: calc(100cqh / var(--interval-phi));
+    --hero-height: var(--hero-row);
     --type-hero: var(--weight-light) calc(var(--hero-height) * 128 / 104) / var(--hero-height) var(--font-sans);
   }
-  /* The hero face's baseline sits 0.0815 of its 128 / 104 line above the line's foot (its
-     descent less the half-leading, measured); the readout drops by that much, so the chord's
-     baseline lands on the shared line exactly, as Main B's and the tempo's do (their boxes are
-     trimmed to the baseline with text-box, which the chord's fitted row can't take). */
+  /* The hero line is the row less a fib-13 step (so the chord, at its widest in its phi³ column,
+     keeps a gutter before Main B), set down onto the row's foot. The hero face's baseline sits
+     0.0815 of its 128 / 104 line above the line's foot (its descent less the half-leading,
+     measured); the readout drops by that much too, so the chord's baseline lands on the shared
+     line exactly, as Main B's and the tempo's do (their boxes are trimmed to the baseline with
+     text-box, which the chord's fitted row can't take). Its notes come back up by as much, so
+     they sit a fib-8 under the line, as the other small lines do. */
   .chord > :global(*) {
-    margin-top: calc(var(--hero-height) * 0.0815);
+    margin-top: calc(var(--fib-13) + var(--hero-height) * 0.0815);
   }
-  /* The section cell, one leaf (like the chord's, so a name's descenders stay inside it): Main B
-     stands on the shared line, the cell's major part off the top, flush left (its box trimmed to
-     the baseline); what comes next fills the rest, standing on the cell's foot. */
-  .section {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+  .chord :global(.line) {
+    margin-top: calc(var(--fib-8) - var(--hero-height) * 0.0815);
   }
   .stand {
     display: flex;
     flex: none;
     align-items: flex-end;
-    height: calc(100cqh / var(--interval-phi));
+    height: var(--row);
   }
-  .stand > :global(*) {
+  /* Main B's box ends on its baseline; its descent (a g in "Ending") may still draw down to the
+     cell's foot, over the gap and the small line's height (the line is short and flush left, the
+     descender far to its right), and no further, so the cell holds it. */
+  .section .stand > :global(*) {
     text-box: trim-end cap alphabetic;
+    overflow: clip;
+    overflow-clip-margin: calc(var(--label-height) + var(--fib-8));
   }
-  /* What comes next: "then", the next section as a waiting chip in its hue (the pads' NEXT: a
-     2px ring), then when it lands. One line, the small size. */
+  /* What comes next, one flush-left line directly under Main B: "then", the next section in its
+     own hue (no outline, no fill: it is a display, not a control), "·", when it lands. */
   .next {
     display: flex;
-    flex: 1;
-    align-items: flex-end;
-    gap: var(--space-8);
+    align-items: center;
+    gap: var(--space-4);
+    height: var(--label-height);
+    margin: 0;
     white-space: nowrap;
     font: var(--type-text);
     letter-spacing: var(--tracking-text);
-    color: var(--caption-ink);
+    color: var(--t);
   }
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    box-sizing: border-box;
-    height: var(--control-height);
-    padding: 0 var(--space-12);
-    box-shadow: inset 0 0 0 var(--outline-width-wait) var(--hue);
+  .next-name {
     color: var(--hue);
-  }
-  .then,
-  .when {
-    line-height: var(--control-height);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
   }
   .when.sync {
     color: var(--ok);
   }
-  /* The beat bar: one segment a beat, a label-height tall; the current beat solid, the others
-     outlined in the section's hue. */
+  /* The beat bar, a display: thin bars (a fib-5 step tall) in the line under the tempo, one a
+     beat; the others faded in the section's hue, the current one solid; no outlines. */
   .beats {
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: minmax(0, 1fr);
+    align-items: center;
     column-gap: var(--fib-5);
+    height: var(--label-height);
   }
   .beat {
-    box-shadow: inset 0 0 0 var(--outline-width) var(--hue);
+    height: var(--fib-5);
+    background: var(--faded);
   }
   .beat.now {
     background: var(--hue);
-  }
-  .style {
-    display: flex;
   }
 
   /* The headers: the group's width. */
@@ -608,19 +634,19 @@
     overflow: hidden;
   }
 
-  /* The lamp row: the part lamps under their four strips; a sub-cut (fib-13), then the functions
-     and the page button, so a function never reads as a strip's state. */
-  .lamps {
+  /* A strip's foot: its lamp (or the page button) filling the strip's lamp band; the first
+     function starts a fib-13 sub-cut in, so a function never reads as a part's state. */
+  .foot {
     display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
+    height: 100%;
   }
-  .lamps.functions {
-    padding-left: var(--fib-13);
-  }
-  .lamps > :global(*) {
+  .foot > :global(*) {
     width: 100%;
     min-width: 0;
+  }
+  .foot.cut {
+    width: calc(100% - var(--fib-13));
+    margin-left: var(--fib-13);
   }
 
   /* A pad fills its cell, less the pads' gap. */

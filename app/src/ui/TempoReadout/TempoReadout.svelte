@@ -10,7 +10,8 @@
 
   `cells` (the golden Stage): it fills its container, which must be a size container
   (`container-type: size`). The number and its unit sit flush left on the container's foot, and
-  + over − are outlined neutral squares at its right edge, each half the container's height.
+  + over − are a narrow column right beside them (a fib-8 gap), standing on the same baseline:
+  outlined neutral squares, together as tall as the number's capitals.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -34,7 +35,7 @@
     onminus?: (down: boolean) => void
     /** The number double-clicked: back to the style's own tempo. */
     onreset?: () => void
-    /** Fill the size container it sits in: the number on its foot, + over − as squares at its right. */
+    /** Fill the size container it sits in: the number on its foot, + over − as a column of squares beside it. */
     cells?: boolean
   }
 
@@ -254,14 +255,15 @@
      to the alphabetic baseline, so the number stands on the bottom edge. */
   .tempo.cells {
     display: flex;
+    align-items: flex-end;
     box-sizing: border-box;
     width: 100%;
     height: 100%;
-    gap: 0;
+    gap: var(--fib-8);
   }
   .cells .reading {
-    flex: 1 1 auto;
-    align-self: flex-end;
+    flex: none;
+    gap: var(--fib-8);
     min-width: 0;
   }
   /* The trimmed-off descent (no ink for digits or capitals) clipped, so it doesn't spill below. */
@@ -270,15 +272,18 @@
     text-box: trim-end cap alphabetic;
     overflow: clip;
   }
-  /* + over −, each a square half the container's height, at its right edge. */
+  /* + over −: a narrow column right beside the reading, standing on its baseline, as tall as the
+     number's capitals (1cap in the number's own face), each half of it a square. */
   .cells .steps {
     flex: none;
-    margin-left: auto;
+    width: 0.5cap;
+    height: 1cap;
+    font: var(--type-poster);
   }
   .cells .step {
-    flex: none;
-    width: 50cqh;
-    height: 50cqh;
+    flex: 1 1 0;
+    width: 100%;
+    height: auto;
     min-width: 0;
     min-height: 0;
     font: var(--type-text);

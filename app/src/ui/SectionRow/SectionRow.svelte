@@ -23,8 +23,9 @@
     /**
      * Cells: no wrapper, and the faces are the state language (square, off a 1px outline and the
      * word in the hue, on solid in the hue with --on-ink; no dots). Each control is one top-level
-     * element, in order: the transport's Start / Stop (green), Accomp, Sync Start, Fill (one group,
-     * Fill ▲ and Fill ▼ its halves), Fade, Reset, each filling its parent's cell; the helpers'
+     * element, in order: the transport's Start / Stop (green, its word the state: "Playing" or
+     * "Stopped"), Accomp, Sync Start, Fill (one group, Fill ▲ and Fill ▼ its halves), Fade, Reset
+     * (set apart from Fade by a fib-13 gap), each filling its parent's cell; the helpers'
      * Metronome with its ▾ (one group, two halves), Unison, ?, then Panic in the warning hue, set
      * apart, each sized to its words and the parent's height (for a max-content column grid).
      * `groups` still picks which; `orientation` is unused. The parent supplies the toolbar role and its name.
@@ -229,7 +230,7 @@
   <!-- Cells: each control a top-level element, one a cell; the parent is the toolbar. -->
   {#if transport}
     {@render face(
-      'Start / Stop',
+      running ? 'Playing' : 'Stopped',
       '',
       running,
       'transport.start_stop',
@@ -280,7 +281,7 @@
       () => onreset?.(),
       'Section reset: restart the section from its first bar',
       'neutral',
-      'fill',
+      'fill reset',
     )}
   {/if}
   {#if helpers}
@@ -507,7 +508,8 @@
   .caret-half {
     padding: 0 var(--space-8);
   }
-  /* Panic: last, set apart by a fib-13 gap, in the warning hue. */
+  /* Reset and Panic: last, set apart by a fib-13 gap (a slip onto them is heard). */
+  .reset,
   .panic {
     width: calc(100% - var(--fib-13));
     margin-left: var(--fib-13);

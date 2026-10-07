@@ -173,18 +173,23 @@ export const PageSlot: Story = {
  *   phi⁴ step off its outer edge: the app bar (48: the page tabs, the helpers Metronome ▾, Unison,
  *   Panic, ?, the Launchkey and audio health) and the keys (78).
  * - **Hero** (1398 × 282), two tiers. The controls tier is a phi³ step off its bottom (67): its
- *   major part the transport, six outlined cells graded by phi (Start / Stop φ², Accomp, Sync Start
- *   and Fill ▲ ▼ as one split cell φ, Fade and Reset 1), the rest One Touch (its caption, then 1–4).
- *   The reading tier above (215): the chord a phi³ step off its left (330), then the section and
- *   the tempo (534 each). Chord, Main B and the tempo stand on one shared line (each cell's major
- *   part), flush left; under it the chord's notes, what comes next (a waiting chip in its hue, then
- *   when) and the beat bar over the style line. No parts block: each part's sound is on top of its
- *   own fader strip (Option C).
+ *   major part the transport, six outlined cells sized by how often each is pressed and what a slip
+ *   costs (the Fill ▲ ▼ pair φ², Start / Stop φ, its word the state, "Playing" or "Stopped";
+ *   Accomp, Sync Start and Fade 1; Reset 1 at the far end behind a sub-cut), the rest One Touch
+ *   (its caption, then 1–4). The reading tier above (215) reads style → chord → section → next: the
+ *   style line (‹ name › as 32px squares, category · metre) in a control-height band over the
+ *   chord, a phi³ step off its left, then the section and the tempo (halves). Chord, Main B and the
+ *   tempo stand on one shared line, flush left, Main B and the tempo at the chord's --hero-4 step;
+ *   under it one small line: the chord's notes; "then Main C · fill after bar 4" (Main C in its
+ *   hue: text, not a control); the beat bar (thin, faded bars, the current beat solid). + and −
+ *   are a narrow column right beside the tempo, as tall as its capitals. No parts block: each
+ *   part's sound is on top of its own fader strip (Option C).
  * - **Band** (1398 × 456): its major part the faders (a header band, the status line at its right
- *   end; the lamp row off its foot, the part lamps under their strips, a sub-cut, the functions;
- *   nine strips weighted by use, a parked strip half a live one: sound, a long track, value, name);
- *   the rest knobs (its minor part, on top: a header band over eight knob cells, an unused knob
- *   half width) over pads (a header band over a 4 × 4 grid).
+ *   end; nine strips, each with its own foot: the part lamps under strips 1–4, then a sub-cut and
+ *   the functions and the page button under strips 5–9; a parked strip is full width, faded, so
+ *   its button's word fits); the rest knobs (its minor part, on top: a header band over eight knob
+ *   cells, an unused knob half width, each dial as big as its cell allows, its name one line) over
+ *   pads (a header band over a 4 × 4 grid).
  * - **Groups**: each group is inset fib-13 from its block's cuts; inside it the cuts sit edge to
  *   edge. Size tokens come from each leaf's box (container query units). Every cell has a job; the
  *   control fills its cell.
@@ -215,19 +220,27 @@ export const GoldenOverlay: Story = {
     await expect(canvasElement.querySelector('[data-golden-name="hero"] [aria-label$="Opens the quick sound list"]')).toBeNull()
     const strips = canvasElement.querySelector('[data-golden-name="strips"]')
     await expect(strips?.querySelectorAll('[aria-label$="Opens the quick sound list"]').length).toBe(4)
-    // The transport is six cells graded by phi, Reset last.
+    // The transport is six cells graded by use and risk: the fills φ², Start / Stop φ (its word
+    // the state), Reset last.
     const transport = canvasElement.querySelector('[data-golden-name="transport"] [data-golden-slots="grid"]')
     await expect(transport?.children.length).toBe(6)
-    await expect(transport?.getAttribute('data-weights')).toBe('phi2 phi phi phi unison unison')
+    await expect(transport?.getAttribute('data-weights')).toBe('phi unison unison phi2 unison unison')
+    await expect(transport?.firstElementChild?.textContent?.trim()).toMatch(/^(Playing|Stopped)$/)
     await expect(transport?.lastElementChild?.getAttribute('aria-label')).toMatch(/^Section reset/)
     // The page's spiral is turned to put its pole on the section block.
     const page = canvasElement.querySelector('[data-golden-name="page"] [data-golden-slots]')
     await expect([page?.getAttribute('data-spiral-from'), page?.getAttribute('data-spiral-turn')]).toEqual(['right', 'cw'])
-    // The parked strips give their width away: a live strip is an octave of a parked one.
+    // The style line heads the reading tier, over the chord.
+    const reading = canvasElement.querySelector('[data-golden-name="reading"] [data-golden-slots="cut"]')
+    await expect(reading?.firstElementChild?.querySelector('[aria-label="Previous style (Track left)"]')).not.toBeNull()
+    // Each strip carries its own foot (one module a strip): nine strips, nine lamps or buttons.
     const stripGrid = canvasElement.querySelector('[data-golden-name="strips"] [data-golden-slots="grid"]')
-    await expect(stripGrid?.getAttribute('data-weights')?.split(' ')).toContain('unison')
-    // What comes next is a waiting chip in its section's hue.
-    await expect(canvasElement.querySelector('[aria-label="Next section"] [data-face="waiting"]')?.textContent).toBe('Main C')
+    await expect(stripGrid?.children.length).toBe(9)
+    for (const strip of stripGrid?.children ?? []) await expect(strip.querySelector('[data-band="control-height"] button')).not.toBeNull()
+    // What comes next is text in its section's hue, not a control: no outline, no button.
+    const next = canvasElement.querySelector('[aria-label="Next section"]')
+    await expect(next?.querySelector('[data-hue="main"]')?.textContent).toBe('Main C')
+    await expect(next?.querySelector('button, [data-face]')).toBeNull()
   },
 }
 
