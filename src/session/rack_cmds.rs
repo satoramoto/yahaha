@@ -317,36 +317,60 @@ impl Control {
         Ok(())
     }
 
-    /// Keep rack `id`'s file, as it is on disk now, as the rack "Previous: <name>": one per
-    /// rack name, so an existing one is overwritten and keeps its id. Returns the copy's id.
-    pub(super) fn keep_previous(&mut self, id: &str) -> Result<String, CmdError> {
+    /// Keep rack `id`'s file, as it is on disk now, as the rack "Previous: <name>". `owned`
+    /// is the Previous copy the current undo holds: when "Previous: <name>" is that copy
+    /// it is overwritten and keeps its id; any other rack of that name (the user's own) is
+    /// never touched, and the copy takes the next free name. Returns the copy's id.
+    pub(super) fn keep_previous(&mut self, id: &str, owned: Option<&str>) -> Result<String, CmdError> {
         let dir = self.racks_dir()?;
         let mut r = self.read_rack(id)?;
-        r.name = format!("{PREVIOUS}{}", r.name);
-        let path = racks::path_for(&dir, &r.name);
-        r.id = Rack::load(&path).ok().map(|old| old.id).filter(|old| old != id).unwrap_or_else(racks::new_id);
+        let wanted = format!("{PREVIOUS}{}", r.name);
+        let ours = owned.filter(|o| *o != id).and_then(|o| self.rack_file(o)).filter(|p| same_file(p, &racks::path_for(&dir, &wanted)));
+        let (name, path, copy_id) = match (ours, owned) {
+            (Some(p), Some(o)) => (wanted, p, o.to_string()),
+            _ => {
+                let n = unique_name(&dir, &wanted);
+                let p = racks::path_for(&dir, &n);
+                (n, p, racks::new_id())
+            }
+        };
+        r.name = name;
+        r.id = copy_id;
         self.write_rack(&r, &path)?;
         Ok(r.id)
     }
 
+    /// Rack `id`'s file as it is on disk now, if it can be read.
+    pub(super) fn rack_bytes(&mut self, id: &str) -> Option<Vec<u8>> {
+        self.rack_file(id).and_then(|p| std::fs::read(p).ok())
+    }
+
     /// Rack `id` gets back what its copy `copy_id` (from [`Control::keep_previous`]) kept,
-    /// under its own id and current name, in its current file. Then the copy's file goes,
-    /// if `remove_copy`.
-    pub(super) fn restore_from_previous(&mut self, id: &str, copy_id: &str, remove_copy: bool) -> Result<(), CmdError> {
+    /// under its own id and current name, in its current file. The copy stays: the caller
+    /// removes it with [`Control::remove_rack_file`] once everything else has succeeded.
+    /// Returns rack `id`'s file and its content before the restore, to roll back with.
+    pub(super) fn restore_from_previous(&mut self, id: &str, copy_id: &str) -> Result<(PathBuf, Vec<u8>), CmdError> {
         let Some((path, name)) = self.rack_file(id).and_then(|p| self.presence.racks().iter().find(|r| r.id == id).map(|r| (p, r.name.clone())))
         else {
-            return self.fail(format!("no rack {id}"));
+            return self.refuse(format!("no rack {id}"));
         };
-        let Some(copy_path) = self.rack_file(copy_id) else { return self.fail(format!("no rack {copy_id}")) };
+        let old = match std::fs::read(&path) {
+            Ok(b) => b,
+            Err(e) => return self.refuse(format!("The rack could not be read: {e}")),
+        };
         let mut r = self.read_rack(copy_id)?;
         r.id = id.to_string();
         r.name = name;
         self.write_rack(&r, &path)?;
-        if remove_copy {
-            let _ = std::fs::remove_file(&copy_path);
+        Ok((path, old))
+    }
+
+    /// Rack `id`'s file is removed (best effort).
+    pub(super) fn remove_rack_file(&mut self, id: &str) {
+        if let Some(p) = self.rack_file(id) {
+            let _ = std::fs::remove_file(&p);
             self.presence.refresh_racks(true);
         }
-        Ok(())
     }
 
     /// The user's racks, by name, for the app.

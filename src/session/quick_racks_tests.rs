@@ -658,3 +658,91 @@ fn undo_puts_the_button_back() {
     drop(s);
     let _ = std::fs::remove_dir_all(&d);
 }
+
+fn rack_file_bytes(d: &Path, name: &str) -> Vec<u8> {
+    std::fs::read(crate::racks::path_for(&crate::racks::dir(d), name)).unwrap()
+}
+
+/// A rack of the user's own named "Previous: <name>" is never overwritten by a store's
+/// copy: the copy takes the next free name, and Undo still works from it.
+#[test]
+fn a_users_own_previous_rack_is_never_saved_over() {
+    let d = dir("undo-own-previous");
+    let s = session(&d);
+    let users = format!("{PREVIOUS}Loud");
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 90 }).unwrap();
+    s.send(RackCmd::SaveRackAs { name: users.clone(), sound_names: BTreeMap::new() }).unwrap();
+    let users_id = rack_id(&s, &users);
+    let users_file = rack_file_bytes(&d, &users);
+    let loud = rack_on(&s, "Loud", 20, 1);
+
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 33 }).unwrap();
+    s.hardware(Action::QuickRackHeld(1)).unwrap();
+    assert_eq!(rack_id(&s, &users), users_id, "the user's rack keeps its id");
+    assert_eq!(rack_file_bytes(&d, &users), users_file, "and its content");
+    let copy = format!("{users} 2");
+    assert_eq!(quick_state(&s).undo.and_then(|u| u.previous), Some(copy.clone()));
+
+    s.send(QuickRackCmd::UndoQuickRackStore).unwrap();
+    let st = s.state();
+    assert!(!st.racks.iter().any(|r| r.name == copy), "our copy goes");
+    assert_eq!(rack_file_bytes(&d, &users), users_file, "the user's stays");
+    s.send(QuickRackCmd::PressQuickRack { slot: 1, discard: true }).unwrap();
+    assert_eq!((s.state().live_rack.id.clone(), volume(&s, 0)), (Some(loud), 20));
+    drop(s);
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+/// If quick-racks.json can't be saved during Undo, nothing is lost: the rack is as the
+/// store left it, the Previous copy and the undo stay, and Undo works once it can save.
+#[test]
+fn an_undo_that_cant_save_the_buttons_can_be_tried_again() {
+    let d = dir("undo-retry");
+    let s = session(&d);
+    rack_on(&s, "Ballad", 60, 0);
+    rack_on(&s, "Loud", 20, 1);
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 33 }).unwrap();
+    s.hardware(Action::QuickRackHeld(1)).unwrap();
+    let prev = format!("{PREVIOUS}Loud");
+    let stored = rack_file_bytes(&d, "Loud");
+
+    // quick-racks.json can't be written: a folder (not empty) is in its place.
+    let qp = quick::path(&d);
+    let saved = std::fs::read(&qp).unwrap();
+    std::fs::remove_file(&qp).unwrap();
+    std::fs::create_dir_all(qp.join("block")).unwrap();
+    assert!(s.send(QuickRackCmd::UndoQuickRackStore).is_err());
+    let st = s.state();
+    assert!(st.quick_racks.undo.is_some(), "the undo stays");
+    assert!(st.racks.iter().any(|r| r.name == prev), "the copy stays");
+    assert_eq!(rack_file_bytes(&d, "Loud"), stored, "the rack is as the store left it");
+
+    std::fs::remove_dir_all(&qp).unwrap();
+    std::fs::write(&qp, saved).unwrap();
+    s.send(QuickRackCmd::UndoQuickRackStore).unwrap();
+    assert!(!s.state().racks.iter().any(|r| r.name == prev));
+    s.send(QuickRackCmd::PressQuickRack { slot: 1, discard: true }).unwrap();
+    assert_eq!(volume(&s, 0), 20);
+    drop(s);
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+/// A save of the stored rack after the store makes the undo stale: Undo is refused and
+/// the later save stays.
+#[test]
+fn undo_never_loses_a_later_save() {
+    let d = dir("undo-later-save");
+    let s = session(&d);
+    rack_on(&s, "Loud", 20, 1);
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 33 }).unwrap();
+    s.hardware(Action::QuickRackHeld(1)).unwrap();
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 77 }).unwrap();
+    s.send(RackCmd::SaveRack { sound_names: BTreeMap::new() }).unwrap();
+    let later = rack_file_bytes(&d, "Loud");
+
+    assert!(s.send(QuickRackCmd::UndoQuickRackStore).is_err());
+    assert_eq!(rack_file_bytes(&d, "Loud"), later, "the later save stays");
+    assert_eq!(quick_state(&s).undo, None, "the stale undo is dropped");
+    drop(s);
+    let _ = std::fs::remove_dir_all(&d);
+}

@@ -62,8 +62,19 @@ struct QuickUndo {
     slot: u8,
     /// The button's rack id before the store.
     before: Option<String>,
-    /// The rack saved over, and its "Previous: <name>" copy's id.
-    saved_over: Option<(String, String)>,
+    /// The rack saved over, its "Previous: <name>" copy's id, and the rack's file as the
+    /// store left it.
+    saved_over: Option<SavedOver>,
+}
+
+/// A rack a store saved over, for its undo.
+#[derive(Clone, Debug)]
+struct SavedOver {
+    rack: String,
+    copy: String,
+    /// The rack's file right after the store: if it differs at undo time, the rack was
+    /// saved again since, and the undo is refused so that later save is never lost.
+    file: Vec<u8>,
 }
 
 impl QuickCtl {
@@ -234,9 +245,11 @@ impl Control {
             Some(id) if !self.live_rack.modified => id,
             Some(id) if lit => {
                 // The rack as it was, for Undo, before its changes are saved over it.
-                let copy = self.keep_previous(&id)?;
+                let owned = self.quick.undo.as_ref().and_then(|u| u.saved_over.as_ref()).map(|s| s.copy.clone());
+                let copy = self.keep_previous(&id, owned.as_deref())?;
                 self.save_live(None)?;
-                saved_over = Some((id.clone(), copy));
+                let Some(file) = self.rack_bytes(&id) else { return self.fail("the rack was not saved") };
+                saved_over = Some(SavedOver { rack: id.clone(), copy, file });
                 id
             }
             _ => {
@@ -294,7 +307,7 @@ impl Control {
     /// Rack `id` goes on button (`bank`, `slot`). A store that changes the button or saved
     /// over a rack (`saved_over`: that rack and its Previous copy) becomes the undo; one that
     /// changes nothing leaves the undo as it was.
-    fn put_quick(&mut self, bank: u8, slot: u8, id: String, saved_over: Option<(String, String)>) -> Result<(), CmdError> {
+    fn put_quick(&mut self, bank: u8, slot: u8, id: String, saved_over: Option<SavedOver>) -> Result<(), CmdError> {
         self.quick.store = false;
         self.quick.waiting = None;
         let before = self.quick.get(bank, slot).map(str::to_string);
@@ -317,8 +330,10 @@ impl Control {
         }
         let Some(u) = self.quick.undo.clone() else { return self.fail("Nothing to undo") };
         let label = quick::label(u.bank as usize, u.slot as usize);
-        if let Some((id, copy)) = &u.saved_over {
-            // Both are checked before anything changes; the undo stays if either is gone.
+        let mut remove_copy = None;
+        if let Some(SavedOver { rack: id, copy, file }) = &u.saved_over {
+            // All are checked before anything changes; the undo stays if one fails, except
+            // a later save, which makes the undo stale for good.
             self.presence.refresh_racks(false);
             let has = |x: &str| self.presence.racks().iter().any(|r| r.id == x);
             if !has(id) {
@@ -327,18 +342,36 @@ impl Control {
             if !has(copy) {
                 return self.fail(format!("Can't undo the store on Quick Rack {label}: the Previous rack is gone"));
             }
+            if self.rack_bytes(id).as_deref() != Some(file.as_slice()) {
+                self.quick.undo = None;
+                return self.fail(format!("Can't undo the store on Quick Rack {label}: its rack was saved again since"));
+            }
             let keep_copy = self.live_rack.id.as_deref() == Some(copy.as_str())
                 || self.quick.racks.banks.iter().flatten().any(|b| b.as_deref() == Some(copy.as_str()));
-            self.restore_from_previous(id, copy, !keep_copy)?;
+            let (path, old) = self.restore_from_previous(id, copy)?;
+            let before = u.before.clone();
+            if let Err(e) = self.change_quick(|q| q.banks[u.bank as usize][u.slot as usize] = before) {
+                // Put the rack back as the store left it, so the undo can be tried again.
+                let _ = std::fs::write(&path, &old);
+                self.presence.refresh_racks(true);
+                return Err(e);
+            }
             if self.live_rack.id.as_deref() == Some(id.as_str()) {
                 // The rack's file is as before the store; what plays is the store's.
                 self.live_rack.modified = true;
                 self.live_rack_touched(self.clock_ns);
             }
+            if !keep_copy {
+                remove_copy = Some(copy.clone());
+            }
+        } else {
+            let before = u.before.clone();
+            self.change_quick(|q| q.banks[u.bank as usize][u.slot as usize] = before)?;
         }
-        let before = u.before.clone();
-        self.change_quick(|q| q.banks[u.bank as usize][u.slot as usize] = before)?;
         self.quick.undo = None;
+        if let Some(copy) = remove_copy {
+            self.remove_rack_file(&copy);
+        }
         self.say(format!("Undid the store on Quick Rack {label}"), false);
         Ok(())
     }
@@ -431,7 +464,7 @@ impl Control {
             bank: u.bank,
             slot: u.slot,
             name: u.before.as_deref().and_then(name).unwrap_or_default(),
-            previous: u.saved_over.as_ref().and_then(|(_, copy)| name(copy)),
+            previous: u.saved_over.as_ref().and_then(|s| name(&s.copy)),
         });
         QuickRacksState {
             bank: q.bank,
