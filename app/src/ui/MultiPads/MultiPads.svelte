@@ -1,8 +1,8 @@
 <!--
   MultiPads: the Multi Pads display page, in the Stage's display box (`--page-width` ×
   `--page-height`, 1392 × 288). Three columns, each a group header over its controls:
-  - Banks: the bank pager (◀ ▶, the bank's place in the list) and Clear bank, over the list of
-    every bank (a FolderList: the name, its folder at the right; the loaded one chosen).
+  - Banks: the bank pager (◀ ▶, the bank's place in the list), Load… (a `.pad` file anywhere, in
+    the system file picker) and Clear bank, over the list of every bank (a FolderList: the name, its folder at the right; the loaded one chosen).
   - Multi Pads: the bank's name in the accent block, then the four pads as columns. Each has a
     caption (Pad n, its channel, its lamp word in the lamp's hue), the pad itself in the band's pad
     language (ready: the Fill hue's outline; playing: solid Ending red; queued: Intro gold's waiting
@@ -81,7 +81,10 @@
       <Button symbol="prev" size="icon" name="Previous bank" join="start" disabled={data.banks.length === 0} tip="multipad.bank_prev" {tipAction} onpress={() => step(-1)} />
       <Button symbol="next" size="icon" name="Next bank" join="end" disabled={data.banks.length === 0} tip="multipad.bank_next" {tipAction} onpress={() => step(1)} />
       <span class="grow"></span>
-      <Button label="Clear bank" hue="ending" disabled={data.bank === null} tip="multipad.clear_bank"{tipAction} onpress={() => send({ type: 'clear' })} />
+      <span class="files">
+        <Button label="Load…" name="Load a bank file" tip="multipad.load_file" {tipAction} onpress={() => send({ type: 'loadFile' })} />
+        <Button label="Clear bank" hue="ending" disabled={data.bank === null} tip="multipad.clear_bank" {tipAction} onpress={() => send({ type: 'clear' })} />
+      </span>
     </div>
     <div class="list">
       {#if items.length === 0}
@@ -221,6 +224,10 @@
     display: flex;
     align-items: center;
     margin-top: var(--header-gap);
+  }
+  .files {
+    display: flex;
+    gap: var(--space-6);
   }
   .list {
     flex: 1;
