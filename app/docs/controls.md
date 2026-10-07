@@ -563,6 +563,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **No bank** | Unloads the bank: the pads go dark. | — | — | — |
 | **Synchro Stop: Style Stop** | On: looping pads stop when the band stops. Off: they play on until you stop them. | Multi Pad Synchro Stop (Style Stop) | — | — |
 | **Synchro Stop: Style Ending** | On: looping pads stop when an Ending starts. Off: they play through the Ending. | Multi Pad Synchro Stop (Style Ending) | — | — |
+| **Load a bank file** | Opens a .pad file from anywhere on your computer and loads it into the pads. It joins the bank list. Cancel loads nothing. | Multi Pad Bank Selection | — | — |
 | **Previous bank** | Loads the bank before this one in the list (the last, with none loaded). Pads playing stop. | Multi Pad Bank Selection | — | — |
 | **Next bank** | Loads the bank after this one in the list (the first, with none loaded). Pads playing stop. | Multi Pad Bank Selection | — | — |
 | **Clear bank** | Unloads the bank: the pads stop and go dark until you load another. | — | — | — |
