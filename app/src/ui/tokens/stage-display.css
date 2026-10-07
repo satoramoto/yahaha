@@ -28,6 +28,13 @@
   --display-height: 300px;
   --display-pad-top: 16px;
   --display-pad-left: 24px;
+  --display-pad-bottom: 24px; /* the beat bar's distance from the display's bottom */
+  --display-border-width: var(--line-width); /* the display's transparent border */
+  --display-thirds-gap: calc(2 * var(--space-24)); /* between the display's thirds */
+  --display-thirds-align: center; /* the thirds' row, in the space above the beat bar */
+  --display-chord-gap: var(--space-8); /* the style line down to the chord */
+  --display-song-top: calc(var(--tab-block) + var(--space-8)); /* the middle third's section: level with the chord */
+  --now-tempo-gap: var(--space-24); /* the "then …" line down to the tempo */
   --display-content-width: 814px; /* the style line, now playing and the sound row */
   --display-art-width: 528px; /* the art at the display's right edge: the board's 38% of 1390 */
 

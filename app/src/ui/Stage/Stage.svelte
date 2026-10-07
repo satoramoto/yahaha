@@ -4,6 +4,14 @@
   tempo on its tempo line), the hardware band (faders; knobs above pads), the status line in the
   gap above the keys, and the keys. Each region takes its data as one object; callbacks pass
   through.
+
+  `layout="grid"` (a proposal, opt-in) puts every region on the layout grid (tokens/grid.css: 15
+  columns, an 18px gutter, the 24px margins, a 6px rhythm). It changes no component: it sets the
+  regions' size tokens for the screen's subtree. Rows, in rhythm units from the top: margin 4, app
+  bar 6, gap 2, section row 4, gap 2, display 48, gap 4, band 62, status line 4, keys 10, margin 4
+  (150 units, 900px). The display's thirds sit on columns 1-5, 6-10 and 11-15 with a shared top
+  line; the band splits 3/5 (faders, one strip per column) to 2/5 (knobs over pads). `overlay`
+  draws the columns and the rhythm over it.
 -->
 <script lang="ts">
   import type { Component, ComponentProps } from 'svelte'
@@ -34,6 +42,10 @@
   type On<C extends Any, K extends keyof ComponentProps<C>> = Pick<ComponentProps<C>, K>
 
   type Props = {
+    /** `board` (default): the board's own sizes. `grid`: every region on the 15-column layout grid and its 6px rhythm (a proposal; tokens/grid.css). */
+    layout?: 'board' | 'grid'
+    /** With `layout="grid"`: draws the 15 columns and the rhythm lines over the screen, to check the alignment. A design aid. */
+    overlay?: boolean
     /** The app bar: pages, Launchkey, audio health. */
     appBar: Data<typeof AppBar>
     /** The section row: the transport (running, Accomp, Sync Start, fading) and the helpers. */
@@ -118,9 +130,12 @@
 
   const running = $derived(p.sectionRow.running ?? p.transport?.running)
   const fading = $derived(p.sectionRow.fading ?? p.transport?.fading)
+  const grid = $derived(p.layout === 'grid')
+  /** One entry per overlay column; the count is the grid's (tokens/grid.css). */
+  const COLUMNS = Array.from({ length: 15 }, (_, i) => i)
 </script>
 
-<div class="screen">
+<div class="screen" class:grid>
   <AppBar {...p.appBar} tipAction={p.tipAction} onchoose={p.onchoose} onhealth={p.onhealth} />
   <div class="row">
     <SectionRow
@@ -177,8 +192,15 @@
       </div>
     </div>
   </div>
-  <StatusLine {...p.status} tipAction={p.tipAction} onclear={p.onclear} />
+  <div class="status">
+    <StatusLine {...p.status} tipAction={p.tipAction} onclear={p.onclear} />
+  </div>
   <Keys {...p.keys} />
+  {#if grid && p.overlay}
+    <div class="overlay" aria-hidden="true">
+      {#each COLUMNS as i (i)}<span class="column"></span>{/each}
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -219,5 +241,75 @@
   .pads {
     display: flex;
     margin-top: var(--band-pads-gap);
+  }
+  /* The board's status line is a plain flex item between the band and the keys. */
+  .status {
+    display: contents;
+  }
+
+  /* The grid layout: the regions' size tokens, set for this subtree only, from tokens/grid.css. */
+  .screen.grid {
+    --screen-pad: var(--grid-margin);
+    /* Rows on the rhythm (see the comment at the top). */
+    --stage-gap-row: calc(2 * var(--grid-unit));
+    --stage-gap-display: calc(2 * var(--grid-unit));
+    --stage-gap-band: calc(4 * var(--grid-unit));
+    --display-height: calc(48 * var(--grid-unit));
+    --band-height: calc(62 * var(--grid-unit));
+    --keys-height: calc(10 * var(--grid-unit));
+    /* The display: no padding or border, so its thirds are columns 1-5, 6-10 and 11-15, and the
+       beat bar spans 1-15. The thirds share one top line (the style line, the section, the first
+       part row), a rhythm line from the display's top; the beat bar is its last line. */
+    --display-border-width: 0px;
+    --display-pad-left: 0px;
+    --display-pad-top: calc(6 * var(--grid-unit));
+    --display-pad-bottom: calc(2 * var(--grid-unit));
+    --display-thirds-gap: var(--grid-gutter);
+    --display-thirds-align: start;
+    --display-song-top: 0px;
+    /* The chord and the tempo share a baseline and a bottom line: 5 units under the style line, 4
+       under the "then …" line. */
+    --display-chord-gap: calc(5 * var(--grid-unit));
+    --now-tempo-gap: calc(4 * var(--grid-unit));
+    /* The band: faders on columns 1-9 (3/5, one strip per column), knobs and pads on 10-15 (2/5). */
+    --band-gap: var(--grid-gutter);
+    --band-faders-width: var(--grid-span-9);
+    --band-middle-width: var(--grid-span-6);
+    --band-strip-gap: var(--grid-gutter);
+    /* Eight square pads across the two fifths: 63px. */
+    --pad-size: calc((var(--grid-span-6) - 7 * var(--pad-gap)) / 8);
+    position: relative;
+  }
+  /* The status line, centred in its 4-unit row above the keys. */
+  .grid .status {
+    display: flex;
+    flex: none;
+    align-items: center;
+    height: calc(4 * var(--grid-unit));
+  }
+
+  /* The overlay: the columns as faint bands inside the margins, the rhythm as hairlines across the
+     screen, every fourth one stronger. Never takes a pointer. */
+  .overlay {
+    position: absolute;
+    inset: 0 var(--grid-margin);
+    display: grid;
+    grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+    column-gap: var(--grid-gutter);
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        var(--grid-overlay-line-major) 0 var(--line-width),
+        transparent var(--line-width) calc(4 * var(--grid-unit))
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        var(--grid-overlay-line) 0 var(--line-width),
+        transparent var(--line-width) var(--grid-unit)
+      );
+    pointer-events: none;
+  }
+  .column {
+    background: var(--grid-overlay-column);
   }
 </style>

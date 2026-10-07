@@ -8,3 +8,5 @@
 @import './stage-band.css';
 @import './stage-display.css';
 @import './stage-frame.css';
+/* The layout grid (a proposal, opt-in: Stage's `layout="grid"`). */
+@import './grid.css';

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
 import { fn } from 'storybook/test'
 import Stage from './Stage.svelte'
-import { stageBoard, stageStopped } from './Stage.fixtures'
+import { stageBoard, stageGrid, stageStopped } from './Stage.fixtures'
 import StagePlayground from './StagePlayground.svelte'
 
 /** Groups a callback's control under its component. */
@@ -66,6 +66,8 @@ const meta = {
   parameters: { layout: 'fullscreen' },
   args: { ...stageBoard, tipAction: fn(), ...actions },
   argTypes: {
+    layout: { control: 'inline-radio', options: ['board', 'grid'], table: { category: 'Layout' } },
+    overlay: { control: 'boolean', table: { category: 'Layout' } },
     appBar: { control: 'object', table: { category: 'AppBar' } },
     sectionRow: { control: 'object', table: { category: 'SectionRow' } },
     display: { control: 'object', table: { category: 'Display' } },
@@ -114,5 +116,34 @@ export const Stopped: Story = {
  *   a part's row steps through a few sounds, Panic writes a status line, a click clears it.
  */
 export const Playground: Story = {
+  render: (args) => ({ Component: StagePlayground, props: args }),
+}
+
+/**
+ * A proposal, not in the app: the board on an invisible grid, with the section row in the
+ * display's language. Turn on `overlay` (Layout) to see the grid.
+ *
+ * - **The grid** (tokens/grid.css): 15 columns of 76px with an 18px gutter inside the 24px margins
+ *   (15 divides into thirds and fifths), and a 6px rhythm (900 = 150 × 6; the margin is 4 units,
+ *   the gutter 3).
+ * - **Rows**, in rhythm units: margin 4, app bar 6, gap 2, section row 4, gap 2, display 48, gap 4,
+ *   band 62, status line 4, keys 10, margin 4.
+ * - **Section row** (`look: 'dots'`): a dot and a word per switch, plain words for actions,
+ *   "● Playing" / "○ Stopped". The transport starts on column 1; the helpers end on column 15.
+ * - **Display**: the thirds are exactly columns 1-5, 6-10 and 11-15, with one top line for the
+ *   style line, the section and the first part row; the beat bar spans 1-15.
+ * - **Band**: faders on columns 1-9 (3/5), one strip per column; knobs over pads on 10-15 (2/5).
+ *   Every header starts on a column line.
+ * - **Keys**: the full width, margin to margin.
+ */
+export const GridProposal: Story = {
+  name: 'Grid proposal',
+  args: { ...stageGrid },
+}
+
+/** The grid proposal, stateful like the Playground: the beat bar ticks and the controls respond. */
+export const GridProposalPlayground: Story = {
+  name: 'Grid proposal (Playground)',
+  args: { ...stageGrid },
   render: (args) => ({ Component: StagePlayground, props: args }),
 }

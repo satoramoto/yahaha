@@ -100,7 +100,7 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
-    width: calc((var(--stage-row-width) - 2 * var(--line-width) - 2 * var(--display-pad-left) - 4 * var(--space-24)) / 3);
+    width: calc((var(--stage-row-width) - 2 * var(--display-border-width) - 2 * var(--display-pad-left) - 2 * var(--display-thirds-gap)) / 3);
     max-width: 100%;
     font-family: var(--font-sans);
   }

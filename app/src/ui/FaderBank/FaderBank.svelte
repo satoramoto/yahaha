@@ -211,7 +211,7 @@
   .lamps {
     display: grid;
     grid-template-columns: repeat(9, minmax(0, 1fr));
-    column-gap: var(--space-8);
+    column-gap: var(--band-strip-gap);
   }
   .strip {
     display: flex;

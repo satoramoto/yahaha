@@ -57,6 +57,20 @@ export const stageStopped = {
 } satisfies ComponentProps<typeof Stage>
 
 /**
+ * The grid proposal: the board on the layout grid (`layout: 'grid'`), the section row in the
+ * display's dots-and-words language (`look: 'dots'`), the overlay off. The Pads header drops its
+ * hue legend: at two fifths (546px) it doesn't fit beside the five bank tabs, and every section
+ * pad already names its section.
+ */
+export const stageGrid = {
+  ...stageBoard,
+  layout: 'grid',
+  overlay: false,
+  sectionRow: { ...stageBoard.sectionRow, look: 'dots' },
+  pads: { ...stageBoard.pads, legend: [] },
+} satisfies ComponentProps<typeof Stage>
+
+/**
  * The Playground's fader values per layer: Vol has all nine strips, the other layers strips 1–4
  * (the parts). Pan is 0–127 with 64 centre.
  */

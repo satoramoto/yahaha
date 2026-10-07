@@ -146,7 +146,7 @@
     box-sizing: border-box;
     width: var(--stage-row-width);
     height: var(--display-height);
-    border: var(--line-width) solid transparent;
+    border: var(--display-border-width) solid transparent;
     background: var(--g);
     overflow: hidden;
   }
@@ -156,12 +156,12 @@
     top: var(--display-pad-top);
     left: var(--display-pad-left);
     right: var(--display-pad-left);
-    bottom: calc(var(--display-pad-left) + var(--space-24));
+    bottom: calc(var(--display-pad-bottom) + var(--space-24));
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    /* The three thirds share one row, centred in the space above the beat bar. */
-    align-content: center;
-    gap: calc(2 * var(--space-24));
+    /* The three thirds share one row, centred (by default) in the space above the beat bar. */
+    align-content: var(--display-thirds-align);
+    gap: var(--display-thirds-gap);
   }
   .third {
     display: flex;
@@ -169,16 +169,16 @@
     min-width: 0;
   }
   .chord {
-    margin-top: var(--space-8);
+    margin-top: var(--display-chord-gap);
   }
-  /* The middle third's section lines up with the chord: below a style line's height. */
+  /* The middle third's section lines up with the chord (by default): below a style line's height. */
   .song {
-    padding-top: calc(var(--tab-block) + var(--space-8));
+    padding-top: var(--display-song-top);
   }
   .beat {
     position: absolute;
     left: var(--display-pad-left);
     right: var(--display-pad-left);
-    bottom: var(--display-pad-left);
+    bottom: var(--display-pad-bottom);
   }
 </style>

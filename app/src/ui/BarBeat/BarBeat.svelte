@@ -50,7 +50,7 @@
     gap: var(--space-8);
     align-items: center;
     /* The display's content width, at most its container. */
-    width: calc(var(--stage-row-width) - 2 * var(--line-width) - 2 * var(--display-pad-left));
+    width: calc(var(--stage-row-width) - 2 * var(--display-border-width) - 2 * var(--display-pad-left));
     max-width: 100%;
     height: var(--bar-segment-height);
   }
