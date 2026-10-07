@@ -2,7 +2,7 @@
   QuickRacks: the Quick Racks display page, in the Stage's display box (--page-width ×
   --page-height, 1392 × 288). No now-playing block: the app bar names the rack and the style.
 
-  ┌ Quick Racks   Bank [A] B C D E F G H   Lit A1          Rack ◀ ▶   Library › Racks   [Store] ┐
+  ┌ Quick Racks   Bank [A] B C D E F G H   Lit A1   Rack ◀ ▶  (Undo store on A3)  Library › Racks  [Store] ┐
   │ [A1 Sunday drive ● Loaded ✕] [A2 Warm keys Stored ✕] … [A8 Empty]   (eight slots, one row) │
   ├ One Touch                                  [Link]   Timing  Immediate [At Main change]     ┤
   │ [Piano solo · OTS 1][Style's own ▾]  [Strings up · OTS 2][Style's own ▾]  …  (four)        │
@@ -14,7 +14,8 @@
   loaded on the waiting face (a 2px ring over a faint fill), the store targets; the slot waiting for
   the live rack's save keeps it and says "Waiting for Save". The clear ✕ (Ending hue) sits on every
   slot that holds a rack. A tap asks for onslot (load; the lit one recalls it clean); a long press or
-  right-click asks for onslotlong (save the live rack over that slot).
+  right-click asks for onslotlong (save the live rack over that slot). After a store, "Undo store on
+  A3" sits before Library › Racks in the header (only while `undo` is set) and asks for onundo.
 
   One Touch: the style's OTS 1–4, the applied one on the chosen face (a solid --neutral block); a
   click applies it at once. Beside each, what it loads for this style: "Style's own" or one of your
@@ -30,7 +31,7 @@
   import type { TabItem } from '../ChosenTabs/types'
   import GroupHeader from '../GroupHeader/GroupHeader.svelte'
   import LampButton from '../LampButton/LampButton.svelte'
-  import type { LinkTiming, OneTouchRow, QuickRackSlot, StoreWait } from './types'
+  import type { LinkTiming, OneTouchRow, QuickRackSlot, StoreUndo, StoreWait } from './types'
 
   type Props = {
     /** The bank on view, 0–7 (A–H). */
@@ -47,6 +48,8 @@
     readOnly?: boolean
     /** A Store waiting for the live rack's save; null when none. */
     waiting?: StoreWait | null
+    /** The last store over a Quick Rack, which Undo takes back; null: no Undo shown. */
+    undo?: StoreUndo | null
     /** The One Touch row. */
     oneTouch: OneTouchRow
     /** The app's `use:tip` action, passed in by the wiring; applied with each control's tooltip key. */
@@ -79,6 +82,8 @@
     onsave?: () => void
     /** Called when the waiting Store's Cancel is pressed. */
     oncancel?: () => void
+    /** Called when Undo is pressed: take the last store back. */
+    onundo?: () => void
   }
 
   let {
@@ -89,6 +94,7 @@
     store = false,
     readOnly = false,
     waiting = null,
+    undo = null,
     oneTouch,
     tipAction,
     onbank,
@@ -105,7 +111,14 @@
     onname,
     onsave,
     oncancel,
+    onundo,
   }: Props = $props()
+
+  /** What Undo puts back, spoken after its label. */
+  function undoSpoken(u: StoreUndo): string {
+    const back = u.name.trim() === '' ? `empty ${u.code} again` : `put ${u.name} back`
+    return `Undo store on ${u.code}: ${back}`
+  }
 
   const OTS_COUNT = 4
   const WARN = '⚠'
@@ -221,6 +234,15 @@
         />
         <Button symbol="next" size="icon" name="Next rack" tip="quick.next" {tipAction} onpress={() => onstep?.(1)} />
         <span class="gap"></span>
+        {#if undo && !readOnly}
+          <Button
+            label="Undo store on {undo.code}"
+            name={undoSpoken(undo)}
+            tip="quick.undo"
+            {tipAction}
+            onpress={() => onundo?.()}
+          />
+        {/if}
         <Button
           label="Library › Racks"
           name="Open Library on its Racks page"
@@ -369,10 +391,13 @@
     {:else if readOnly}
       <span class="help warn-text">Quick Racks can't be changed: the file is from a newer yahaha, or there is no data folder.</span>
     {:else}
-      <span class="help"
-        >Tap a rack to load it, the lit one to recall it clean · Long-press or right-click to save over it ·
-        Launchkey: Shift + pads 9–12 = One Touch 1–4</span
-      >
+      <span class="help">
+        <span class="line">Tap a rack to load it (asks first if unsaved) · Tap the lit one to recall it clean, changes kept as “Recovered: name”</span>
+        <span class="line"
+          >Long-press or right-click to save over it, the old one kept as “Previous: name” (Undo takes it back) · Launchkey: Shift +
+          pads 9–12 = One Touch 1–4</span
+        >
+      </span>
     {/if}
   </div>
 </section>
@@ -705,8 +730,16 @@
   .swatch.armed {
     box-shadow: inset 0 0 0 var(--outline-width-wait) var(--neutral);
   }
+  /* The help: two lines, right-aligned, in the foot's 32px. */
   .help {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    min-width: 0;
     margin-left: auto;
+  }
+  .line {
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
   }

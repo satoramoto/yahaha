@@ -1270,7 +1270,16 @@ export class MockSession implements Session {
   }
 
   private quickCtx(): QuickCtx {
-    return { state: this.state, rack: (c) => this.rackCmd(c), message: (text, error) => this.message(text, error) }
+    return {
+      state: this.state,
+      rack: (c) => this.rackCmd(c),
+      copyRack: (from, to) => {
+        // Undoing a store writes one saved rack over another (the session's write_rack).
+        this.racks.copyOver(from, to)
+        this.state.racks = this.racks.entries()
+      },
+      message: (text, error) => this.message(text, error),
+    }
   }
 
   private cmd(cmd: AppCmd) {

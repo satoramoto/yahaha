@@ -1085,9 +1085,9 @@ impl Input {
                 let action = match self.shared.layer() {
                     Layer::Sound => sound_hold::pad(page, m[1]),
                     Layer::Fader => {
-                        let a = fader_hold::pad(m[1]);
-                        self.fader_picked |= a.is_some();
-                        a
+                        // Any pad, a dark one too, makes the hold a pick, not a tap.
+                        self.fader_picked = true;
+                        fader_hold::pad(m[1])
                     }
                     layer => launchkey::pad_action(page, layer, m[1]),
                 };
@@ -1101,13 +1101,18 @@ impl Input {
         }
     }
 
-    /// A button under fader `i` (0..8) went down, or under the master fader (8): held, the
-    /// pads are the fader picker (`fader_hold`); a tap switches the fader page on release;
-    /// with Shift it steps the fader layer. On the Panel page buttons 1-4 are Right 1-3 and Left: a tap turns the
-    /// part on/off (on release, `fader_button_up`), a hold with a knob turned is swap mode,
-    /// and Shift + button selects the part for the voice keys. Button 5 is
-    /// HARMONY/ARPEGGIO. Button 6 is Sound on both pages: held, the pads are the Racks page
-    /// (`sound_hold`). On the Style page the buttons mute the Style parts (Shift + 6: part 6).
+    /// The button under fader `i` (0..8; 8 is the master fader's, button 9) went down.
+    ///
+    /// - Button 9: held, the pads are the fader picker (`fader_hold`); a tap switches the
+    ///   fader page on release. Shift + 9 steps the fader layer.
+    /// - Button 6 is Sound on both fader pages: held, the pads are the Racks page
+    ///   (`sound_hold`).
+    /// - On the Panel page, buttons 1-4 (Right 1-3, Left): a tap turns the part on/off (on
+    ///   release, `fader_button_up`), a hold with a knob turned is swap mode, and Shift +
+    ///   the button selects the part for the voice keys.
+    /// - On the Panel page, button 5 is HARMONY/ARPEGGIO, 7 LEFT HOLD and 8 the CHORD
+    ///   LOOPER (Shift: REC/STOP).
+    /// - On the Style page, the buttons mute the Style parts (Shift + 6: part 6).
     fn fader_button(&mut self, i: u8) {
         let shift = self.shift;
         let parts = &self.shared.parts;
@@ -1119,11 +1124,14 @@ impl Input {
             self.ctl_signal = true;
         } else if i == 8 {
             // The fader hold: the pads are the fader picker until release, which switches
-            // the page if no picker pad was pressed (a tap; `fader_button_up`).
+            // the page if no pad was pressed (a tap; `fader_button_up`). No touch here: the
+            // display would flash the fader page the hold may be about to change; the tap
+            // touches on release.
             self.fader_held = true;
             self.fader_picked = false;
             let l = fader_hold::press(self.shared.layer());
             self.set_layer(l);
+            return;
         } else if i == launchkey::SOUND_FADER_BTN && !shift {
             // Page-independent: the input thread reads the button, not the fader page.
             let l = sound_hold::press(self.shared.layer());
@@ -2863,6 +2871,14 @@ mod tests {
         input.pad_msg(&[0x90, 96, 100]);
         input.pad_msg(&[0xB0, master_btn, 0]);
         assert_eq!((parts.fader_page(), parts.fader_layer_gen()), (FaderPage::Panel, generation));
+        // The press shows nothing (the display would flash the fader page the hold may
+        // change), and a dark pad alone is still a pick: the release switches nothing.
+        assert_eq!(touched(&shared), Some(Touch::Pad(96)));
+        input.pad_msg(&[0xB0, master_btn, 127]);
+        assert_eq!(touched(&shared), Some(Touch::Pad(96)), "no touch on the hold's press");
+        input.pad_msg(&[0x90, 119, 100]);
+        input.pad_msg(&[0xB0, master_btn, 0]);
+        assert_eq!(parts.fader_page(), FaderPage::Panel, "a dark pad is a pick, not a tap");
         // A tap: the page switches on release.
         input.pad_msg(&[0xB0, master_btn, 127]);
         input.pad_msg(&[0xB0, master_btn, 0]);

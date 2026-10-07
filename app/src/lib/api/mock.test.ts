@@ -675,16 +675,111 @@ describe('eyes-free contract (docs/eyes-free.md)', () => {
     expect(m.state.liveRack.modified).toBe(true)
     m.send({ type: 'storeRack', slot: 2 })
     expect(m.state.liveRack).toMatchObject({ id, modified: false })
-    expect(m.state.racks.length).toBe(1)
+    // What it held is kept as "Previous: <name>".
+    expect(m.state.racks.map((r) => r.name).sort()).toEqual([base, `Previous: ${base}`].sort())
     // Modified, elsewhere: a new rack, its name counted up.
     m.send({ type: 'setPartVolume', part: 0, volume: 44 })
     m.send({ type: 'storeRack', slot: 5 })
     expect(m.state.quickRacks.buttons[5]).toMatchObject({ name: `${base} 2`, loaded: true })
     expect(m.state.liveRack.id).not.toBe(id)
-    expect(m.state.racks.length).toBe(2)
+    expect(m.state.racks.length).toBe(3)
     m.send({ type: 'clearMessage' })
     m.send({ type: 'storeRack', slot: 8 })
     expect(m.state.message?.error).toBe(true)
+  })
+
+  /** A mock with rack "Lit" (part 1 at volume 50) stored on A1 and loaded. */
+  const litRack = () => {
+    const m = new MockSession({ manual: true })
+    m.send({ type: 'setPartVolume', part: 0, volume: 50 })
+    m.send({ type: 'saveRackAs', name: 'Lit' })
+    m.send({ type: 'storeRack', slot: 0 })
+    const id = m.state.liveRack.id!
+    expect(m.state.quickRacks.buttons[0]).toMatchObject({ rack: id, loaded: true })
+    return { m, id }
+  }
+
+  it('Quick Racks start with nothing to undo', () => {
+    expect(new MockSession({ manual: true }).state.quickRacks.undo).toBeNull()
+  })
+
+  it('pressQuickRack on the lit button recalls it clean with no prompt, keeping changes as "Recovered: <name>"', () => {
+    const { m, id } = litRack()
+    m.send({ type: 'setPartVolume', part: 0, volume: 90 })
+    expect(m.state.liveRack.modified).toBe(true)
+    m.send({ type: 'pressQuickRack', slot: 0 })
+    expect(m.state.liveRack).toMatchObject({ id, name: 'Lit', modified: false, prompt: null })
+    expect(m.state.keyboardParts[0].volume).toBe(50)
+    const recovered = m.state.racks.find((r) => r.name === 'Recovered: Lit')
+    expect(recovered).toBeDefined()
+    // The Recovered rack holds the changes.
+    m.send({ type: 'loadRack', id: recovered!.id })
+    expect(m.state.keyboardParts[0].volume).toBe(90)
+    // Another button still asks first.
+    m.send({ type: 'storeRack', slot: 1 })
+    m.send({ type: 'pressQuickRack', slot: 0 })
+    m.send({ type: 'setPartVolume', part: 0, volume: 70 })
+    m.send({ type: 'pressQuickRack', slot: 1 })
+    expect(m.state.liveRack.prompt?.kind).toBe('unsavedChanges')
+  })
+
+  it('setQuickRackBank views a bank; outside A–H it is refused', () => {
+    const m = new MockSession({ manual: true })
+    m.send({ type: 'setQuickRackBank', bank: 7 })
+    expect(m.state.quickRacks.bank).toBe(7)
+    for (const bank of [8, -1]) {
+      m.send({ type: 'clearMessage' })
+      m.send({ type: 'setQuickRackBank', bank })
+      expect(m.state.message?.error, String(bank)).toBe(true)
+      expect(m.state.quickRacks.bank).toBe(7)
+    }
+  })
+
+  it('a store sets undo; undoing gives the button back what it held', () => {
+    const { m, id } = litRack()
+    expect(m.state.quickRacks.undo).toEqual({ bank: 0, slot: 0, name: '', previous: null })
+    m.send({ type: 'undoQuickRackStore' })
+    expect(m.state.quickRacks.buttons[0].rack).toBeNull()
+    expect(m.state.quickRacks.undo).toBeNull()
+    // A store over another rack's button: the undo puts that rack back.
+    m.send({ type: 'storeRack', slot: 0 })
+    m.send({ type: 'setPartVolume', part: 0, volume: 60 })
+    m.send({ type: 'saveRackAs', name: 'Other' })
+    m.send({ type: 'storeRack', slot: 0 })
+    expect(m.state.quickRacks.undo).toEqual({ bank: 0, slot: 0, name: 'Lit', previous: null })
+    m.send({ type: 'undoQuickRackStore' })
+    expect(m.state.quickRacks.buttons[0].rack).toBe(id)
+  })
+
+  it('a store over the lit modified rack keeps "Previous: <name>"; undo restores the rack from it and removes it', () => {
+    const { m, id } = litRack()
+    m.send({ type: 'setPartVolume', part: 0, volume: 90 })
+    m.send({ type: 'storeRack', slot: 0 })
+    expect(m.state.liveRack).toMatchObject({ id, modified: false })
+    expect(m.state.quickRacks.undo).toEqual({ bank: 0, slot: 0, name: 'Lit', previous: 'Previous: Lit' })
+    // A second store replaces the Previous rack rather than adding another.
+    m.send({ type: 'setPartVolume', part: 0, volume: 95 })
+    m.send({ type: 'storeRack', slot: 0 })
+    expect(m.state.racks.map((r) => r.name).sort()).toEqual(['Lit', 'Previous: Lit'])
+    m.send({ type: 'undoQuickRackStore' })
+    expect(m.state.racks.map((r) => r.name)).toEqual(['Lit'])
+    expect(m.state.quickRacks.buttons[0]).toMatchObject({ rack: id, loaded: true })
+    // The live rack still plays the stored version, so it now shows unsaved changes.
+    expect(m.state.liveRack).toMatchObject({ id, modified: true })
+    expect(m.state.keyboardParts[0].volume).toBe(95)
+    // The saved rack holds what it held before that store.
+    m.send({ type: 'revertRack' })
+    expect(m.state.keyboardParts[0].volume).toBe(90)
+  })
+
+  it('undoQuickRackStore with nothing to undo fails; clearQuickRack drops the undo', () => {
+    const { m } = litRack()
+    m.send({ type: 'clearQuickRack', bank: 0, slot: 0 })
+    expect(m.state.quickRacks.undo).toBeNull()
+    m.send({ type: 'clearMessage' })
+    m.send({ type: 'undoQuickRackStore' })
+    expect(m.state.message?.error).toBe(true)
+    expect(m.state.quickRacks.buttons[0].rack).toBeNull()
   })
 
   it('setLayer sound: the pads are the Racks page from any page; lit and empty Quick Rack pads store', () => {

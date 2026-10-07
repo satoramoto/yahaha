@@ -61,9 +61,9 @@ const MP_STOP = {
   genos: '[STOP] + pad',
   keys: [],
 }
-// The Quick Rack buttons 1–8 (the bar's, the drawer's and pad page 2's).
+// The Quick Rack buttons 1–8 (the Quick Racks page's and pad page 2's).
 const QUICK_BUTTON = {
-  body: 'Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes. Blue when it holds a rack, red when that rack is loaded, dark when empty. With Store armed, stores the live rack here instead; so does a long-press or right-click.',
+  body: 'Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes; tapping the lit one (the loaded rack) recalls it clean with no question, keeping any unsaved changes as a new rack, "Recovered: <name>". On the Quick Racks page the loaded rack is a solid block, a stored one an outline, an empty one a faded outline, and one whose rack is gone shows ⚠; on the pads, blue holds a rack, red is loaded, dark is empty. With Store armed, stores the live rack here instead; so does a long-press or right-click.',
 }
 
 const catalog = {
@@ -2572,7 +2572,14 @@ const catalog = {
   },
   'quick.bank': {
     title: 'Quick Racks bank',
-    body: 'The bank of eight Quick Racks on view, A to H. Bank − and Bank + step through them; in the Quick Racks drawer, click a letter to view that bank.',
+    body: 'The bank of eight Quick Racks on view, A to H. On the Quick Racks page, tap a letter to view that bank; Bank − and Bank + step through them. Nothing loads until you press a button.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'quick.undo': {
+    title: 'Undo store',
+    body: 'Takes back the last store: the Quick Rack button gets back the rack it held, or goes empty again. If the store saved over that button\'s own rack, the rack gets back what it held from the "Previous: <name>" rack the store kept, which then goes; if that rack is loaded, it shows unsaved changes.',
     genos: null,
     keys: [],
     launchkey: null,
@@ -4080,7 +4087,7 @@ const catalog = {
   },
   'quick.store_rack': {
     title: 'Store rack',
-    body: 'Puts the live rack on this Quick Rack button of the bank on view, replacing what it held, as Store then the button does. A rack with unsaved changes, or one never saved, is saved first.',
+    body: 'Puts the live rack on this Quick Rack button of the bank on view, replacing what it held, as Store then the button does. A rack with unsaved changes, or one never saved, is saved first; on the lit button its changes save over that rack, which keeps what it held as "Previous: <name>". Undo store takes it back.',
     genos: 'MEMORY + REGISTRATION MEMORY',
     keys: [],
     launchkey: 'Hold Sound and tap a rack pad (Pad page 2 (Racks), top row)',

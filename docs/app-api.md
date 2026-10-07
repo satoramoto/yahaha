@@ -719,11 +719,13 @@ a button of the bank on view, 0–7.
 
 | Command | Fields | What it does |
 |---|---|---|
-| `pressQuickRack` | `slot`, `discard`? | Not armed: loads the button's rack as `loadRack` does, with the same guard (`{"kind":"unsavedChanges"}` and `liveRack.prompt`; `discard: true` switches anyway). Armed (`toggleQuickRackStore`): stores the live rack on the button and disarms. A live rack with unsaved changes, or never saved, isn't stored yet: `quickRacks.storeWaiting` holds the button until `saveRack` / `saveRackAs` succeeds, which stores the saved rack there. Fails for an empty button, or one whose rack is gone. Slots 8 and 9 run on into the next bank's 1 and 2 (the `regist9`/`regist10` pedal functions). |
+| `pressQuickRack` | `slot`, `discard`? | Not armed: loads the button's rack as `loadRack` does, with the same guard (`{"kind":"unsavedChanges"}` and `liveRack.prompt`; `discard: true` switches anyway). On the lit button (the live rack's own rack) it recalls that rack clean with no prompt, keeping unsaved changes as a `Recovered: <name>` rack, as the Launchkey and pedals do; with `discard: true` it recalls without keeping them. Armed (`toggleQuickRackStore`): stores the live rack on the button and disarms. A live rack with unsaved changes, or never saved, isn't stored yet: `quickRacks.storeWaiting` holds the button until `saveRack` / `saveRackAs` succeeds, which stores the saved rack there. Fails for an empty button, or one whose rack is gone. Slots 8 and 9 run on into the next bank's 1 and 2 (the `regist9`/`regist10` pedal functions). |
 | `stepQuickRackBank` | `delta` | Bank −/+: views the previous/next bank. It stops at A and at H. |
+| `setQuickRackBank` | `bank` 0–7 | Views bank `bank` (0 = A … 7 = H). Refused (`Failed`) outside 0–7. Example: `{"type":"setQuickRackBank","bank":2}`. |
 | `toggleQuickRackStore` | | Store: arms or disarms it for the next press. Disarming lets a waiting button go. |
-| `storeRack` | `slot` 0–7 | Captures the live rack on button `slot` of the bank on view in one step, with no arming and no save dialog. On the lit button (the live rack's own rack) that rack is overwritten with the live rack (saved, as `saveRack`). On any other button a saved, unmodified live rack goes on as it is; otherwise the live rack is saved as a new rack named from its on parts' sounds ("Rhodes Soft + Strings", numbered if taken) and goes on. Store armed clears. On the Launchkey: hold Sound (Panel fader button 6) and tap the lit or an empty Quick Rack pad; a pad holding another rack recalls it. Refused (`Failed`) for a slot outside 0–7. Example: `{"type":"storeRack","slot":0}`. |
-| `clearQuickRack` | `bank` 0–7, `slot` 0–7 | Empties a button. |
+| `storeRack` | `slot` 0–7 | Captures the live rack on button `slot` of the bank on view in one step, with no arming and no save dialog. On the lit button (the live rack's own rack) that rack is overwritten with the live rack (saved, as `saveRack`); with unsaved changes, the rack as it was is first kept as a `Previous: <name>` rack (one per rack name, replaced by the next such store), which `undoQuickRackStore` puts back. On any other button a saved, unmodified live rack goes on as it is; otherwise the live rack is saved as a new rack named from its on parts' sounds ("Rhodes Soft + Strings", numbered if taken) and goes on. Store armed clears. Every store that changes a button or saves over a rack sets `quickRacks.undo`. On the Launchkey: hold Sound (Panel fader button 6) and tap the lit or an empty Quick Rack pad; a pad holding another rack recalls it. Refused (`Failed`) for a slot outside 0–7. Example: `{"type":"storeRack","slot":0}`. |
+| `undoQuickRackStore` | | Undoes the last store (`quickRacks.undo`): the button gets back the rack it held (or empty). When the store saved over the lit button's own rack (`storeRack` on the lit button with unsaved changes, or the Sound-hold tap), that rack gets back its old content from the `Previous: <name>` rack, which the store kept and the undo removes (it stays if a Quick Rack button names it). If that rack is the live rack it then shows unsaved changes (`liveRack.modified`); the sound playing doesn't change. Sounds saved over by that save stay saved. Clears `quickRacks.undo`. Refused (`Failed`) with nothing to undo, or when the rack or its Previous copy is gone. A new store replaces the undo and `clearQuickRack` drops it; it is kept in memory only, not across restarts. Example: `{"type":"undoQuickRackStore"}`. |
+| `clearQuickRack` | `bank` 0–7, `slot` 0–7 | Empties a button. Drops `quickRacks.undo`. |
 | `stepQuickRack` | `delta`, `discard`? | Previous/next rack in the bank on view: the stored button before/after the lit one (from none, + the first and − the last; it stops at either end), loaded as `pressQuickRack` loads. Fails when the bank has no racks. |
 
 `deleteRack` empties every button naming that rack; `dismissRackPrompt`, or loading
@@ -1480,6 +1482,7 @@ change on disk. A rack that can't be read is not listed.
 | `store` | bool | Store is armed: the next press stores the live rack. |
 | `storeWaiting` | 0–7? | A button of the bank on view waiting for the live rack to be saved before it is stored there. |
 | `readOnly` | bool | Quick Racks can't be changed: no data folder, or the file is from a newer yahaha (or can't be read). |
+| `undo` | QuickRackUndo? | The last store, which `undoQuickRackStore` takes back; null when there is none. `bank` (0 = A) and `slot` (0–7): the button stored on. `name`: the rack the undo puts back on it (empty when the button was empty). `previous`: the `Previous: <name>` rack's name when the store saved over a rack, else null. |
 
 ### `settings`
 The settings kept in `<data>/settings.json` and restored at start.
@@ -2414,7 +2417,8 @@ after `"C Am F G7"`) and `library.json` (`corpus/MOX_v2`).
     ],
     "store": false,
     "storeWaiting": null,
-    "readOnly": false
+    "readOnly": false,
+    "undo": null
   },
   "settings": { "padPages": ["racks", "chord", "multiPads", "setup"] },
   "message": null

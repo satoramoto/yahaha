@@ -3358,7 +3358,8 @@
     ],
     "store": false,
     "storeWaiting": null,
-    "readOnly": false
+    "readOnly": false,
+    "undo": null
   },
   "settings": {
     "padPages": [

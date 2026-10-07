@@ -11,14 +11,15 @@
     it clean (the modified dot goes). Rack ◀ ▶ step to the previous or next stored slot.
   - Store arms (every slot not loaded rings); a tap then stores the live rack there, or, while it
     is modified, waits for Save: Save rack stores it, Cancel lets it go.
-  - A long press or right-click saves the live rack over that slot at once; ✕ empties a slot.
+  - A long press or right-click saves the live rack over that slot at once; "Undo store on …" then
+    shows and puts the slot back as it was. ✕ empties a slot.
   - One Touch: a press applies it, the selects pick what each loads, Link and its timing switch.
 -->
 <script lang="ts">
   import type { ComponentProps } from 'svelte'
   import { bankCSlots } from './QuickRacks.fixtures'
   import QuickRacksScreen from './QuickRacksScreen.svelte'
-  import type { QuickRackSlot } from './types'
+  import type { QuickRackSlot, StoreUndo } from './types'
 
   type Props = ComponentProps<typeof QuickRacksScreen>
 
@@ -48,6 +49,11 @@
     return slot < 0 ? null : { bank: p.bank, slot, name: p.waiting.name }
   })
   let ots = $derived({ ...p.oneTouch, items: p.oneTouch.items.map((it) => ({ ...it })) })
+  /** The last store, which Undo takes back: what it shows, and the banks and live rack before it (none when seeded from the props). */
+  let undo = $derived.by(
+    (): { shown: StoreUndo; banks?: (QuickRackSlot & { waiting: boolean })[][]; live?: { name: string; modified: boolean } } | null =>
+      p.undo ? { shown: p.undo } : null,
+  )
 
   const slots = $derived(
     banks[bank].map((s, i) => ({
@@ -93,11 +99,27 @@
     p.onslot?.(i)
   }
   function onslotlong(i: number) {
+    const was = banks[bank][i]
+    undo = {
+      shown: {
+        code: `${letter(bank)}${i + 1}`,
+        name: was.state === 'empty' ? '' : was.name,
+        previous: was.state === 'loaded' ? `Previous: ${was.name}` : null,
+      },
+      banks,
+      live,
+    }
     light(bank, i, live.name)
     live = { ...live, modified: false }
     store = false
     wait = null
     p.onslotlong?.(i)
+  }
+  function onundo() {
+    if (undo?.banks) banks = undo.banks
+    if (undo?.live) live = undo.live
+    undo = null
+    p.onundo?.()
   }
   function onclear(i: number) {
     banks = banks.map((list, bi) => (bi === bank ? list.map((s, si) => (si === i ? { ...s, name: '', state: 'empty' as const } : s)) : list))
@@ -165,6 +187,8 @@
   {store}
   waiting={wait ? { code: `${letter(wait.bank)}${wait.slot + 1}`, rack: live.name, needsName: false, name: wait.name } : null}
   oneTouch={ots}
+  undo={undo?.shown ?? null}
+  {onundo}
   {onbank}
   {onslot}
   {onslotlong}

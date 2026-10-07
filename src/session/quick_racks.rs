@@ -4,7 +4,9 @@
 //!
 //! - **Press** loads the button's rack as `loadRack` does, through the switching guard. From
 //!   the Launchkey or a pedal (`Control::hardware`), which have no dialog, the switch goes
-//!   ahead and unsaved changes are kept as a "Recovered: <name>" rack.
+//!   ahead and unsaved changes are kept as a "Recovered: <name>" rack. A press on the lit
+//!   button (the live rack's own) does the same from the app too: it recalls the rack clean
+//!   with no prompt (the Genos reflex), unless sent with `discard`, which drops the changes.
 //! - **Store** arms; the next press stores the live rack on that button. A rack with
 //!   unsaved changes, or one never saved, is saved first: the button waits
 //!   (`storeWaiting`) until `saveRack` / `saveRackAs` succeeds, then takes the saved rack.
@@ -17,10 +19,19 @@
 //!   it, as the Racks page does. The input thread reads the hold when the pad goes down
 //!   and sends `Action::QuickRackHeld`; `Control::apply_hardware` decides from that and the
 //!   buttons alone, never from the layer (which may have been let go by then).
+//! - **Previous.** Before a store saves the live rack's changes over the lit button's rack,
+//!   that rack's file as it was is kept as the rack "Previous: <name>" (one per rack name,
+//!   overwritten by the next).
+//! - **Undo** (`undoQuickRackStore`) takes back the last store that changed a button or
+//!   saved over a rack (in memory only): the button gets back what it held, and a rack
+//!   saved over gets back its Previous copy's content (the copy then goes, unless a button
+//!   names it). If that rack is the live one, the sound playing stays and shows unsaved.
+//!   Sounds (plugin presets) the same save wrote over stay saved: Undo restores the rack
+//!   and the button only. A new store replaces the undo; `clearQuickRack` drops it.
 //! - A button names a rack by id, so a rename keeps it; deleting a rack empties its buttons.
 
 use super::{Control, Session};
-use crate::api::{CmdError, QuickRackButton, QuickRackCmd, QuickRacksState, RackCmd, RackPrompt};
+use crate::api::{CmdError, QuickRackButton, QuickRackCmd, QuickRackUndo, QuickRacksState, RackCmd, RackPrompt};
 use crate::launchkey::{Action, QuickPanel};
 use std::collections::BTreeMap;
 use crate::racks::quick::{self, QuickRacks, BANKS, SLOTS};
@@ -40,6 +51,19 @@ pub(super) struct QuickCtl {
     waiting: Option<(u8, u8)>,
     /// The file could not be read (a newer yahaha's, or damaged): it is never saved over.
     load_error: Option<String>,
+    /// The last store, for `undoQuickRackStore`.
+    undo: Option<QuickUndo>,
+}
+
+/// A store `undoQuickRackStore` can take back.
+#[derive(Clone, Debug)]
+struct QuickUndo {
+    bank: u8,
+    slot: u8,
+    /// The button's rack id before the store.
+    before: Option<String>,
+    /// The rack saved over, and its "Previous: <name>" copy's id.
+    saved_over: Option<(String, String)>,
 }
 
 impl QuickCtl {
@@ -82,12 +106,20 @@ impl Control {
                 if self.quick.store {
                     return self.store_quick(bank, slot);
                 }
-                self.load_quick(bank, slot, discard)
+                self.load_quick(bank, slot, discard, true)
             }
             QuickRackCmd::StepQuickRackBank { delta } => {
                 self.quick.bank = (self.quick.bank as i16 + delta.signum() as i16).clamp(0, BANKS as i16 - 1) as u8;
                 Ok(())
             }
+            QuickRackCmd::SetQuickRackBank { bank } => {
+                if bank as usize >= BANKS {
+                    return self.fail(format!("no Quick Rack bank {}", bank as usize + 1));
+                }
+                self.quick.bank = bank;
+                Ok(())
+            }
+            QuickRackCmd::UndoQuickRackStore => self.undo_quick(),
             QuickRackCmd::ToggleQuickRackStore => {
                 self.quick.store = !self.quick.store;
                 self.quick.waiting = None;
@@ -106,9 +138,12 @@ impl Control {
                     return self.fail(format!("no Quick Rack {bank}:{slot}"));
                 }
                 if self.quick.get(bank, slot).is_none() {
+                    self.quick.undo = None;
                     return Ok(());
                 }
-                self.change_quick(|q| q.banks[bank as usize][slot as usize] = None)
+                self.change_quick(|q| q.banks[bank as usize][slot as usize] = None)?;
+                self.quick.undo = None;
+                Ok(())
             }
             QuickRackCmd::StepQuickRack { delta, discard } => {
                 let bank = self.quick.bank;
@@ -122,7 +157,7 @@ impl Control {
                     (Some(i), _) => i.checked_sub(1).map(|i| stored[i]),
                 };
                 match to {
-                    Some(s) => self.load_quick(bank, s, discard),
+                    Some(s) => self.load_quick(bank, s, discard, false),
                     None if stored.is_empty() => self.fail(format!("Bank {} has no racks", quick::bank_letter(bank as usize))),
                     None => Ok(()), // at the end already
                 }
@@ -137,8 +172,9 @@ impl Control {
     }
 
     /// Load button (`bank`, `slot`)'s rack: through the guard from the app, or keeping a
-    /// Recovered rack from the hardware.
-    fn load_quick(&mut self, bank: u8, slot: u8, discard: bool) -> Result<(), CmdError> {
+    /// Recovered rack from the hardware. With `recall_lit` (a press), the lit button's rack
+    /// is recalled clean from the app too, keeping a Recovered rack, unless `discard`.
+    fn load_quick(&mut self, bank: u8, slot: u8, discard: bool, recall_lit: bool) -> Result<(), CmdError> {
         let label = quick::label(bank as usize, slot as usize);
         let Some(id) = self.quick.get(bank, slot).map(str::to_string) else {
             return self.fail(format!("Quick Rack {label} is empty"));
@@ -148,7 +184,8 @@ impl Control {
             return self.fail(format!("Quick Rack {label}'s rack is gone"));
         }
         self.quick.waiting = None;
-        if self.hardware { self.switch_rack_unattended(Some(&id)) } else { self.rack_cmd(RackCmd::LoadRack { id, discard }) }
+        let lit = recall_lit && !discard && self.live_rack.id.as_deref() == Some(id.as_str());
+        if self.hardware || lit { self.switch_rack_unattended(Some(&id)) } else { self.rack_cmd(RackCmd::LoadRack { id, discard }) }
     }
 
     /// Store armed and button (`bank`, `slot`) pressed: the live rack goes on it, once saved.
@@ -159,7 +196,7 @@ impl Control {
         }
         let saved = self.live_rack.id.clone().filter(|id| !self.live_rack.modified && self.presence.racks().iter().any(|r| r.id == *id));
         match saved {
-            Some(id) => self.put_quick(bank, slot, id),
+            Some(id) => self.put_quick(bank, slot, id, None),
             None if self.hardware => {
                 self.quick.store = false;
                 self.fail(format!("Save {} first: Store puts a saved rack on the button", self.live_rack.name))
@@ -192,10 +229,14 @@ impl Control {
         self.presence.refresh_racks(false);
         let own = self.live_rack.id.clone().filter(|id| self.presence.racks().iter().any(|r| r.id == *id));
         let lit = own.is_some() && self.quick.get(bank, slot) == own.as_deref();
+        let mut saved_over = None;
         let id = match own {
             Some(id) if !self.live_rack.modified => id,
             Some(id) if lit => {
+                // The rack as it was, for Undo, before its changes are saved over it.
+                let copy = self.keep_previous(&id)?;
                 self.save_live(None)?;
+                saved_over = Some((id.clone(), copy));
                 id
             }
             _ => {
@@ -214,7 +255,7 @@ impl Control {
                 }
             }
         };
-        self.put_quick(bank, slot, id)
+        self.put_quick(bank, slot, id, saved_over)
     }
 
     /// Save the live rack (`saveRack`, or `saveRackAs` with a name) with no dialog: edited
@@ -250,11 +291,55 @@ impl Control {
         quick::name_from_sounds(names.iter().map(String::as_str))
     }
 
-    fn put_quick(&mut self, bank: u8, slot: u8, id: String) -> Result<(), CmdError> {
+    /// Rack `id` goes on button (`bank`, `slot`). A store that changes the button or saved
+    /// over a rack (`saved_over`: that rack and its Previous copy) becomes the undo; one that
+    /// changes nothing leaves the undo as it was.
+    fn put_quick(&mut self, bank: u8, slot: u8, id: String, saved_over: Option<(String, String)>) -> Result<(), CmdError> {
         self.quick.store = false;
         self.quick.waiting = None;
+        let before = self.quick.get(bank, slot).map(str::to_string);
+        let changed = before.as_deref() != Some(id.as_str());
         self.change_quick(|q| q.banks[bank as usize][slot as usize] = Some(id))?;
+        if changed || saved_over.is_some() {
+            self.quick.undo = Some(QuickUndo { bank, slot, before, saved_over });
+        }
         self.say(format!("Stored {} on Quick Rack {}", self.live_rack.name, quick::label(bank as usize, slot as usize)), false);
+        Ok(())
+    }
+
+    /// `undoQuickRackStore`: the last store taken back. A rack saved over gets its Previous
+    /// copy's content back (if it is the live rack, the sound playing stays and shows
+    /// unsaved); then the button gets back what it held. Sounds (plugin presets) the store's
+    /// save wrote over stay saved: only the rack and the button are restored.
+    fn undo_quick(&mut self) -> Result<(), CmdError> {
+        if let Some(e) = self.quick_refusal() {
+            return self.fail(e);
+        }
+        let Some(u) = self.quick.undo.clone() else { return self.fail("Nothing to undo") };
+        let label = quick::label(u.bank as usize, u.slot as usize);
+        if let Some((id, copy)) = &u.saved_over {
+            // Both are checked before anything changes; the undo stays if either is gone.
+            self.presence.refresh_racks(false);
+            let has = |x: &str| self.presence.racks().iter().any(|r| r.id == x);
+            if !has(id) {
+                return self.fail(format!("Can't undo the store on Quick Rack {label}: its rack is gone"));
+            }
+            if !has(copy) {
+                return self.fail(format!("Can't undo the store on Quick Rack {label}: the Previous rack is gone"));
+            }
+            let keep_copy = self.live_rack.id.as_deref() == Some(copy.as_str())
+                || self.quick.racks.banks.iter().flatten().any(|b| b.as_deref() == Some(copy.as_str()));
+            self.restore_from_previous(id, copy, !keep_copy)?;
+            if self.live_rack.id.as_deref() == Some(id.as_str()) {
+                // The rack's file is as before the store; what plays is the store's.
+                self.live_rack.modified = true;
+                self.live_rack_touched(self.clock_ns);
+            }
+        }
+        let before = u.before.clone();
+        self.change_quick(|q| q.banks[u.bank as usize][u.slot as usize] = before)?;
+        self.quick.undo = None;
+        self.say(format!("Undid the store on Quick Rack {label}"), false);
         Ok(())
     }
 
@@ -289,7 +374,7 @@ impl Control {
         match c {
             RackCmd::SaveRack { .. } | RackCmd::SaveRackAs { .. } if ok => {
                 if let (Some((bank, slot)), Some(id)) = (self.quick.waiting, self.live_rack.id.clone()) {
-                    let _ = self.put_quick(bank, slot, id);
+                    let _ = self.put_quick(bank, slot, id, None);
                 }
             }
             RackCmd::DeleteRack { id } if ok => {
@@ -341,7 +426,21 @@ impl Control {
                 }
             })
             .collect();
-        QuickRacksState { bank: q.bank, buttons, store: q.store, store_waiting: q.waiting.filter(|w| w.0 == q.bank).map(|w| w.1), read_only: q.read_only() }
+        let name = |id: &str| racks.iter().find(|r| r.id == id).map(|r| r.name.clone());
+        let undo = q.undo.as_ref().map(|u| QuickRackUndo {
+            bank: u.bank,
+            slot: u.slot,
+            name: u.before.as_deref().and_then(name).unwrap_or_default(),
+            previous: u.saved_over.as_ref().and_then(|(_, copy)| name(copy)),
+        });
+        QuickRacksState {
+            bank: q.bank,
+            buttons,
+            store: q.store,
+            store_waiting: q.waiting.filter(|w| w.0 == q.bank).map(|w| w.1),
+            read_only: q.read_only(),
+            undo,
+        }
     }
 
     /// Page 4 of the Launchkey: the bank on view.

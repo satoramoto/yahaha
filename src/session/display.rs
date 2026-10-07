@@ -238,10 +238,11 @@ fn value_of(cmd: &AppCmd, level: Level, st: &AppState) -> String {
         AppCmd::Ots(OtsCmd::ToggleOtsLink) => on(st.ots.link),
         AppCmd::QuickRacks(c) => match c {
             QuickRackCmd::PressQuickRack { .. } | QuickRackCmd::StepQuickRack { .. } => st.live_rack.name.clone(),
-            QuickRackCmd::StepQuickRackBank { .. } => format!("Bank {}", crate::racks::quick::bank_letter(st.quick_racks.bank as usize)),
+            QuickRackCmd::StepQuickRackBank { .. } | QuickRackCmd::SetQuickRackBank { .. } => format!("Bank {}", crate::racks::quick::bank_letter(st.quick_racks.bank as usize)),
             QuickRackCmd::ToggleQuickRackStore => on(st.quick_racks.store),
             QuickRackCmd::StoreRack { .. } => st.live_rack.name.clone(),
             QuickRackCmd::ClearQuickRack { .. } => "Cleared".into(),
+            QuickRackCmd::UndoQuickRackStore => "Undone".into(),
         },
         AppCmd::Looper(LooperCmd::LooperOnOff | LooperCmd::LooperRec) => match st.looper.mode {
             LooperMode::Off if st.looper.has_data => "Off",

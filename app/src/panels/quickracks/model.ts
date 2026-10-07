@@ -3,7 +3,7 @@
 
 import { quickLabel, QUICK_BANKS } from '../../lib/api/quick-racks'
 import type { AppCmd, AppState } from '../../lib/api/types'
-import type { LinkTiming, OneTouchRow, QuickRackSlot, StoreWait } from '../../ui/QuickRacks/types'
+import type { LinkTiming, OneTouchRow, QuickRackSlot, StoreUndo, StoreWait } from '../../ui/QuickRacks/types'
 
 /** The props of ui/QuickRacks that come from state. */
 export type QuickRacksView = {
@@ -14,6 +14,7 @@ export type QuickRacksView = {
   store: boolean
   readOnly: boolean
   waiting: StoreWait | null
+  undo: StoreUndo | null
   oneTouch: OneTouchRow
 }
 
@@ -46,6 +47,7 @@ export function quickRacksView(state: AppState, rackName: string | null): QuickR
           name: rackName ?? live.name,
         }
   const ots = state.ots
+  const u = q.undo
   return {
     bank: q.bank,
     bankCount: QUICK_BANKS,
@@ -54,6 +56,7 @@ export function quickRacksView(state: AppState, rackName: string | null): QuickR
     store: q.store,
     readOnly: q.readOnly,
     waiting,
+    undo: u ? { code: quickLabel(u.bank, u.slot), name: u.name, previous: u.previous } : null,
     oneTouch: {
       items: ots.settings.slice(0, OTS_SHOWN).map((s, i) => {
         const r = ots.racks[i]
@@ -68,19 +71,22 @@ export function quickRacksView(state: AppState, rackName: string | null): QuickR
   }
 }
 
-/**
- * The commands that show bank `to` (0–7) from bank `from`: Bank −/+ step one bank a press, so a
- * letter further away is that many steps.
- */
-export function bankCmds(from: number, to: number): AppCmd[] {
-  const delta = Math.sign(to - from)
-  return Array.from({ length: Math.abs(to - from) }, () => ({ type: 'stepQuickRackBank', delta }))
-}
+/** A bank letter: show bank `to` (0–7), in one command. */
+export const bankCmd = (to: number): AppCmd => ({ type: 'setQuickRackBank', bank: to })
 
-/** A slot's tap: load its rack (the lit one recalls it; Store armed stores here). */
+/** Undo: take the last store over a Quick Rack back. */
+export const undoCmd: AppCmd = { type: 'undoQuickRackStore' }
+
+/**
+ * A slot's tap: load its rack (asks first if there are unsaved changes); the lit one recalls it
+ * clean, unsaved changes kept as "Recovered: <name>"; Store armed stores here.
+ */
 export const slotCmd = (slot: number): AppCmd => ({ type: 'pressQuickRack', slot })
 
-/** A slot's long press or right-click: save the live rack over it, in one step. */
+/**
+ * A slot's long press or right-click: save the live rack over it, in one step (over the lit one,
+ * the old rack is kept as "Previous: <name>"); Undo takes it back.
+ */
 export const storeCmd = (slot: number): AppCmd => ({ type: 'storeRack', slot })
 
 /** A slot's ✕: empty it (the rack itself stays in your racks). */

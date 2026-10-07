@@ -27,6 +27,9 @@ use std::path::PathBuf;
 /// What a recovered rack's name starts with.
 pub const RECOVERED: &str = "Recovered: ";
 
+/// What the name of a rack's copy kept before a Quick Rack store saved over it starts with.
+pub const PREVIOUS: &str = "Previous: ";
+
 impl Control {
     pub(super) fn rack_cmd(&mut self, c: RackCmd) -> Result<(), CmdError> {
         match c {
@@ -311,6 +314,38 @@ impl Control {
             self.write_rack(&kept, &racks::path_for(&dir, &name))?;
         }
         self.enter_rack(rack);
+        Ok(())
+    }
+
+    /// Keep rack `id`'s file, as it is on disk now, as the rack "Previous: <name>": one per
+    /// rack name, so an existing one is overwritten and keeps its id. Returns the copy's id.
+    pub(super) fn keep_previous(&mut self, id: &str) -> Result<String, CmdError> {
+        let dir = self.racks_dir()?;
+        let mut r = self.read_rack(id)?;
+        r.name = format!("{PREVIOUS}{}", r.name);
+        let path = racks::path_for(&dir, &r.name);
+        r.id = Rack::load(&path).ok().map(|old| old.id).filter(|old| old != id).unwrap_or_else(racks::new_id);
+        self.write_rack(&r, &path)?;
+        Ok(r.id)
+    }
+
+    /// Rack `id` gets back what its copy `copy_id` (from [`Control::keep_previous`]) kept,
+    /// under its own id and current name, in its current file. Then the copy's file goes,
+    /// if `remove_copy`.
+    pub(super) fn restore_from_previous(&mut self, id: &str, copy_id: &str, remove_copy: bool) -> Result<(), CmdError> {
+        let Some((path, name)) = self.rack_file(id).and_then(|p| self.presence.racks().iter().find(|r| r.id == id).map(|r| (p, r.name.clone())))
+        else {
+            return self.fail(format!("no rack {id}"));
+        };
+        let Some(copy_path) = self.rack_file(copy_id) else { return self.fail(format!("no rack {copy_id}")) };
+        let mut r = self.read_rack(copy_id)?;
+        r.id = id.to_string();
+        r.name = name;
+        self.write_rack(&r, &path)?;
+        if remove_copy {
+            let _ = std::fs::remove_file(&copy_path);
+            self.presence.refresh_racks(true);
+        }
         Ok(())
     }
 

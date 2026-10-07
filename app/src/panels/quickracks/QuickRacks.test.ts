@@ -6,7 +6,7 @@
 import { cleanup, fireEvent, render } from '@testing-library/svelte'
 import { flushSync } from 'svelte'
 import type { Action } from 'svelte/action'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../../App.svelte'
 import { BINDINGS } from '../../lib/keys'
 import { NAV } from '../../lib/nav'
@@ -16,11 +16,19 @@ import { app, ui } from '../../lib/store.svelte'
 import KnobRackPanel from '../knobracks/KnobRackPanel.svelte'
 import Launchkey from '../launchkey/Launchkey.svelte'
 import { tip } from '../../lib/tooltip/tip.svelte'
+import { stagePage } from '../stage/page.svelte'
 import QuickRacksPage from './QuickRacksPage.svelte'
 
 /** The Quick Racks page tab, alone (StageScreen puts it in the Stage's display box). */
 const renderPage = () =>
   render(QuickRacksPage, { props: { tipAction: tip as unknown as Action<HTMLElement, string> } })
+
+/** The app on session `s` with the Quick Racks page tab chosen: the page in the Stage's display box, and the Rack drawer. */
+function renderApp(s: MockSession) {
+  stagePage.page = 'quickRacks'
+  render(App, { props: { session: s } })
+  flushSync()
+}
 
 function setup() {
   const session = new MockSession({ manual: true })
@@ -52,10 +60,12 @@ async function storeAs(slot: number, name: string) {
 }
 
 afterEach(() => {
+  vi.restoreAllMocks()
   cleanup()
   app.detach()
   ui.view = 'stage'
   ui.rack = false
+  stagePage.page = 'stage'
 })
 
 describe('Quick Racks page', () => {
@@ -137,10 +147,8 @@ describe('Quick Racks page', () => {
 
   it('a waiting Store whose save needs sound names asks them in the Rack drawer, then saves and stores', async () => {
     const s = setup()
-    // The Quick Racks row isn't routed in the Stage shell any more: render it first, then
-    // App, whose Rack drawer opens over the Stage.
-    render(KnobRackPanel)
-    render(App, { props: { session: s } })
+    // The Quick Racks page tab, in the app: its Rack drawer opens over the Stage.
+    renderApp(s)
     s.send({ type: 'listPluginPresets', id: 'au:aumu Smp7 Fake' })
     s.send({ type: 'setPartPluginPreset', part: 0, id: 'aumu Smp7 Fake', preset: 'f:1' })
     s.advance(5000)
@@ -163,9 +171,8 @@ describe('Quick Racks page', () => {
 
   it('a button loads its rack; with unsaved changes the Rack drawer opens and asks: Keep editing, Discard and switch, Save first', async () => {
     const s = setup()
-    // The row first, then App for the Rack drawer over the Stage (as above).
-    render(KnobRackPanel)
-    render(App, { props: { session: s } })
+    // The Quick Racks page tab, in the app (as above).
+    renderApp(s)
     s.send({ type: 'setPartVoice', part: 0, program: 40 })
     await storeAs(0, 'Strings')
     const strings = s.state.liveRack.id!
@@ -205,6 +212,71 @@ describe('Quick Racks page', () => {
     expect(s.state.racks.map((r) => r.name)).toEqual(['New rack', 'Strings'])
     expect(s.state.liveRack).toMatchObject({ id: strings, modified: false, prompt: null })
     expect(s.state.keyboardParts[0].program).toBe(40)
+  })
+
+  it('a tap on another stored rack with unsaved changes asks first, in the Rack drawer', async () => {
+    const s = setup()
+    renderApp(s)
+    s.send({ type: 'setPartVoice', part: 0, program: 40 })
+    await storeAs(2, 'Strings')
+    s.send({ type: 'newRack' })
+    s.send({ type: 'setPartVoice', part: 0, program: 1 })
+    flushSync()
+    await storeAs(0, 'Ballad')
+    s.send({ type: 'setPartVoice', part: 0, program: 12 })
+    flushSync()
+    expect(s.state.liveRack).toMatchObject({ name: 'Ballad', modified: true })
+    await click(tipped('quick.3')[0])
+    expect(s.state.liveRack.prompt).toMatchObject({ kind: 'unsavedChanges', then: { kind: 'load', name: 'Strings' } })
+    expect(ui.rack).toBe(true)
+    const alert = document.querySelector('[role="alert"].unsaved')
+    expect(alert?.textContent).toContain('The rack has unsaved changes: save them before loading Strings?')
+  })
+
+  it('a tap on the lit rack recalls it clean with no prompt, keeping the changes as "Recovered: <name>"', async () => {
+    const s = setup()
+    renderApp(s)
+    await storeAs(0, 'Ballad')
+    s.send({ type: 'setPartVoice', part: 0, program: 12 })
+    flushSync()
+    const sent = vi.spyOn(s, 'send')
+    await click(tipped('quick.1')[0])
+    expect(sent.mock.calls.map(([c]) => c)).toEqual([{ type: 'pressQuickRack', slot: 0 }])
+    expect(s.state.liveRack).toMatchObject({ name: 'Ballad', modified: false, prompt: null })
+    expect(ui.rack).toBe(false)
+    expect(s.state.racks.map((r) => r.name)).toContain('Recovered: Ballad')
+  })
+
+  it('after a store over a button, Undo shows what it undoes and takes it back (undoQuickRackStore)', async () => {
+    const s = setup()
+    renderPage()
+    s.send({ type: 'setPartVoice', part: 0, program: 40 })
+    await storeAs(2, 'Strings')
+    s.send({ type: 'newRack' })
+    s.send({ type: 'setPartVoice', part: 0, program: 1 })
+    flushSync()
+    await storeAs(0, 'Ballad')
+    // The last store (Ballad on A1) is the one Undo names.
+    expect(tipped('quick.undo').map((b) => b.textContent?.trim())).toEqual(['Undo store on A1'])
+    await fireEvent.contextMenu(tipped('quick.3')[0])
+    flushSync()
+    expect(s.state.quickRacks.buttons[2].name).toBe('Ballad')
+    const undo = tipped('quick.undo')
+    expect(undo).toHaveLength(1)
+    expect(undo[0].textContent).toContain('Undo store on A3')
+    const sent = vi.spyOn(s, 'send')
+    await click(undo[0])
+    expect(sent.mock.calls.map(([c]) => c)).toEqual([{ type: 'undoQuickRackStore' }])
+    expect(s.state.quickRacks.buttons[2].name).toBe('Strings')
+    expect(tipped('quick.undo')).toHaveLength(0)
+  })
+
+  it('a bank letter sends one setQuickRackBank, however far away', async () => {
+    const s = setup()
+    renderPage()
+    const sent = vi.spyOn(s, 'send')
+    await click(bankTab('F'))
+    expect(sent.mock.calls.map(([c]) => c)).toEqual([{ type: 'setQuickRackBank', bank: 5 }])
   })
 
   it('an empty button says so; a bank letter shows that bank, any distance away', async () => {

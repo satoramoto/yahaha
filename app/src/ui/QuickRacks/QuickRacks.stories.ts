@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
 import { expect, fireEvent, fn, userEvent, within } from 'storybook/test'
-import { bankCSlots, newRackWaiting, quickRacksBoard, quickRacksRest } from './QuickRacks.fixtures'
+import { bankCSlots, litStoreUndo, newRackWaiting, quickRacksBoard, quickRacksRest, storeUndo } from './QuickRacks.fixtures'
 import QuickRacksPlayground from './QuickRacksPlayground.svelte'
 import QuickRacksScreen from './QuickRacksScreen.svelte'
 
@@ -19,6 +19,7 @@ const CALLBACKS = [
   'onname',
   'onsave',
   'oncancel',
+  'onundo',
 ]
 
 const actions = Object.fromEntries(CALLBACKS.map((name) => [name, fn()]))
@@ -46,6 +47,7 @@ const meta = {
     store: { control: 'boolean' },
     readOnly: { control: 'boolean' },
     waiting: { control: 'object' },
+    undo: { control: 'object' },
     oneTouch: { control: 'object' },
   },
 } satisfies Meta<typeof QuickRacksScreen>
@@ -63,6 +65,7 @@ export const Rest: Story = {
     const page = canvas.getByRole('region', { name: 'Quick Racks' })
     const q = within(page)
     await expect(q.getByRole('button', { name: 'Quick Rack A1, Sunday drive, loaded, modified' })).toBeInTheDocument()
+    await expect(q.queryByRole('button', { name: /^Undo store/ })).toBeNull()
     await userEvent.click(q.getByRole('button', { name: 'Quick Rack A2, Warm keys' }))
     await expect(args.onslot).toHaveBeenLastCalledWith(1)
     await fireEvent.contextMenu(q.getByRole('button', { name: 'Quick Rack A3, Lead synth' }))
@@ -126,6 +129,33 @@ export const NameNewRack: Story = {
   },
 }
 
+/**
+ * After a store: Sunday drive was saved over Lead synth on A3 with a long press, so "Undo store on
+ * A3" shows in the header; pressing it takes the store back (Lead synth on A3 again).
+ */
+export const AfterStore: Story = {
+  args: { undo: storeUndo },
+  play: async ({ canvasElement, args }) => {
+    const q = within(canvasElement)
+    const undo = q.getByRole('button', { name: 'Undo store on A3: put Lead synth back' })
+    await expect(undo).toHaveTextContent('Undo store on A3')
+    await userEvent.click(undo)
+    await expect(args.onundo).toHaveBeenCalled()
+  },
+}
+
+/**
+ * After a store over the lit rack: Sunday drive saved over itself on A1, the old one kept as
+ * "Previous: Sunday drive"; Undo puts it back.
+ */
+export const AfterStoreOverLit: Story = {
+  args: { undo: litStoreUndo },
+  play: async ({ canvasElement }) => {
+    const q = within(canvasElement)
+    await expect(q.getByRole('button', { name: 'Undo store on A1: put Sunday drive back' })).toBeInTheDocument()
+  },
+}
+
 /** Bank C: one stored rack, one whose rack is gone (⚠, in the warning hue), the rest empty, none lit. */
 export const BankC: Story = {
   args: { bank: 2, slots: bankCSlots, lit: '' },
@@ -142,13 +172,14 @@ export const BankC: Story = {
  * are locked too.
  */
 export const ReadOnly: Story = {
-  args: { readOnly: true, oneTouch: { ...quickRacksRest.oneTouch, readOnly: true } },
+  args: { readOnly: true, undo: storeUndo, oneTouch: { ...quickRacksRest.oneTouch, readOnly: true } },
   play: async ({ canvasElement }) => {
     const q = within(canvasElement)
     await expect(q.getByRole('button', { name: 'Quick Rack A2, Warm keys' })).toHaveAttribute('aria-disabled', 'true')
     await expect(q.queryByRole('button', { name: 'Clear Quick Rack A2' })).toBeNull()
     await expect(q.getByRole('combobox', { name: 'OTS 1 loads' })).toBeDisabled()
     await expect(q.getByText(/can't be changed/)).toBeInTheDocument()
+    await expect(q.queryByRole('button', { name: /^Undo store/ })).toBeNull()
   },
 }
 
@@ -159,7 +190,8 @@ export const ReadOnly: Story = {
  * - Bank letters switch the bank; each keeps its own slots.
  * - A tap loads a stored slot (the solid block and Lit follow); the lit one recalls it clean.
  * - Store arms; a tap then stores the live rack, or waits for Save while it's modified.
- * - A long press or right-click saves over a slot; ✕ empties one; Rack ◀ ▶ step the stored slots.
+ * - A long press or right-click saves over a slot, and Undo takes it back; ✕ empties one; Rack ◀ ▶
+ *   step the stored slots.
  * - One Touch applies, its selects pick what it loads, Link and the timing switch.
  */
 export const Playground: Story = {
@@ -170,6 +202,11 @@ export const Playground: Story = {
     await expect(q.getByRole('button', { name: 'Quick Rack A2, Warm keys, loaded' })).toBeInTheDocument()
     await userEvent.click(q.getByRole('button', { name: 'Clear Quick Rack A3' }))
     await expect(q.getByRole('button', { name: 'Quick Rack A3, empty' })).toBeInTheDocument()
+    await fireEvent.contextMenu(q.getByRole('button', { name: 'Quick Rack A4, Organ' }))
+    await expect(q.getByRole('button', { name: 'Quick Rack A4, Warm keys, loaded' })).toBeInTheDocument()
+    await userEvent.click(q.getByRole('button', { name: 'Undo store on A4: put Organ back' }))
+    await expect(q.getByRole('button', { name: 'Quick Rack A4, Organ' })).toBeInTheDocument()
+    await expect(q.queryByRole('button', { name: /^Undo store/ })).toBeNull()
     await userEvent.click(q.getByRole('button', { name: /Brass hits, One Touch 3/ }))
     await expect(q.getByRole('button', { name: /Brass hits, One Touch 3, applied/ })).toBeInTheDocument()
   },
