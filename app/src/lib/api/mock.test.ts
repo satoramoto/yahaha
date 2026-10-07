@@ -549,7 +549,7 @@ describe('mock knobs (#197)', () => {
   })
 })
 
-// Restored from KnobRackPanel.test.ts (#480 dropped the stage knobs, not these mock rules).
+// The mock's resetKnob defaults (#480 dropped the stage knob panel and its tests, not these mock rules).
 describe('mock resetKnob', () => {
   it('goes to each function\'s default', () => {
     const m = new MockSession({ manual: true })
