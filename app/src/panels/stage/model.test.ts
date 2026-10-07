@@ -674,7 +674,8 @@ describe('pads, page by page, as develop lit them', () => {
     expect(face(m.state, empty)).toBe(loaded ? 'ending:playing' : 'r1:playing')
     expect(face(m.state, 12)).toBe(m.state.quickRacks.bank > 0 ? 'r3:idle' : 'r3:dark') // Bank −
     expect(face(m.state, 14)).toBe('r3:idle') // Store
-    expect(pads({ state: m.state, beats: 0 }).pads[15]).toMatchObject({ family: 'util', state: 'dark' })
+    // Undo (#564): lit in the page's orange while there's a store to undo.
+    expect(pads({ state: m.state, beats: 0 }).pads[15]).toMatchObject({ label: 'UNDO', family: 'r3', state: 'idle' })
     m.send({ type: 'toggleQuickRackStore' })
     expect(face(m.state, 14)).toBe('ending:next') // Store armed: flashing red
   })
