@@ -235,7 +235,9 @@ export function channelCommand(state: AppState, part: number, change: ChannelCha
     case 'mono':
       return keyboard ? { type: 'setStripMono', strip: part, on: !strip.mono } : null
     case 'portamento':
-      return keyboard ? { type: 'setStripPortamento', strip: part, on: change.time > 0, time: change.time } : null
+      return keyboard ? { type: 'setStripPortamento', strip: part, on: strip.portamento.on, time: change.time } : null
+    case 'portamentoOn':
+      return keyboard ? { type: 'setStripPortamento', strip: part, on: !strip.portamento.on, time: strip.portamento.time } : null
     case 'octave': {
       if (!keyboard) return null
       const o = keyboardPart(state, part).octave

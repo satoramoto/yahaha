@@ -262,6 +262,7 @@ describe('channelCommand', () => {
     expect(cmd(s, 6, { type: 'tone', control: 'cutoff', value: 70 })).toBeNull()
     expect(cmd(s, 6, { type: 'mono' })).toBeNull()
     expect(cmd(s, 6, { type: 'portamento', time: 10 })).toBeNull()
+    expect(cmd(s, 6, { type: 'portamentoOn' })).toBeNull()
     expect(cmd(s, 6, { type: 'octave', step: 1 })).toBeNull()
     expect(cmd(s, 6, { type: 'bend', step: 1 })).toBeNull()
     // The strip commands use the strip number, 0–11.
@@ -284,8 +285,22 @@ describe('channelCommand', () => {
     expect(cmd(s, 2, { type: 'eq', field: 'highGain', value: -4 })).toEqual({ type: 'setStripEq', strip: 2, eq: { lowGain: 3, lowFreq: 80, highGain: -4, highFreq: 10000 } })
     expect(cmd(s, 2, { type: 'tone', control: 'resonance', value: 70 })).toEqual({ type: 'setStripTone', strip: 2, control: 'resonance', value: 70 })
     expect(cmd(s, 2, { type: 'mono' })).toEqual({ type: 'setStripMono', strip: 2, on: false })
-    expect(cmd(s, 2, { type: 'portamento', time: 30 })).toEqual({ type: 'setStripPortamento', strip: 2, on: true, time: 30 })
-    expect(cmd(s, 2, { type: 'portamento', time: 0 })).toEqual({ type: 'setStripPortamento', strip: 2, on: false, time: 0 })
+  })
+
+  it('portamento: the switch keeps the time, the time keeps the switch', () => {
+    const off = state((s) => {
+      s.keyboardParts[2].strip.portamento = { on: false, time: 40 }
+    })
+    // Changing the time of an off strip doesn't turn it on.
+    expect(cmd(off, 2, { type: 'portamento', time: 30 })).toEqual({ type: 'setStripPortamento', strip: 2, on: false, time: 30 })
+    // Turning it on keeps its time.
+    expect(cmd(off, 2, { type: 'portamentoOn' })).toEqual({ type: 'setStripPortamento', strip: 2, on: true, time: 40 })
+    const on = state((s) => {
+      s.keyboardParts[2].strip.portamento = { on: true, time: 40 }
+    })
+    // Turning it off keeps its time; a time of 0 leaves it on.
+    expect(cmd(on, 2, { type: 'portamentoOn' })).toEqual({ type: 'setStripPortamento', strip: 2, on: false, time: 40 })
+    expect(cmd(on, 2, { type: 'portamento', time: 0 })).toEqual({ type: 'setStripPortamento', strip: 2, on: true, time: 0 })
   })
 
   it('octave and bend step, and send nothing at their ends', () => {
