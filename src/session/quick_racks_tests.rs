@@ -285,7 +285,14 @@ fn page_4_pads_send_the_quick_racks_commands() {
     assert_eq!(action(116), Some(QuickRackCmd::StepQuickRackBank { delta: -1 }.into()));
     assert_eq!(action(117), Some(QuickRackCmd::StepQuickRackBank { delta: 1 }.into()));
     assert_eq!(action(118), Some(QuickRackCmd::ToggleQuickRackStore.into()));
-    assert_eq!(action(119), None, "pad 119 is spare");
+    assert_eq!(action(119), Some(QuickRackCmd::UndoQuickRackStore.into()));
+    let undo_level = |s: &Session| s.state().pads.pads.iter().find(|p| p.note == 119).map(|p| p.level);
+    assert_eq!(undo_level(&s), Some(crate::launchkey::Level::Off), "nothing to undo: dark");
+    // Undo from the pad: lit after a store, it takes it back and goes dark.
+    rack_on(&s, "First", 50, 3);
+    assert_eq!(undo_level(&s), Some(crate::launchkey::Level::Dim), "a store to undo: lit");
+    s.hardware(Action::QuickRackUndo).unwrap();
+    assert_eq!((quick_state(&s).buttons[3].rack.clone(), undo_level(&s)), (None, Some(crate::launchkey::Level::Off)));
     // The lamps follow the buttons: stored blue, loaded red.
     rack_on(&s, "Ballad", 60, 0);
     rack_on(&s, "Loud", 20, 1);
@@ -608,16 +615,43 @@ fn a_store_over_the_lit_rack_keeps_previous_and_undoes() {
     assert_eq!(rack_id(&s, &prev), prev_id);
     assert!(!st.live_rack.modified);
 
+    let racks = st.racks.len();
     s.send(QuickRackCmd::UndoQuickRackStore).unwrap();
     let st = s.state();
     assert_eq!(st.quick_racks.undo, None);
     assert!(!st.racks.iter().any(|r| r.name == prev), "the copy goes");
-    assert_eq!((st.live_rack.id.as_deref(), st.live_rack.modified, volume(&s, 0)), (Some(loud.as_str()), true, 34), "playing as stored, unsaved");
+    // Loud reloads as before the last store: what plays matches the rack, and with no
+    // changes since the store, nothing is kept aside.
+    assert_eq!((st.live_rack.id.as_deref(), st.live_rack.modified, volume(&s, 0)), (Some(loud.as_str()), false, 33), "reloaded as it was");
+    assert!(!st.racks.iter().any(|r| r.name.starts_with(RECOVERED)));
+    assert_eq!(st.racks.len(), racks - 1, "only the copy went");
     assert_eq!(st.quick_racks.buttons[1].rack.as_deref(), Some(loud.as_str()));
     assert!(s.send(QuickRackCmd::UndoQuickRackStore).is_err(), "nothing left to undo");
-    // Loud's file is as before the last store.
-    s.send(QuickRackCmd::PressQuickRack { slot: 1, discard: true }).unwrap();
-    assert_eq!((volume(&s, 0), s.state().live_rack.modified), (33, false));
+    drop(s);
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+/// Undo of a store over the live rack with changes made since: the rack reloads as it
+/// was, and those changes are kept as "Recovered: <name>", as a recall from the hardware
+/// keeps them.
+#[test]
+fn undo_over_the_live_rack_keeps_later_changes_as_recovered() {
+    let d = dir("undo-recovered");
+    let s = session(&d);
+    let loud = rack_on(&s, "Loud", 20, 1);
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 33 }).unwrap();
+    s.hardware(Action::QuickRackHeld(1)).unwrap();
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 50 }).unwrap();
+    assert!(s.state().live_rack.modified);
+
+    s.send(QuickRackCmd::UndoQuickRackStore).unwrap();
+    let st = s.state();
+    assert_eq!(st.quick_racks.undo, None, "undone");
+    assert_eq!((st.live_rack.id.as_deref(), st.live_rack.modified, volume(&s, 0)), (Some(loud.as_str()), false, 20), "Loud as before the store");
+    let recovered = format!("{RECOVERED}Loud");
+    assert!(st.racks.iter().any(|r| r.name == recovered), "the later change kept aside");
+    s.send(RackCmd::LoadRack { id: rack_id(&s, &recovered), discard: true }).unwrap();
+    assert_eq!(volume(&s, 0), 50);
     drop(s);
     let _ = std::fs::remove_dir_all(&d);
 }

@@ -53,7 +53,7 @@ mod tests {
     }
 
     /// From every page, the pads are the Racks page's: Quick Racks 1-8 (marked as tapped
-    /// under the hold), OTS 1-4, bank -/+, Store, and the spare pad does nothing.
+    /// under the hold), OTS 1-4, bank -/+, Store and Undo.
     #[test]
     fn the_pads_are_the_racks_page_from_every_page() {
         for page in [Page::Sections, Page::Racks, Page::Chord, Page::MultiPads, Page::Setup] {
@@ -67,7 +67,7 @@ mod tests {
             assert_eq!(pad(page, 116), Some(Action::QuickRackBank(-1)));
             assert_eq!(pad(page, 117), Some(Action::QuickRackBank(1)));
             assert_eq!(pad(page, 118), Some(Action::QuickRackStore));
-            assert_eq!(pad(page, 119), None);
+            assert_eq!(pad(page, 119), Some(Action::QuickRackUndo));
             assert_eq!(pad(page, 60), None, "not a pad");
         }
     }

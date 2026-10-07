@@ -137,7 +137,8 @@ still owes one playtest set on it; it doesn't block the contract PR.
 - **Sound numbers:** favourites 1–n, then the Library's category order. Adding a favourite
   renumbers what follows; the display and the Library show the number.
 - **OTS and Quick Racks share one pad page, "Racks":** top row Quick Racks 1–8 of the bank
-  on view, bottom row OTS 1–4, bank −/+, Store, spare. Hold Sound shows this page on the
+  on view, bottom row OTS 1–4, bank −/+, Store, Undo (`undoQuickRackStore`, dim while
+  there is a store to undo). Hold Sound shows this page on the
   pads from anywhere. Capture: hold Sound + tap the lit rack pad overwrites it, + tap an
   empty pad stores a new rack named from its sounds. Page 3's part on/off pads go (the
   Panel fader buttons have them).

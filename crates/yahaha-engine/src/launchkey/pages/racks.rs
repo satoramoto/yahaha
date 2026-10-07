@@ -1,5 +1,5 @@
 //! The Racks page (orange): Quick Racks 1-8 of the bank on view on the top row (docs/racks.md),
-//! OTS 1-4, bank -/+ and Store on the bottom. Holding Sound shows it from any page
+//! OTS 1-4, bank -/+, Store and Undo on the bottom. Holding Sound shows it from any page
 //! (`Layer::Sound`). Rack -/+ left the pads: Shift + Track < / > keep them.
 
 use crate::launchkey::{look_led, page_look, Action, Anim, Led, Level, Look, Page, Panel, BLUE, C_QUICK_LOADED, C_QUICK_STORED, DIM_BLUE, DIM_ORANGE, DIM_RED, ORANGE, QUICK_BANKS, RED};
@@ -11,7 +11,8 @@ pub fn pad_action(note: u8) -> Option<Action> {
         116 => Action::QuickRackBank(-1),
         117 => Action::QuickRackBank(1),
         118 => Action::QuickRackStore,
-        // 119 is dark (spare).
+        // Undo the last store; with nothing to undo it says so (and is dark).
+        119 => Action::QuickRackUndo,
         _ => return None,
     })
 }
@@ -60,8 +61,8 @@ pub fn looks(p: &Panel) -> [(u8, Look); 16] {
         (116, pl("BANK -", "⇧O", q.bank > 0, false)),
         (117, pl("BANK +", "⇧P", q.bank < QUICK_BANKS - 1, false)),
         (118, store),
-        // Spare: no label, no action.
-        (119, pl("", "", false, false)),
+        // Undo: lit (dim) only while a store can be undone.
+        (119, pl("UNDO", "", q.undo, false)),
     ]
 }
 
@@ -108,15 +109,16 @@ mod tests {
         }
     }
 
-    /// `looks` and `leds` cover the 16 pads in pad order, and every pad but the spare acts.
+    /// `looks` and `leds` cover the 16 pads in pad order, and every pad acts.
     #[test]
     fn looks_and_leds_cover_the_pads_in_order() {
         let p = panel(QuickPanel::default(), 4, 0);
         assert_eq!(looks(&p).map(|(n, _)| n), PADS);
         assert_eq!(leds(&p).map(|(n, _)| n), PADS);
         for n in PADS {
-            assert_eq!(pad_action(n).is_some(), n != 119, "note {n}");
+            assert!(pad_action(n).is_some(), "note {n}");
         }
+        assert_eq!(pad_action(119), Some(Action::QuickRackUndo));
     }
 
     /// Each Quick Rack pad reads its own bit: its label and key, blue when stored, red
@@ -149,7 +151,7 @@ mod tests {
     /// The bits are of the bank on view: the bank number alone doesn't change the top row.
     #[test]
     fn top_row_ignores_the_bank_number() {
-        let quick = QuickPanel { stored: 0b1100_0011, loaded: 0b10, bank: 0, store: false };
+        let quick = QuickPanel { stored: 0b1100_0011, loaded: 0b10, bank: 0, store: false, undo: false };
         let top = |bank| looks(&panel(QuickPanel { bank, ..quick }, 0, 0))[..8].to_vec();
         for bank in 1..QUICK_BANKS {
             assert_eq!(top(bank), top(0), "bank {bank}");
@@ -160,7 +162,7 @@ mod tests {
     /// bottom row's other pads are unchanged. Unarmed, Store is dim orange.
     #[test]
     fn store_armed_flashes_every_quick_rack() {
-        let quick = QuickPanel { stored: 0b0000_0101, loaded: 0b0000_0100, bank: 3, store: false };
+        let quick = QuickPanel { stored: 0b0000_0101, loaded: 0b0000_0100, bank: 3, store: false, undo: false };
         let idle = panel(quick, 2, 1);
         let armed = panel(QuickPanel { store: true, ..quick }, 2, 1);
         for note in 96..=103 {
@@ -214,14 +216,21 @@ mod tests {
         }
     }
 
-    /// The spare stays dark and unlabelled whatever the panel holds.
+    /// Undo lights (dim orange) only while a store can be undone, whatever else the panel
+    /// holds; otherwise it is dark.
     #[test]
-    fn spare_is_always_dark() {
-        let full = QuickPanel { stored: 0xff, loaded: 0x01, bank: 4, store: true };
+    fn undo_lights_only_while_a_store_can_be_undone() {
+        let full = QuickPanel { stored: 0xff, loaded: 0x01, bank: 4, store: true, undo: false };
         for p in [panel(QuickPanel::default(), 0, 0), panel(full, 4, 4)] {
             let l = look(&p, 119);
-            assert_eq!((l.label, l.key, l.level), ("", "", Level::Off));
+            assert_eq!((l.label, l.key, l.level), ("UNDO", "", Level::Off));
             assert_eq!(led(&p, 119), Led::Solid(OFF));
+        }
+        for q in [QuickPanel { undo: true, ..QuickPanel::default() }, QuickPanel { undo: true, ..full }] {
+            let p = panel(q, 4, 4);
+            let l = look(&p, 119);
+            assert_eq!((l.label, l.rgb, l.level, l.anim), ("UNDO", C_PAGE_RACKS, Level::Dim, Anim::Solid));
+            assert_eq!(led(&p, 119), Led::Solid(DIM_ORANGE));
         }
     }
 
@@ -229,7 +238,7 @@ mod tests {
     /// (only ever the page's orange) orange, each at the look's level and animation.
     #[test]
     fn leds_map_colour_by_look() {
-        let quick = QuickPanel { stored: 0b0110_1011, loaded: 0b0000_1000, bank: 5, store: false };
+        let quick = QuickPanel { stored: 0b0110_1011, loaded: 0b0000_1000, bank: 5, store: false, undo: true };
         for store in [false, true] {
             let p = panel(QuickPanel { store, ..quick }, 3, 2);
             for ((note, l), (led_note, got)) in looks(&p).into_iter().zip(leds(&p)) {

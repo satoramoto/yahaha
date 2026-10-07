@@ -424,8 +424,10 @@ export type QuickRackCmd =
   /** View bank `bank` (0 = A, 7 = H); refused outside. */
   | { type: 'setQuickRackBank'; bank: number }
   /** Undo the last store (`quickRacks.undo`): the button gets back what it held, and a rack
-   * saved over gets back what its "Previous: <name>" copy kept (that copy goes). Refused
-   * with nothing to undo. */
+   * saved over gets back what its "Previous: <name>" copy kept (that copy goes); if that
+   * rack is the live rack, it reloads as it was (`liveRack.modified` false), unsaved changes
+   * made since the store first kept as a rack "Recovered: <name>". Refused with nothing to
+   * undo. The Racks pad page's bottom-right pad sends it, lit while there is a store to undo. */
   | { type: 'undoQuickRackStore' }
   /** Store: arm (or disarm) it for the next button press. Disarming lets a waiting button go. */
   | { type: 'toggleQuickRackStore' }
@@ -1389,6 +1391,10 @@ export interface SurfaceState {
   trackNext: Neighbour | null
   /** The beat clocks (see ClockState). */
   clock: ClockState
+  /** Counts the part selects made on the Launchkey (Shift + fader button 1–4), wrapping
+   * (u32); the app opens the Channel page on the selected part when it moves. Never moves
+   * on `selectPart` from the app, F1–F4, a sound pick or a rack or OTS load. Starts at 0. */
+  partSelectSeq: number
 }
 
 /**

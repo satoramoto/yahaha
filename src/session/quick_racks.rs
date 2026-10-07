@@ -25,7 +25,8 @@
 //! - **Undo** (`undoQuickRackStore`) takes back the last store that changed a button or
 //!   saved over a rack (in memory only): the button gets back what it held, and a rack
 //!   saved over gets back its Previous copy's content (the copy then goes, unless a button
-//!   names it). If that rack is the live one, the sound playing stays and shows unsaved.
+//!   names it). If that rack is the live one, it reloads, so what plays is the rack as it
+//!   was; changes made since the store are kept first as a "Recovered: <name>" rack.
 //!   Sounds (plugin presets) the same save wrote over stay saved: Undo restores the rack
 //!   and the button only. A new store replaces the undo; `clearQuickRack` drops it.
 //! - A button names a rack by id, so a rename keeps it; deleting a rack empties its buttons.
@@ -321,8 +322,8 @@ impl Control {
     }
 
     /// `undoQuickRackStore`: the last store taken back. A rack saved over gets its Previous
-    /// copy's content back (if it is the live rack, the sound playing stays and shows
-    /// unsaved); then the button gets back what it held. Sounds (plugin presets) the store's
+    /// copy's content back (if it is the live rack, it reloads, keeping any changes made
+    /// since the store as a Recovered rack); then the button gets back what it held. Sounds (plugin presets) the store's
     /// save wrote over stay saved: only the rack and the button are restored.
     fn undo_quick(&mut self) -> Result<(), CmdError> {
         if let Some(e) = self.quick_refusal() {
@@ -357,9 +358,15 @@ impl Control {
                 return Err(e);
             }
             if self.live_rack.id.as_deref() == Some(id.as_str()) {
-                // The rack's file is as before the store; what plays is the store's.
-                self.live_rack.modified = true;
-                self.live_rack_touched(self.clock_ns);
+                // The rack's file is as before the store: reload it so what plays matches.
+                // Changes made since the store are kept as a Recovered rack, as a recall
+                // from the hardware keeps them.
+                if let Err(e) = self.switch_rack_unattended(Some(id)) {
+                    // The undo is done; what plays is the store's, shown unsaved.
+                    self.live_rack.modified = true;
+                    self.live_rack_touched(self.clock_ns);
+                    self.say(format!("Undid the store, but the rack didn't reload: {e}"), false);
+                }
             }
             if !keep_copy {
                 remove_copy = Some(copy.clone());
@@ -432,6 +439,7 @@ impl Control {
     /// (`storeRack`); otherwise it is the plain press (a recall, or the armed Store).
     pub(super) fn apply_hardware(&mut self, a: Action) -> Result<(), CmdError> {
         self.hardware = true;
+        let part_select = matches!(a, Action::SelectPart(_));
         let cmd = match a {
             Action::QuickRackHeld(slot) if !self.quick.store && (slot as usize) < SLOTS && self.sound_tap_captures(slot) => {
                 QuickRackCmd::StoreRack { slot }.into()
@@ -440,6 +448,11 @@ impl Control {
         };
         let r = self.apply(cmd);
         self.hardware = false;
+        // A part select on the Launchkey (Shift + fader button 1-4) opens the Channel page
+        // in the app; `selectPart` sent by the app never comes this way.
+        if part_select && r.is_ok() {
+            self.part_select_seq = self.part_select_seq.wrapping_add(1);
+        }
         r
     }
 
@@ -480,7 +493,7 @@ impl Control {
     pub(super) fn quick_panel(&self) -> QuickPanel {
         let q = &self.quick;
         let live = self.live_rack.id.as_deref();
-        let mut p = QuickPanel { bank: q.bank, store: q.store, ..QuickPanel::default() };
+        let mut p = QuickPanel { bank: q.bank, store: q.store, undo: q.undo.is_some(), ..QuickPanel::default() };
         for s in 0..SLOTS {
             if let Some(id) = q.get(q.bank, s as u8) {
                 p.stored |= 1 << s;

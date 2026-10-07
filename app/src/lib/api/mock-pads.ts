@@ -109,7 +109,8 @@ function setupPads(s: AppState): Pad[] {
 const QUICK_KEYS = ['⇧Q', '⇧W', '⇧E', '⇧R', '⇧T', '⇧Y', '⇧U', '⇧I']
 
 /** Page Racks (`racks_looks`, launchkey/pages/racks.rs): Quick Racks 1–8 of the bank on
- * view on the top row; OTS 1–4, Bank −/+ and Store on the bottom row, the last pad dark.
+ * view on the top row; OTS 1–4, Bank −/+, Store and Undo on the bottom row. Undo is dim
+ * while there is a store to undo and dark otherwise; it acts either way ("Nothing to undo").
  * Hold Sound shows it from any page.
  *
  * `sound`: Sound is held, so the lit Quick Rack pad and the empty ones (or ones whose rack
@@ -140,7 +141,7 @@ function racksPads(s: AppState, sound = false): Pad[] {
     q.store
       ? pad(118, 'STORE', 'F5', { type: 'toggleQuickRackStore' }, look(QUICK_LOADED, 'bright', 'flash'))
       : p(118, 'STORE', 'F5', { type: 'toggleQuickRackStore' }, true, false),
-    darkPad('racks', 119),
+    pad(119, 'UNDO', '', { type: 'undoQuickRackStore' }, look(PAGE_RGB.racks, q.undo ? 'dim' : 'off')),
   ]
 }
 

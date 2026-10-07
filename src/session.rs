@@ -393,6 +393,9 @@ struct Control {
     /// The command being applied came from the Launchkey or a pedal, which have no dialog
     /// (a rack switch keeps unsaved changes as a Recovered rack instead of asking).
     hardware: bool,
+    /// Hardware part selects so far (`surface.partSelectSeq`): the app opens the Channel
+    /// page when it moves.
+    part_select_seq: u32,
 }
 
 /// The pad flash clock: `beats` at `ns`, moving on at `bpm`.
@@ -984,6 +987,7 @@ fn assemble(opts: &Options, engine_out: live::Out, input_out: live::Out, offline
         quick: quick_racks::QuickCtl::open(opts.data_dir.as_deref()),
         style_racks: style_racks::StyleRacksCtl::open(opts.data_dir.as_deref()),
         hardware: false,
+        part_select_seq: 0,
     };
     let mut control = control;
     control.restore_settings(opts);

@@ -1727,6 +1727,8 @@ impl MockSession {
         let t = &st.transport;
         SurfaceState {
             shift: false,
+            // The mock has no Launchkey: no hardware part select ever comes.
+            part_select_seq: 0,
             layer: self.layer,
             controls,
             faders,
@@ -3917,11 +3919,11 @@ mod tests {
         assert_eq!(pads.len(), 16);
         assert_eq!((pads[1].rgb, pads[0].level), ([127, 0, 0], Level::Off));
         let labels: Vec<&str> = pads[8..].iter().map(|p| p.label.as_str()).collect();
-        assert_eq!((pads[0].label.as_str(), labels), ("QUICK 1", vec!["OTS 1", "OTS 2", "OTS 3", "OTS 4", "BANK -", "BANK +", "STORE", ""]));
+        assert_eq!((pads[0].label.as_str(), labels), ("QUICK 1", vec!["OTS 1", "OTS 2", "OTS 3", "OTS 4", "BANK -", "BANK +", "STORE", "UNDO"]));
         assert_eq!(pads[1].action, Some(AppCmd::QuickRacks(QuickRackCmd::PressQuickRack { slot: 1, discard: false })));
         assert_eq!(pads[8].action, Some(AppCmd::Ots(OtsCmd::RecallOts { index: 0 })));
         assert_eq!(pads[14].action, Some(AppCmd::QuickRacks(QuickRackCmd::ToggleQuickRackStore)));
-        assert_eq!(pads[15].action, None, "the spare pad");
+        assert_eq!(pads[15].action, Some(AppCmd::QuickRacks(QuickRackCmd::UndoQuickRackStore)), "Undo");
         let n = m.state.ots.settings.len();
         assert!(pads[8..12].iter().enumerate().all(|(i, p)| (p.level == Level::Off) == (i >= n)), "OTS past the style's count are dark");
         m.send(QuickRackCmd::StepQuickRackBank { delta: 1 });
@@ -4047,8 +4049,9 @@ mod tests {
     }
 
     /// Saved over the lit button's own rack with changes: its old content is kept as
-    /// "Previous: <name>" (one of that name, replaced); the undo drops it and the live rack
-    /// counts as changed again.
+    /// "Previous: <name>" (one of that name, replaced); the undo drops it and reloads the
+    /// live rack, keeping changes made since the store as "Recovered: <name>". The Racks
+    /// page's Undo pad (119) is lit only while there is a store to undo.
     #[test]
     fn undo_a_store_over_the_lit_rack_drops_its_previous_copy() {
         let mut m = MockSession::new();
@@ -4064,10 +4067,18 @@ mod tests {
             assert_eq!(m.state.quick_racks.undo, Some(undo));
             assert_eq!((m.state.racks.len(), previous(&m), m.state.live_rack.modified), (racks + 1, 1, false));
         }
+        m.send(PadsCmd::SetPadPage { page: Page::Racks });
+        let undo_pad = |m: &MockSession| m.state.pads.pads.iter().find(|p| p.note == 119).map(|p| (p.label.clone(), p.level)).unwrap();
+        assert_eq!(undo_pad(&m), ("UNDO".into(), Level::Dim), "lit: a store to undo");
+        // A change since the store: kept aside as the rack reloads.
+        m.send(PartsCmd::SetPartPan { part: 0, pan: 30 });
         m.send(QuickRackCmd::UndoQuickRackStore);
         let q = &m.state.quick_racks;
-        assert_eq!((q.buttons[0].rack.clone(), q.undo.clone()), (ballad, None));
-        assert_eq!((m.state.racks.len(), previous(&m), m.state.live_rack.modified), (racks, 0, true));
+        assert_eq!((q.buttons[0].rack.clone(), q.undo.clone()), (ballad.clone(), None));
+        assert_eq!((m.state.racks.len(), previous(&m)), (racks + 1, 0), "the copy went; a Recovered rack came");
+        assert!(m.state.racks.iter().any(|r| r.name == "Recovered: Ballad"));
+        assert_eq!((m.state.live_rack.id.clone(), m.state.live_rack.modified), (ballad, false), "reloaded");
+        assert_eq!(undo_pad(&m), ("UNDO".into(), Level::Off), "dark: nothing to undo");
     }
 
     /// `setLayer {fader}`: the pads are the fader picker from any page, the current page and
