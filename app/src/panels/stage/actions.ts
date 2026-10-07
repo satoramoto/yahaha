@@ -114,8 +114,23 @@ export function stageActions(d: StageDeps): StageActions {
     if (!faderHeld) return
     faderHeld = false
     if (typeof window !== 'undefined') window.removeEventListener('blur', releaseFader)
-    const back = layerBeforeHold.type === 'fader' ? { type: 'none' as const } : layerBeforeHold
+    // Releasing one hold returns to the other while it is still down: a Sound lamp held
+    // now wins over whatever was active when the master hold began.
+    const back = soundHeld
+      ? { type: 'sound' as const }
+      : layerBeforeHold.type === 'fader'
+        ? { type: 'none' as const }
+        : layerBeforeHold
     send({ type: 'setLayer', layer: back })
+  }
+
+  function releaseSound() {
+    if (!soundHeld) return
+    soundHeld = false
+    if (typeof window !== 'undefined') window.removeEventListener('blur', releaseSound)
+    // The master hold still down: back to the fader picker, and its release to none.
+    if (faderHeld) layerBeforeHold = { type: 'none' }
+    send({ type: 'setLayer', layer: faderHeld ? { type: 'fader' } : { type: 'none' } })
   }
 
   return {
@@ -174,6 +189,7 @@ export function stageActions(d: StageDeps): StageActions {
       }
       if (id === 'sound') {
         soundHeld = false
+        if (typeof window !== 'undefined') window.removeEventListener('blur', releaseSound)
         return send({ type: 'setLayer', layer: s.surface.layer.type === 'sound' ? { type: 'none' } : { type: 'sound' } })
       }
       if (id === 'harmArp') return send({ type: 'toggleHarmonyArp' })
@@ -188,15 +204,14 @@ export function stageActions(d: StageDeps): StageActions {
       if (part >= 0) return send({ type: 'setLayer', layer: { type: 'swap', part } })
       if (id === 'sound' && s.surface.layer.type !== 'sound') {
         soundHeld = true
+        // A window blur mid-hold (the release never arrives) ends the hold too.
+        if (typeof window !== 'undefined') window.addEventListener('blur', releaseSound)
         return send({ type: 'setLayer', layer: { type: 'sound' } })
       }
       if (id === 'looper') return send({ type: 'looperRec' })
     },
     onlamprelease: (id) => {
-      if (id === 'sound' && soundHeld) {
-        soundHeld = false
-        send({ type: 'setLayer', layer: { type: 'none' } })
-      }
+      if (id === 'sound') releaseSound()
     },
     // The master fader's button (#558): a tap (on release) toggles the page, Shift steps the
     // layer; holding it shows the fader picker on the pads until it is let go, as on the

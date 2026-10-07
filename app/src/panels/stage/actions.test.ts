@@ -311,6 +311,23 @@ describe('faders', () => {
     expect(take().sent).toEqual([{ type: 'setLayer', layer: { type: 'sound' } }])
   })
 
+  it('releasing one hold returns to the other while it is still down', () => {
+    const { deps, actions, take } = fake()
+    actions.onpagelong()
+    deps.state.surface.layer = { type: 'fader' }
+    actions.onlamplong('sound')
+    deps.state.surface.layer = { type: 'sound' }
+    take()
+    actions.onpagerelease()
+    expect(take().sent).toEqual([{ type: 'setLayer', layer: { type: 'sound' } }])
+    actions.onpagelong()
+    take()
+    actions.onlamprelease('sound')
+    expect(take().sent).toEqual([{ type: 'setLayer', layer: { type: 'fader' } }])
+    actions.onpagerelease()
+    expect(take().sent).toEqual([{ type: 'setLayer', layer: { type: 'none' } }])
+  })
+
   it('a window blur mid-hold ends the hold', () => {
     const { actions, take } = fake()
     actions.onpagelong()
@@ -318,6 +335,16 @@ describe('faders', () => {
     window.dispatchEvent(new Event('blur'))
     expect(take().sent).toEqual([{ type: 'setLayer', layer: { type: 'none' } }])
     actions.onpagerelease()
+    expect(take().sent).toEqual([])
+  })
+
+  it('a window blur mid Sound hold ends the hold', () => {
+    const { actions, take } = fake()
+    actions.onlamplong('sound')
+    take()
+    window.dispatchEvent(new Event('blur'))
+    expect(take().sent).toEqual([{ type: 'setLayer', layer: { type: 'none' } }])
+    actions.onlamprelease('sound')
     expect(take().sent).toEqual([])
   })
 
