@@ -420,6 +420,10 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **CPU, all tracks** | Every track's render time together, as a share of the audio buffer, over the last second, and the slowest single buffer (pk). The effects bus and the output are not in it. Near 100% at the peak, the audio drops out: raise the audio buffer in Settings, or find the expensive track on its strip. | — | — | — |
 | **A fader is the channel's CC 7** | Each fader shows and sends exactly its channel's CC 7 (0–127), with no hidden gain anywhere, so the MIDI output and the synth hear the same level. Loading a style sets the Style faders to the style's own levels. While a Fade In/Out runs, the Style parts' CC 7 goes out scaled by the fade, and the faders stay where they are. | Mixer › Volume | — | The faders, on both fader pages |
 | **Waiting for the fader** | This level moved without the Launchkey fader (a style load, an OTS recall, a pattern, a page switch). The hardware fader does nothing until you move it to within 2 of the level, or across it. | — | — | Soft takeover on every fader |
+| **Part** | Opens this part's channel on the Channel page. A keyboard part (Right 1–3, Left) also becomes the part you play and edit, as its part button does. | Mixer › channel | — | Shift + fader buttons 1–4 (keyboard parts) |
+| **Channel group** | Shows one group of the part's channel: Mix (sound, level, on, solo and sends), EQ & Tone (EQ, the voice's tone offsets and how it plays), Compressor, or Inserts. | Mixer › tabs | — | — |
+| **Sound** | The sound this part plays, with its number in your library. Click to choose another in Library › Sounds, loading into this part. | Voice select | — | — |
+| **Add a send** | Adds a send effect (sends 4–6) of the kind you pick: a reverb, a modulation, a delay or the phaser. Every part can then send to it; the rack keeps it, and the Effects page removes it. | Mixer › Effect › Variation | — | — |
 
 ## Effects
 
