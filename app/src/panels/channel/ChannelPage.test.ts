@@ -40,6 +40,27 @@ describe('ChannelPage', () => {
     expect(screen.getByRole('tab', { name: /^Mix/ }).getAttribute('aria-selected')).toBe('true')
   })
 
+  it('the header shows the open part\'s CPU share from the meters, with its tooltip', async () => {
+    const s = setup()
+    const m = await s.meters()
+    const share = (part: number) => {
+      const ch = part < 4 ? s.state.keyboardParts[part].channel : s.state.mixer.styleParts[part - 4].channel
+      return m.channels.find((c) => c.channel === ch)!.cpu
+    }
+    const shown = () => document.querySelector('[data-tip="mixer.cpu"]')?.textContent?.replace(/\s+/g, ' ').trim()
+    // The page reads the meters when it opens.
+    await vi.waitFor(() => {
+      flushSync()
+      expect(shown()).toBe(`CPU ${(share(0) * 100).toFixed(1)}%`)
+    })
+    expect(share(0)).toBeGreaterThan(0)
+    // Another part open: its own share.
+    ui.selectedPart = 4
+    flushSync()
+    expect(share(4)).not.toBe(share(0))
+    expect(shown()).toBe(`CPU ${(share(4) * 100).toFixed(1)}%`)
+  })
+
   it('Level sends the part\'s volume', async () => {
     const s = setup()
     const before = s.state.keyboardParts[0].volume
