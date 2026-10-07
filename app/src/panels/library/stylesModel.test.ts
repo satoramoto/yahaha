@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MockSession } from '../../lib/api/mock'
 import type { AppCmd, AppState, LibraryEntry, LibraryList } from '../../lib/api/types'
 import type { Category } from '../browser/model'
-import { stylesActions, stylesOrigin, stylesProps, type StylesCursor, type StylesPrefs } from './stylesModel'
+import type { FilePick } from '../../lib/files'
+import { STYLE_FILE, stylesActions, stylesOrigin, stylesProps, type StylesCursor, type StylesPrefs } from './stylesModel'
 
 function entry(id: number, name: string, folder: string, extra: Partial<LibraryEntry> = {}): LibraryEntry {
   return {
@@ -57,7 +58,7 @@ class FakePrefs implements StylesPrefs {
   })
 }
 
-function setup(opts: { running?: boolean; loaded?: number; queued?: number | null } = {}) {
+function setup(opts: { running?: boolean; loaded?: number; queued?: number | null; pick?: (p: FilePick) => Promise<string | null> } = {}) {
   const state: AppState = new MockSession({ demo: false, manual: true }).state
   const lib = library()
   state.style.id = opts.loaded ?? 3
@@ -69,7 +70,7 @@ function setup(opts: { running?: boolean; loaded?: number; queued?: number | nul
   const styles: StylesCursor = { cursor: state.style.id, query: '' }
   const sent: AppCmd[] = []
   const close = vi.fn()
-  const actions = stylesActions({ state: () => state, library: () => lib, send: (c) => sent.push(c), prefs, styles, close, previewDelay: 600 })
+  const actions = stylesActions({ state: () => state, library: () => lib, send: (c) => sent.push(c), prefs, styles, close, previewDelay: 600, pick: opts.pick })
   const props = () => stylesProps(state, lib, styles, prefs)
   return { state, lib, prefs, styles, sent, close, actions, props }
 }
@@ -101,7 +102,7 @@ describe('stylesProps', () => {
     expect(p.rows[6]).toMatchObject({ cells: ['7', 'Late Lounge', 'Swing', '…', '', '…'], dim: true })
     expect(p.cursor).toBe('3')
     expect(p.load).toEqual({ label: 'Load Sunday Drive Pop', name: 'Sunday Drive Pop is loaded', face: 'rest', disabled: true, queues: false })
-    expect(p.canOpenFile).toBe(false)
+    expect(p.canOpenFile).toBe(true)
   })
 
   it('a folder shows its styles with the subfolder, and a remembered subfolder reads as its top folder', () => {
@@ -241,6 +242,39 @@ describe('stylesActions', () => {
     actions.onpreview('2')
     expect(sent[1]).toEqual({ type: 'queueStyle', id: 2 })
     expect(close).not.toHaveBeenCalled()
+  })
+
+  it('Open file… picks a style file, sends loadStylePath with its path and, stopped, goes back to the Stage', async () => {
+    const pick = vi.fn(async () => '/Users/me/Styles/Funk Pop.sty')
+    const { actions, sent, close } = setup({ pick })
+    await actions.onopenfile()
+    expect(pick).toHaveBeenCalledExactlyOnceWith(STYLE_FILE)
+    expect(STYLE_FILE.filter.extensions).toEqual(['sty', 'prs', 'sst', 'bcs', 'pcs', 'pst', 'fps'])
+    expect(sent).toEqual([{ type: 'loadStylePath', path: '/Users/me/Styles/Funk Pop.sty' }])
+    expect(close).toHaveBeenCalledOnce()
+  })
+
+  it('Open file… while running loads and stays on the page; a cancel or a failure sends nothing', async () => {
+    const running = setup({ running: true, pick: async () => '/x/Waltz.prs' })
+    await running.actions.onopenfile()
+    expect(running.sent).toEqual([{ type: 'loadStylePath', path: '/x/Waltz.prs' }])
+    expect(running.close).not.toHaveBeenCalled()
+
+    const cancelled = setup({ pick: async () => null })
+    await cancelled.actions.onopenfile()
+    expect(cancelled.sent).toEqual([])
+    expect(cancelled.close).not.toHaveBeenCalled()
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const failed = setup({
+      pick: async () => {
+        throw new Error('dialog.open not allowed')
+      },
+    })
+    await expect(failed.actions.onopenfile()).resolves.toBeUndefined()
+    expect(failed.sent).toEqual([])
+    expect(warn).toHaveBeenCalledWith("The file picker didn't open: dialog.open not allowed")
+    warn.mockRestore()
   })
 
   it('Shift+Enter while stopped previews, or stops the preview of, an ok style', () => {

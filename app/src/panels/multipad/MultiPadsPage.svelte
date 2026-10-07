@@ -6,7 +6,8 @@
   State: multiPad, mixer.multiPadVolume(Waiting), transport.running, clock.beats. Commands:
   triggerMultiPad, stopMultiPad, stopAllMultiPads, armMultiPad, setMultiPadRepeat,
   setMultiPadChordMatch, loadMultiPad, loadMultiPadPath (Load…, after the system file picker),
-  clearMultiPad, setMultiPadVolume, setMultiPadSynchroStop.
+  clearMultiPad, setMultiPadVolume, setMultiPadSynchroStop. When the file picker fails, the page
+  shows why under the bank tools (MultiPads' `data.error`) until the next request.
 -->
 <script lang="ts">
   import { app, clock } from '../../lib/store.svelte'
@@ -17,10 +18,14 @@
 
   let { tipAction }: PageProps = $props()
 
-  const data = $derived(multiPadsData(app.state, clock.beats))
+  /** Why the last Load… failed (the file picker didn't open); cleared by the next request. */
+  let error = $state<string | null>(null)
+
+  const data = $derived({ ...multiPadsData(app.state, clock.beats), error })
 
   function onchange(change: MultiPadsChange) {
-    if (change.type === 'loadFile') void loadPadFile((cmd) => app.send(cmd))
+    error = null
+    if (change.type === 'loadFile') void loadPadFile((cmd) => app.send(cmd)).then((e) => (error = e))
     else app.send(multiPadsCommand(change))
   }
 </script>

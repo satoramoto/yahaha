@@ -156,7 +156,7 @@ export const LongStopped: Story = {
   },
 }
 
-/** Load… open: the bank files, the one in use the white block. */
+/** Load… open: the bank files, the one in use the white block, then From a file… for a bank anywhere. */
 export const Load: Story = {
   args: { looper: { ...looperBoard, loadOpen: true } },
   play: async ({ canvasElement, args }) => {
@@ -164,6 +164,10 @@ export const Load: Story = {
     const menu = canvas.getByRole('menu', { name: 'Bank files' })
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Ballads' }))
     await expect(args.onlooper).toHaveBeenCalledWith({ type: 'load', path: looperBoard.banks[1].path })
+    const fromFile = within(menu).getByRole('menuitem', { name: 'From a file…' })
+    await expect(fromFile).toHaveAttribute('data-tip', 'looper.load_file')
+    await userEvent.click(fromFile)
+    await expect(args.onlooper).toHaveBeenLastCalledWith({ type: 'loadFile' })
   },
 }
 

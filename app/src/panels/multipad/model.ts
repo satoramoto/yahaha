@@ -2,7 +2,7 @@
 // requests as app commands.
 
 import type { AppCmd, AppState } from '../../lib/api/types'
-import { pickFile, type FilePick } from '../../lib/files'
+import { pickFailure, pickFile, type FilePick } from '../../lib/files'
 import type { MultiPadsChange, MultiPadsData } from '../../ui/MultiPads/types'
 
 /**
@@ -28,10 +28,19 @@ export function multiPadsData(state: AppState, beats: number): MultiPadsData {
 /** What Load… asks the system file picker for. */
 export const PAD_FILE: FilePick = { title: 'Load a Multi Pad bank', filter: { name: 'Multi Pad banks', extensions: ['pad'] } }
 
-/** Load…: opens the system file picker for a `.pad` file and loads the one picked; a cancel sends nothing. */
-export async function loadPadFile(send: (cmd: AppCmd) => void, pick: (p: FilePick) => Promise<string | null> = pickFile): Promise<void> {
-  const path = await pick(PAD_FILE)
+/**
+ * Load…: opens the system file picker for a `.pad` file and loads the one picked; a cancel sends
+ * nothing. Resolves to the line the page shows when the picker failed, else null.
+ */
+export async function loadPadFile(send: (cmd: AppCmd) => void, pick: (p: FilePick) => Promise<string | null> = pickFile): Promise<string | null> {
+  let path: string | null
+  try {
+    path = await pick(PAD_FILE)
+  } catch (e) {
+    return pickFailure(e)
+  }
   if (path) send({ type: 'loadMultiPadPath', path })
+  return null
 }
 
 /** The page's requests that are one command each (Load… opens the file picker first: `loadPadFile`). */

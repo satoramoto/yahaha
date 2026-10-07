@@ -63,5 +63,8 @@ export const multiPadsLoading: MultiPadsData = {
   synchroStop: { styleStop: true, ending: true },
 }
 
+/** No bank, and Load… failed: the file picker didn't open. */
+export const multiPadsLoadFailed: MultiPadsData = { ...multiPadsEmpty, error: "The file picker didn't open: dialog.open not allowed" }
+
 /** No .pad files found. */
 export const multiPadsNoBanks: MultiPadsData = { ...multiPadsEmpty, banks: [] }

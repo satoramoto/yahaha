@@ -4,7 +4,7 @@
 
 import { cleanup, fireEvent, render } from '@testing-library/svelte'
 import { flushSync } from 'svelte'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../../App.svelte'
 import { MockSession } from '../../lib/api/mock'
 import { app, ui } from '../../lib/store.svelte'
@@ -12,6 +12,10 @@ import { stagePage } from '../stage/page.svelte'
 import { libraryNav } from './nav.svelte'
 import { racksState } from './racksState.svelte'
 import { soundsPage } from './soundsState.svelte'
+
+// The system file picker: each test says what it answers (a path, or null for a cancel).
+const picked = vi.hoisted(() => vi.fn<(p: unknown) => Promise<string | null>>(async () => null))
+vi.mock('../../lib/files', async (actual) => ({ ...(await actual<typeof import('../../lib/files')>()), pickFile: picked }))
 
 afterEach(() => {
   cleanup()
@@ -23,6 +27,7 @@ afterEach(() => {
   soundsPage.reset()
   racksState.reset()
   stagePage.page = 'stage'
+  picked.mockClear()
 })
 
 function setup(stopped = false) {
@@ -98,6 +103,23 @@ describe('Library screen', () => {
     step(session)
     expect(session.state.style.name).toBe(name)
     expect(ui.view).toBe('stage')
+  })
+
+  it('Styles: Open file… sends loadStylePath with the picked file; a cancel sends nothing', async () => {
+    const session = setup(true)
+    const sent = vi.spyOn(session, 'send')
+    ui.openLibrary('styles')
+    step(session)
+    const open = page()!.querySelector<HTMLButtonElement>('[data-tip="library.open_file"]')!
+    expect(open.getAttribute('aria-disabled')).not.toBe('true')
+    picked.mockResolvedValueOnce(null)
+    await fireEvent.click(open)
+    await vi.waitFor(() => expect(picked).toHaveBeenCalledOnce())
+    await Promise.resolve()
+    expect(sent.mock.calls.filter(([c]) => c.type === 'loadStylePath')).toEqual([])
+    picked.mockResolvedValueOnce('/Users/me/Styles/Funk Pop.sty')
+    await fireEvent.click(open)
+    await vi.waitFor(() => expect(sent).toHaveBeenCalledWith({ type: 'loadStylePath', path: '/Users/me/Styles/Funk Pop.sty' }))
   })
 
   it('Sounds: a click plays the sound on the target part', async () => {

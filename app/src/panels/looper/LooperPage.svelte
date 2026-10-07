@@ -4,14 +4,15 @@
   state (model.ts looperPage), its changes sent as commands (model.ts looperChange). The Memory /
   Clear latch, the Load list and the typed bank name are the page's own state; the engine owns
   everything else. Commands: looperRec, looperOnOff, selectLooperMemory, storeLooperMemory,
-  clearLooperMemory, newLooperBank, saveLooperBank, loadLooperBank.
+  clearLooperMemory, newLooperBank, saveLooperBank, loadLooperBank (from the list, or after the
+  system file picker: Load › From a file…).
 -->
 <script lang="ts">
   import { app, clock } from '../../lib/store.svelte'
   import Looper from '../../ui/Looper/Looper.svelte'
   import type { LooperChange } from '../../ui/Looper/types'
   import type { PageProps } from '../stage/page.svelte'
-  import { LOCAL_CLOSED, looperChange, looperPage, type LooperLocal } from './model'
+  import { LOCAL_CLOSED, loadBankFile, looperChange, looperPage, type LooperLocal } from './model'
 
   let { tipAction }: PageProps = $props()
 
@@ -23,6 +24,7 @@
     const next = looperChange(change, local, app.state.looper)
     local = next.local
     for (const cmd of next.cmds) app.send(cmd)
+    if (change.type === 'loadFile') void loadBankFile((cmd) => app.send(cmd))
   }
 </script>
 

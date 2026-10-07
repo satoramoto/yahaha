@@ -8,7 +8,14 @@ import type { Tip } from '../tooltips.ts'
 export const looperTips = {
   'looper.load_bank': {
     title: 'Load bank',
-    body: 'Lists the bank files in the ChordLooper folder; pick one to load its eight memories in place of these. The bank in use is the white block. Esc closes the list.',
+    body: 'Lists the bank files in the ChordLooper folder; pick one to load its eight memories in place of these, or From a file… for a bank anywhere. The bank in use is the white block; Esc closes the list.',
+    genos: 'Chord Looper › Open',
+    keys: [],
+    launchkey: null,
+  },
+  'looper.load_file': {
+    title: 'Load a bank file',
+    body: 'Opens a Chord Looper bank (a .looper.json file) from anywhere on your computer and loads its eight memories in place of these. Cancel loads nothing.',
     genos: 'Chord Looper › Open',
     keys: [],
     launchkey: null,

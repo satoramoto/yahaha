@@ -31,7 +31,7 @@ const meta = {
     queued: true,
     canCancel: false,
     load: loadQueued,
-    canOpenFile: false,
+    canOpenFile: true,
     width: 1010,
     height: 560,
     tipAction: fn(),
@@ -128,8 +128,12 @@ export const Board: Story = {
     await expect(load).toHaveAttribute('data-tip', 'browser.queue')
     await userEvent.click(load)
     await expect(args.onload).toHaveBeenLastCalledWith('103')
-    await expect(canvas.getByRole('button', { name: /^Open a style file/ })).toHaveAttribute('aria-disabled', 'true')
-    await expect(args.onopenfile).not.toHaveBeenCalled()
+
+    // Open file… opens the system file picker (the app's part); the button only calls through.
+    const open = canvas.getByRole('button', { name: /^Open a style file/ })
+    await expect(open).toHaveAttribute('data-tip', 'library.open_file')
+    await userEvent.click(open)
+    await expect(args.onopenfile).toHaveBeenCalledOnce()
   },
 }
 

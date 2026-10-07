@@ -45,6 +45,8 @@ export type MultiPadsData = {
   volumeWaiting: boolean
   /** Multi Pad Synchro Stop: looping pads stop when the band stops / an Ending starts. */
   synchroStop: { styleStop: boolean; ending: boolean }
+  /** Load… failed (the file picker didn't open): the line shown under the bank tools. Default: none. */
+  error?: string | null
 }
 
 /** What the page asks for. Pads are 0–3. */

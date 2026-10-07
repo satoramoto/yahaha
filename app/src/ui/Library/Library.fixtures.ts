@@ -46,7 +46,7 @@ export const stylesPage = {
   queued: true,
   canCancel: false,
   load: loadQueued,
-  canOpenFile: false,
+  canOpenFile: true,
 } satisfies Props['styles']
 
 /** Library › Sounds as LibrarySounds-Dark draws it. */

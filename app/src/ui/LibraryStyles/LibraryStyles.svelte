@@ -57,7 +57,7 @@
     canCancel?: boolean
     /** The Load button for the cursor row. */
     load: StyleLoad
-    /** Open file… can open the system file chooser. False draws it absent (no chooser yet). */
+    /** Open file… can open the system file picker. False draws it absent. */
     canOpenFile?: boolean
     /** A fixed width in px. Default: fills its container. */
     width?: number

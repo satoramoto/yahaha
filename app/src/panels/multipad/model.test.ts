@@ -10,7 +10,7 @@ import MultiPadsPage from './MultiPadsPage.svelte'
 
 // The system file picker: each test says what it answers (a path, or null for a cancel).
 const picked = vi.hoisted(() => vi.fn<(p: unknown) => Promise<string | null>>(async () => null))
-vi.mock('../../lib/files', () => ({ pickFile: picked }))
+vi.mock('../../lib/files', async (actual) => ({ ...(await actual<typeof import('../../lib/files')>()), pickFile: picked }))
 
 const noTip: Action<HTMLElement, string> = () => {}
 
@@ -25,6 +25,7 @@ function setup() {
 afterEach(() => {
   cleanup()
   app.detach()
+  picked.mockClear()
 })
 
 const page = () => within(document.querySelector<HTMLElement>('[aria-label="Multi Pads page"]')!)
@@ -77,7 +78,7 @@ describe('Load…', () => {
   it('asks the file picker for a .pad file and loads the path picked', async () => {
     const send = vi.fn()
     const pick = vi.fn(async () => '/Users/me/Pads/Funk.pad')
-    await loadPadFile(send, pick)
+    expect(await loadPadFile(send, pick)).toBeNull()
     expect(pick).toHaveBeenCalledWith(PAD_FILE)
     expect(PAD_FILE.filter.extensions).toEqual(['pad'])
     expect(send).toHaveBeenCalledExactlyOnceWith({ type: 'loadMultiPadPath', path: '/Users/me/Pads/Funk.pad' })
@@ -85,8 +86,28 @@ describe('Load…', () => {
 
   it('sends nothing when the picker is cancelled', async () => {
     const send = vi.fn()
-    await loadPadFile(send, async () => null)
+    expect(await loadPadFile(send, async () => null)).toBeNull()
     expect(send).not.toHaveBeenCalled()
+  })
+
+  it('a picker failure sends nothing and resolves to the line to show', async () => {
+    const send = vi.fn()
+    const failed = await loadPadFile(send, async () => {
+      throw new Error('dialog.open not allowed')
+    })
+    expect(failed).toBe("The file picker didn't open: dialog.open not allowed")
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it('on the page, a picker failure shows why under the bank tools until the next request', async () => {
+    const s = setup()
+    const sent = vi.spyOn(s, 'send')
+    picked.mockRejectedValueOnce(new Error('dialog.open not allowed'))
+    await click('Load a bank file')
+    await vi.waitFor(() => expect(page().getByRole('alert').textContent).toBe("The file picker didn't open: dialog.open not allowed"))
+    expect(sent).not.toHaveBeenCalled()
+    await click('Next bank')
+    expect(page().queryByRole('alert')).toBeNull()
   })
 
   it('the page button opens the picker and sends loadMultiPadPath; a cancel sends nothing', async () => {

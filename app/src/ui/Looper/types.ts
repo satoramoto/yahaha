@@ -107,6 +107,8 @@ export type LooperChange =
   | { type: 'lanePage'; first: number }
   | { type: 'loadOpen'; open: boolean }
   | { type: 'load'; path: string }
+  /** The Load list's "From a file…": pick a bank file anywhere on disk (the app opens the system file picker). */
+  | { type: 'loadFile' }
   | { type: 'saveAsOpen'; open: boolean }
   | { type: 'saveAsName'; name: string }
   | { type: 'save'; overwrite: boolean }

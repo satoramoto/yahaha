@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { pickFile, type FilePick } from './files'
+import { pickFailure, pickFile, type FilePick } from './files'
 
 const open = vi.hoisted(() => vi.fn())
 vi.mock('@tauri-apps/plugin-dialog', () => ({ open }))
@@ -28,5 +28,20 @@ describe('pickFile', () => {
     ;(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {}
     open.mockResolvedValueOnce(null)
     expect(await pickFile(PICK)).toBeNull()
+  })
+
+  it('in the app shell rejects when the dialog fails', async () => {
+    ;(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {}
+    open.mockRejectedValueOnce(new Error('dialog.open not allowed'))
+    await expect(pickFile(PICK)).rejects.toThrow('dialog.open not allowed')
+  })
+})
+
+describe('pickFailure', () => {
+  it("says the picker didn't open, with the reason when there is one", () => {
+    expect(pickFailure(new Error('dialog.open not allowed'))).toBe("The file picker didn't open: dialog.open not allowed")
+    expect(pickFailure('denied')).toBe("The file picker didn't open: denied")
+    expect(pickFailure(undefined)).toBe("The file picker didn't open.")
+    expect(pickFailure(new Error(''))).toBe("The file picker didn't open.")
   })
 })

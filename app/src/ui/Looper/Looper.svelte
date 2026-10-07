@@ -3,7 +3,8 @@
   `--page-height`). Record the chords you play, loop them for the left hand, keep them in eight
   memories of a bank (Looper-Dark.dc.html, without its now-playing block).
 
-  - The header: "Chord Looper", the bank's name, and New bank, Load… (a list of the bank files) and
+  - The header: "Chord Looper", the bank's name, and New bank, Load… (a list of the bank files,
+    then From a file…, a bank file anywhere in the system file picker) and
     Save as… (an inline name field; Overwrite when another bank has that name).
   - The lane: the loop bar by bar, eight at a time: while looping or recording the window that
     holds the current bar; otherwise the window `laneFirst` picks, paged with ◀ ▶ (shown in a loop
@@ -24,7 +25,7 @@
   import type { Action } from 'svelte/action'
   import Button from '../Button/Button.svelte'
   import GroupHeader from '../GroupHeader/GroupHeader.svelte'
-  import { barFace, barName, LANE_BARS, laneFollows, laneStart, lastWindow, loopFace, modeText, READOUT } from './faces'
+  import { barFace, barName, LANE_BARS, laneFollows, laneStart, lastWindow, loopFace, modeText, READOUT, windowStart } from './faces'
   import type { LooperChange, LooperPageData } from './types'
 
   type Props = LooperPageData & {
@@ -57,7 +58,11 @@
     onchange,
   }: Props = $props()
 
-  const send = (c: LooperChange) => onchange?.(c)
+  const send = (c: LooperChange) => {
+    // Paging by hand lets go of the window that was last playing.
+    if (c.type === 'lanePage') held = null
+    onchange?.(c)
+  }
 
   function tipped(node: HTMLElement, key: string) {
     return tipAction?.(node, key)
@@ -65,11 +70,16 @@
 
   const face = $derived(loopFace(mode, hasData))
   const recording = $derived(mode === 'recording' || mode === 'recArmed')
-  /** The lane's window: eight bars from `first`, following the playing bar, else paged. */
-  const first = $derived(laneStart(mode, bar, bars, laneFirst))
+  const follows = $derived(laneFollows(mode))
+  /** The window that was last playing: the lane stays on it when the loop stops, until paged. */
+  let held = $state<number | null>(null)
+  $effect.pre(() => {
+    if (follows && bar !== null) held = windowStart(bar)
+  })
+  /** The lane's window: eight bars from `first`, following the playing bar, else held or paged. */
+  const first = $derived(laneStart(mode, bar, bars, laneFirst, held))
   /** ◀ ▶ page the lane in a loop longer than eight bars; they rest while the lane follows. */
   const paging = $derived(bars > LANE_BARS)
-  const follows = $derived(laneFollows(mode))
   const slots = $derived(
     Array.from({ length: LANE_BARS }, (_, i) => {
       const n = first + i
@@ -359,6 +369,15 @@
       {:else}
         <p class="caption none">No bank files yet: Save as… makes one.</p>
       {/each}
+      <button
+        type="button"
+        role="menuitem"
+        class="bank-item from-file"
+        data-tip="looper.load_file"
+        use:tipped={'looper.load_file'}
+        use:focusIf={banks.length === 0}
+        onclick={() => send({ type: 'loadFile' })}>From a file…</button
+      >
     </div>
   {/if}
 </section>
@@ -763,6 +782,11 @@
   .bank-item.chosen {
     background: var(--neutral);
     color: var(--on-ink);
+  }
+  .from-file {
+    margin-top: var(--space-4);
+    box-shadow: inset 0 var(--line-width) 0 var(--line);
+    border-radius: 0;
   }
   .none {
     margin: 0;

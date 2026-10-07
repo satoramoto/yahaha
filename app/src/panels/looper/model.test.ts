@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { MockSession } from '../../lib/api/mock'
 import type { LooperState } from '../../lib/api/types'
 import { laneStart } from '../../ui/Looper/faces'
-import { barsOf, clashes, LOCAL_CLOSED, looperChange, looperPage, playheadOf } from './model'
+import { BANK_FILE, barsOf, clashes, loadBankFile, LOCAL_CLOSED, looperChange, looperPage, playheadOf } from './model'
 
 const banks: Pick<LooperState, 'banks' | 'bankPath'> = {
   banks: [
@@ -99,6 +99,10 @@ describe('looper page model', () => {
     const loaded = looperChange({ type: 'load', path: '/l/Ballads.clb' }, open, banks)
     expect(loaded.cmds).toEqual([{ type: 'loadLooperBank', path: '/l/Ballads.clb' }])
     expect(loaded.local.loadOpen).toBe(false)
+    // From a file…: the list closes; the page opens the picker (loadBankFile).
+    const fromFile = looperChange({ type: 'loadFile' }, open, banks)
+    expect(fromFile.cmds).toEqual([])
+    expect(fromFile.local.loadOpen).toBe(false)
 
     let local = looperChange({ type: 'saveAsOpen', open: true }, open, banks).local
     expect(local).toEqual({ pick: null, loadOpen: false, saveAs: '', laneFirst: 1 })
@@ -112,5 +116,30 @@ describe('looper page model', () => {
     expect(over.cmds).toEqual([{ type: 'saveLooperBank', name: 'Ballads', overwrite: true }])
     expect(over.local.saveAs).toBeNull()
     expect(looperChange({ type: 'saveAsOpen', open: false }, local, banks).local.saveAs).toBeNull()
+  })
+})
+
+describe('Load › From a file…', () => {
+  it('asks the file picker for a bank file and loads the path picked', async () => {
+    const send = vi.fn()
+    const pick = vi.fn(async () => '/Users/me/Banks/Gig.looper.json')
+    await loadBankFile(send, pick)
+    expect(pick).toHaveBeenCalledExactlyOnceWith(BANK_FILE)
+    expect(BANK_FILE.filter.extensions).toEqual(['json'])
+    expect(send).toHaveBeenCalledExactlyOnceWith({ type: 'loadLooperBank', path: '/Users/me/Banks/Gig.looper.json' })
+  })
+
+  it('a cancel sends nothing; a picker failure sends nothing and does not reject', async () => {
+    const send = vi.fn()
+    await loadBankFile(send, async () => null)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await expect(
+      loadBankFile(send, async () => {
+        throw new Error('dialog.open not allowed')
+      }),
+    ).resolves.toBeUndefined()
+    expect(warn).toHaveBeenCalledWith("The file picker didn't open: dialog.open not allowed")
+    warn.mockRestore()
+    expect(send).not.toHaveBeenCalled()
   })
 })

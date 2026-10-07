@@ -126,6 +126,10 @@
       case 'loadOpen':
         s.loadOpen = c.open
         break
+      case 'loadFile':
+        // The system file picker is the app's: here the list just closes.
+        s.loadOpen = false
+        break
       case 'load': {
         const b = s.banks.find((x) => x.path === c.path)
         if (b) s = { ...s, bankName: b.name, bankPath: b.path, bankSaved: true, loadOpen: false, memory: null }
