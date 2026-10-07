@@ -751,7 +751,13 @@ const plain = (label: string) => label.replaceAll(NBSP, ' ')
 export function pads(input: Pick<StageInput, 'state' | 'beats'>): StageProps['pads'] {
   const { state } = input
   const p = state.pads
-  const sections = p.page === 'sections'
+  // A hold shows its own pads, as the session publishes them in `pads.pads`: Racks while
+  // Sound is held, the fader picker while the master fader's button is. `page` stays the one
+  // underneath (it comes back on release), so the layer decides what's drawn.
+  const layer = state.surface.layer.type
+  const fader = layer === 'fader'
+  const shown: PadPage = layer === 'sound' ? 'racks' : p.page
+  const sections = shown === 'sections' && !fader
   const items = Array.from({ length: 16 }, (_, i): PadItem => {
     const pad = p.pads[i]
     if (sections) {
@@ -782,14 +788,15 @@ export function pads(input: Pick<StageInput, 'state' | 'beats'>): StageProps['pa
     if (!pad || label === '') return { label: '', family: 'util', state: 'dark', tip: 'launchkey.unused', name: `Pad ${i + 1} unused` }
     const face = padFace(pad)
     const word = WORDS[face] ?? ''
-    return { label, family: padHue(pad.rgb) ?? 'util', state: face, tip: FALLBACK_TIP[p.page], name: `${label} (pad ${i + 1})${word}` }
+    return { label, family: padHue(pad.rgb) ?? 'util', state: face, tip: fader ? 'launchkey.unused' : FALLBACK_TIP[shown], name: `${label} (pad ${i + 1})${word}` }
   })
   return {
     pads: items,
     // The page order Pad Bank ▲/▼ walk (Sections, then `settings.padPages`), one tab each.
-    banks: p.pages.map((x) => x.name),
-    bank: Math.max(0, p.pages.findIndex((x) => x.page === p.page)),
-    bankTips: p.pages.map((x) => BANK_TIP[x.page]),
+    // The fader picker isn't a bank: its one tab names it ("Faders").
+    banks: fader ? [] : p.pages.map((x) => x.name),
+    bank: fader ? 0 : Math.max(0, p.pages.findIndex((x) => x.page === shown)),
+    bankTips: fader ? [] : p.pages.map((x) => BANK_TIP[x.page]),
     bankName: p.pageName,
     // No hue legend: on the grid the Pads header has no room beside the bank tabs, and every
     // section pad names its section.

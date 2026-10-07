@@ -630,6 +630,46 @@ describe('pads', () => {
     expect(p.pads[1]).toMatchObject({ label: 'RACK 2', state: 'idle', name: 'RACK 2 (pad 2)' })
     expect(p.pads[2]).toEqual({ label: '', family: 'util', state: 'dark', tip: 'launchkey.unused', name: 'Pad 3 unused' })
   })
+
+  const pages = [
+    { page: 'sections' as const, name: 'Sections' },
+    { page: 'racks' as const, name: 'Racks' },
+  ]
+
+  it('fader hold over Sections: the picker\'s captions and a "Faders" tab, until release', () => {
+    const s = state((st) => {
+      st.pads.page = 'sections'
+      st.pads.pageName = 'Faders'
+      st.pads.pages = pages
+      st.surface.layer = { type: 'fader' }
+      st.pads.pads = Array.from({ length: 16 }, () => pad({ label: '' }))
+      ;['PANEL', 'STYLE'].forEach((l, i) => (st.pads.pads[i] = pad({ label: l, level: i === 0 ? 'bright' : 'dim' })))
+      ;['VOL', 'PAN', 'REV', 'CHO', 'DLY'].forEach((l, i) => (st.pads.pads[8 + i] = pad({ label: l, level: i === 0 ? 'bright' : 'dim' })))
+    })
+    const p = pads({ state: s, beats: 0 })
+    expect(p.pads.map((x) => x.label)).toEqual(['PANEL', 'STYLE', '', '', '', '', '', '', 'VOL', 'PAN', 'REV', 'CHO', 'DLY', '', '', ''])
+    expect(p.pads[0].state).toBe('playing')
+    expect(p.pads[1].state).toBe('idle')
+    expect(p.banks).toEqual([])
+    expect(p.bankName).toBe('Faders')
+    s.surface.layer = { type: 'none' }
+    s.pads.pageName = 'Sections'
+    expect(pads({ state: s, beats: 0 }).pads[0].label).toBe(`Intro${NBSP}I`)
+  })
+
+  it('Sound hold over Sections: the Racks captions and the Racks tab', () => {
+    const s = state((st) => {
+      st.pads.page = 'sections'
+      st.pads.pageName = 'Racks'
+      st.pads.pages = pages
+      st.surface.layer = { type: 'sound' }
+      st.pads.pads = Array.from({ length: 16 }, () => pad({ label: '' }))
+      st.pads.pads[0] = pad({ label: 'QUICK 1', level: 'bright' })
+    })
+    const p = pads({ state: s, beats: 0 })
+    expect(p.pads[0]).toMatchObject({ label: 'QUICK 1', state: 'playing', tip: 'padpage.racks' })
+    expect(p.bank).toBe(1)
+  })
 })
 
 // Each pad page as the mock's engine lights it (mock-pads.ts, the port of src/launchkey.rs
