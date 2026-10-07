@@ -48,6 +48,16 @@ export type OneTouchRow = {
   readOnly: boolean
 }
 
+/** The last store over a Quick Rack, which Undo takes back. */
+export type StoreUndo = {
+  /** The button stored on ("A3"). */
+  code: string
+  /** The rack Undo puts back on it; empty when the button was empty. */
+  name: string
+  /** The "Previous: <name>" rack kept when the store saved over the lit rack; null when none. */
+  previous: string | null
+}
+
 /** A Store waiting for the live rack's save, asked in the page's foot. */
 export type StoreWait = {
   /** The waiting slot's code ("A5"). */

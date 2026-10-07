@@ -3,7 +3,7 @@
   slot). The wiring of ui/QuickRacks: state → props through model.ts, each control → its command.
 
   State: quickRacks, liveRack, racks, ots. Commands: pressQuickRack, storeRack, clearQuickRack,
-  stepQuickRackBank, stepQuickRack, toggleQuickRackStore, saveRack / saveRackAs (a waiting Store),
+  setQuickRackBank, undoQuickRackStore, stepQuickRack, toggleQuickRackStore, saveRack / saveRackAs (a waiting Store),
   recallOts, setOtsRack / clearOtsRack, toggleOtsLink, setOtsLinkTiming. Library › Racks opens the
   Library on its Racks page, where the rack files are browsed. The rack prompts (unsaved changes,
   sound names) are asked in the Rack drawer, which opens when one appears (openRackDrawerOnPrompt).
@@ -12,7 +12,7 @@
   import { app, ui } from '../../lib/store.svelte'
   import QuickRacks from '../../ui/QuickRacks/QuickRacks.svelte'
   import type { PageProps } from '../stage/page.svelte'
-  import { bankCmds, clearCmd, otsRackCmd, quickRacksView, saveCmd, slotCmd, storeCmd, timingCmd } from './model'
+  import { bankCmd, clearCmd, otsRackCmd, quickRacksView, saveCmd, slotCmd, storeCmd, timingCmd, undoCmd } from './model'
   import { openRackDrawerOnPrompt } from './rackPromptDrawer.svelte'
 
   let { tipAction }: PageProps = $props()
@@ -33,7 +33,7 @@
 <QuickRacks
   {...view}
   {tipAction}
-  onbank={(to) => bankCmds(app.state.quickRacks.bank, to).forEach((c) => app.send(c))}
+  onbank={(to) => app.send(bankCmd(to))}
   onstep={(delta) => app.send({ type: 'stepQuickRack', delta })}
   onstore={() => app.send({ type: 'toggleQuickRackStore' })}
   onslot={(i) => app.send(slotCmd(i))}
@@ -47,4 +47,5 @@
   onname={(name) => (rackName = name)}
   onsave={() => app.send(saveCmd(app.state, rackName))}
   oncancel={() => app.send({ type: 'toggleQuickRackStore' })}
+  onundo={() => app.send(undoCmd)}
 />

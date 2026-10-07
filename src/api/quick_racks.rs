@@ -10,8 +10,10 @@ use serde::{Deserialize, Serialize};
 pub enum QuickRackCmd {
     /// Press a button. With Store armed, store the live rack on it (a rack with unsaved
     /// changes, or one never saved, waits for the save: `quickRacks.storeWaiting`).
-    /// Otherwise load its rack as `loadRack` does, with the same guard and `discard`. Slots
-    /// 8 and 9 run on into the next bank's 1 and 2 (the Regist 9-10 pedal functions).
+    /// Otherwise load its rack as `loadRack` does, with the same guard and `discard`; on the
+    /// lit button (the live rack's own) it recalls that rack clean with no prompt, keeping
+    /// unsaved changes as "Recovered: <name>", as the hardware does. Slots 8 and 9 run on
+    /// into the next bank's 1 and 2 (the Regist 9-10 pedal functions).
     PressQuickRack {
         slot: u8,
         #[serde(default, skip_serializing_if = "std::ops::Not::not")]
@@ -19,6 +21,11 @@ pub enum QuickRackCmd {
     },
     /// Bank -/+: view the previous/next bank (A-H; it stops at either end).
     StepQuickRackBank { delta: i8 },
+    /// View bank `bank` (0 = A, 7 = H).
+    SetQuickRackBank { bank: u8 },
+    /// Undo the last store (`quickRacks.undo`): the button gets back what it held, and a
+    /// rack saved over gets back what its "Previous: <name>" copy kept.
+    UndoQuickRackStore,
     /// Store: arm (or disarm) it for the next button press.
     ToggleQuickRackStore,
     /// Store the live rack on button `slot` (0-7) of the bank on view, overwriting what is
@@ -52,6 +59,24 @@ pub struct QuickRacksState {
     /// Quick Racks can't be changed: the file is from a newer yahaha, or there is no data
     /// folder.
     pub read_only: bool,
+    /// The last store, which `undoQuickRackStore` takes back; null when there is none.
+    #[serde(default)]
+    pub undo: Option<QuickRackUndo>,
+}
+
+/// The store `undoQuickRackStore` takes back.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QuickRackUndo {
+    /// The button stored on: its bank (0 = A) and slot (0-7).
+    pub bank: u8,
+    pub slot: u8,
+    /// The rack's name the undo puts back on the button; empty when the button was empty
+    /// (or its rack is gone).
+    pub name: String,
+    /// The "Previous: <name>" rack kept when the store saved over the button's own rack;
+    /// null when no rack was saved over.
+    pub previous: Option<String>,
 }
 
 /// One button.

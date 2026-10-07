@@ -7,7 +7,7 @@ use crate::controllers::Function;
 use crate::launchkey::{self, Action, Page};
 use crate::racks::quick::{self, QuickRacks};
 use crate::session::live_rack::FILE;
-use crate::session::rack_cmds::RECOVERED;
+use crate::session::rack_cmds::{PREVIOUS, RECOVERED};
 use crate::session::testing::{data_dir, write_style};
 use crate::session::{Options, Session};
 use std::collections::BTreeMap;
@@ -394,7 +394,9 @@ fn hold_sound_and_tap_captures_the_live_rack() {
     tap(&s, 97);
     let st = s.state();
     assert_eq!((st.live_rack.id.as_deref(), st.live_rack.modified), (Some(loud.as_str()), false), "saved over Loud");
-    assert_eq!(st.racks.len(), racks, "no new rack");
+    assert_eq!(st.racks.len(), racks + 1, "no new rack but Loud's Previous copy");
+    assert!(st.racks.iter().any(|r| r.name == format!("{PREVIOUS}Loud")));
+    let racks = racks + 1;
     assert_eq!(st.quick_racks.buttons[1].rack.as_deref(), Some(loud.as_str()));
     assert_eq!(display_text(Touch::Pad(97), &st), Some(("Pads: Racks".into(), "QUICK 2".into(), "Loud".into())));
 
@@ -489,7 +491,8 @@ fn a_held_tap_captures_although_the_hold_is_let_go_by_then() {
     s.hardware(Action::QuickRackHeld(1)).unwrap();
     let st = s.state();
     assert_eq!((st.live_rack.id.as_deref(), st.live_rack.modified), (Some(loud.as_str()), false), "saved over Loud");
-    assert_eq!(st.racks.len(), racks);
+    assert_eq!(st.racks.len(), racks + 1, "only Loud's Previous copy is new");
+    let racks = racks + 1;
 
     // An empty pad (4): the changed live rack is saved as a new rack and put there.
     s.send(PartsCmd::SetPartVolume { part: 0, volume: 44 }).unwrap();
@@ -531,6 +534,215 @@ fn a_plain_press_under_the_sound_layer_only_loads() {
     let st = s.state();
     assert_eq!((volume(&s, 0), st.live_rack.modified), (20, false), "Loud loaded as saved, not saved over");
     assert!(st.racks.iter().any(|r| r.name == format!("{RECOVERED}Loud")), "the changes kept aside");
+    drop(s);
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+/// From the app, a press on the lit button recalls its rack clean with no prompt, keeping
+/// the changes as a Recovered rack, as the hardware does; with `discard` it keeps none.
+/// Another button still asks first.
+#[test]
+fn an_app_press_on_the_lit_button_recalls_it_clean() {
+    let d = dir("lit-press");
+    let s = session(&d);
+    let ballad = rack_on(&s, "Ballad", 60, 0);
+    rack_on(&s, "Loud", 20, 1);
+    press(&s, 0).unwrap();
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 33 }).unwrap();
+    assert_eq!(press(&s, 1), Err(CmdError::UnsavedChanges), "another button: the guard");
+    s.send(RackCmd::DismissRackPrompt).unwrap();
+    assert_eq!(volume(&s, 0), 33);
+
+    press(&s, 0).unwrap();
+    let st = s.state();
+    assert_eq!((st.live_rack.id.as_deref(), st.live_rack.modified, volume(&s, 0)), (Some(ballad.as_str()), false, 60));
+    assert!(st.live_rack.prompt.is_none());
+    assert!(st.racks.iter().any(|r| r.name == format!("{RECOVERED}Ballad")), "the changes kept aside");
+
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 34 }).unwrap();
+    let racks = s.state().racks.len();
+    s.send(QuickRackCmd::PressQuickRack { slot: 0, discard: true }).unwrap();
+    let st = s.state();
+    assert_eq!((st.live_rack.modified, volume(&s, 0), st.racks.len()), (false, 60, racks), "discard: no Recovered rack");
+    drop(s);
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+#[test]
+fn set_quick_rack_bank_views_that_bank() {
+    let d = dir("set-bank");
+    let s = session(&d);
+    s.send(QuickRackCmd::SetQuickRackBank { bank: 3 }).unwrap();
+    assert_eq!(quick_state(&s).bank, 3);
+    s.send(QuickRackCmd::SetQuickRackBank { bank: 7 }).unwrap();
+    assert_eq!(quick_state(&s).bank, 7);
+    assert!(s.send(QuickRackCmd::SetQuickRackBank { bank: 8 }).is_err());
+    assert_eq!(quick_state(&s).bank, 7, "unchanged");
+    drop(s);
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+/// The Sound hold tap on the lit pad saves over its rack, keeping the rack as it was as
+/// "Previous: <name>" (one per rack: a second store overwrites it). Undo puts that back
+/// in the rack and drops the copy; the sound playing stays, now unsaved.
+#[test]
+fn a_store_over_the_lit_rack_keeps_previous_and_undoes() {
+    let d = dir("undo-previous");
+    let s = session(&d);
+    rack_on(&s, "Ballad", 60, 0);
+    let loud = rack_on(&s, "Loud", 20, 1);
+    let prev = format!("{PREVIOUS}Loud");
+
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 33 }).unwrap();
+    s.hardware(Action::QuickRackHeld(1)).unwrap();
+    let st = s.state();
+    assert_eq!((st.live_rack.id.as_deref(), st.live_rack.modified), (Some(loud.as_str()), false), "saved over Loud");
+    let prev_id = rack_id(&s, &prev);
+    assert_eq!(st.quick_racks.undo, Some(QuickRackUndo { bank: 0, slot: 1, name: "Loud".into(), previous: Some(prev.clone()) }));
+
+    // Again: the one Previous is overwritten, with its id kept; it now holds 33.
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 34 }).unwrap();
+    s.hardware(Action::QuickRackHeld(1)).unwrap();
+    let st = s.state();
+    assert_eq!(st.racks.iter().filter(|r| r.name.starts_with(PREVIOUS)).count(), 1);
+    assert_eq!(rack_id(&s, &prev), prev_id);
+    assert!(!st.live_rack.modified);
+
+    s.send(QuickRackCmd::UndoQuickRackStore).unwrap();
+    let st = s.state();
+    assert_eq!(st.quick_racks.undo, None);
+    assert!(!st.racks.iter().any(|r| r.name == prev), "the copy goes");
+    assert_eq!((st.live_rack.id.as_deref(), st.live_rack.modified, volume(&s, 0)), (Some(loud.as_str()), true, 34), "playing as stored, unsaved");
+    assert_eq!(st.quick_racks.buttons[1].rack.as_deref(), Some(loud.as_str()));
+    assert!(s.send(QuickRackCmd::UndoQuickRackStore).is_err(), "nothing left to undo");
+    // Loud's file is as before the last store.
+    s.send(QuickRackCmd::PressQuickRack { slot: 1, discard: true }).unwrap();
+    assert_eq!((volume(&s, 0), s.state().live_rack.modified), (33, false));
+    drop(s);
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+/// Undo after a store on another button puts back what it held (a rack, or nothing); a
+/// store that changes nothing keeps the undo; Clear drops it.
+#[test]
+fn undo_puts_the_button_back() {
+    let d = dir("undo-button");
+    let s = session(&d);
+    let ballad = rack_on(&s, "Ballad", 60, 0);
+    let loud = rack_on(&s, "Loud", 20, 1);
+    s.send(QuickRackCmd::StoreRack { slot: 0 }).unwrap();
+    let q = quick_state(&s);
+    assert_eq!(q.buttons[0].rack.as_deref(), Some(loud.as_str()));
+    assert_eq!(q.undo, Some(QuickRackUndo { bank: 0, slot: 0, name: "Ballad".into(), previous: None }));
+    s.send(QuickRackCmd::UndoQuickRackStore).unwrap();
+    let q = quick_state(&s);
+    assert_eq!((q.buttons[0].rack.as_deref(), q.undo.clone()), (Some(ballad.as_str()), None));
+    assert_eq!(QuickRacks::load(&quick::path(&d)).unwrap().unwrap().get(0, 0), Some(ballad.as_str()), "in the file too");
+    assert!(s.send(QuickRackCmd::UndoQuickRackStore).is_err());
+
+    // An empty button: undo empties it again.
+    s.send(QuickRackCmd::StoreRack { slot: 5 }).unwrap();
+    assert_eq!(quick_state(&s).undo, Some(QuickRackUndo { bank: 0, slot: 5, name: String::new(), previous: None }));
+    // The same rack again changes nothing: the undo is still the first store's.
+    s.send(QuickRackCmd::StoreRack { slot: 5 }).unwrap();
+    assert_eq!(quick_state(&s).undo.map(|u| u.name), Some(String::new()));
+    s.send(QuickRackCmd::UndoQuickRackStore).unwrap();
+    assert_eq!(quick_state(&s).buttons[5].rack, None);
+
+    // Clear drops the undo.
+    s.send(QuickRackCmd::StoreRack { slot: 6 }).unwrap();
+    assert!(quick_state(&s).undo.is_some());
+    s.send(QuickRackCmd::ClearQuickRack { bank: 0, slot: 3 }).unwrap();
+    assert_eq!(quick_state(&s).undo, None);
+    assert!(s.send(QuickRackCmd::UndoQuickRackStore).is_err());
+    drop(s);
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+fn rack_file_bytes(d: &Path, name: &str) -> Vec<u8> {
+    std::fs::read(crate::racks::path_for(&crate::racks::dir(d), name)).unwrap()
+}
+
+/// A rack of the user's own named "Previous: <name>" is never overwritten by a store's
+/// copy: the copy takes the next free name, and Undo still works from it.
+#[test]
+fn a_users_own_previous_rack_is_never_saved_over() {
+    let d = dir("undo-own-previous");
+    let s = session(&d);
+    let users = format!("{PREVIOUS}Loud");
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 90 }).unwrap();
+    s.send(RackCmd::SaveRackAs { name: users.clone(), sound_names: BTreeMap::new() }).unwrap();
+    let users_id = rack_id(&s, &users);
+    let users_file = rack_file_bytes(&d, &users);
+    let loud = rack_on(&s, "Loud", 20, 1);
+
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 33 }).unwrap();
+    s.hardware(Action::QuickRackHeld(1)).unwrap();
+    assert_eq!(rack_id(&s, &users), users_id, "the user's rack keeps its id");
+    assert_eq!(rack_file_bytes(&d, &users), users_file, "and its content");
+    let copy = format!("{users} 2");
+    assert_eq!(quick_state(&s).undo.and_then(|u| u.previous), Some(copy.clone()));
+
+    s.send(QuickRackCmd::UndoQuickRackStore).unwrap();
+    let st = s.state();
+    assert!(!st.racks.iter().any(|r| r.name == copy), "our copy goes");
+    assert_eq!(rack_file_bytes(&d, &users), users_file, "the user's stays");
+    s.send(QuickRackCmd::PressQuickRack { slot: 1, discard: true }).unwrap();
+    assert_eq!((s.state().live_rack.id.clone(), volume(&s, 0)), (Some(loud), 20));
+    drop(s);
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+/// If quick-racks.json can't be saved during Undo, nothing is lost: the rack is as the
+/// store left it, the Previous copy and the undo stay, and Undo works once it can save.
+#[test]
+fn an_undo_that_cant_save_the_buttons_can_be_tried_again() {
+    let d = dir("undo-retry");
+    let s = session(&d);
+    rack_on(&s, "Ballad", 60, 0);
+    rack_on(&s, "Loud", 20, 1);
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 33 }).unwrap();
+    s.hardware(Action::QuickRackHeld(1)).unwrap();
+    let prev = format!("{PREVIOUS}Loud");
+    let stored = rack_file_bytes(&d, "Loud");
+
+    // quick-racks.json can't be written: a folder (not empty) is in its place.
+    let qp = quick::path(&d);
+    let saved = std::fs::read(&qp).unwrap();
+    std::fs::remove_file(&qp).unwrap();
+    std::fs::create_dir_all(qp.join("block")).unwrap();
+    assert!(s.send(QuickRackCmd::UndoQuickRackStore).is_err());
+    let st = s.state();
+    assert!(st.quick_racks.undo.is_some(), "the undo stays");
+    assert!(st.racks.iter().any(|r| r.name == prev), "the copy stays");
+    assert_eq!(rack_file_bytes(&d, "Loud"), stored, "the rack is as the store left it");
+
+    std::fs::remove_dir_all(&qp).unwrap();
+    std::fs::write(&qp, saved).unwrap();
+    s.send(QuickRackCmd::UndoQuickRackStore).unwrap();
+    assert!(!s.state().racks.iter().any(|r| r.name == prev));
+    s.send(QuickRackCmd::PressQuickRack { slot: 1, discard: true }).unwrap();
+    assert_eq!(volume(&s, 0), 20);
+    drop(s);
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+/// A save of the stored rack after the store makes the undo stale: Undo is refused and
+/// the later save stays.
+#[test]
+fn undo_never_loses_a_later_save() {
+    let d = dir("undo-later-save");
+    let s = session(&d);
+    rack_on(&s, "Loud", 20, 1);
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 33 }).unwrap();
+    s.hardware(Action::QuickRackHeld(1)).unwrap();
+    s.send(PartsCmd::SetPartVolume { part: 0, volume: 77 }).unwrap();
+    s.send(RackCmd::SaveRack { sound_names: BTreeMap::new() }).unwrap();
+    let later = rack_file_bytes(&d, "Loud");
+
+    assert!(s.send(QuickRackCmd::UndoQuickRackStore).is_err());
+    assert_eq!(rack_file_bytes(&d, "Loud"), later, "the later save stays");
+    assert_eq!(quick_state(&s).undo, None, "the stale undo is dropped");
     drop(s);
     let _ = std::fs::remove_dir_all(&d);
 }

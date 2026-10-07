@@ -1,5 +1,5 @@
 import { stageBoard } from '../Stage/Stage.fixtures'
-import type { OneTouchRow, QuickRackSlot, StoreWait } from './types'
+import type { OneTouchRow, QuickRackSlot, StoreUndo, StoreWait } from './types'
 
 const tip = (i: number) => `quick.${i + 1}`
 
@@ -50,6 +50,12 @@ export const boardWaiting: StoreWait = { code: 'A5', rack: 'Sunday drive', needs
 /** A waiting Store of a rack never saved: it asks for a name. */
 export const newRackWaiting: StoreWait = { code: 'A5', rack: 'New rack', needsName: true, name: 'New rack' }
 
+/** A store just saved Sunday drive over Lead synth on A3: Undo puts Lead synth back. */
+export const storeUndo: StoreUndo = { code: 'A3', name: 'Lead synth', previous: null }
+
+/** A store saved over the lit A1: the old Sunday drive kept as "Previous: Sunday drive". */
+export const litStoreUndo: StoreUndo = { code: 'A1', name: 'Sunday drive', previous: 'Previous: Sunday drive' }
+
 /** The Stage around the page: the board's, with Quick Racks the chosen page tab. */
 export const quickRacksStage = {
   ...stageBoard,
@@ -66,6 +72,7 @@ export const quickRacksBoard = {
   store: true,
   readOnly: false,
   waiting: boardWaiting,
+  undo: null as StoreUndo | null,
   oneTouch: boardOneTouch,
 }
 

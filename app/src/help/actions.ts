@@ -157,6 +157,8 @@ export function tipFor(cmd: AppCmd | null): TipKey {
     // Quick Racks
     case 'pressQuickRack': return QUICK[cmd.slot % 8]
     case 'stepQuickRackBank': return cmd.delta < 0 ? 'quick.bank_prev' : 'quick.bank_next'
+    case 'setQuickRackBank': return 'quick.bank'
+    case 'undoQuickRackStore': return 'quick.undo'
     case 'toggleQuickRackStore': return 'quick.store'
     case 'clearQuickRack': return 'quick.clear'
     case 'stepQuickRack': return cmd.delta < 0 ? 'quick.prev' : 'quick.next'

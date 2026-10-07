@@ -1,7 +1,8 @@
 //! The fader hold: while the master fader's button is held (without Shift), the pads are
 //! the fader picker from any page (`Layer::Fader`, `launchkey/pages/faders.rs`): PANEL and
 //! STYLE pick the fader page, VOL · PAN · REV · CHO · DLY the fader layer, at once. Release
-//! brings back the page on view. A tap (released with no pad pressed) still switches the
+//! brings back the page on view. A tap (released with no pad pressed, a dark pad counting
+//! as pressed) still switches the
 //! fader page, as the button did before; Shift + the button still steps the layer and holds
 //! nothing.
 //!
@@ -22,8 +23,8 @@ pub fn release(now: Layer) -> Layer {
     if now == Layer::Fader { Layer::None } else { now }
 }
 
-/// Whether the release is a tap that switches the fader page: no picker pad was pressed
-/// during the hold, and the picker was still up (another hold that took over ends it).
+/// Whether the release is a tap that switches the fader page: no pad (a dark one included)
+/// was pressed during the hold, and the picker was still up (another hold that took over ends it).
 pub fn tap(picked: bool, now: Layer) -> bool {
     !picked && now == Layer::Fader
 }

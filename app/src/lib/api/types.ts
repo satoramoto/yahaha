@@ -414,11 +414,19 @@ export function defaultStrip(): StripState {
 export type QuickRackCmd =
   /** Press a button. With Store armed, store the live rack on it (a rack with unsaved
    * changes, or one never saved, waits for the save: `quickRacks.storeWaiting`). Otherwise
-   * load its rack as `loadRack` does, with the same guard and `discard`. Slots 8 and 9 run
-   * on into the next bank's 1 and 2 (the Regist 9-10 pedal functions). */
+   * load its rack as `loadRack` does, with the same guard and `discard`; on the lit button
+   * (the live rack's own) it recalls that rack clean with no prompt, keeping unsaved changes
+   * as "Recovered: <name>", as the hardware does. Slots 8 and 9 run on into the next bank's
+   * 1 and 2 (the Regist 9-10 pedal functions). */
   | { type: 'pressQuickRack'; slot: number; discard?: boolean }
   /** Bank −/+: view the previous/next bank (A-H; it stops at either end). */
   | { type: 'stepQuickRackBank'; delta: number }
+  /** View bank `bank` (0 = A, 7 = H); refused outside. */
+  | { type: 'setQuickRackBank'; bank: number }
+  /** Undo the last store (`quickRacks.undo`): the button gets back what it held, and a rack
+   * saved over gets back what its "Previous: <name>" copy kept (that copy goes). Refused
+   * with nothing to undo. */
+  | { type: 'undoQuickRackStore' }
   /** Store: arm (or disarm) it for the next button press. Disarming lets a waiting button go. */
   | { type: 'toggleQuickRackStore' }
   /** Store the live rack on button `slot` (0-7) of the bank on view in one step (hold
@@ -1628,6 +1636,21 @@ export interface QuickRacksState {
   storeWaiting: number | null
   /** Quick Racks can't be changed: the file is from a newer yahaha, or there is no data folder. */
   readOnly: boolean
+  /** The last store, which `undoQuickRackStore` takes back; null when there is none. */
+  undo: QuickRackUndo | null
+}
+
+/** The store `undoQuickRackStore` takes back. */
+export interface QuickRackUndo {
+  /** The button stored on: its bank (0 = A) and slot (0-7). */
+  bank: number
+  slot: number
+  /** The rack's name the undo puts back on the button; empty when the button was empty (or
+   * its rack is gone). */
+  name: string
+  /** The "Previous: <name>" rack kept when the store saved over the button's own rack; null
+   * when no rack was saved over. */
+  previous: string | null
 }
 
 /** One Quick Rack button. */

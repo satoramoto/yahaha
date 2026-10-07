@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest'
 import { MockSession } from '../../lib/api/mock'
 import type { AppState } from '../../lib/api/types'
-import { bankCmds, clearCmd, otsRackCmd, quickRacksView, saveCmd, slotCmd, storeCmd, timingCmd } from './model'
+import { bankCmd, clearCmd, otsRackCmd, quickRacksView, saveCmd, slotCmd, storeCmd, timingCmd, undoCmd } from './model'
 
 /** Mock state with racks stored: Ballad on A1 (loaded), Strings on A3, a gone rack on A5. */
 function stateWithRacks(): AppState {
@@ -72,6 +72,16 @@ describe('quickRacksView', () => {
     expect(v.waiting).toEqual({ code: 'A6', rack: 'New rack', needsName: true, name: 'Late night' })
   })
 
+  it('Undo: shown after a store, naming its button and what it puts back; none without one', () => {
+    const st = stateWithRacks()
+    st.quickRacks.undo = null
+    expect(quickRacksView(st, null).undo).toBeNull()
+    st.quickRacks.undo = { bank: 2, slot: 3, name: 'Strings', previous: null }
+    expect(quickRacksView(st, null).undo).toEqual({ code: 'C4', name: 'Strings', previous: null })
+    st.quickRacks.undo = { bank: 0, slot: 0, name: 'Ballad', previous: 'Previous: Ballad' }
+    expect(quickRacksView(st, null).undo).toEqual({ code: 'A1', name: 'Ballad', previous: 'Previous: Ballad' })
+  })
+
   it("One Touch: the style's four, the applied one, what each loads, Link and its timing", () => {
     const st = stateWithRacks()
     st.ots.applied = 3
@@ -88,10 +98,10 @@ describe('quickRacksView', () => {
 })
 
 describe('the commands', () => {
-  it('a bank letter steps there one bank a command', () => {
-    expect(bankCmds(0, 3)).toEqual(Array(3).fill({ type: 'stepQuickRackBank', delta: 1 }))
-    expect(bankCmds(5, 3)).toEqual(Array(2).fill({ type: 'stepQuickRackBank', delta: -1 }))
-    expect(bankCmds(2, 2)).toEqual([])
+  it('a bank letter shows that bank in one command; Undo takes the last store back', () => {
+    expect(bankCmd(3)).toEqual({ type: 'setQuickRackBank', bank: 3 })
+    expect(bankCmd(0)).toEqual({ type: 'setQuickRackBank', bank: 0 })
+    expect(undoCmd).toEqual({ type: 'undoQuickRackStore' })
   })
 
   it('tap loads, long press stores over, ✕ clears in the bank on view', () => {
