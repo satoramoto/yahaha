@@ -170,6 +170,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Save rack** | Saves the live rack (a new one under the name typed, when it has never been saved), then stores it on the waiting Quick Rack button. | — | — | — |
 | **Cancel** | Nothing is saved or stored: Store disarms and the button keeps what it held. | — | — | — |
 | **Store rack** | Puts the live rack on this Quick Rack button of the bank on view, replacing what it held, as Store then the button does. A rack with unsaved changes, or one never saved, is saved first. | MEMORY + REGISTRATION MEMORY | — | Hold Sound and tap a rack pad (Pad page 2 (Racks), top row) |
+| **Library › Racks** | Opens the Library on its Racks page: every rack of yours, to find, rename, duplicate or delete one. | — | `Alt+R` (terminal: ) | — |
 
 ## Keyboard parts
 
