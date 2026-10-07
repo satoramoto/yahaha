@@ -16,7 +16,7 @@ type StageProps = ComponentProps<typeof Stage>
 
 /** Where a link on the Stage goes (Stage.md D32, until each target's page is built). */
 export type OpenTarget =
-  /** A page tab: its page (the Stage, or "Coming soon"). */
+  /** A page tab: its page (the Stage, or a display page in the Stage's display box). */
   | { page: string }
   /** Channel for a part (0–3 keyboard, 4–11 Style). */
   | { channel: number }
@@ -24,8 +24,6 @@ export type OpenTarget =
   | { sounds: number }
   | 'browser'
   | 'rack'
-  | 'effects'
-  | 'multipad'
   | 'settingsAudio'
 
 export interface StageDeps {
@@ -120,7 +118,7 @@ export function stageActions(d: StageDeps): StageActions {
     },
     // Deprecated on the Stage (the sends, the rack and the part tags left the display); kept
     // working for any caller that still passes them.
-    onsends: () => d.open('effects'),
+    onsends: () => d.open({ page: 'effects' }),
     onrack: () => d.open('rack'),
     onpart: (id) => d.open({ channel: partIndex(id) }),
     onsound: (id) => d.open({ sounds: partIndex(id) }),
@@ -140,8 +138,8 @@ export function stageActions(d: StageDeps): StageActions {
         return label === '' ? undefined : d.open('rack')
       }
       if (id === 'style') return send({ type: 'setFaderPage', page: 'style' })
-      if (id === 'multiPad') return d.open('multipad')
-      if (id === 'master') return d.open('effects')
+      if (id === 'multiPad') return d.open({ page: 'multiPads' })
+      if (id === 'master') return d.open({ page: 'effects' })
     },
     onlamp: (id) => {
       const s = d.state()

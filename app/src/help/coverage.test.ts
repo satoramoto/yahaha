@@ -20,7 +20,7 @@ import { instrumentsState } from '../panels/library/instrumentsState.svelte'
 import { racksState } from '../panels/library/racksState.svelte'
 import { soundsPage } from '../panels/library/soundsState.svelte'
 import { channelNav } from '../panels/channel/nav.svelte'
-import { PAGES } from '../panels/stage/model'
+import { DISPLAY_TABS, PAGES } from '../panels/stage/model'
 import { stagePage } from '../panels/stage/page.svelte'
 import { TIPS, isTipKey } from './tooltips'
 
@@ -159,19 +159,19 @@ const STATES: [string, Setup][] = [
     click('rack.map')
   }],
   ['rack drawer, Right 2 loading a plugin',(s) => ((ui.rack = true), s.send({ type: 'setPartPlugin', part: 1, id: 'aumu samp appl', state: null }))],
-  ['effects screen open', () => (ui.effects = true)],
-  ['effects screen, an added send, send 1 set by the rack', (s) => (
-    (ui.effects = true), s.send({ type: 'addSend', kind: 'phaser' }), s.send({ type: 'setRackSendOverride', send: 0, on: true })
+  ['Effects page', () => stagePage.show('effects')],
+  ['Effects page, an added send, send 1 set by the rack', (s) => (
+    stagePage.show('effects'), s.send({ type: 'addSend', kind: 'phaser' }), s.send({ type: 'setRackSendOverride', send: 0, on: true })
   )],
-  ['effects screen, delay free time, no inserts', (s) => (
-    (ui.effects = true),
+  ['Effects page, delay free time, no inserts', (s) => (
+    stagePage.show('effects'),
     s.send({ type: 'setEffectParam', block: 'variation', param: 'delaySync', value: 0 }),
     (s.state.effects.inserts = []),
     s.send({ type: 'setRotaryFast', on: true })
   )],
-  ['harmony drawer open', () => (ui.harmony = true)],
-  ['harmony drawer, arpeggio on, Fixed velocity', (s) => ((ui.harmony = true), s.send({ type: 'setArpPattern', index: 2 }), s.send({ type: 'setArpVelocity', mode: 'fixed', velocity: 90 }), s.send({ type: 'toggleHarmonyArp' }))],
-  ['harmony drawer, Echo type', (s) => ((ui.harmony = true), s.send({ type: 'setHarmonyType', index: 20 }))],
+  ['Harm/Arp page', () => stagePage.show('harmArp')],
+  ['Harm/Arp page, arpeggio on, Fixed velocity', (s) => (stagePage.show('harmArp'), s.send({ type: 'setArpPattern', index: 2 }), s.send({ type: 'setArpVelocity', mode: 'fixed', velocity: 90 }), s.send({ type: 'toggleHarmonyArp' }))],
+  ['Harm/Arp page, Echo type', (s) => (stagePage.show('harmArp'), s.send({ type: 'setHarmonyType', index: 20 }))],
   ['charts drawer, nothing imported', () => (ui.charts = true)],
   ['charts drawer, a playlist, chart mode playing', (s) => ((ui.charts = true), s.send({ type: 'importCharts', text: 'irealb://demo' }), s.send({ type: 'setChartMode', on: true }))],
   ['Quick Racks Store armed', (s) => s.send({ type: 'toggleQuickRackStore' })],
@@ -213,11 +213,11 @@ const STATES: [string, Setup][] = [
     flushSync()
     click('library.rack_delete')
   }],
-  ['chord looper drawer open', () => (ui.looper = true)],
-  ['chord looper drawer, recording armed, Memory latched', (s) => ((ui.looper = true), s.send({ type: 'looperRec' }))],
-  ['multi pad drawer, no bank', () => (ui.multipad = true)],
-  ['multi pad drawer, bank loaded, pads playing and armed', (s) => (
-    (ui.multipad = true),
+  ['Looper page', () => stagePage.show('looper')],
+  ['Looper page, recording armed, Memory latched', (s) => (stagePage.show('looper'), s.send({ type: 'looperRec' }))],
+  ['Multi Pads page, no bank', () => stagePage.show('multiPads')],
+  ['Multi Pads page, bank loaded, pads playing and armed', (s) => (
+    stagePage.show('multiPads'),
     s.send({ type: 'loadMultiPad', id: 0 }),
     s.send({ type: 'triggerMultiPad', pad: 0 }),
     s.send({ type: 'armMultiPad', pad: 3 })
@@ -281,17 +281,17 @@ describe('tooltip coverage', () => {
     })
   }
 
-  // Every page tab that isn't built yet: "Coming soon" under the app bar, whose controls (the
-  // page tabs, the health slot) are all there is.
-  // (Library is a page of its own now: its states are in STATES above.)
-  for (const page of PAGES.filter((p) => p !== 'stage' && p !== 'library')) {
-    it(`every interactive element has a catalog tooltip: page tab ${page}, Coming soon`, () => {
+  // Every display page tab: its page in the Stage's display box, the band and keys as on the Stage.
+  // (Library and Settings are screens of their own: their states are in STATES above.)
+  for (const { id: page } of DISPLAY_TABS.filter((t) => t.id !== 'stage')) {
+    it(`every interactive element has a catalog tooltip: page tab ${page}`, () => {
       const session = new MockSession({ demo: true, manual: true })
       render(App, { props: { session } })
       stagePage.page = page
       session.advance(16)
       flushSync()
-      expect(document.body.textContent).toContain('Coming soon')
+      expect(document.querySelector('[data-slot="page"]'), 'the page slot').toBeTruthy()
+      expect(document.querySelector('section[aria-label="Faders"]'), 'the band').toBeTruthy()
       expect(document.querySelectorAll('nav[aria-label="Pages"] button')).toHaveLength(PAGES.length)
       expect(untipped(document.body)).toEqual([])
     })

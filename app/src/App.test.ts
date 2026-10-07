@@ -1,7 +1,8 @@
 // The app shell (App.svelte): the Stage screen (panels/stage/StageScreen) in a scaler that
-// carries the kit's theme, with no help footer; Library in the Stage's place; the page tabs
-// other than Stage showing "Coming soon" until Esc or the Stage tab, and Settings opening the
-// Settings drawer; tooltips in the status line; and a Stage control sending its command.
+// carries the kit's theme, with no help footer; Library in the Stage's place; a display page tab
+// showing its page in the Stage's display box until Esc or the Stage tab (and its Alt key), and
+// Settings opening the Settings screen; tooltips in the status line; and a Stage control sending
+// its command.
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte'
 import { flushSync, tick } from 'svelte'
@@ -66,20 +67,65 @@ describe('the shell', () => {
 })
 
 describe('page tabs', () => {
-  it('Effects shows Coming soon; Esc comes back to the Stage', async () => {
+  const slot = () => document.querySelector('.scaler [data-slot="page"]')
+  const band = () => document.querySelector('.scaler section[aria-label="Faders"]')
+
+  it('Effects shows its page in the display box, the band and keys stay; Esc comes back to the Stage', async () => {
     setup()
-    expect(screen.queryByText('Coming soon')).toBeNull()
+    expect(slot()).toBeNull()
     await fireEvent.click(tab('Effects'))
     flushSync()
     expect(stagePage.page).toBe('effects')
-    expect(screen.getByLabelText('Effects: coming soon').textContent).toContain('Coming soon')
-    expect(document.querySelector('section[aria-label="Faders"]')).toBeNull()
+    expect(slot()).toBeTruthy()
+    expect(band()).toBeTruthy()
+    expect(document.querySelector('.scaler [role="toolbar"][aria-label="Transport, switches and helpers"]')).toBeTruthy()
     expect(tab('Effects').getAttribute('aria-current')).toBe('page')
     await fireEvent.keyDown(window, { key: 'Escape' })
     flushSync()
     expect(stagePage.page).toBe('stage')
-    expect(screen.queryByText('Coming soon')).toBeNull()
-    expect(document.querySelector('section[aria-label="Faders"]')).toBeTruthy()
+    expect(slot()).toBeNull()
+    expect(band()).toBeTruthy()
+  })
+
+  for (const [key, page, label] of [
+    ['e', 'effects', 'Effects'],
+    ['l', 'looper', 'Looper'],
+    ['p', 'multiPads', 'Multi Pads'],
+    ['h', 'harmArp', 'Harm/Arp'],
+  ] as const) {
+    it(`Alt+${key.toUpperCase()} shows the ${label} page tab, from Library too, and again goes back to the Stage`, async () => {
+      setup()
+      ui.openLibrary('sounds', 0)
+      flushSync()
+      const alt = () => fireEvent.keyDown(window, { key, code: `Key${key.toUpperCase()}`, altKey: true })
+      await alt()
+      flushSync()
+      expect(ui.view).toBe('stage')
+      expect(stagePage.page).toBe(page)
+      expect(tab(label).getAttribute('aria-current')).toBe('page')
+      expect(slot()).toBeTruthy()
+      // No drawer over it.
+      expect(document.querySelector('[role="complementary"]')).toBeNull()
+      await alt()
+      flushSync()
+      expect(stagePage.page).toBe('stage')
+      expect(slot()).toBeNull()
+    })
+  }
+
+  it('a part strip\'s name selects that part and shows the Channel page tab; Multi Pad\'s and Master\'s show theirs', async () => {
+    setup()
+    const strip = (name: RegExp) => screen.getAllByRole('button', { name })[0]
+    await fireEvent.click(strip(/: open Channel$/))
+    flushSync()
+    expect(stagePage.page).toBe('channel')
+    expect(slot()).toBeTruthy()
+    await fireEvent.click(strip(/^Multi Pad: open Multi Pads$/))
+    flushSync()
+    expect(stagePage.page).toBe('multiPads')
+    await fireEvent.click(strip(/^Master: open Effects$/))
+    flushSync()
+    expect(stagePage.page).toBe('effects')
   })
 
   it('Library, a full tab, shows the Library screen; the Stage tab and Esc come back', async () => {

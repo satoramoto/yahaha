@@ -667,15 +667,15 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
 | **Styles** | Opens the style browser. Press again to close. | Style Selection | `Alt+S` (terminal: ) | — |
-| **Quick Racks** | Shows the Quick Racks page, coming soon: your racks to load, each on its Quick Rack button. Until then Alt+R opens Library on its Racks tab. | REGISTRATION MEMORY | `Alt+R` (terminal: ) | — |
+| **Quick Racks** | Shows the Quick Racks page: your racks on the Quick Rack buttons in banks A to H, Store, and One Touch 1 to 4 with Link. Alt+R opens Library on its Racks tab. | REGISTRATION MEMORY | `Alt+R` (terminal: ) | — |
 | **Rack** | Opens the Rack: what's under your hands (the four keyboard parts with their sounds and mix, the split, Harmony/Arp, transpose) and the style's One Touch Settings. On the Stage, click the rack readout; Alt+O opens or closes it anywhere. | Voice Setting, ONE TOUCH SETTING | `Alt+O` (terminal: ) | — |
-| **Multi Pads** | Shows the Multi Pads page, coming soon. Until then Alt+P, or the Multi Pad strip's name on the Stage, opens the Multi Pads drawer. | MULTI PAD CONTROL | `Alt+P` (terminal: ) | — |
-| **Effects** | Shows the Effects page, coming soon: the Reverb, Chorus and Delay (type, settings, return and sends) and the style's inserts. Until then Alt+E, the band sends or the Master strip's name on the Stage open the Effects drawer. | Mixer (Effect) | `Alt+E` (terminal: ) | — |
-| **Channel** | Shows the Channel page for the selected part, coming soon: its sound, mix and inserts. A part's name on the Stage selects that part and shows this page. | — | — | — |
+| **Multi Pads** | Shows the Multi Pads page: the bank's four pads with Select, Stop, Repeat and Chord Match, Synchro Stop and the Multi Pad volume. Alt+P, or the Multi Pad strip's name on the Stage, shows it. | MULTI PAD CONTROL | `Alt+P` (terminal: ) | — |
+| **Effects** | Shows the Effects page: the send list and the open bus's editor (Reverb, Chorus, Delay), with the style's inserts and the Master Compressor and EQ. Alt+E, or the Master strip's name on the Stage, shows it. | Mixer (Effect) | `Alt+E` (terminal: ) | — |
+| **Channel** | Shows the Channel page: one part's sound, level, tone, sends, EQ, compressor, inserts and play settings. A part's strip name on the Stage selects that part and shows this page. | — | — | — |
 | **Mixer details** | Shows the mixer row's details: its bar (fader page and layer, metronome, Track Mute, Style and Multi Pad volume, CPU) and, on every strip, its Chorus send, EQ, insert and CPU. Press again to hide them. | Mixer | `Alt+M` (terminal: ) | — |
-| **Chord Looper** | Shows the Chord Looper page, coming soon. Until then Alt+L opens the Chord Looper drawer. | Menu › Chord Looper | `Alt+L` (terminal: ) | — |
+| **Chord Looper** | Shows the Chord Looper page: Rec / Stop and On / Off, the loop's state, its chords bar by bar and the memories. Alt+L shows it. | Menu › Chord Looper | `Alt+L` (terminal: ) | — |
 | **Charts** | Opens the iReal Pro chart player. Press again to close. | — | `Alt+C` (terminal: ) | — |
-| **Harmony/Arp** | Shows the Harmony/Arp page, coming soon. Until then Alt+H opens the Keyboard Harmony and Arpeggio drawer. | HARMONY/ARPEGGIO | `Alt+H` (terminal: ) | — |
+| **Harmony/Arp** | Shows the Harm/Arp page: the Keyboard Harmony / Arpeggio switch, the type, and that type's settings. Alt+H shows it. | HARMONY/ARPEGGIO | `Alt+H` (terminal: ) | — |
 | **Library** | Switches between the stage and Library, where you pick racks, sounds and instruments. Library opens loading into the selected part (Right 1 if none). | Voice Selection | `Alt+B` (terminal: ) | — |
 | **Settings** | Shows the Settings page, coming soon. Until then Alt+T opens the settings, and the audio health on the Stage opens them on Audio. | — | `Alt+T` (terminal: ) | — |
 

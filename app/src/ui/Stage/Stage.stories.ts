@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
+import { createRawSnippet } from 'svelte'
 import { fn } from 'storybook/test'
 import Stage from './Stage.svelte'
 import { stageBoard, stageStopped } from './Stage.fixtures'
@@ -137,6 +138,26 @@ export const Playground: Story = {
  */
 export const Grid: Story = {
   args: { overlay: true },
+}
+
+/** A placeholder page for the slot: a dashed box that fills `--page-width` × `--page-height`. */
+const placeholderPage = createRawSnippet(() => ({
+  render: () =>
+    `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; width: var(--page-width); height: var(--page-height); border: 1px dashed var(--d); color: var(--m); font-size: 14px;">` +
+    `<strong style="color: var(--t); font-size: 20px; font-weight: 400;">Page slot</strong>` +
+    `<span>A display page fills this box: --page-width × --page-height (1392 × 288).</span></div>`,
+}))
+
+/**
+ * A display page in the Stage's display box (`page`, a snippet), in place of the Display: here a
+ * placeholder. The app bar, section row, band, status line and keys stay as on the Stage; the band
+ * never changes height. The box sets `--page-width` and `--page-height` for the page to lay out
+ * against (1392 × 288 on the grid). The app passes Channel, Effects, Quick Racks, Multi Pads, Looper
+ * or Harm/Arp here (panels/stage/StageScreen.svelte).
+ */
+export const PageSlot: Story = {
+  name: 'Page slot',
+  args: { page: placeholderPage, appBar: { ...stageBoard.appBar, chosen: 'effects' } },
 }
 
 /** The Golden stories' own control: the overlay lives in the story-only wrapper (GoldenStory), not in Stage's props. */

@@ -272,7 +272,7 @@ describe('faders', () => {
     actions.onopen('master')
     actions.onopen('style1')
     actions.onopen('style8')
-    expect(take().opened).toEqual([{ channel: 0 }, { channel: 1 }, { channel: 2 }, 'rack', 'multipad', 'effects', { channel: 4 }, { channel: 11 }])
+    expect(take().opened).toEqual([{ channel: 0 }, { channel: 1 }, { channel: 2 }, 'rack', { page: 'multiPads' }, { page: 'effects' }, { channel: 4 }, { channel: 11 }])
     actions.onopen('style')
     expect(take()).toEqual({ sent: [{ type: 'setFaderPage', page: 'style' }], opened: [] })
   })
@@ -313,7 +313,7 @@ describe('display, knobs, transport, app bar', () => {
     actions.onrack()
     actions.onpart('right3')
     actions.onsound('left')
-    expect(take().opened).toEqual(['browser', 'effects', 'rack', { channel: 2 }, { sounds: 3 }])
+    expect(take().opened).toEqual(['browser', { page: 'effects' }, 'rack', { channel: 2 }, { sounds: 3 }])
   })
 
   it('the display\'s tempo number sets the tempo, whole BPM within 5–500', () => {

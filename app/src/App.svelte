@@ -7,16 +7,16 @@
   ┌──────────────────────────────────────────────────────────────────┐
   │ StageScreen: the 1440 × 900 Stage, scaled and centred            │
   │   app bar · section row · display · band · status line · keys   │
-  │   (another page tab: "Coming soon" under the same app bar;       │
-  │    the Settings tab and Alt+T show the Settings screen instead:  │
-  │    panels/settings/SettingsScreen, while `ui.settings` is on)    │
+  │   (a display page tab: its page in the display's box, the rest   │
+  │    as on the Stage; the Settings tab and Alt+T show the Settings │
+  │    screen instead: panels/settings/SettingsScreen, while         │
+  │    `ui.settings` is on)                                          │
   └──────────────────────────────────────────────────────────────────┘
 
   The old panels (header, lead sheet, Launchkey mirror, mixer row, Quick Racks row, key strip,
-  Channel view) stay on disk but aren't routed; each page tab brings its page back when its
-  spec is built. Until then the Alt keys keep opening today's drawers and Library over the
-  Stage (lib/nav.ts), and the Stage's links open them (Stage.md D32): the Rack, Effects,
-  Multi Pads, Looper, Charts and Harmony drawers (lib/ui/Overlay), the style
+  Channel view) stay on disk but aren't routed. The display pages (Channel, Effects, Quick
+  Racks, Multi Pads, Looper, Harm/Arp) are page tabs on the Stage; Alt+E, Alt+P, Alt+L and
+  Alt+H show theirs (lib/nav.ts). The Rack and Charts drawers (lib/ui/Overlay), the style
   Browser and the Sound Browser stay as they were, unscaled, in the old tokens. Library
   (`ui.view`: the app bar's Library tab, Alt+B) takes the Stage's place as the library's
   Library screen (panels/library/LibraryScreen), scaled like the Stage.
@@ -31,11 +31,7 @@
   import { plainTip, tips, TOOLTIP_ID } from './lib/tooltip/tip.svelte'
   import Browser from './panels/browser/Browser.svelte'
   import Charts from './panels/charts/Charts.svelte'
-  import Harmony from './panels/harmony/Harmony.svelte'
-  import Effects from './panels/effects/Effects.svelte'
   import { channelNav } from './panels/channel/nav.svelte'
-  import Looper from './panels/looper/Looper.svelte'
-  import MultiPad from './panels/multipad/MultiPad.svelte'
   import RackPanel from './panels/rack/RackPanel.svelte'
   import LibraryScreen from './panels/library/LibraryScreen.svelte'
   import SettingsScreen from './panels/settings/SettingsScreen.svelte'
@@ -104,11 +100,7 @@
 <div id={TOOLTIP_ID} class="visually-hidden">{tips.focused ? plainTip(TIPS[tips.focused]) : ''}</div>
 
 {#if ui.rack}<RackPanel />{/if}
-{#if ui.effects}<Effects />{/if}
-{#if ui.looper}<Looper />{/if}
-{#if ui.multipad}<MultiPad />{/if}
 {#if ui.charts}<Charts />{/if}
-{#if ui.harmony}<Harmony />{/if}
 {#if ui.browser}<Browser />{/if}
 <!-- The Sound Browser only picks for a program map rule now (Style map); Library took over
      choosing a part's sound. -->

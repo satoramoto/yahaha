@@ -12,9 +12,14 @@
   (150 units, 900px). The display's thirds sit on columns 1-5, 6-10 and 11-15 with a shared top
   line; the band splits 3/5 (faders, one strip per column) to 2/5 (knobs over pads). `overlay`
   draws the columns and the rhythm over it.
+
+  `page`: a display page (Channel, Effects, …) in the display's box, in place of the Display. The
+  app bar, section row, band, status line and keys stay as they are; the box never grows or
+  shrinks the band. The box's size is `--page-width` × `--page-height` (1392 × 288 on the grid),
+  set on the box for the page to lay out against. The grid layout only.
 -->
 <script lang="ts">
-  import type { Component, ComponentProps } from 'svelte'
+  import type { Component, ComponentProps, Snippet } from 'svelte'
   import type { Action } from 'svelte/action'
   import AppBar from '../AppBar/AppBar.svelte'
   import Display from '../Display/Display.svelte'
@@ -53,6 +58,8 @@
     sectionRow: Data<typeof SectionRow>
     /** The display, in thirds: the style line and chord, the section and tempo, the parts and One Touch. */
     display: Data<typeof Display>
+    /** A display page shown in the display's box instead of the Display (its size: `--page-width`, `--page-height`). */
+    page?: Snippet
     /** The band's faders: strips, page and layer tabs, lamps. */
     faders: Data<typeof FaderBank>
     /** The band's knobs and their page tabs. */
@@ -160,6 +167,9 @@
       onhelp={p.onhelp}
     />
   </div>
+  {#if p.page}
+    <div class="display page" data-slot="page">{@render p.page()}</div>
+  {:else}
   <div class="display">
     <Display
       {...p.display}
@@ -175,6 +185,7 @@
       ontempo={p.ontempo}
     />
   </div>
+  {/if}
   <div class="band">
     <FaderBank
       {...p.faders}
@@ -231,6 +242,17 @@
   }
   .display {
     margin-top: var(--stage-gap-display);
+  }
+  /* The page slot: the Display's box, exactly; the page lays out against its size. */
+  .page {
+    --page-width: var(--stage-row-width);
+    --page-height: var(--display-height);
+    position: relative;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: var(--page-width);
+    height: var(--page-height);
+    overflow: hidden;
   }
   .band {
     gap: var(--band-gap);

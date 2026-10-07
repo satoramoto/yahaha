@@ -133,8 +133,6 @@
       settingsNav.tab = 'audio'
       ui.settings = true
     } else if (target === 'rack' && !ui.rack) ui.toggleDrawer('rack')
-    else if (target === 'effects' && !ui.effects) ui.toggleDrawer('effects')
-    else if (target === 'multipad' && !ui.multipad) ui.toggleDrawer('multipad')
   }
 
   const actions = stageActions({
