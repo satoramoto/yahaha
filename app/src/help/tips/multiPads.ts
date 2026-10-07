@@ -5,6 +5,13 @@
 import type { Tip } from '../tooltips.ts'
 
 export const multiPadsTips = {
+  'multipad.load_file': {
+    title: 'Load a bank file',
+    body: 'Opens a .pad file from anywhere on your computer and loads it into the pads. It joins the bank list. Cancel loads nothing.',
+    genos: 'Multi Pad Bank Selection',
+    keys: [],
+    launchkey: null,
+  },
   'multipad.bank_prev': {
     title: 'Previous bank',
     body: 'Loads the bank before this one in the list (the last, with none loaded). Pads playing stop.',
