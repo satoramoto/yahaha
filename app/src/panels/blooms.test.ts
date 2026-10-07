@@ -85,10 +85,14 @@ describe('Blooms behind each screen', () => {
     it.each(screens)('%s: the blooms breathe at the tempo while the band plays', async (_, Screen) => {
       const session = new MockSession({ demo: true, manual: true })
       session.advance(16)
+      // Not the defaults (120, 4/4), so a screen that stops passing bpm or beatsPerBar fails.
+      session.state.transport.tempo = 97
+      session.state.transport.beatsPerBar = 3
       app.attach(session)
       flushSync()
       const t = app.state.transport
       expect(t.running).toBe(true)
+      expect([t.tempo, t.beatsPerBar]).toEqual([97, 3])
       const { container } = render(Screen)
       await tick()
       expect(container.querySelector('.blooms')?.hasAttribute('data-playing')).toBe(true)
