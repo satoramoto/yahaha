@@ -11,7 +11,7 @@ export const channelTips = {
     body: 'Opens this part\'s channel on the Channel page. A keyboard part (Right 1–3, Left) also becomes the part you play and edit, as its part button does.',
     genos: 'Mixer › channel',
     keys: [],
-    launchkey: 'Shift + fader buttons 1–4 (keyboard parts)',
+    launchkey: 'Shift + fader buttons 1–4 select a keyboard part (they don\'t open this page yet)',
   },
   'mixer.channel.tab': {
     title: 'Channel group',
