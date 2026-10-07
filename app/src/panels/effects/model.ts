@@ -38,7 +38,11 @@ import type {
   SendRowData,
   SwitchItem,
 } from '../../ui/Effects/types'
+import { returnText } from '../../ui/Effects/returnText'
 import { MAX_SENDS, SEND_KINDS, STYLE_SENDS } from './sendKinds'
+
+/** A send's return as shown: 64 = 0 dB, 127 = +6 dB, 0 = Off (the list and the editor's Return). */
+export { returnText }
 
 /** Sends 1–3 are these blocks. */
 const BLOCKS: FxBlock[] = ['reverb', 'chorus', 'variation']
@@ -57,12 +61,6 @@ const KNOB_PAGES: Record<FxBlock, [number, string]> = { reverb: [4, 'Reverb'], c
 
 const PART_TAGS = ['R1', 'R2', 'R3', 'L']
 const PART_HUES: PartHue[] = ['r1', 'r2', 'r3', 'l']
-
-/** The XG EQ frequency steps, 32 Hz to 16 kHz (the Master EQ's bands take these). */
-const EQ_STEPS = [
-  32, 36, 40, 45, 50, 56, 63, 70, 80, 90, 100, 110, 125, 140, 160, 180, 200, 225, 250, 280, 315, 355, 400, 450, 500, 560, 630, 700, 800, 900, 1000,
-  1100, 1200, 1400, 1600, 1800, 2000, 2200, 2500, 2800, 3200, 3600, 4000, 4500, 5000, 5600, 6300, 7000, 8000, 9000, 10000, 11000, 12000, 14000, 16000,
-]
 
 /** "param_name" for a camelCase parameter id: `reverbTime` → `reverb_time`. */
 const snake = (id: string) => id.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)
@@ -184,7 +182,7 @@ function blockBus(state: AppState, block: EffectBlockState, s: SendState | undef
   const params = shown.map((p, i) => paramRow(p.param, p, `K${5 + i}`, `fx.param.${snake(p.param)}`))
   const tips = LEVEL_TIPS[block.block]
   const levels: ParamRow[] = [
-    { id: 'return', label: 'Return', value: block.returnLevel, min: 0, max: 127, defaultValue: 64, display: String(block.returnLevel), code: 'K8', tip: tips.ret },
+    { id: 'return', label: 'Return', value: block.returnLevel, min: 0, max: 127, defaultValue: 64, display: returnText(block.returnLevel), code: 'K8', tip: tips.ret },
     { id: 'band', label: 'Band send', value: block.bandSend, min: 0, max: 127, defaultValue: SEND_DEFAULTS[block.block], display: `${block.bandSend}%`, code: '', tip: tips.band },
     { id: 'pad', label: 'Pad send', value: block.padSend, min: 0, max: 127, defaultValue: SEND_DEFAULTS[block.block], display: `${block.padSend}%`, code: '', tip: tips.pad },
   ]
@@ -233,7 +231,7 @@ function addedBus(state: AppState, s: SendState): BusData {
     typeTip: 'fx.send_kind',
     switches,
     params,
-    levels: [{ id: 'return', label: 'Return', value: s.returnLevel, min: 0, max: 127, defaultValue: 64, display: String(s.returnLevel), code: '', tip: 'fx.send_return' }],
+    levels: [{ id: 'return', label: 'Return', value: s.returnLevel, min: 0, max: 127, defaultValue: 64, display: returnText(s.returnLevel), code: '', tip: 'fx.send_return' }],
     parts: partSends(state, s.send),
     partsCode: '',
     note: 'Saved with the rack. No knob page moves it.',
@@ -259,9 +257,8 @@ export function masterData(state: AppState): MasterData {
   const comp = m?.compressor ?? { on: false, preset: 'natural' as CompPreset, compression: 30, texture: 50, output: 1, edited: false }
   const eq = m?.eq ?? { on: false, preset: 'flat' as EqPreset, bands: [], edited: false }
   const bands: EqBandData[] = eq.bands.map((b, i) => {
-    const [lo, hi] = MASTER_EQ_FREQ_RANGE[i] ?? [32, 16000]
-    const steps = EQ_STEPS.filter((f) => f >= lo && f <= hi)
-    return { gain: b.gain, freq: b.freq, freqSteps: steps.includes(b.freq) ? steps : [...steps, b.freq].sort((x, y) => x - y), q: b.q, shelf: b.shelf, canShelf: i === 0 || i === eq.bands.length - 1 }
+    const [freqMin, freqMax] = MASTER_EQ_FREQ_RANGE[i] ?? [32, 16000]
+    return { gain: b.gain, freq: b.freq, freqMin, freqMax, q: b.q, shelf: b.shelf, canShelf: i === 0 || i === eq.bands.length - 1 }
   })
   const defaults = COMP_PRESETS.find((p) => p.preset === comp.preset)?.params ?? [30, 50, 1]
   return {

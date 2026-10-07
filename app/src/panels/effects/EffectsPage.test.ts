@@ -93,6 +93,32 @@ describe('EffectsPage', () => {
     expect(session.state.effects.master.compressor.on).toBe(!comp)
   })
 
+  it('reads the returns in dB: the list and the Return readout', () => {
+    const session = setup()
+    const level = session.state.effects.blocks[0].returnLevel
+    const db = level === 0 ? 'Off' : `${level >= 64 ? '+' : ''}${(20 * Math.log10(level / 64)).toFixed(1)} dB`
+    expect(row(/^Send 1, Reverb/).getAttribute('aria-label')).toContain(`return ${db}`)
+    expect(row(/^Send 1, Reverb/).textContent).toContain(db)
+    expect(editor().querySelector('[data-tip="fx.reverb_return"]')!.textContent).toContain(db.replace(' dB', ''))
+  })
+
+  it('sets a Master EQ band to any Hz: an arrow key off the XG steps, and typed digits', () => {
+    const session = setup()
+    fireEvent.click(row(/^Master/))
+    flushSync()
+    const freq = () => editor().querySelector<HTMLElement>('[aria-label="EQ band 2 frequency"]')!
+    const before = session.state.effects.master.eq.bands[1].freq
+    fireEvent.keyDown(freq(), { key: 'ArrowRight' })
+    settle(session)
+    const stepped = session.state.effects.master.eq.bands[1].freq
+    expect(stepped).toBeGreaterThan(before)
+    expect(stepped - before).toBeLessThan(before * 0.05)
+    for (const key of ['1', '2', '3', '4', 'Enter']) fireEvent.keyDown(freq(), { key })
+    settle(session)
+    expect(session.state.effects.master.eq.bands[1].freq).toBe(1234)
+    expect(freq().textContent).toContain('1234')
+  })
+
   it('changes a style bus\'s type and source', () => {
     const session = setup()
     fireEvent.click(row(/^Send 3, Delay/))

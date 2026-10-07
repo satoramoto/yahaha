@@ -6,6 +6,8 @@
   the page's Mix column, not here: an EQ that is off draws its curve faded, and either says "Off".
   Controlled: it draws `master` as given and reports each change through onchange; a band edit
   reports the whole band. Clicking or focusing a band's cell highlights its column and its dot.
+  A band's frequency takes any whole Hz in its range: a drag or an arrow key moves along a fine log
+  grid, and typing digits in the focused cell then Enter (or leaving it) sets that Hz exactly.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -15,6 +17,7 @@
   import StepValue from '../StepValue/StepValue.svelte'
   import type { EqBandData, MasterChange, MasterData } from '../Effects/types'
   import { eqDots, eqPath, yOf } from './eqCurve'
+  import { freqGrid, nearestStep, parseHz } from './freqScale'
 
   type Props = {
     /** The compressor's type and settings, the EQ's type and its eight bands. */
@@ -54,16 +57,44 @@
 
   /** "0", "+4", "−6". */
   const dbText = (db: number) => (db === 0 ? '0' : db > 0 ? `+${db}` : `−${-db}`)
-  /** "80", "1k", "1.2k". */
-  const hzText = (hz: number) => (hz < 1000 ? String(hz) : `${+(hz / 1000).toFixed(1)}k`)
+  /** "80", "1k", "1.2k", and a frequency between the tenths of a kHz whole: "1234". */
+  const hzText = (hz: number) => (hz < 1000 || hz % 100 !== 0 ? String(hz) : `${hz / 1000}k`)
   /** "0.7" from tenths. */
   const qText = (q: number) => (q / 10).toFixed(1)
 
-  /** The step of `steps` nearest `hz`. */
-  function stepOf(steps: number[], hz: number): number {
-    let best = 0
-    for (let i = 1; i < steps.length; i++) if (Math.abs(steps[i] - hz) < Math.abs(steps[best] - hz)) best = i
-    return best
+  /** Each band's frequency grid for a drag, a wheel notch or an arrow key (its own Hz among them). */
+  const grids = $derived(master.bands.map((b) => freqGrid(b.freqMin, b.freqMax, b.freq)))
+
+  /** Digits typed into a band's frequency cell, not yet set (Enter or leaving the cell sets them). */
+  let typed: { band: number; text: string } | null = $state(null)
+
+  /** A key in band `i`'s frequency cell, before the cell's own handling: digits type a frequency. */
+  function typeFreq(e: KeyboardEvent, i: number) {
+    const text = typed?.band === i ? typed.text : null
+    if (/^\d$/.test(e.key)) {
+      typed = { band: i, text: ((text ?? '') + e.key).slice(0, 5) }
+    } else if (text === null) {
+      return
+    } else if (e.key === 'Backspace') {
+      typed = text.length > 1 ? { band: i, text: text.slice(0, -1) } : null
+    } else if (e.key === 'Enter') {
+      setTyped(i)
+    } else if (e.key === 'Escape') {
+      typed = null
+    } else {
+      return
+    }
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  /** Sets band `i` to the Hz typed into it (clamped to its range). */
+  function setTyped(i: number) {
+    if (typed?.band !== i) return
+    const b = master.bands[i]
+    const hz = parseHz(typed.text, b.freqMin, b.freqMax)
+    typed = null
+    if (hz !== null && hz !== b.freq) setBand(i, { freq: hz })
   }
 
   /** Reports band `i` with one field changed. */
@@ -189,19 +220,24 @@
           <tr>
             <th scope="row" class="rowhead">Hz</th>
             {#each master.bands as b, i (i)}
-              <td class:chosen={chosen === i} onfocusin={() => (chosen = i)}>
+              <td
+                class:chosen={chosen === i}
+                onfocusin={() => (chosen = i)}
+                onfocusout={() => setTyped(i)}
+                onkeydowncapture={(e) => typeFreq(e, i)}
+              >
                 <StepValue
-                  value={stepOf(b.freqSteps, b.freq)}
+                  value={nearestStep(grids[i], b.freq)}
                   min={0}
-                  max={b.freqSteps.length - 1}
-                  display={hzText(b.freq)}
+                  max={grids[i].length - 1}
+                  display={typed?.band === i ? typed.text : hzText(b.freq)}
                   ink="t"
                   span={160}
                   name="EQ band {i + 1} frequency"
-                  valuetext="{hzText(b.freq)} Hz"
+                  valuetext={typed?.band === i ? `typing ${typed.text} Hz` : `${b.freq} Hz`}
                   tip="fx.master_eq_freq"
                   {tipAction}
-                  onchange={(step) => setBand(i, { freq: b.freqSteps[step] })}
+                  onchange={(step) => setBand(i, { freq: grids[i][step] })}
                 />
               </td>
             {/each}

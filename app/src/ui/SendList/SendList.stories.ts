@@ -34,7 +34,7 @@ export const Default: Story = {
     const canvas = within(canvasElement)
     const nav = canvas.getByRole('navigation', { name: 'Effects' })
     await expect(within(nav).getByRole('heading', { name: 'Effects' })).toBeInTheDocument()
-    const delay = canvas.getByRole('button', { name: 'Send 3, Delay, 1/8 · Mine, return 36, open' })
+    const delay = canvas.getByRole('button', { name: 'Send 3, Delay, 1/8 · Mine, return -5.0 dB, open' })
     await expect(delay).toHaveAttribute('aria-current', 'true')
     await expect(delay).toHaveAttribute('data-face', 'chosen')
     await expect(delay).toHaveAttribute('data-tip', 'fx.send_open')
