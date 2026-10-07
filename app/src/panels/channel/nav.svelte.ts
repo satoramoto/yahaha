@@ -1,43 +1,40 @@
-// Whether the display shows the Channel view (ChannelView.svelte) for `ui.selectedPart`.
-// Clicking a mixer strip's name opens it on that part; clicking the selected strip again,
-// Esc (once nothing is open over the stage) or its × closes it, and the display shows what
-// it showed before (the lead sheet). While the mixer's Details layer is shown (`ui.mixer`)
-// the display is hidden, so a strip's name only selects the part, as the strip does, and
-// leaves the Channel view as it was.
+// The Channel page tab's navigation: the part opener and the chosen group tab.
+//
+// `show(part)` is the part opener (Channel.md, Parts list): it makes `part` the open part
+// (`ui.selectedPart`), a keyboard part also the selected part (`selectPart`), and shows the Channel
+// page tab. The parts list and ◀ ▶ use it. The Channel page has no close of its own (CH-D4): the
+// Stage tab, its Alt key or Esc (stagePage.escape) leave it.
+//
+// A part becoming selected doesn't open Channel: a sound pick, F1–F4, a rack slot or a rack load
+// select parts too, and the state can't yet say a select came from the hardware. Opening it on a
+// hardware part select (CH-D15) waits for the contract's `surface.partSelectSeq`.
 
 import { app, ui } from '../../lib/store.svelte'
+import type { ChannelTab } from '../../ui/Channel/types'
+import { stagePage } from '../stage/page.svelte'
+import { STRIP_COUNT } from './channel'
 
 class ChannelNav {
-  open = $state(false)
+  /** The chosen group tab; kept while the page is away, so it comes back as it was left. */
+  tab: ChannelTab = $state('mix')
 
-  /** Show part `part` (0–11); a keyboard part becomes the selected part too, as its strip's name does. */
+  /** Open part `part` (0–11, wrapped) on the Channel page. */
   show(part: number) {
-    ui.selectedPart = part
-    if (part < 4) app.send({ type: 'selectPart', part })
-    this.open = true
+    const p = ((Math.trunc(part) % STRIP_COUNT) + STRIP_COUNT) % STRIP_COUNT
+    ui.selectedPart = p
+    if (p < 4) app.send({ type: 'selectPart', part: p })
+    stagePage.show('channel')
   }
 
+  /** Leave the Channel page for the Stage, if it shows; the tab goes back to Mix. */
   close() {
-    this.open = false
+    if (stagePage.page === 'channel') stagePage.page = 'stage'
+    this.tab = 'mix'
   }
 
-  /** A click anywhere in the mixer row, seen before the strip handles it: a strip's name
-   * opens its channel, or closes it when that strip's channel is already shown. Ignored
-   * while the Details layer hides the display. */
-  stripClick(e: MouseEvent) {
-    if (ui.mixer) return
-    const target = e.target instanceof Element ? e.target : null
-    const name = target?.closest('[data-tip="mixer.strip.select"]')
-    const part = Number(name?.closest<HTMLElement>('[data-part]')?.dataset.part)
-    if (!name || !Number.isInteger(part)) return
-    this.open = !(this.open && ui.selectedPart === part)
-  }
-
-  /** Esc once nothing else took it: closes the channel. True when it did. */
+  /** Esc: the Channel page opens nothing over itself, so stagePage.escape takes Esc. */
   escape(): boolean {
-    if (!this.open) return false
-    this.open = false
-    return true
+    return false
   }
 }
 
