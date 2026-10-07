@@ -25,7 +25,7 @@ const meta = {
     rec: { control: 'boolean' },
     waiting: { control: 'boolean' },
     size: { control: 'select', options: ['md', 'sm', 'cell'] },
-    hue: { control: 'select', options: ['t', 'r1', 'r2', 'r3', 'l', 'ok'] },
+    hue: { control: 'select', options: ['t', 'r1', 'r2', 'r3', 'l', 'ok', 'lamp'] },
     join: { control: 'select', options: ['none', 'start', 'end'], mapping: { none: undefined } },
     width: { control: 'number' },
   },
@@ -165,10 +165,26 @@ export const Recording: Story = {
   parameters: { layout: 'padded' },
 }
 
-/** Loop armed: a 2px neutral ring over a faint neutral fill, the label in `--neutral`. */
-export const ArmedLoop: Story = {
-  args: { label: 'Looper', size: 'cell', waiting: true, name: 'Looper, loop armed' },
+/** The Looper looping: the solid lime `--lamp` fill, the label in `--lamp-ink`. */
+export const Looping: Story = {
+  args: { label: 'Looper', size: 'cell', on: true, hue: 'lamp', name: 'Looper, looping' },
   parameters: { layout: 'padded' },
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getByRole('button', { name: 'Looper, looping' })
+    await expect(button).toHaveAttribute('data-face', 'on')
+    await expect(button).toHaveAttribute('data-hue', 'lamp')
+  },
+}
+
+/** Loop armed: a 2px lime ring (`--lamp-line`) over a faint lime fill, the label in `--lamp-line`. */
+export const ArmedLoop: Story = {
+  args: { label: 'Looper', size: 'cell', waiting: true, hue: 'lamp', name: 'Looper, loop armed' },
+  parameters: { layout: 'padded' },
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getByRole('button', { name: 'Looper, loop armed' })
+    await expect(button).toHaveAttribute('data-face', 'waiting')
+    await expect(button).toHaveAttribute('data-hue', 'lamp')
+  },
 }
 
 /**
