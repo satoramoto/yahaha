@@ -521,6 +521,9 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Save bank** | Saves the memories to the bank's file, or under the name you typed as a new file. If another bank already has that name, nothing is saved: pick another name, or use Overwrite. | Chord Looper › Save | — | — |
 | **Overwrite bank** | Another Chord Looper bank has the name you typed: replace its file with these memories. | Chord Looper › Save (overwrite) | — | — |
 | **The sequence** | The chords the loop plays, bar by bar; the bar playing is lit. Chord times snap to 16th notes and the loop is whole bars. | Chord Looper (current data) | — | — |
+| **Load bank** | Lists the bank files in the ChordLooper folder; pick one to load its eight memories in place of these. The bank in use is the white block. Esc closes the list. | Chord Looper › Open | — | — |
+| **Save as…** | Saves the eight memories as a bank file under a name you type. Enter saves, Esc cancels; left empty, the bank keeps its own name. | Chord Looper › Save | — | — |
+| **Cancel** | Closes the name field without saving. | — | — | — |
 
 ## Multi Pads
 
