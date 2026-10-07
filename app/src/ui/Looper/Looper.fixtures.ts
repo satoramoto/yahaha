@@ -103,3 +103,11 @@ export const looperLong: LooperPageData = {
   bars: 16,
   sequence: [...boardSequence, ...boardSequence.map((b) => ({ ...b, bar: b.bar + 8 }))],
 }
+
+/** A twelve-bar loop, stopped, paged to its second window: bars 9–12, then four empty slots. */
+export const looperLongStopped: LooperPageData = {
+  ...looperStopped,
+  bars: 12,
+  sequence: [...boardSequence, ...boardSequence.slice(0, 4).map((b) => ({ ...b, bar: b.bar + 8 }))],
+  laneFirst: 9,
+}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { MockSession } from '../../lib/api/mock'
 import type { LooperState } from '../../lib/api/types'
+import { laneStart } from '../../ui/Looper/faces'
 import { barsOf, clashes, LOCAL_CLOSED, looperChange, looperPage, playheadOf } from './model'
 
 const banks: Pick<LooperState, 'banks' | 'bankPath'> = {
@@ -33,6 +34,29 @@ describe('looper page model', () => {
     expect(playheadOf({ mode: 'off', bar: null }, true, 6, 4)).toBeNull()
   })
 
+  it('pages a stopped 12-bar loop to bars 9–12; while looping the lane follows the playing bar', () => {
+    const s = new MockSession({ manual: true, demo: true }).state
+    s.looper.mode = 'off'
+    s.looper.bars = 12
+    s.looper.bar = null
+    s.looper.chords = [{ bar: 10, beat: 1, chord: 'Am7' }]
+    const paged = looperChange({ type: 'lanePage', first: 9 }, LOCAL_CLOSED, banks)
+    expect(paged.cmds).toEqual([])
+    const page = looperPage(s, paged.local)
+    expect(page.laneFirst).toBe(9)
+    expect(laneStart(page.mode, page.bar, page.bars, page.laneFirst)).toBe(9)
+    expect(page.sequence.find((b) => b.bar === 10)?.chords).toEqual([{ chord: 'Am7', beat: 1 }])
+    // Snapped to a window, kept within the loop.
+    expect(laneStart('off', null, 12, 11)).toBe(9)
+    expect(laneStart('off', null, 12, 17)).toBe(9)
+    expect(laneStart('loopArmed', null, 12, 9)).toBe(9)
+    expect(laneStart('off', null, 4, 9)).toBe(1)
+    // Looping or recording: the window holds the playing bar, whatever was paged.
+    expect(laneStart('looping', 3, 12, 9)).toBe(1)
+    expect(laneStart('looping', 11, 12, 1)).toBe(9)
+    expect(laneStart('recording', 10, 10, 1)).toBe(9)
+  })
+
   it('a typed name clashes with another bank file, not with its own or an empty one', () => {
     expect(clashes(banks, 'ballads')).toBe(true)
     expect(clashes(banks, 'Sunday set')).toBe(false)
@@ -45,7 +69,7 @@ describe('looper page model', () => {
     s.looper.memories[1] = { name: 'CLD_002', bars: 2, chords: [{ bar: 1, beat: 1, chord: 'C' }, { bar: 2, beat: 1, chord: 'G' }] }
     s.looper.banks = banks.banks
     s.looper.bankPath = null
-    const page = looperPage(s, { pick: 'store', loadOpen: true, saveAs: 'Ballads' })
+    const page = looperPage(s, { pick: 'store', loadOpen: true, saveAs: 'Ballads', laneFirst: 1 })
     expect(page.memories[1]).toEqual({ name: 'CLD_002', bars: 2, summary: 'C G' })
     expect(page.memories[0].name).toBeNull()
     expect(page.bankSaved).toBe(false)
@@ -77,7 +101,7 @@ describe('looper page model', () => {
     expect(loaded.local.loadOpen).toBe(false)
 
     let local = looperChange({ type: 'saveAsOpen', open: true }, open, banks).local
-    expect(local).toEqual({ pick: null, loadOpen: false, saveAs: '' })
+    expect(local).toEqual({ pick: null, loadOpen: false, saveAs: '', laneFirst: 1 })
     // Empty: saves the bank under its own name.
     expect(looperChange({ type: 'save', overwrite: false }, local, banks).cmds).toEqual([{ type: 'saveLooperBank', name: null }])
     local = looperChange({ type: 'saveAsName', name: ' Ballads ' }, local, banks).local

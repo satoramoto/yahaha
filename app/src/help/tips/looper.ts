@@ -20,6 +20,13 @@ export const looperTips = {
     keys: [],
     launchkey: null,
   },
+  'looper.lane_page': {
+    title: 'Earlier / later bars',
+    body: 'A loop longer than eight bars shows eight at a time: ◀ and ▶ page through them while the loop is stopped or armed. While it loops or records, the lane follows the bar playing.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
   'looper.save_cancel': {
     title: 'Cancel',
     body: 'Closes the name field without saving.',

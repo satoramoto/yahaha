@@ -6,15 +6,19 @@ import type { AppCmd, AppState, LooperState } from '../../lib/api/types'
 import { sameFile } from '../../lib/format'
 import type { LoopBarItem, LooperChange, LooperPageData } from '../../ui/Looper/types'
 
-/** What only the page keeps: the Memory / Clear latch, the Load list and the typed bank name. */
+/** What only the page keeps: the Memory / Clear latch, the Load list, the typed bank name and the
+ *  lane's paged window. */
 export interface LooperLocal {
   pick: 'store' | 'clear' | null
   loadOpen: boolean
   /** The Save as… form's typed name; null: closed. */
   saveAs: string | null
+  /** The lane's first bar when paged by hand (the Looper snaps it to the loop; ignored while it
+   *  loops or records). */
+  laneFirst: number
 }
 
-export const LOCAL_CLOSED: LooperLocal = { pick: null, loadOpen: false, saveAs: null }
+export const LOCAL_CLOSED: LooperLocal = { pick: null, loadOpen: false, saveAs: null, laneFirst: 1 }
 
 /** The sequence as bars 1…bars, each with its chord changes (empty: the chord holds). */
 export function barsOf(lp: Pick<LooperState, 'bars' | 'chords'>): LoopBarItem[] {
@@ -46,6 +50,7 @@ export function looperPage(state: AppState, local: LooperLocal, pos = 0): Looper
     bar: lp.bar,
     bars: lp.bars,
     sequence: barsOf(lp),
+    laneFirst: local.laneFirst,
     playhead: playheadOf(lp, running, pos, state.transport.beatsPerBar),
     running,
     memories: lp.memories.map((m) => ({ name: m.name, bars: m.bars, summary: m.chords.map((c) => c.chord).join(' ') })),
@@ -86,6 +91,8 @@ export function looperChange(
     }
     case 'newBank':
       return { cmds: [{ type: 'newLooperBank' }], local: { ...local, loadOpen: false } }
+    case 'lanePage':
+      return { cmds: [], local: { ...local, laneFirst: Math.max(1, Math.floor(change.first)) } }
     case 'loadOpen':
       return { cmds: [], local: { ...local, loadOpen: change.open, saveAs: change.open ? null : local.saveAs } }
     case 'load':
