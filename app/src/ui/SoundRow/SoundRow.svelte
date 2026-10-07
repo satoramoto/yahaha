@@ -46,6 +46,8 @@
     oneTouch?: number
     /** How many One Touch settings the style has: numbers past it are disabled. */
     oneTouchCount?: number
+    /** Draws One Touch under the rows. False when the layout shows One Touch on its own (the golden Stage). */
+    showOneTouch?: boolean
     /** The app's tooltip action (`use:tip`), applied to every control. */
     tipAction?: Action<HTMLElement, string>
     /** Called with the part's id when its row is pressed (opens its sound list). */
@@ -54,7 +56,7 @@
     ononetouch?: (n: number) => void
   }
 
-  let { parts, oneTouch = 0, oneTouchCount = 4, tipAction, onsound, ononetouch }: Props = $props()
+  let { parts, oneTouch = 0, oneTouchCount = 4, showOneTouch = true, tipAction, onsound, ononetouch }: Props = $props()
 
   /** The words after the part's name: "off" when off and not playing the bass, "bass" when it does. */
   const tail = (p: Part) => (p.bass ? ' · bass' : p.off ? ' · off' : '')
@@ -89,9 +91,11 @@
       </li>
     {/each}
   </ul>
-  <div class="ots">
-    <OneTouchPicker applied={oneTouch} count={oneTouchCount} {tipAction} onapply={ononetouch} />
-  </div>
+  {#if showOneTouch}
+    <div class="ots">
+      <OneTouchPicker applied={oneTouch} count={oneTouchCount} {tipAction} onapply={ononetouch} />
+    </div>
+  {/if}
 </div>
 
 <style>

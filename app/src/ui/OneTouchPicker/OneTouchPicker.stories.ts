@@ -17,6 +17,7 @@ const meta = {
     count: { control: { type: 'number', min: 0, max: 4, step: 1 } },
     numbers: { control: { type: 'number', min: 1, max: 4, step: 1 } },
     label: { control: 'text' },
+    orientation: { control: { type: 'inline-radio' }, options: ['horizontal', 'vertical'] },
     name: { control: 'text' },
   },
 } satisfies Meta<typeof OneTouchPicker>
@@ -36,6 +37,16 @@ export const Board: Story = {
 
 /** None applied: every number plain. */
 export const NoneApplied: Story = { args: { applied: 0 } }
+
+/** Vertical, as in the golden Stage's One Touch block: the words on top, 1-4 stacked under them. */
+export const Vertical: Story = {
+  args: { applied: 2, orientation: 'vertical' },
+  play: async ({ canvasElement }) => {
+    const buttons = within(canvasElement).getAllByRole('button')
+    await expect(buttons[1]).toHaveAttribute('aria-pressed', 'true')
+    await expect(canvasElement.querySelector('.ots')).toHaveClass('vertical')
+  },
+}
 
 /** A style with two One Touch settings: 3 and 4 disabled. */
 export const TwoSettings: Story = {

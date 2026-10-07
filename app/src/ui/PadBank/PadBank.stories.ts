@@ -31,6 +31,7 @@ const meta = {
     bank: { control: { type: 'number', min: 0, max: padBanks.length - 1, step: 1 } },
     legend: { control: 'object' },
     lit: { control: 'boolean' },
+    columns: { control: { type: 'inline-radio' }, options: [8, 4] },
   },
 } satisfies Meta<typeof PadBank>
 
@@ -47,6 +48,20 @@ export const Board: Story = {
     await expect(canvas.getByRole('tab', { name: 'Sections' })).toHaveAttribute('aria-selected', 'true')
     await userEvent.click(canvas.getByRole('tab', { name: 'Chord' }))
     await expect(args.onbank).toHaveBeenCalledWith(2)
+  },
+}
+
+/**
+ * A 4 × 4 grid (`columns` 4), as in the golden Stage's pads block: pads 1–4, 5–8, 9–12 and 13–16
+ * row by row. Here the pads keep the default square `--pad-size`; the golden Stage sets
+ * `--pad-width` and `--pad-height` (about 105 × 49) and the bank's width for its block
+ * (Screens/Stage › Golden).
+ */
+export const FourByFour: Story = {
+  args: { columns: 4, legend: [] },
+  play: async ({ canvasElement }) => {
+    const grid = canvasElement.querySelector<HTMLElement>('.pads')
+    await expect(grid?.style.getPropertyValue('--pad-columns')).toBe('4')
   },
 }
 

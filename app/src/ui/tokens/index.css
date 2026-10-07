@@ -10,3 +10,5 @@
 @import './stage-frame.css';
 /* The layout grid (a proposal, opt-in: Stage's `layout="grid"`). */
 @import './grid.css';
+/* The golden layout (a proposal, opt-in: Stage's `layout="golden"`). */
+@import './stage-golden.css';

@@ -210,8 +210,14 @@
   .unused {
     cursor: default;
   }
+  /* A name or code wider than the knob spills over its neighbours by default; a narrow layout
+     sets --knob-text-max to 100% and --knob-text-overflow to hidden, and it ends in an ellipsis
+     (the full name is spoken). */
   .label,
   .code {
+    max-width: var(--knob-text-max, none);
+    overflow: var(--knob-text-overflow, visible);
+    text-overflow: ellipsis;
     height: var(--knob-label-height);
     font: var(--type-text);
     letter-spacing: var(--tracking-text);

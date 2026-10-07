@@ -23,6 +23,7 @@
   import KnobBank from '../KnobBank/KnobBank.svelte'
   import PadBank from '../PadBank/PadBank.svelte'
   import SectionRow from '../SectionRow/SectionRow.svelte'
+  import StageGolden from '../StageGolden/StageGolden.svelte'
   import StatusLine from '../StatusLine/StatusLine.svelte'
   import type TransportColumn from '../TransportColumn/TransportColumn.svelte'
 
@@ -42,7 +43,9 @@
   type On<C extends Any, K extends keyof ComponentProps<C>> = Pick<ComponentProps<C>, K>
 
   type Props = {
-    /** Draws the 15 columns and the rhythm lines over the screen, to check the alignment. A design aid. */
+    /** `grid`: the 15-column grid (this file). `golden`: the golden-section proposal (StageGolden, tokens/stage-golden.css), a Storybook-only mock for now. */
+    layout?: 'grid' | 'golden'
+    /** Draws the 15 columns and the rhythm lines over the screen, to check the alignment. A design aid (the grid layout only). */
     overlay?: boolean
     /** The app bar: pages, Launchkey, audio health. */
     appBar: Data<typeof AppBar>
@@ -132,6 +135,9 @@
   const COLUMNS = Array.from({ length: 15 }, (_, i) => i)
 </script>
 
+{#if p.layout === 'golden'}
+  <StageGolden {...p} {running} {fading} />
+{:else}
 <div class="screen grid">
   <AppBar {...p.appBar} tipAction={p.tipAction} onchoose={p.onchoose} onhealth={p.onhealth} />
   <div class="row">
@@ -199,6 +205,7 @@
     </div>
   {/if}
 </div>
+{/if}
 
 <style>
   .screen {

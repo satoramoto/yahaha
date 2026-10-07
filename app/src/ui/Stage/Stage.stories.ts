@@ -3,6 +3,7 @@ import { fn } from 'storybook/test'
 import Stage from './Stage.svelte'
 import { stageBoard, stageStopped } from './Stage.fixtures'
 import StagePlayground from './StagePlayground.svelte'
+import GoldenStory from '../StageGolden/GoldenStory.svelte'
 
 /** Groups a callback's control under its component. */
 const on = (category: string, names: string[]) =>
@@ -136,4 +137,43 @@ export const Playground: Story = {
  */
 export const Grid: Story = {
   args: { overlay: true },
+}
+
+/** The Golden stories' own control: the overlay lives in the story-only wrapper (GoldenStory), not in Stage's props. */
+const GOLDEN_ARG_TYPES = {
+  showGrid: { control: 'boolean', table: { category: 'Layout' } },
+} as unknown as Story['argTypes']
+
+/**
+ * A proposal: the Stage laid out by golden subdivision (`layout="golden"`, StageGolden,
+ * tokens/stage-golden.css). Turn on `showGrid` to see the cuts, each block's inner padding, the
+ * beat bar's line and the golden spiral.
+ *
+ * - **App bar**, y 20–56, the frame's width (1217): the page tabs, then the helpers (Metronome ▾,
+ *   Unison, Panic, ?), then the Launchkey and audio health.
+ * - **The frame**, 1217 × 752 (= φ), x 111–1328, y 64–816; no section row.
+ * - **Display row**, 287 tall: chord (287 square: the style line, the chord, its notes), song (287
+ *   square: the section, "then …", the tempo with + over −), transport (178: a list, "● Playing",
+ *   Accomp, Sync Start, Reset, Fill ▲ Fill ▼, Fade), One Touch (178: 1–4 stacked), parts (287
+ *   square: the four part rows). The beat bar runs under all five, ¾ of the way down.
+ * - **Band**, 465 tall: faders 752 × 465, the status line at their foot; the 465 square cut into
+ *   knobs (178) over pads (287, a 4 × 4 grid, pads 1–4 to 13–16 row by row).
+ * - **Keys**, y 824–880, black keys 35 tall (56 / φ).
+ * - Every block keeps a 13px inner padding, so its edges sit on the cut lines.
+ */
+export const Golden: Story = {
+  args: { showGrid: false } as Partial<Story['args']>,
+  argTypes: GOLDEN_ARG_TYPES,
+  render: (args) => ({ Component: GoldenStory, props: args }),
+}
+
+/**
+ * The golden layout, interactive: the Playground's wrapper (StagePlayground) in `layout="golden"`.
+ * Transport, tempo, One Touch, the part rows, faders, knobs and pads respond as in the Playground;
+ * while running, a story-only ticker moves the beat bar. `showGrid` draws the cuts over it.
+ */
+export const GoldenPlayground: Story = {
+  args: { showGrid: false } as Partial<Story['args']>,
+  argTypes: GOLDEN_ARG_TYPES,
+  render: (args) => ({ Component: GoldenStory, props: { ...args, playground: true } }),
 }

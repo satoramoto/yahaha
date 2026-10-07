@@ -2,7 +2,7 @@
   PadBank: the band's Pads section. A GroupHeader with the pad bank tabs right after the title
   (Sections, Quick Racks, Chord, Multi Pads, Setup, in the one header tab style) and the bank's hue
   legend at the row's right end; `--band-body-gap` below the header's rule, sixteen Pads in two
-  rows of eight across the whole column, each outlined in its own hue. Holds no state: the chosen
+  rows of eight across the whole column (or, with `columns` 4, a 4 × 4 grid), each outlined in its own hue. Holds no state: the chosen
   bank comes in `bank` and the flash phase in `lit`; a tab choice and a press go out by index.
 -->
 <script lang="ts">
@@ -20,6 +20,8 @@
   type Props = {
     /** The sixteen pads, row by row. */
     pads: PadItem[]
+    /** How many pads a row: 8 (two rows of eight, the Launchkey's layout) or 4 (a 4 × 4 grid, pads 1–4, 5–8, 9–12, 13–16). */
+    columns?: 4 | 8
     /** The pad bank names, one tab each ("Sections", "Quick Racks", "Chord", "Multi Pads", "Setup"). */
     banks?: string[]
     /** The chosen bank's index in `banks`. */
@@ -48,6 +50,7 @@
 
   let {
     pads,
+    columns = 8,
     banks = [],
     bank = 0,
     bankTips = BANK_TIPS,
@@ -73,7 +76,7 @@
       {#if legend.length > 0}<HueLegend items={legend} />{/if}
     {/snippet}
   </GroupHeader>
-  <div class="pads">
+  <div class="pads" style:--pad-columns={columns}>
     {#each pads as pad, i (i)}
       <div class="cell">
         <Pad
@@ -101,8 +104,8 @@
   }
   .pads {
     display: grid;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    grid-auto-rows: var(--pad-size);
+    grid-template-columns: repeat(var(--pad-columns), minmax(0, 1fr));
+    grid-auto-rows: var(--pad-height, var(--pad-size));
     gap: var(--pad-gap);
     margin-top: var(--band-body-gap);
   }

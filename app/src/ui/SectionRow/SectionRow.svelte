@@ -1,5 +1,6 @@
 <!--
-  SectionRow: the toolbar between the app bar and the display. The transport at the left, in this
+  SectionRow: the toolbar between the app bar and the display (`groups` can draw one group alone,
+  and `orientation` vertical makes it a list: the golden Stage's transport block). The transport at the left, in this
   order: Start / Stop (first; the same control as pad 16), Accomp, Sync Start, Reset, Fill ▲,
   Fill ▼ and Fade. The helpers at the right: Metronome joined with its ▾ settings caret, Unison,
   Panic and help mode's ?. The count (bar, beat, sections) lives on the display, not here. Every
@@ -14,6 +15,10 @@
   import type { Action } from 'svelte/action'
 
   type Props = {
+    /** Which groups to draw: both (the section row), the transport alone, or the helpers alone (the golden Stage puts the transport on the display and the helpers in the app bar). */
+    groups?: 'all' | 'transport' | 'helpers'
+    /** `horizontal`: one row, the screen wide with `groups` all. `vertical`: a list, one control a line (Fill ▲ and Fill ▼ share one), as wide as its words. */
+    orientation?: 'horizontal' | 'vertical'
     /** The style is running: Start / Stop is solid green and aria-pressed. */
     running?: boolean
     /** Accompaniment (ACMP) on. */
@@ -61,6 +66,8 @@
   }
 
   let {
+    groups = 'all',
+    orientation = 'horizontal',
     running = false,
     accomp = false,
     syncStart = false,
@@ -89,6 +96,13 @@
     if (!tipAction) return
     return tipAction(node, key)
   }
+
+  const transport = $derived(groups !== 'helpers')
+  const helpers = $derived(groups !== 'transport')
+  const vertical = $derived(orientation === 'vertical')
+  const toolbarName = $derived(
+    groups === 'transport' ? 'Transport' : groups === 'helpers' ? 'Helpers' : 'Transport, switches and helpers',
+  )
 </script>
 
 {#snippet dotSwitch(
@@ -118,7 +132,15 @@
   >
 {/snippet}
 
-  <div class="row dots" role="toolbar" aria-label="Transport, switches and helpers">
+  <div
+    class="row dots"
+    class:full={groups === 'all'}
+    class:vertical
+    role="toolbar"
+    aria-label={toolbarName}
+    aria-orientation={orientation}
+  >
+    {#if transport}
     <span class="group" role="group" aria-label="Transport">
       <span class="start-word" class:running>
         {@render dotSwitch(
@@ -133,22 +155,26 @@
       {@render dotSwitch('Accomp', accomp, 'transport.acmp', () => onaccomp?.(!accomp), 'Accomp (ACMP)')}
       {@render dotSwitch('Sync Start', syncStart, 'transport.sync_start', () => onsyncstart?.(!syncStart))}
       {@render action('Reset', '', 'Section reset: restart the section from its first bar', 'transport.section_reset', onreset)}
-      {@render action(
-        'Fill',
-        '▲',
-        'Fill Up: a fill, then the next Main up (at Main D, its own fill)',
-        'transport.fill_up',
-        onfillup,
-      )}
-      {@render action(
-        'Fill',
-        '▼',
-        'Fill Down: a fill, then the next Main down (at Main A, its own fill)',
-        'transport.fill_down',
-        onfilldown,
-      )}
+      <span class="pair">
+        {@render action(
+          'Fill',
+          '▲',
+          'Fill Up: a fill, then the next Main up (at Main D, its own fill)',
+          'transport.fill_up',
+          onfillup,
+        )}
+        {@render action(
+          'Fill',
+          '▼',
+          'Fill Down: a fill, then the next Main down (at Main A, its own fill)',
+          'transport.fill_down',
+          onfilldown,
+        )}
+      </span>
       {@render dotSwitch('Fade', fading, 'transport.fade', () => onfade?.(), 'Fade in/out')}
     </span>
+    {/if}
+    {#if helpers}
     <span class="group helpers">
       <span class="joined-word" role="group" aria-label="Metronome">
         {@render dotSwitch('Metronome', metronome, 'metronome.on', () => onmetronome?.(!metronome))}
@@ -175,6 +201,7 @@
         'Help mode: point at any control to learn what it does',
       )}
     </span>
+    {/if}
   </div>
 
 <style>
@@ -183,17 +210,36 @@
     display: flex;
     align-items: center;
     gap: var(--space-24);
-    width: var(--stage-row-width);
     height: var(--tab-block);
     white-space: nowrap;
+  }
+  /* Both groups: the screen's width, the helpers pushed to its right end. */
+  .row.full {
+    width: var(--stage-row-width);
   }
   .group {
     display: flex;
     align-items: center;
     gap: var(--space-24);
   }
-  .helpers {
+  .full .helpers {
     margin-left: auto;
+  }
+  /* Fill ▲ and Fill ▼: in a row they are two items of the group; in a list they share a line. */
+  .pair {
+    display: contents;
+  }
+  /* Vertical: a list, one control a line, every word on the list's left edge. */
+  .vertical,
+  .vertical .group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-6);
+    height: auto;
+  }
+  .vertical .pair {
+    display: flex;
+    gap: var(--space-24);
   }
   .word {
     display: flex;

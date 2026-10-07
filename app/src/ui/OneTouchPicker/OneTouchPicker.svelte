@@ -17,6 +17,8 @@
     numbers?: number
     /** The words before the numbers. */
     label?: string
+    /** `horizontal`: one line, "One Touch 1 2 3 4". `vertical`: the words on top and the numbers stacked under them (the golden Stage's One Touch block). */
+    orientation?: 'horizontal' | 'vertical'
     /** The group's accessible name. Default: says which is applied and the Launchkey's Shift + pads 9 to 12. */
     name?: string
     /** The app's tooltip action (`use:tip`), applied to each number with its key `ots.<n>`. */
@@ -25,7 +27,16 @@
     onapply?: (n: number) => void
   }
 
-  let { applied = 0, count = 4, numbers = 4, label = 'One Touch', name, tipAction, onapply }: Props = $props()
+  let {
+    applied = 0,
+    count = 4,
+    numbers = 4,
+    label = 'One Touch',
+    orientation = 'horizontal',
+    name,
+    tipAction,
+    onapply,
+  }: Props = $props()
 
   const list = $derived(Array.from({ length: Math.max(0, numbers) }, (_, i) => i + 1))
   const spoken = $derived(
@@ -40,7 +51,7 @@
   }
 </script>
 
-<div class="ots" role="group" aria-label={spoken}>
+<div class="ots" class:vertical={orientation === 'vertical'} role="group" aria-label={spoken}>
   <span class="label" aria-hidden="true">{label}</span>
   {#each list as n (n)}
     <button
@@ -71,6 +82,20 @@
   .label {
     margin-right: var(--space-12);
     color: var(--caption-ink);
+  }
+  /* Vertical: the words on their own line, the numbers stacked under them, left-aligned with the
+     words (each number keeps its tab padding, pulled back so its digit starts on the words' edge). */
+  .vertical {
+    flex-direction: column;
+    align-items: flex-start;
+    height: auto;
+  }
+  .vertical .label {
+    margin: 0 0 var(--space-4);
+    line-height: var(--control-height-compact);
+  }
+  .vertical .number {
+    margin-left: calc(-1 * var(--tab-pad-side));
   }
   .number {
     height: var(--control-height-compact);

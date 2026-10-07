@@ -104,9 +104,10 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    width: var(--pad-size);
+    /* Square at --pad-size; a layout may set --pad-width and --pad-height apart (the golden 4 × 4). */
+    width: var(--pad-width, var(--pad-size));
     min-width: 0;
-    height: var(--pad-size);
+    height: var(--pad-height, var(--pad-size));
     margin: 0;
     padding: 0 var(--space-4);
     border: none;

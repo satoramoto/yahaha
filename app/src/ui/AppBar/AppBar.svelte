@@ -10,6 +10,7 @@
   white line.
 -->
 <script lang="ts">
+  import type { Snippet } from 'svelte'
   import type { Action } from 'svelte/action'
   import ChosenTabs from '../ChosenTabs/ChosenTabs.svelte'
   import type { TabItem } from '../ChosenTabs/types'
@@ -47,6 +48,8 @@
     nowPlaying?: { style: string; tempo: number }
     /** The bar's width in px. Default: fills its container. */
     width?: number
+    /** Controls after the page nav, before the Launchkey status, behind a hairline of their own (the golden Stage's helpers). */
+    end?: Snippet
   }
 
   let {
@@ -64,6 +67,7 @@
     onhealth,
     nowPlaying,
     width,
+    end,
   }: Props = $props()
 </script>
 
@@ -80,6 +84,12 @@
     <span class="gap"><Separator /></span>
     <ChosenTabs tabs={fullTabs} {chosen} size="page" {tipAction} {onchoose} />
   </nav>
+  {#if end}
+    <div class="end">
+      <Separator />
+      {@render end()}
+    </div>
+  {/if}
   <div class="right">
     <Separator />
     <span
@@ -157,6 +167,16 @@
   .gap {
     display: flex;
     margin: 0 var(--space-8);
+  }
+  /* The end controls: a hairline, then the parent's controls, centred on the tab row. */
+  .end {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-24);
+    align-self: flex-start;
+    height: var(--tab-height-header);
+    margin-left: var(--space-16);
   }
   .right {
     display: flex;
