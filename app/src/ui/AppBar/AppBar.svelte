@@ -112,7 +112,7 @@
     box-sizing: border-box;
     height: var(--bar-height);
     border-bottom: var(--header-rule-width) solid var(--header-rule);
-    background: var(--g);
+    background: var(--backdrop-ground);
     color: var(--t);
     font-family: var(--font-sans);
   }
