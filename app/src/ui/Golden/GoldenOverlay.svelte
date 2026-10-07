@@ -6,7 +6,9 @@
   `data-spiral-from` / `data-spiral-turn` (a primitive's `spiralFrom` / `spiralTurn`) orient its
   spiral instead, give any split one, and mark the spiral's pole with a small ring. It checks the rules
   as it goes and draws what breaks one red: a slot whose content overflows it (or has text cut
-  short), and a row or column whose cells don't add up to its box. What it finds is data: the
+  short), and a row or column whose cells don't add up to its box. Text marked
+  `data-golden-ellipsis` is cut short by design (a name truncated to its column, its full text in
+  its tooltip) and isn't counted. What it finds is data: the
   wrapper carries `data-overflow` and `data-rows-off` (counts), `onreport` gets the whole report,
   and with `report` a line under the tree says it ("knob 54 × 88 · spare 0 × 27 · overflow 2
   (Retrig rate, StyMuteA) · rows add up"). It re-measures when anything inside changes size.
@@ -69,6 +71,8 @@
     const out: string[] = []
     for (const el of [leaf, ...leaf.querySelectorAll<HTMLElement>('*')]) {
       if (el.scrollWidth <= el.clientWidth + 1 || el.clientWidth <= 1) continue
+      // Cut short by design: the full text is in its tooltip.
+      if (el.hasAttribute('data-golden-ellipsis')) continue
       const style = getComputedStyle(el)
       if (style.overflowX === 'visible') continue
       const text = el.textContent?.trim()

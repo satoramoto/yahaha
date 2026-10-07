@@ -102,8 +102,8 @@ export const Helpers: Story = {
 
 /**
  * The transport in cells (`cells`, `groups` transport) in a 6-cell GoldenGrid, its cuts drawn: no
- * wrapper, each control one outlined face filling its cell: Start / Stop solid green and named
- * "Playing" while running ("Stopped" outlined when not), Accomp solid (on), Sync Start, Fill (▲ and
+ * wrapper, each control one outlined face filling its cell: Start / Stop solid green while
+ * running (outlined when not), its legend always "Start / Stop", Accomp solid (on), Sync Start, Fill (▲ and
  * ▼ the two halves of one cell), Fade, then Reset at the far end, set apart by a fib-13 gap. The
  * grid's toolbar element supplies the role.
  */
@@ -120,8 +120,8 @@ export const Cells: Story = {
     const controls = [...toolbar.children]
     await expect(controls).toHaveLength(6)
     await expect(toolbar.parentElement).toHaveAttribute('data-golden-slots', 'grid')
-    // Start / Stop's word is its state.
-    await expect(controls[0]).toHaveTextContent('Playing')
+    // Start / Stop's legend is the action; the solid fill (and the spoken name) is the state.
+    await expect(controls[0]).toHaveTextContent('Start / Stop')
     await expect(controls[0]).toHaveAccessibleName(/^Playing: Start \/ Stop/)
     await expect(controls[0]).toHaveAttribute('aria-pressed', 'true')
     await expect(controls[0]).toHaveAttribute('data-face', 'on')

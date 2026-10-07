@@ -23,8 +23,8 @@
     /**
      * Cells: no wrapper, and the faces are the state language (square, off a 1px outline and the
      * word in the hue, on solid in the hue with --on-ink; no dots). Each control is one top-level
-     * element, in order: the transport's Start / Stop (green, its word the state: "Playing" or
-     * "Stopped"), Accomp, Sync Start, Fill (one group, Fill ▲ and Fill ▼ its halves), Fade, Reset
+     * element, in order: the transport's Start / Stop (green; its legend the action, "Start /
+     * Stop", as on the pads, and the solid fill the playing state), Accomp, Sync Start, Fill (one group, Fill ▲ and Fill ▼ its halves), Fade, Reset
      * (set apart from Fade by a fib-13 gap), each filling its parent's cell; the helpers'
      * Metronome with its ▾ (one group, two halves), Unison, ?, then Panic in the warning hue, set
      * apart, each sized to its words and the parent's height (for a max-content column grid).
@@ -229,8 +229,9 @@
 {#if cells}
   <!-- Cells: each control a top-level element, one a cell; the parent is the toolbar. -->
   {#if transport}
+    <!-- The legend names the action, as on the pads; the solid fill shows it is playing. -->
     {@render face(
-      running ? 'Playing' : 'Stopped',
+      'Start / Stop',
       '',
       running,
       'transport.start_stop',

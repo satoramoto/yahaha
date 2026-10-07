@@ -25,6 +25,9 @@
   --interval-phi3: 4.236068; /* phi³ = 2 phi + 1 */
   --interval-phi4: 6.854102; /* phi⁴ = 3 phi + 2: the step a bar takes off a half's outer edge */
 
+  /* Two lines of the small text (a knob's name that wraps once): two label-heights, for a GoldenBand. */
+  --label-lines-2: calc(2 * var(--label-height));
+
   /* Fib: the spacing scale. */
   --fib-2: 2px;
   --fib-3: 3px;

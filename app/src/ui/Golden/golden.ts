@@ -46,6 +46,7 @@ export type Take = 'square' | 'major' | 'minor' | Ratio
 /** The existing size tokens a GoldenBand may be sized by: header rows, hit targets, a line of text, the frame's strips. */
 export type BandSize =
   | 'label-height'
+  | 'label-lines-2'
   | 'bar-height'
   | 'group-header-height'
   | 'control-height'

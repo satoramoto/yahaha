@@ -72,6 +72,31 @@ export const Knob: Story = {
   },
 }
 
+/**
+ * One knob cell as the golden Stage draws it (`lines={2}`, `valueInside`): the name in a band two
+ * lines deep, wrapping onto the second line rather than shortening to its code, and the value in
+ * the ring's hollow, so the dial grows into the value's band.
+ */
+export const KnobTwoLines: Story = {
+  name: 'Knob › two lines, value inside',
+  args: { ...Knob.args, lines: 2, valueInside: true },
+  argTypes: { ...Knob.argTypes, lines: { control: 'inline-radio', options: [1, 2] }, valueInside: { control: 'boolean' } },
+  play: async ({ canvasElement }) => {
+    // One band off the foot, two lines deep: the name; the dial takes all the rest.
+    const band = canvasElement.querySelector('[data-golden-slots="cut"][data-band="label-lines-2"][data-from="bottom"]')
+    await expect(band?.children.length).toBe(2)
+    await expect(canvasElement.querySelector('[data-band="label-height"]')).toBeNull()
+    // The full name, never the code: two lines hold "Retrig rate".
+    const name = band?.children[0] as HTMLElement
+    await expect(name.querySelector('span')?.textContent?.trim()).toBe('Retrig rate')
+    await expect(name).not.toHaveAttribute('title')
+    // The value sits in the dial, with the ring.
+    const dial = band?.children[1] as HTMLElement
+    await expect(dial.querySelector('.ring-value')?.textContent?.trim()).toBe('1/8')
+    await expect(dial.querySelector('button svg')).not.toBeNull()
+  },
+}
+
 /** One fader cell, its cuts drawn: a stem of the track, then the value and the strip's name close under it. */
 export const Fader: StoryObj<typeof FaderCell> = {
   // The meta's knob actions (onpress, onstep) aren't the fader's.

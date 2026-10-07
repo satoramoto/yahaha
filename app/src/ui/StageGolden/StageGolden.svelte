@@ -11,20 +11,25 @@
     The page's spiral is turned cw from the right, so its pole (388, 238) lands on the section
     block: on what comes next.
   - Hero (1398 × 282), two tiers: a phi³ step off its bottom is the controls tier (67): its major
-    part off the left the transport (six outlined cells sized by use and risk: the Fill ▲ ▼ pair
-    φ², Start / Stop φ, Accomp, Sync Start and Fade 1, Reset 1 at the far end behind a sub-cut),
-    the rest One Touch (its caption, then 1–4). The reading tier (215) above it, one group, reads
-    style → chord → section → next: a control-height band off its top is the style line; under
-    it, a phi³ step off the left is the chord (324), the rest halved into the section and the
-    tempo (524 each). Each reading cell is a hero row over one small line (a label-height line, a
-    fib-8 gap): the chord, Main B and the tempo stand on the row's foot, one shared line, flush
-    left. Under it: the chord's notes; "then Main C · fill after bar 4" (text, Main C in its hue);
-    the beat bar (thin bars, faded, the current beat solid). + and − sit beside the tempo.
+    part off the left the transport (six outlined cells sized by consequence: Start / Stop 2
+    units; Accomp, Sync Start, the Fill ▲ ▼ pair (one unit, split in half) and Fade 1; Reset 1 at
+    the far end behind a sub-cut), the rest One Touch (its caption, then 1–4). The reading tier
+    (215) above it, one group, reads style → chord → section → next: a control-height band off its
+    top is the style line (the category and metre at its right end); under it, a phi³ step off
+    the left is the chord (324), the rest halved into the section and the tempo (524 each). Each
+    reading cell is a hero row over one small line: the chord, Main B and the tempo are one size,
+    their capitals filling the row (99 at 1440), on one shared line, flush left. A fib-8 under it:
+    the chord's notes, the beat bar (bars the row over phi⁵ deep, faded, the current beat solid);
+    a fib-34 under it, its own line: what comes next (a solid swatch and Main C in its hue, then
+    "fill after bar 4"; a display, not a control). + and − are one square beside the tempo, its
+    side the cap height, cut in half across (99 × 50 each at 1440).
   - Band (1398 × 456): its major part off the left is the faders (864): a header band over nine
     strips, each with its own foot (the part lamps under the part strips, then a sub-cut and the
     functions and the page button), so every lamp sits on its fader's column. The rest (534) is
     cut minor off the top into knobs (a header band over eight knob cells, an unused knob half as
-    wide) over pads (a header band over a 4 × 4 grid).
+    wide, each name in a two-line band and the value inside the ring, so the dial takes the
+    value's band) over pads (a header band over a 4 × 4 grid). Each part's sound sits on its strip
+    in the part's hue, cut short at the strip.
   Each group sits in a `group` wrapper inset fib-13 from its block's cuts; inside a group the cuts
   sit edge to edge. The status line sits at the faders header's right end.
   Each leaf is a size container: the components' size tokens are set from its content box (cq
@@ -122,6 +127,8 @@
     if (next) return now.fill ?? ''
     return (now.bar ?? 0) > 0 && (now.bars ?? 0) > 0 ? `bar ${now.bar} of ${now.bars}` : ''
   })
+  /** The playing section's characters: a long name ("Ending III") steps its size down to fit its cell. */
+  const sectionChars = $derived(Math.max(1, (now.playing ?? '').trim().length))
   const beats = $derived(Math.max(1, now.beats ?? 4))
   const beat = $derived(now.running ? (now.beat ?? 0) : 0)
 
@@ -146,11 +153,12 @@
   /** Size follows use: an unused knob is half a live one. */
   const knobWeights: Interval[] = $derived(p.knobs.knobs.map((k) => (k.unused ? 'unison' : 'octave')))
   /**
-   * The transport graded by how often each is pressed, and what a slip costs: the Fill ▲ ▼ pair
-   * (many times a song) φ², Start / Stop (twice a song) φ, Accomp, Sync Start and Fade 1, then
-   * Reset 1 at the far end, set apart from Fade by a sub-cut (a slip onto it is heard).
+   * The transport graded by consequence: Start / Stop (a slip starts or stops the band) is the
+   * widest, 2 units (the octave); Accomp, Sync Start, the Fill ▲ ▼ pair (one unit, split in half)
+   * and Fade 1 each; Reset 1 at the far end, set apart from Fade by a sub-cut (a slip onto it is
+   * heard).
    */
-  const TRANSPORT: Interval[] = ['phi', 'unison', 'unison', 'phi2', 'unison', 'unison']
+  const TRANSPORT: Interval[] = ['octave', 'unison', 'unison', 'unison', 'unison', 'unison']
 
   const knobTabs: TabItem[] = $derived(
     (p.knobs.pages?.length ? p.knobs.pages : [p.knobs.pageLabel ?? '']).map((label, i) => ({
@@ -258,10 +266,12 @@
                 <div class="leaf reading chord"><ChordReadout {...now.chord} /></div>
                 <GoldenGrid columns={2} name="section and tempo">
                   <div class="leaf reading section">
-                    <div class="stand"><SectionName label={now.playing} hue={now.hue} idle={!now.running} /></div>
+                    <div class="stand" style:--chars={sectionChars}>
+                      <SectionName label={now.playing} hue={now.hue} idle={!now.running} />
+                    </div>
                     <div class="next" role="group" aria-label="Next section">
                       {#if next}
-                        <span class="then">then</span>
+                        <span class="swatch" style:--hue="var(--{nextHue})" aria-hidden="true"></span>
                         <span class="next-name" style:--hue="var(--{nextHue})" data-hue={nextHue}>{next}</span>
                       {/if}
                       {#if next && when}<span class="dot" aria-hidden="true">·</span>{/if}
@@ -408,6 +418,8 @@
                       unit={knob.unit}
                       fraction={knob.fraction}
                       unused={knob.unused}
+                      lines={2}
+                      valueInside
                       tip="knobs.knob"
                       tipAction={p.tipAction}
                       onpress={() => p.onknobpress?.(i)}
@@ -513,17 +525,19 @@
   }
 
   /* The reading cells (chord, section, tempo), one leaf each, so descenders stay inside: a hero
-     row (--row: all the cell but a label-height line and a fib-8 gap under it) whose foot is the
-     shared line every hero value stands on, flush left; then one small line (the chord's notes,
-     what comes next, the beat bar). The hero line (--hero-row) is the row less a fib-13 step. The
-     chord is --type-hero scaled to it (its own 128 / 104); the section and the tempo are the
-     chord's --hero-4 step over the same line (96 / 104), so the section reads nearly as strongly
-     as the chord. A fib-13 gutter before the next cut. */
+     row (--row: all the cell but a label-height line and the --next-gap over it) whose foot is
+     the shared line every hero value stands on, flush left; then one small line (the chord's
+     notes and the beat bar a fib-8 under the line; what comes next a fib-34 under it, its own
+     line). The three heroes are one size, the size whose capitals fill the row (--cap-font: the
+     face's capitals are 0.70 of its size, measured), so the row holds no empty band over them and
+     the tempo's + − square (its side the cap height) is big enough to hit. A fib-13 gutter before
+     the next cut. */
   .reading {
-    --row: calc(100cqh - var(--label-height) - var(--fib-8));
-    --hero-row: calc(var(--row) - var(--fib-13));
-    --type-poster: var(--weight-light) calc(var(--hero-row) * 96 / 104) / calc(var(--hero-row) * 96 / 104) var(--font-sans);
-    --tracking-poster: var(--tracking-hero-4);
+    --next-gap: var(--fib-34);
+    --row: calc(100cqh - var(--label-height) - var(--next-gap));
+    --cap-font: calc(var(--row) / 0.7);
+    --type-poster: var(--weight-light) var(--cap-font) / var(--cap-font) var(--font-sans);
+    --tracking-poster: var(--tracking-hero);
     display: flex;
     flex-direction: column;
     row-gap: var(--fib-8);
@@ -541,18 +555,18 @@
     --display-pad-left: 0px;
     --display-border-width: 0px;
     --display-thirds-gap: 0px;
-    --hero-height: var(--hero-row);
-    --type-hero: var(--weight-light) calc(var(--hero-height) * 128 / 104) / var(--hero-height) var(--font-sans);
+    --hero-height: calc(var(--cap-font) * 104 / 128);
+    --type-hero: var(--weight-light) var(--cap-font) / var(--hero-height) var(--font-sans);
   }
-  /* The hero line is the row less a fib-13 step (so the chord, at its widest in its phi³ column,
-     keeps a gutter before Main B), set down onto the row's foot. The hero face's baseline sits
-     0.0815 of its 128 / 104 line above the line's foot (its descent less the half-leading,
-     measured); the readout drops by that much too, so the chord's baseline lands on the shared
-     line exactly, as Main B's and the tempo's do (their boxes are trimmed to the baseline with
-     text-box, which the chord's fitted row can't take). Its notes come back up by as much, so
-     they sit a fib-8 under the line, as the other small lines do. */
+  /* The chord at the heroes' one size (its own 128 / 104 line), set down so its baseline lands on
+     the row's foot. The hero face's baseline sits 0.0815 of its 128 / 104 line above the line's
+     foot (its descent less the half-leading, measured), so the readout's top is the row less the
+     line plus that much: the chord's baseline lands on the shared line exactly, as Main B's and
+     the tempo's do (their boxes are trimmed to the baseline with text-box, which the chord's
+     fitted row can't take). Its notes come back up by as much, so they sit a fib-8 under the
+     line. */
   .chord > :global(*) {
-    margin-top: calc(var(--fib-13) + var(--hero-height) * 0.0815);
+    margin-top: calc(var(--row) - var(--hero-height) * (1 - 0.0815));
   }
   .chord :global(.line) {
     margin-top: calc(var(--fib-8) - var(--hero-height) * 0.0815);
@@ -569,20 +583,34 @@
   .section .stand > :global(*) {
     text-box: trim-end cap alphabetic;
     overflow: clip;
-    overflow-clip-margin: calc(var(--label-height) + var(--fib-8));
+    overflow-clip-margin: calc(var(--label-height) + var(--next-gap));
   }
-  /* What comes next, one flush-left line directly under Main B: "then", the next section in its
-     own hue (no outline, no fill: it is a display, not a control), "·", when it lands. */
+  /* A long section name ("Ending III") steps down to fit its cell: at most the cell's width over
+     its characters at 0.52 em a character (the face's widest names, measured); the baseline holds. */
+  .section .stand {
+    --type-poster: var(--weight-light) min(var(--cap-font), 100cqw / (var(--chars) * 0.52)) / 1 var(--font-sans);
+  }
+  /* What comes next, its own flush-left line a fib-34 under Main B: a short solid swatch in the
+     next section's hue (a mark, like the pads legend's swatch, not a control), the next section
+     in its hue at the strong weight, "·", when it lands in the plain small text. No outline, no
+     fill: it is a display, not a control. */
   .next {
     display: flex;
     align-items: center;
     gap: var(--space-4);
     height: var(--label-height);
-    margin: 0;
+    margin: calc(var(--next-gap) - var(--fib-8)) 0 0;
     white-space: nowrap;
     font: var(--type-text);
     letter-spacing: var(--tracking-text);
     color: var(--t);
+  }
+  .swatch {
+    flex: none;
+    width: var(--fib-21);
+    height: var(--fib-5);
+    margin-right: var(--space-4);
+    background: var(--hue);
   }
   .next-name {
     color: var(--hue);
@@ -592,18 +620,19 @@
   .when.sync {
     color: var(--ok);
   }
-  /* The beat bar, a display: thin bars (a fib-5 step tall) in the line under the tempo, one a
-     beat; the others faded in the section's hue, the current one solid; no outlines. */
+  /* The beat bar, a display: one bar a beat in the line a fib-8 under the tempo, each the hero
+     row over phi⁵ deep (a golden fraction of the numeral: 9px at 1440); the others faded in the
+     section's hue, the current one solid; no outlines. */
   .beats {
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: minmax(0, 1fr);
-    align-items: center;
+    align-items: start;
     column-gap: var(--fib-5);
     height: var(--label-height);
   }
   .beat {
-    height: var(--fib-5);
+    height: calc(var(--row) / var(--interval-phi4) / var(--interval-phi));
     background: var(--faded);
   }
   .beat.now {

@@ -8,8 +8,8 @@
           GoldenBand label-height, bottom, gap fib-3 → [value, track]
   The track is the real Fader, its value moved out into the value band. The value and the name are
   one line each, centred, and end in an ellipsis when they don't fit, so the overlay reports them.
-  `sound` (a button when `onsound` is set) puts the part's sound name on top (the golden Stage's
-  faders, Option C); `lamp` puts the strip's lamp at the foot. With `onopen`, the strip's name is
+  `sound` (a button when `onsound` is set) puts the part's sound name on top, in the part's hue,
+  centred and cut short with an ellipsis at the strip (the golden Stage's faders, Option C); `lamp` puts the strip's lamp at the foot. With `onopen`, the strip's name is
   the name button (opens Channel, with its marks).
   `kind="parked"`: an unused fader, narrow enough for half a live strip: no value, no sound text,
   the name "—" in the dim ink, and the Fader's parked look.
@@ -179,7 +179,7 @@
 <div class="cell" class:parked>
   {#if sound !== undefined}
     <GoldenBand size="tab-block" from="top" name="sound" {overlay}>
-      <div class="text sound">
+      <div class="text sound" style:--hue={nameInk}>
         {#if parked}
           <span></span>
         {:else if onsound}
@@ -187,13 +187,14 @@
             type="button"
             class="sound-button"
             title={sound}
+            data-golden-ellipsis
             aria-label={soundName ?? sound}
             data-tip={soundTip}
             use:tipped={soundTip}
             onclick={() => onsound?.()}>{sound}</button
           >
         {:else}
-          <span title={sound}>{sound}</span>
+          <span title={sound} data-golden-ellipsis>{sound}</span>
         {/if}
       </div>
       {@render withLamp()}
@@ -282,10 +283,16 @@
     background: none;
     cursor: pointer;
   }
-  /* The sound: the small text, ending in an ellipsis (its full name in the title). */
+  /* The sound: the small text in the part's hue (its absent face when off), centred on its own
+     strip and ending in an ellipsis at the strip's edge, less a fib-3 each side, so two names
+     never touch (the full name in the title, the tooltip). */
+  .sound {
+    box-sizing: border-box;
+    padding: 0 var(--fib-3);
+  }
   .sound span,
   .sound-button {
-    color: var(--t2);
+    color: var(--hue);
     font: var(--type-text);
     letter-spacing: var(--tracking-text);
   }

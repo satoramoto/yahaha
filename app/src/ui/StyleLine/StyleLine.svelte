@@ -7,7 +7,9 @@
   category and metre keep their width up to half the line.
 
   `cells` (the grid Stage): the line fills its container (width and height 100%; give it a size,
-  about a control-height band), and ‹ › become outlined neutral squares as tall as the line.
+  about a control-height band), ‹ › become outlined neutral squares as tall as the line, and the
+  category and metre (or the waiting style) stand at the line's right end, so the line spans its
+  container.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -177,5 +179,11 @@
   }
   .cells .glyph:first-child {
     margin-left: 0;
+  }
+  /* The category and metre at the line's right end (the golden Stage: under the tempo column's
+     right edge), so the line spans the heroes under it. */
+  .cells .meta {
+    margin-left: auto;
+    padding-left: var(--space-12);
   }
 </style>

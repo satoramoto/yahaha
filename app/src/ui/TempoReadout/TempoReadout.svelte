@@ -10,8 +10,8 @@
 
   `cells` (the golden Stage): it fills its container, which must be a size container
   (`container-type: size`). The number and its unit sit flush left on the container's foot, and
-  + over − are a narrow column right beside them (a fib-8 gap), standing on the same baseline:
-  outlined neutral squares, together as tall as the number's capitals.
+  + over − are one square right beside them (a fib-8 gap), standing on the same baseline, its side
+  the number's cap height, cut in half across: two outlined neutral targets.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -35,7 +35,7 @@
     onminus?: (down: boolean) => void
     /** The number double-clicked: back to the style's own tempo. */
     onreset?: () => void
-    /** Fill the size container it sits in: the number on its foot, + over − as a column of squares beside it. */
+    /** Fill the size container it sits in: the number on its foot, + over − as one square beside it, cut in half across. */
     cells?: boolean
   }
 
@@ -272,13 +272,18 @@
     text-box: trim-end cap alphabetic;
     overflow: clip;
   }
-  /* + over −: a narrow column right beside the reading, standing on its baseline, as tall as the
-     number's capitals (1cap in the number's own face), each half of it a square. */
+  /* + over −: one square right beside the reading, standing on its baseline, its side the number's
+     cap height (1cap in the number's own face), cut in half across: + the top half, − the bottom
+     (each as wide as the capitals are tall, half as deep), so both are big enough to hit between
+     phrases. The second overlaps the first by the outline's width, so the cut is one line. */
   .cells .steps {
     flex: none;
-    width: 0.5cap;
+    width: 1cap;
     height: 1cap;
     font: var(--type-poster);
+  }
+  .cells .step + .step {
+    margin-top: calc(-1 * var(--outline-width));
   }
   .cells .step {
     flex: 1 1 0;

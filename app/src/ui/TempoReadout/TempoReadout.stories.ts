@@ -68,8 +68,8 @@ export const AtMax: Story = {
 
 /**
  * In cells (`cells`): it fills a 360 × 80 size container of the grid Stage; "104 BPM" flush left
- * on its foot, + over − as a narrow column of outlined squares right beside it, on its baseline,
- * together as tall as the number's capitals.
+ * on its foot, + over − as one outlined square right beside it, on its baseline, its side the
+ * number's cap height, cut in half across.
  */
 export const Cells: Story = {
   args: { bpm: 104, unit: 'BPM', min: 5, max: 500, cells: true },
@@ -86,13 +86,13 @@ export const Cells: Story = {
     const plus = c.getByRole('button', { name: 'Tempo up (Scene Launch)' })
     const minus = c.getByRole('button', { name: 'Tempo down (Function)' })
     const whole = tempo.getBoundingClientRect()
-    // Real layout only (jsdom has none): two squares stacked right beside the reading, standing on
-    // the container's foot (the number's baseline), together shorter than the container.
+    // Real layout only (jsdom has none): one square right beside the reading, standing on the
+    // container's foot (the number's baseline), cut in half across: each half twice as wide as deep.
     if (whole.height > 0) {
       const reading = (tempo.querySelector('.reading') as HTMLElement).getBoundingClientRect()
       for (const step of [plus, minus]) {
         const box = step.getBoundingClientRect()
-        await expect(Math.abs(box.width - box.height)).toBeLessThan(1)
+        await expect(Math.abs(box.width - 2 * box.height)).toBeLessThan(2)
         await expect(box.left - reading.right).toBeLessThan(14)
         await expect(box.height).toBeLessThan(whole.height / 2)
       }
