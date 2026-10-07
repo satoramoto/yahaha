@@ -341,6 +341,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Fixed velocity** | The velocity every arpeggio note plays at when the velocity is Fixed. | — | — | — |
 | **Keep Key On** | The pattern's clock keeps running while no key is held, so the next chord picks up in the middle of the phrase instead of starting it again. | — | — | — |
 | **Close Harmony/Arpeggio** | Closes the Harmony/Arpeggio panel. The effect stays as it is. | — | `Esc` | — |
+| **Category** | Shows this category's Harmony types or arpeggio patterns. The type you have stays until you pick another, so looking around never stops an Echo or an arpeggio. | Keyboard Harmony / Arpeggio type | — | — |
 
 ## Mixer
 
