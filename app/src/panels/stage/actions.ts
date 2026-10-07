@@ -108,6 +108,15 @@ export function stageActions(d: StageDeps): StageActions {
   let soundHeld = false
   /** The master fader's button is held (the fader picker is showing): its release lets it go. */
   let faderHeld = false
+  /** The layer that was active when the hold began: its release goes back to it. */
+  let layerBeforeHold: AppState['surface']['layer'] = { type: 'none' }
+  function releaseFader() {
+    if (!faderHeld) return
+    faderHeld = false
+    if (typeof window !== 'undefined') window.removeEventListener('blur', releaseFader)
+    const back = layerBeforeHold.type === 'fader' ? { type: 'none' as const } : layerBeforeHold
+    send({ type: 'setLayer', layer: back })
+  }
 
   return {
     // App bar
@@ -194,14 +203,14 @@ export function stageActions(d: StageDeps): StageActions {
     // Launchkey. A hold's release switches no page (the button swallows that click).
     onpagebutton: () => send(d.shift() ? { type: 'stepFaderLayer', delta: 1 } : { type: 'toggleFaderPage' }),
     onpagelong: () => {
+      if (faderHeld) return
       faderHeld = true
+      layerBeforeHold = d.state().surface.layer
+      // A window blur mid-hold (the release never arrives) ends the hold too.
+      if (typeof window !== 'undefined') window.addEventListener('blur', releaseFader)
       send({ type: 'setLayer', layer: { type: 'fader' } })
     },
-    onpagerelease: () => {
-      if (!faderHeld) return
-      faderHeld = false
-      send({ type: 'setLayer', layer: { type: 'none' } })
-    },
+    onpagerelease: () => releaseFader(),
 
     // Knobs: a page tab chooses its page (KNOB_PAGES' order). Swap mode shows one tab, the
     // swap itself: choosing it changes nothing. The ▲▼ callbacks are deprecated, not drawn.

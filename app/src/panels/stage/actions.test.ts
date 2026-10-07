@@ -303,6 +303,24 @@ describe('faders', () => {
     expect(take().sent).toEqual([])
   })
 
+  it('a hold\'s release restores the layer active before it', () => {
+    const { actions, take } = fake((s) => (s.surface.layer = { type: 'sound' }))
+    actions.onpagelong()
+    take()
+    actions.onpagerelease()
+    expect(take().sent).toEqual([{ type: 'setLayer', layer: { type: 'sound' } }])
+  })
+
+  it('a window blur mid-hold ends the hold', () => {
+    const { actions, take } = fake()
+    actions.onpagelong()
+    take()
+    window.dispatchEvent(new Event('blur'))
+    expect(take().sent).toEqual([{ type: 'setLayer', layer: { type: 'none' } }])
+    actions.onpagerelease()
+    expect(take().sent).toEqual([])
+  })
+
   it('a tap on the page button toggles the page and holds nothing', () => {
     const { actions, take } = fake()
     actions.onpagebutton()

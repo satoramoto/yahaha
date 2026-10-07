@@ -54,7 +54,11 @@
   // Esc and a press outside close it. A press on the opener is left to the opener (it toggles).
   $effect(() => {
     const keydown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onclose?.()
+      if (event.key !== 'Escape') return
+      // Listened for in the capture phase, so the window's own key handlers never see this Esc.
+      event.stopPropagation()
+      event.preventDefault()
+      onclose?.()
     }
     const pointerdown = (event: PointerEvent) => {
       const target = event.target as Node | null
@@ -62,16 +66,23 @@
       if (target instanceof Element && target.closest(`[aria-controls="${id}"]`)) return
       onclose?.()
     }
-    window.addEventListener('keydown', keydown)
+    window.addEventListener('keydown', keydown, true)
     window.addEventListener('pointerdown', pointerdown, true)
     return () => {
-      window.removeEventListener('keydown', keydown)
+      window.removeEventListener('keydown', keydown, true)
       window.removeEventListener('pointerdown', pointerdown, true)
     }
   })
+
+  /** Keys the popover's own controls handle (the slider's steps): they stop here, so the
+   * window's shortcuts (style step, pad page) don't also act on them. */
+  const OWN_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'])
+  const ownKeys = (event: KeyboardEvent) => {
+    if (OWN_KEYS.has(event.key)) event.stopPropagation()
+  }
 </script>
 
-<div class="popover" {id} role="dialog" aria-label="Metronome settings" bind:this={box}>
+<div class="popover" {id} role="dialog" tabindex="-1" aria-label="Metronome settings" bind:this={box} onkeydown={ownKeys}>
   <span class="title">Metronome</span>
   <SettingsRow label="On/off" labelWidth={96}>
     <LampButton
