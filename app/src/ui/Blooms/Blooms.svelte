@@ -10,9 +10,9 @@
   `prefers-reduced-motion` nothing moves.
 
   It fills its positioned parent and never clips: the blooms near the edges run on past the box
-  (the screen's scaler clips them), so no edge shows. The theme sets the strength (--bloom-peak,
-  tokens/blooms.css: subtle in dark, much fainter in light); contrast.test.ts checks every text role
-  on the worst spot. The screen above it must not paint its own ground (--backdrop-ground).
+  (the screen's scaler clips them), so no edge shows. The theme sets the hues and strength
+  (tokens/blooms.css: deep, saturated glows in dark, as strong as the text allows; pastel tints in
+  light); contrast.test.ts checks every text role on the worst spot. The screen above it must not paint its own ground (--backdrop-ground).
 -->
 <script lang="ts">
   import { untrack } from 'svelte'
@@ -34,7 +34,7 @@
   } from './blooms'
 
   type Props = {
-    /** Which hues: `aurora` (the accent with blue, teal and plum), `parts` (the accent and the four part hues) or `section` (the accent and the playing section's hue). */
+    /** Which hues: `aurora` (the accent with blue, magenta and plum), `parts` (the accent and the four part hues) or `section` (the accent and the playing section's hue). */
     palette?: BloomPalette
     /** The playing section's family, for the `section` palette. */
     section?: BloomSection

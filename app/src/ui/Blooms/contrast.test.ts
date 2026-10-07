@@ -2,8 +2,8 @@
  * Text contrast on the blooms' worst spot, in dark and light: every text role drawn on the ground
  * must still reach WCAG AA (4.5:1) where the blooms make the ground brightest (dark) or darkest
  * (light). It samples the backdrop over a 1440 × 900 screen, with every palette, each bloom at the
- * top of its breath (full opacity) and, conservatively, at whichever of its rest, swollen or drifted
- * places is strongest at that point, composited over the ground as the browser does (sRGB "over").
+ * top of its breath (full opacity) and, conservatively, at whichever place along its drift path (sampled
+ * densely, rest and swollen) is strongest at that point, composited over the ground as the browser does (sRGB "over").
  * The same geometry and falloff as Blooms draws (blooms.ts); the strength from tokens/blooms.css.
  */
 import { readFileSync } from 'node:fs'
@@ -91,13 +91,17 @@ const PALETTES: [BloomPalette, BloomSection][] = [
   ...(['intro', 'main', 'ending', 'brk', 'fill'] as BloomSection[]).map((s): [BloomPalette, BloomSection] => ['section', s]),
 ]
 
-/** A bloom's strongest alpha (a fraction of its weight's peak) at (x, y), over its rest, swollen and drifted places. */
+/** Samples along each bloom's drift path: its centre passes every point between rest and full drift. */
+const DRIFT_STEPS = 24
+
+/** A bloom's strongest alpha (a fraction of its weight's peak) at (x, y), over every place its centre passes, rest and swollen. */
 function strongest(i: number, x: number, y: number): number {
   const s = SPOTS[i]
   const most = MOTION.lively
   let best = 0
   for (const swell of [1, 1 + most.swell]) {
-    for (const drift of [0, most.drift]) {
+    for (let d = 0; d <= DRIFT_STEPS; d++) {
+      const drift = (most.drift * d) / DRIFT_STEPS
       const r = s.r * W * swell
       const cx = s.x * W + s.dx * drift * 2 * s.r * W
       const cy = s.y * H + s.dy * drift * 2 * s.r * W
@@ -142,6 +146,23 @@ describe('text contrast on the blooms', () => {
       const g = luminance(all[0])
       expect(all.some((c) => Math.abs(luminance(c) - g) > 0.002)).toBe(true)
     })
+
+    if (theme === 'dark') {
+      // The owner's bug: at 12% of the bright hues a core was about (20, 17, 31) on black, too faint
+      // to see on a real screen. Each core of the app's palette (aurora) must light a channel of the
+      // black ground to at least 40 of 255, plainly coloured at a glance; every other hue to at least
+      // 20 (green and gold cost the most luminance, so the text leaves them the least).
+      it('dark: every bloom is plainly coloured at its core', () => {
+        const ground = rgb(resolve('--g'))
+        for (const [pal, section] of PALETTES) {
+          for (const h of hues(pal, section)) {
+            const core = rgb(resolve(h)).map((v, k) => ground[k] * (1 - peak) + v * peak)
+            const lift = Math.max(...core.map((v, k) => v - ground[k]))
+            expect(lift, `${h} in ${pal}`).toBeGreaterThanOrEqual(hues('aurora').includes(h) ? 40 : 20)
+          }
+        }
+      })
+    }
 
     for (const text of TEXT_ON_GROUND) {
       it(`${theme}: ${text} on the worst spot`, () => {

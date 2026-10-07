@@ -13,7 +13,7 @@ import BloomsStory from './BloomsStory.svelte'
  * Three options for the owner (a taste call), each behind the Stage board at 1440 × 900:
  *
  * - **Aurora** (the app's default): the accent violet at top right, where the display art's glow
- *   was, with blue, teal and plum low and wide. Cool and calm; one breath per 4 bars.
+ *   was, with blue, magenta and plum low and wide. Cool and calm; one breath per 4 bars.
  * - **Parts**: the accent and the four part hues (R1 blue, R2 pink, L teal, R3 orange). The most
  *   colour; one breath per 4 bars.
  * - **Section**: the accent and the playing section's own hue (Main green here), so the backdrop
@@ -52,7 +52,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** Recommended: the accent at top right with blue, teal and plum; calm, one breath per 4 bars. */
+/** Recommended: the accent at top right with blue, magenta and plum; calm, one breath per 4 bars. */
 export const Aurora: Story = {}
 
 /** The accent and the four part hues; calm, one breath per 4 bars. */

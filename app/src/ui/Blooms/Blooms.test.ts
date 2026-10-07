@@ -118,6 +118,23 @@ describe('Blooms', () => {
     expect([...props].sort()).toEqual(['easing', 'opacity', 'transform'])
   })
 
+  it('breathes deep enough to see: a plain swell, fade and drift in every motion', async () => {
+    // The owner's bug: a breath of 0.82 to 1 opacity and a 6% swell was invisible on a real screen.
+    for (const motion of ['calm', 'lively'] as const) {
+      fakes = []
+      render(Blooms, { motion, playing: true, beat: () => 0 })
+      await tick()
+      const [swell, drift] = live()
+      const scale = (k: Keyframe) => Number(/scale\(([\d.]+)\)/.exec(String(k.transform))?.[1])
+      expect(scale(swell.keyframes[1]) - scale(swell.keyframes[0])).toBeGreaterThanOrEqual(0.12)
+      expect(Number(swell.keyframes[1].opacity) - Number(swell.keyframes[0].opacity)).toBeGreaterThanOrEqual(0.4)
+      // The drift: at least 8% of the bloom's own size, along at least one axis.
+      const moved = /translate\((-?[\d.]+)%, (-?[\d.]+)%\)/.exec(String(drift.keyframes[1].transform))
+      expect(Math.max(Math.abs(Number(moved?.[1])), Math.abs(Number(moved?.[2])))).toBeGreaterThanOrEqual(8)
+      cleanup()
+    }
+  })
+
   it('re-locks when the tempo changes, and pauses again on stop', async () => {
     const view = render(Blooms, { playing: true, bpm: 120, beat: () => 0 })
     await tick()
@@ -275,8 +292,8 @@ describe('blooms.ts', () => {
   it('fades a bloom to nothing at its edge', () => {
     expect(alphaAt(0, 1)).toBe(1)
     expect(alphaAt(1, 1)).toBe(0)
-    expect(alphaAt(0.5, 0.5)).toBeCloseTo(0.2)
-    expect(alphaAt(0.375, 1)).toBeCloseTo(0.57)
+    expect(alphaAt(0.5, 0.5)).toBeCloseTo(0.32)
+    expect(alphaAt(0.425, 1)).toBeCloseTo(0.73)
     expect(gradient('--bloom-a', 1)).toMatch(/^radial-gradient\(closest-side, color-mix\(in srgb, var\(--bloom-a\)/)
   })
 
