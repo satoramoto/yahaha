@@ -172,8 +172,12 @@ const STATES: [string, Setup][] = [
   ['Harm/Arp page', () => stagePage.show('harmArp')],
   ['Harm/Arp page, arpeggio on, Fixed velocity', (s) => (stagePage.show('harmArp'), s.send({ type: 'setArpPattern', index: 2 }), s.send({ type: 'setArpVelocity', mode: 'fixed', velocity: 90 }), s.send({ type: 'toggleHarmonyArp' }))],
   ['Harm/Arp page, Echo type', (s) => (stagePage.show('harmArp'), s.send({ type: 'setHarmonyType', index: 20 }))],
-  ['charts drawer, nothing imported', () => (ui.charts = true)],
-  ['charts drawer, a playlist, chart mode playing', (s) => ((ui.charts = true), s.send({ type: 'importCharts', text: 'irealb://demo' }), s.send({ type: 'setChartMode', on: true }))],
+  ['Channel page, + Add send\'s kind menu open', () => {
+    stagePage.show('channel')
+    channelNav.tab = 'mix'
+    flushSync()
+    click('mixer.channel.add_send')
+  }],
   ['Quick Racks Store armed', (s) => s.send({ type: 'toggleQuickRackStore' })],
   ['Quick Racks: a stored button (clear), pad page 2', (s) => (storeRack(s, 0, 'Ballad'), s.send({ type: 'setPadPage', page: 'racks' }))],
   ['Quick Racks bar: Store waiting for a never-saved rack', (s) => (s.send({ type: 'toggleQuickRackStore' }), s.send({ type: 'pressQuickRack', slot: 2 }))],
@@ -223,7 +227,7 @@ const STATES: [string, Setup][] = [
     s.send({ type: 'armMultiPad', pad: 3 })
   )],
   ['rack drawer, a part on a library patch', (s) => ((ui.rack = true), s.send({ type: 'setPartPatch', part: 0, id: 'warm-rhodes' }))],
-  ['audio dropout notice', (s) => s.dropouts(5)],
+  ['audio dropouts (the health slot)', (s) => s.dropouts(5)],
   ['Shift layer on', () => (ui.shiftLatched = true)],
   ['Shift layer on, fader page Style', (s) => ((ui.shiftLatched = true), s.send({ type: 'toggleFaderPage' }))],
   // The Stage (panels/stage): its fader layers, the status line, the lamp layers.
@@ -253,14 +257,8 @@ afterEach(() => {
   instrumentsState.reset()
   ui.settings = false
   ui.rack = false
-  ui.mixer = false
-  ui.effects = false
   channelNav.close()
   ui.selectedPart = 0
-  ui.charts = false
-  ui.looper = false
-  ui.multipad = false
-  ui.harmony = false
   soundNav.styleScope = false
   ui.shiftLatched = false
   tips.help = false

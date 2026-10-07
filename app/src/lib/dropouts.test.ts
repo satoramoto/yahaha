@@ -1,11 +1,5 @@
-import { render, cleanup, screen, fireEvent } from '@testing-library/svelte'
-import { flushSync } from 'svelte'
-import { afterEach, describe, expect, it } from 'vitest'
-import { MockSession } from './api/mock'
-import DropoutNotice from './DropoutNotice.svelte'
-import { DropoutWatch, HINT_COUNT, HINT_WINDOW_MS, SNOOZE_MS, dropouts } from './dropouts.svelte'
-import { nav } from '../panels/settings/nav.svelte'
-import { app, ui } from './store.svelte'
+import { describe, expect, it } from 'vitest'
+import { DropoutWatch, HINT_COUNT, HINT_WINDOW_MS, SNOOZE_MS } from './dropouts.svelte'
 
 const at = (n: number, buffer: number | null = 64) => ({ dropouts: n, bufferFrames: buffer })
 
@@ -103,51 +97,5 @@ describe('recent dropouts (the Stage\'s health slot)', () => {
     expect(w.recent(4000)).toBe(2)
     w.observe(null, 5000)
     expect(w.recent(5000)).toBe(0)
-  })
-})
-
-// DropoutNotice is no longer mounted by the shell (the Stage's health slot shows dropouts),
-// but it still works on its own: rendered with the store attached to a session.
-describe('the dropout notice', () => {
-  afterEach(() => {
-    cleanup()
-    app.detach()
-    ui.settings = false
-    nav.tab = 'chord'
-    dropouts.reset()
-  })
-
-  function setup() {
-    const session = new MockSession({ demo: true, manual: true })
-    app.attach(session)
-    render(DropoutNotice)
-    session.advance(16)
-    flushSync()
-    return session
-  }
-
-  it('appears when the engine reports dropouts, opens Settings › Audio, and dismisses', () => {
-    const session = setup()
-    expect(screen.queryByRole('alert')).toBeNull()
-    session.dropouts(4)
-    flushSync()
-    expect(screen.getByRole('alert').textContent).toContain('consider increasing the buffer size')
-    fireEvent.click(screen.getByText('Buffer size…'))
-    flushSync()
-    expect(ui.settings).toBe(true)
-    expect(nav.tab).toBe('audio')
-    fireEvent.click(screen.getByLabelText('Dismiss'))
-    flushSync()
-    expect(screen.queryByRole('alert')).toBeNull()
-  })
-
-  it('goes away when a larger buffer is chosen', () => {
-    const session = setup()
-    session.dropouts(4)
-    flushSync()
-    expect(screen.getByRole('alert')).toBeTruthy()
-    session.send({ type: 'setAudioBuffer', frames: 256 })
-    flushSync()
-    expect(screen.queryByRole('alert')).toBeNull()
   })
 })

@@ -1,9 +1,8 @@
 // The Settings screen's data: pure functions from the app's state to the props of the library's
 // `Settings` (app/src/ui/Settings): the page list and one data
 // object per page. SettingsScreen.svelte feeds these from the stores; actions.ts turns the pages'
-// changes into commands. The old drawer's pages (ChordPage.svelte and the rest, in this folder)
-// read the same fields; where they made a choice (what a note says, when a control shows), this
-// makes the same one.
+// changes into commands. Where the old Settings drawer's pages (removed in the rewrite) made a
+// choice (what a note says, when a control shows), this makes the same one.
 
 import { functionGroups } from '../../lib/api/assignable'
 import { settings } from '../../lib/api/settings.svelte'

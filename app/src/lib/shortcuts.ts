@@ -15,7 +15,7 @@ function isTextField(el: EventTarget | null): boolean {
   return el instanceof HTMLElement && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))
 }
 
-/** Holding Shift shows the Launchkey mirror's Shift layer. */
+/** Holding Shift shows the Shift layer. */
 export function handleKeyUp(e: KeyboardEvent) {
   if (e.key === 'Shift') ui.shiftHeld = false
 }

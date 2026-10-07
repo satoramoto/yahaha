@@ -1,6 +1,6 @@
 // When to suggest a larger audio buffer. The engine counts audio dropouts
 // (`io.synth.dropouts`: the device's overload reports and its own late buffers); a single
-// blip is ignored, dropouts that keep coming raise a notice (DropoutNotice.svelte) that
+// blip is ignored, dropouts that keep coming raise the notice (the Stage's health slot) that
 // leads to Settings › Audio › Buffer size. Dismissed, it stays quiet for a while; a new
 // buffer size starts the count again.
 

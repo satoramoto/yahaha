@@ -19,7 +19,7 @@ afterEach(() => {
   ui.view = 'stage'
   ui.libraryTab = 'sounds'
   ui.libraryPart = 0
-  ui.effects = false
+  ui.rack = false
   ui.settings = false
   stagePage.page = 'stage'
 })
@@ -193,10 +193,10 @@ describe('page tabs', () => {
   it('Esc closes a drawer open over the Stage before it leaves a page', async () => {
     setup()
     await fireEvent.click(tab('Looper'))
-    ui.effects = true
+    ui.rack = true
     flushSync()
     await fireEvent.keyDown(window, { key: 'Escape' })
-    expect(ui.effects).toBe(false)
+    expect(ui.rack).toBe(false)
     expect(stagePage.page).toBe('looper')
     await fireEvent.keyDown(window, { key: 'Escape' })
     expect(stagePage.page).toBe('stage')

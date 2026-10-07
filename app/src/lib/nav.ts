@@ -37,16 +37,15 @@ const page = (id: string) => ({ open: () => stagePage.showing(id), toggle: () =>
 export const NAV: NavItem[] = [
   { tip: 'nav.library', label: 'Library', key: 'alt+b', open: () => ui.view === 'library', toggle: () => toggleLibrary() },
   { tip: 'nav.styles', label: 'Styles', key: 'alt+s', open: () => ui.browser, toggle: () => (ui.browser = !ui.browser) },
-  { tip: 'nav.quick', label: 'Quick Racks', key: 'alt+r', open: () => ui.view === 'library' && ui.libraryTab === 'racks', toggle: () => toggleLibrary('racks') },
-  { tip: 'nav.rack', label: 'Rack', key: 'alt+o', open: () => ui.rack, toggle: () => ui.toggleDrawer('rack') },
-  { tip: 'nav.multipad', label: 'Multi Pads', key: 'alt+p', ...page('multiPads') },
+  { tip: 'nav.channel', label: 'Channel', key: 'alt+c', ...page('channel') },
   { tip: 'nav.effects', label: 'Effects', key: 'alt+e', ...page('effects') },
-  // The mixer row is always on the stage; Alt+M shows or hides its details. No strip
-  // button: the mirror's fader-head Mixer button does the same. From Library it goes to Stage.
-  { tip: 'nav.mixer', label: 'Mixer', key: 'alt+m', open: () => ui.mixer, toggle: () => ui.toggleMixer(), hidden: true },
+  { tip: 'nav.quick', label: 'Quick Racks', key: 'alt+q', ...page('quickRacks') },
+  { tip: 'nav.multipad', label: 'Multi Pads', key: 'alt+p', ...page('multiPads') },
   { tip: 'nav.looper', label: 'Looper', key: 'alt+l', ...page('looper') },
-  { tip: 'nav.charts', label: 'Charts', key: 'alt+c', open: () => ui.charts, toggle: () => ui.toggleDrawer('charts') },
   { tip: 'nav.harmony', label: 'Harmony/Arp', key: 'alt+h', ...page('harmArp') },
+  { tip: 'nav.rack', label: 'Rack', key: 'alt+o', open: () => ui.rack, toggle: () => ui.toggleDrawer('rack') },
+  // Library's Racks tab (was the Quick Racks drawer's key).
+  { tip: 'library.tab_racks', label: 'Library › Racks', key: 'alt+r', open: () => ui.view === 'library' && ui.libraryTab === 'racks', toggle: () => toggleLibrary('racks'), hidden: true },
   // Was the Sound Library drawer; its GM map is Library's Style map tab now.
   { tip: 'library.tab_map', label: 'Style map', key: 'alt+y', open: () => ui.view === 'library' && ui.libraryTab === 'map', toggle: () => toggleLibrary('map'), hidden: true },
   { tip: 'nav.settings', label: 'Settings', key: 'alt+t', open: () => ui.settings, toggle: () => ui.toggleDrawer('settings') },

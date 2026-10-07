@@ -13,13 +13,14 @@
   │    `ui.settings` is on)                                          │
   └──────────────────────────────────────────────────────────────────┘
 
-  The old panels (header, lead sheet, Launchkey mirror, mixer row, Quick Racks row, key strip,
-  Channel view) stay on disk but aren't routed. The display pages (Channel, Effects, Quick
-  Racks, Multi Pads, Looper, Harm/Arp) are page tabs on the Stage; Alt+E, Alt+P, Alt+L and
-  Alt+H show theirs (lib/nav.ts). The Rack and Charts drawers (lib/ui/Overlay), the style
-  Browser and the Sound Browser stay as they were, unscaled, in the old tokens. Library
-  (`ui.view`: the app bar's Library tab, Alt+B) takes the Stage's place as the library's
-  Library screen (panels/library/LibraryScreen), scaled like the Stage.
+  The display pages (Channel, Effects, Quick Racks, Multi Pads, Looper, Harm/Arp) are page
+  tabs on the Stage; each has an Alt key that shows it (lib/nav.ts): Alt+C Channel, Alt+E
+  Effects, Alt+Q Quick Racks, Alt+P Multi Pads, Alt+L Looper, Alt+H Harm/Arp. Alt+T shows
+  Settings, Alt+B Library, Alt+R Library › Racks, Alt+Y Library › Style map, Alt+S the style
+  Browser and Alt+O the Rack drawer. The Rack drawer (lib/ui/Overlay), the style Browser and
+  the Sound Browser stay as they were, unscaled, in the old tokens. Library (`ui.view`: the
+  app bar's Library tab, Alt+B) takes the Stage's place as the library's Library screen
+  (panels/library/LibraryScreen), scaled like the Stage.
 -->
 <script lang="ts">
   import { onDestroy, untrack } from 'svelte'
@@ -30,7 +31,6 @@
   import { TIPS } from './help/tooltips'
   import { plainTip, tips, TOOLTIP_ID } from './lib/tooltip/tip.svelte'
   import Browser from './panels/browser/Browser.svelte'
-  import Charts from './panels/charts/Charts.svelte'
   import { channelNav } from './panels/channel/nav.svelte'
   import RackPanel from './panels/rack/RackPanel.svelte'
   import LibraryScreen from './panels/library/LibraryScreen.svelte'
@@ -100,7 +100,6 @@
 <div id={TOOLTIP_ID} class="visually-hidden">{tips.focused ? plainTip(TIPS[tips.focused]) : ''}</div>
 
 {#if ui.rack}<RackPanel />{/if}
-{#if ui.charts}<Charts />{/if}
 {#if ui.browser}<Browser />{/if}
 <!-- The Sound Browser only picks for a program map rule now (Style map); Library took over
      choosing a part's sound. -->
