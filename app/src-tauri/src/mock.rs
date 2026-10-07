@@ -1469,9 +1469,10 @@ impl MockSession {
         }
         // The page and the page order (`settings.padPages`), as the session shows them.
         let order = page_order(st);
-        // Hold Sound: the pads show (and do) the Racks page; `page` stays the one on view.
+        // Hold Sound: the pads show (and do) the Racks page; hold the master fader's button:
+        // the fader picker; `page` stays the one on view.
         let shown = layer.pads(st.pads.page);
-        st.pads.page_name = shown.name().into();
+        st.pads.page_name = layer.pads_name(st.pads.page).into();
         st.pads.page_number = order.position(st.pads.page).map_or(1, |i| i as u8 + 1);
         st.pads.page_count = order.len() as u8;
         st.pads.pages = order.pages().map(|page| PadPageInfo { page, name: page.name().into() }).collect();
@@ -1483,6 +1484,14 @@ impl MockSession {
         st.home = crate::mock_home::home(st);
         st.pads.pads = pads_for(st, shown);
         self.quick.fill(st, &self.racks.entries(), layer);
+        if layer == Layer::Fader {
+            // The fader picker, as the engine draws it (`launchkey::faders_looks`).
+            let panel = lk::Panel { layer, fader_page: st.mixer.fader_page, fader_layer: st.mixer.fader_layer, ..lk::Panel::default() };
+            st.pads.pads = lk::faders_looks(&panel)
+                .iter()
+                .map(|(note, l)| pad(*note, l.label, l.key, lk::pad_action(st.pads.page, layer, *note).map(AppCmd::from), (l.rgb.into(), l.level, l.anim)))
+                .collect();
+        }
         self.style_racks.fill(st, &self.racks.entries());
         // Every part's strip and the send effects (`Strips::fill`, as the session).
         self.strips.fill(st);
@@ -2669,6 +2678,8 @@ fn lk_panel(s: &AppState, quick: lk::QuickPanel) -> lk::Panel {
         selected: parts.iter().position(|p| p.selected).unwrap_or(0) as u8,
         quick,
         rotary_fast: s.effects.rotary_fast,
+        fader_page: s.mixer.fader_page,
+        fader_layer: s.mixer.fader_layer,
     }
 }
 
@@ -3961,6 +3972,27 @@ mod tests {
         assert!(!m.state.message.as_ref().is_some_and(|x| x.error));
         m.send(QuickRackCmd::StoreRack { slot: 8 });
         assert!(m.state.message.as_ref().is_some_and(|x| x.error));
+    }
+
+    /// `setLayer {fader}`: the pads are the fader picker from any page, the current page and
+    /// layer bright; a picker pad sets them; `none` gives the page on view back.
+    #[test]
+    fn set_layer_fader_shows_the_picker() {
+        use yahaha::parts::FaderLayer;
+        let mut m = MockSession::new();
+        m.send(PadsCmd::SetPadPage { page: Page::Racks });
+        m.send(PadsCmd::SetLayer { layer: Layer::Fader });
+        assert_eq!((m.state.surface.layer, m.state.pads.page, m.state.pads.page_name.as_str()), (Layer::Fader, Page::Racks, "Faders"));
+        let pad = |m: &MockSession, note: u8| m.state.pads.pads.iter().find(|p| p.note == note).unwrap().clone();
+        assert_eq!((pad(&m, 96).label.as_str(), pad(&m, 96).level), ("PANEL", Level::Bright));
+        assert_eq!((pad(&m, 97).label.as_str(), pad(&m, 97).level), ("STYLE", Level::Dim));
+        assert_eq!(pad(&m, 113).action, Some(MixerCmd::SetFaderLayer { layer: FaderLayer::Pan }.into()));
+        m.send(pad(&m, 97).action.unwrap());
+        m.send(pad(&m, 113).action.unwrap());
+        assert_eq!((m.state.mixer.fader_page, m.state.mixer.fader_layer), (FaderPage::Style, FaderLayer::Pan));
+        assert_eq!((pad(&m, 97).level, pad(&m, 113).level, pad(&m, 112).level), (Level::Bright, Level::Bright, Level::Dim));
+        m.send(PadsCmd::SetLayer { layer: Layer::None });
+        assert_eq!((m.state.pads.page_name.as_str(), pad(&m, 112).label.as_str()), ("Racks", "OTS 1"));
     }
 
     /// `setLayer`: under Sound the pads are the Racks page from any page (`pads.page` stays

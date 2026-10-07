@@ -1,38 +1,29 @@
 <!--
   LooperPage: the Chord Looper display page, in the Stage's display box (ui/Stage's `page` slot,
-  sized by --page-width × --page-height). A stub until its lane builds it
-  (docs/design/push/Looper-Dark.dc.html).
+  sized by --page-width × --page-height): the library's Looper fed from the engine's Chord Looper
+  state (model.ts looperPage), its changes sent as commands (model.ts looperChange). The Memory /
+  Clear latch, the Load list and the typed bank name are the page's own state; the engine owns
+  everything else. Commands: looperRec, looperOnOff, selectLooperMemory, storeLooperMemory,
+  clearLooperMemory, newLooperBank, saveLooperBank, loadLooperBank.
 -->
 <script lang="ts">
+  import { app, clock } from '../../lib/store.svelte'
+  import Looper from '../../ui/Looper/Looper.svelte'
+  import type { LooperChange } from '../../ui/Looper/types'
   import type { PageProps } from '../stage/page.svelte'
+  import { LOCAL_CLOSED, looperChange, looperPage, type LooperLocal } from './model'
 
   let { tipAction }: PageProps = $props()
+
+  let local = $state<LooperLocal>({ ...LOCAL_CLOSED })
+
+  const data = $derived(looperPage(app.state, local, clock.pos))
+
+  function onchange(change: LooperChange) {
+    const next = looperChange(change, local, app.state.looper)
+    local = next.local
+    for (const cmd of next.cmds) app.send(cmd)
+  }
 </script>
 
-<section class="soon" aria-label="Looper: coming soon" use:tipAction={'nav.looper'}>
-  <h1>Coming soon</h1>
-  <p>The Looper page is being rebuilt.</p>
-</section>
-
-<style>
-  .soon {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    width: var(--page-width);
-    height: var(--page-height);
-  }
-  h1 {
-    margin: 0;
-    font-size: 44px;
-    font-weight: 300;
-    letter-spacing: -1px;
-  }
-  p {
-    margin: 0;
-    color: var(--m);
-    font-size: 14px;
-  }
-</style>
+<Looper {...data} {tipAction} {onchange} />

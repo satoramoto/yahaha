@@ -62,6 +62,7 @@ Audited 2026-09-26 against `develop` at e54b512.
 | Panel faders 1–4, Style level, Multi Pad level, Master | `setPartVolume` / `setStyleVolume` / `setMultiPadVolume` / `setMasterVolume` | mixer/Mixer.svelte, PartStrip, AudioPage |
 | Style faders 1–8 | `setStylePartVolume` | Mixer |
 | Fader page (Master button) | `toggleFaderPage` | Mixer (`setFaderPage`) |
+| Fader picker (hold Master button + pad) | `setFaderPage` / `setFaderLayer` | Mixer bar, Stage band page and layer choosers; the mirror shows it with `setLayer` `fader` |
 | Panel buttons 1–4 / Shift+1–4 | `togglePart` / `selectPart` | PartStrip, Mixer |
 | Button 5 HARM/ARP | `toggleHarmonyArp` | harmony/Harmony.svelte, Mixer |
 | Button 6 plugin reload | `reloadPartPlugin` | mirror only |

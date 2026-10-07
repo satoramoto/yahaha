@@ -170,6 +170,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Save rack** | Saves the live rack (a new one under the name typed, when it has never been saved), then stores it on the waiting Quick Rack button. | — | — | — |
 | **Cancel** | Nothing is saved or stored: Store disarms and the button keeps what it held. | — | — | — |
 | **Store rack** | Puts the live rack on this Quick Rack button of the bank on view, replacing what it held, as Store then the button does. A rack with unsaved changes, or one never saved, is saved first. | MEMORY + REGISTRATION MEMORY | — | Hold Sound and tap a rack pad (Pad page 2 (Racks), top row) |
+| **Library › Racks** | Opens the Library on its Racks page: every rack of yours, to find, rename, duplicate or delete one. | — | `Alt+R` (terminal: ) | — |
 
 ## Keyboard parts
 
@@ -341,13 +342,14 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Fixed velocity** | The velocity every arpeggio note plays at when the velocity is Fixed. | — | — | — |
 | **Keep Key On** | The pattern's clock keeps running while no key is held, so the next chord picks up in the middle of the phrase instead of starting it again. | — | — | — |
 | **Close Harmony/Arpeggio** | Closes the Harmony/Arpeggio panel. The effect stays as it is. | — | `Esc` | — |
+| **Category** | Shows this category's Harmony types or arpeggio patterns. The type you have stays until you pick another, so looking around never stops an Echo or an arpeggio. | Keyboard Harmony / Arpeggio type | — | — |
 
 ## Mixer
 
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
-| **Fader page: Panel / Style** | Switches what the Launchkey faders control: Panel is your four keyboard parts, Style is the band's eight parts. The button lights blue on Panel, green on Style; with Shift it steps to the next fader layer instead. | Mixer tabs (Panel / Style) | `F9` | Button under the master fader |
-| **Fader layer: VOL / PAN / REV / CHO / DLY** | Switches what the faders move across the parts, as in a DAW's sends view: each part's volume, or its pan, reverb, chorus or delay send. A fader picks a value up before it moves it. The master fader stays the master. | — | — | Shift + button under the master fader |
+| **Fader page: Panel / Style** | Switches what the Launchkey faders control: Panel is your four keyboard parts, Style is the band's eight parts. On the Launchkey, a tap of the button under the master fader switches; hold it and the pads show the fader page and layer to choose from; with Shift it steps to the next fader layer instead. The button lights in the layer's colour on Panel, green on Style. | Mixer tabs (Panel / Style) | `F9` | Tap the button under the master fader (hold: choose the fader page and layer on the pads) |
+| **Fader layer: VOL / PAN / REV / CHO / DLY** | Switches what the faders move across the parts, as in a DAW's sends view: each part's volume, or its pan, reverb, chorus or delay send. A fader picks a value up before it moves it. The master fader stays the master. | — | — | Shift + button under the master fader (hold: choose the fader page and layer on the pads) |
 | **Right 1 volume** | Right 1's volume. The fader is channel 1's CC 7 itself, with no hidden gain behind it. | Mixer › Panel › Right 1 Volume | — | Panel fader page: fader 1 |
 | **Right 2 volume** | Right 2's volume. The fader is channel 3's CC 7 itself, with no hidden gain behind it. | Mixer › Panel › Right 2 Volume | — | Panel fader page: fader 2 |
 | **Right 3 volume** | Right 3's volume. The fader is channel 4's CC 7 itself, with no hidden gain behind it. | Mixer › Panel › Right 3 Volume | — | Panel fader page: fader 3 |
@@ -474,6 +476,11 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Multi Pad reverb** | How much of the Multi Pads goes to the reverb: each pad's own reverb send (CC 91) times this, in the built-in synth only. 100% plays the reverb the pad wrote and 0% is none. | Mixer › Panel › Multi Pad › Effect › Reverb | — | — |
 | **Multi Pad chorus** | How much of the Multi Pads goes to the chorus: each pad's own chorus send (CC 93) times this, in the built-in synth only. 0% at start, as for the band; 100% plays the chorus the pad wrote. | Mixer › Panel › Multi Pad › Effect › Chorus | — | — |
 | **Multi Pad delay** | How much of the Multi Pads goes to the tempo delay: each pad's own variation send (CC 94) times this, in the built-in synth only. 0% at start, because a pad's CC 94 was meant for its own Variation effect, not this delay; turn it up to echo the pads. | Mixer › Panel › Multi Pad › Effect › Variation | — | — |
+| **Send effect** | Opens this send's settings: its type, parameters, return and each part's send. Sends 1–3 are the style's reverb, chorus and delay; 4–6 are yours, saved with the rack. | Mixer › Effect | — | — |
+| **Keep with rack** | Lit, the live rack keeps this send's type over the style's and brings it back when loaded. Off, the style sets it again. | — | — | — |
+| **Part sends** | Each keyboard part's send to this effect, 0–127: drag sideways, scroll, or use the arrow keys. Knobs 1–4 of the effect's knob page and the fader layers set them too. | Mixer › Effect | — | Reverb, Chorus and Delay knob pages, knobs 1–4 |
+| **Style inserts** | Opens the style's insertion effects: each Style part's effect, on or off, and its amount. | Mixer › Effect › Insertion | — | — |
+| **Master** | Opens the Master Compressor and Master EQ, on the whole mix after the effect returns: their types and settings. | Mixer › Master | — | — |
 
 ## Metronome
 
@@ -521,6 +528,9 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Save bank** | Saves the memories to the bank's file, or under the name you typed as a new file. If another bank already has that name, nothing is saved: pick another name, or use Overwrite. | Chord Looper › Save | — | — |
 | **Overwrite bank** | Another Chord Looper bank has the name you typed: replace its file with these memories. | Chord Looper › Save (overwrite) | — | — |
 | **The sequence** | The chords the loop plays, bar by bar; the bar playing is lit. Chord times snap to 16th notes and the loop is whole bars. | Chord Looper (current data) | — | — |
+| **Load bank** | Lists the bank files in the ChordLooper folder; pick one to load its eight memories in place of these. The bank in use is the white block. Esc closes the list. | Chord Looper › Open | — | — |
+| **Save as…** | Saves the eight memories as a bank file under a name you type. Enter saves, Esc cancels; left empty, the bank keeps its own name. | Chord Looper › Save | — | — |
+| **Cancel** | Closes the name field without saving. | — | — | — |
 
 ## Multi Pads
 
@@ -548,6 +558,11 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **No bank** | Unloads the bank: the pads go dark. | — | — | — |
 | **Synchro Stop: Style Stop** | On: looping pads stop when the band stops. Off: they play on until you stop them. | Multi Pad Synchro Stop (Style Stop) | — | — |
 | **Synchro Stop: Style Ending** | On: looping pads stop when an Ending starts. Off: they play through the Ending. | Multi Pad Synchro Stop (Style Ending) | — | — |
+| **Previous bank** | Loads the bank before this one in the list (the last, with none loaded). Pads playing stop. | Multi Pad Bank Selection | — | — |
+| **Next bank** | Loads the bank after this one in the list (the first, with none loaded). Pads playing stop. | Multi Pad Bank Selection | — | — |
+| **Clear bank** | Unloads the bank: the pads stop and go dark until you load another. | — | — | — |
+| **Synchro Stop: style stops** | On: looping pads stop when the band stops. Off: they play on until you stop them. One-shot pads always play out. | Multi Pad Synchro Stop (Style Stop) | — | — |
+| **Synchro Stop: at the ending** | On: looping pads stop when an Ending starts. Off: they play through the Ending. | Multi Pad Synchro Stop (Style Ending) | — | — |
 
 ## Sound library
 

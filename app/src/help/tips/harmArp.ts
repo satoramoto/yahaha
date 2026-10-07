@@ -3,4 +3,12 @@
 
 import type { Tip } from '../tooltips.ts'
 
-export const harmArpTips = {} satisfies Record<string, Tip>
+export const harmArpTips = {
+  'harmony.category': {
+    title: 'Category',
+    body: "Shows this category's Harmony types or arpeggio patterns. The type you have stays until you pick another, so looking around never stops an Echo or an arpeggio.",
+    genos: 'Keyboard Harmony / Arpeggio type',
+    keys: [],
+    launchkey: null,
+  },
+} satisfies Record<string, Tip>

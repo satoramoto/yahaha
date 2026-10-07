@@ -539,6 +539,8 @@ impl Control {
             selected: parts.selected() as u8,
             quick: self.quick_panel(),
             rotary_fast: self.fx.rotary_fast,
+            fader_page: parts.fader_page(),
+            fader_layer: parts.fader_layer(),
         }
     }
 
