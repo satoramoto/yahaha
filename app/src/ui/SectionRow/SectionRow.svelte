@@ -25,7 +25,8 @@
      * word in the hue, on solid in the hue with --on-ink; no dots). Each control is one top-level
      * element, in order: the transport's Start / Stop (green; its legend the action, "Start /
      * Stop", as on the pads, and the solid fill the playing state), Accomp, Sync Start, Fill (one group, Fill ▲ and Fill ▼ its halves), Fade, Reset
-     * (set apart from Fade by a fib-13 gap), each filling its parent's cell; the helpers'
+     * (set apart from Fade by a gutter at its cell's left: `--reset-gap`, a fib-13 unless the
+     * parent sets it), each filling its parent's cell; the helpers'
      * Metronome with its ▾ (one group, two halves), Unison, ?, then Panic in the warning hue, set
      * apart, each sized to its words and the parent's height (for a max-content column grid).
      * `groups` still picks which; `orientation` is unused. The parent supplies the toolbar role and its name.
@@ -514,5 +515,11 @@
   .panic {
     width: calc(100% - var(--fib-13));
     margin-left: var(--fib-13);
+  }
+  /* Reset's gutter: a fib-13, or the parent's `--reset-gap` (the golden Stage: its cell's golden
+     minor part, so Reset keeps one unit behind a golden step). */
+  .face.reset {
+    width: calc(100% - var(--reset-gap, var(--fib-13)));
+    margin-left: var(--reset-gap, var(--fib-13));
   }
 </style>

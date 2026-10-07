@@ -13,6 +13,8 @@
   lines don't hold it (the golden Stage: a readable name over a cryptic code). With `valueInside`
   the value sits in the ring's hollow and the dial takes its band:
     GoldenBand label-lines-2 (or label-height), bottom → [name, dial with the value inside]
+  With `shorten="word"` the stand-in for a name that doesn't fit is a human short name, its first
+  word ("Retrig"), never the code (the golden Stage).
   Inside a grid fitted to a cell shape, the grid sizes it. On its own (outside any Golden slot) it
   takes the size the Stage gives one knob cell.
 -->
@@ -53,6 +55,12 @@
      * so the dial grows into that band. Off (the default): the value tight under the dial.
      */
     valueInside?: boolean
+    /**
+     * What stands in for a name that doesn't fit: `code` (the default), the knob's Genos code
+     * ("RtgRate"); `word`, a human short name, the name's first word ("Retrig rate" → "Retrig"),
+     * so no cryptic code is shown (the golden Stage). The full name is in the title either way.
+     */
+    shorten?: 'code' | 'word'
     /** Draw the cell's cuts and check them (GoldenOverlay). */
     overlay?: boolean
   }
@@ -70,8 +78,16 @@
     onstep,
     lines = 1,
     valueInside = false,
+    shorten = 'code',
     overlay = false,
   }: Props = $props()
+
+  /** The name's stand-in when it doesn't fit: the code, or the name's first word. Empty: none (the name stays). */
+  let brief = $derived.by(() => {
+    if (shorten === 'code') return code
+    const word = label.trim().split(/\s+/)[0] ?? ''
+    return word === label.trim() ? '' : word
+  })
 
   /** Knob's own spoken name: the value is shown in its own band, so the dial carries none. */
   let spoken = $derived(unused ? 'unused' : `${label}${code ? ` (${code})` : ''} ${value}${unit}`)
@@ -88,10 +104,10 @@
     if (!band || !full || typeof ResizeObserver === 'undefined') return
     // Re-measured when the name or code changes (the effect reads them).
     void label
-    void code
+    const alt = brief
     const two = lines === 2
     const fit = () => {
-      if (code === '' || band.clientWidth <= 0) {
+      if (alt === '' || band.clientWidth <= 0) {
         short = false
         return
       }
@@ -123,7 +139,7 @@
       title={short ? label : undefined}
       aria-hidden="true"
     >
-      <span>{short ? code : label}</span>
+      <span>{short ? brief : label}</span>
       <span class="probe"><span class="measure" bind:this={measure}>{label}</span></span>
     </div>
     {#if valueInside}

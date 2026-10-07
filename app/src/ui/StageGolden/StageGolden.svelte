@@ -11,25 +11,27 @@
     The page's spiral is turned cw from the right, so its pole (388, 238) lands on the section
     block: on what comes next.
   - Hero (1398 × 282), two tiers: a phi³ step off its bottom is the controls tier (67): its major
-    part off the left the transport (six outlined cells sized by consequence: Start / Stop 2
-    units; Accomp, Sync Start, the Fill ▲ ▼ pair (one unit, split in half) and Fade 1; Reset 1 at
-    the far end behind a sub-cut), the rest One Touch (its caption, then 1–4). The reading tier
-    (215) above it, one group, reads style → chord → section → next: a control-height band off its
-    top is the style line (the category and metre at its right end); under it, a phi³ step off
-    the left is the chord (324), the rest halved into the section and the tempo (524 each). Each
-    reading cell is a hero row over one small line: the chord, Main B and the tempo are one size,
-    their capitals filling the row (99 at 1440), on one shared line, flush left. A fib-8 under it:
-    the chord's notes, the beat bar (bars the row over phi⁵ deep, faded, the current beat solid);
-    a fib-34 under it, its own line: what comes next (a solid swatch and Main C in its hue, then
-    "fill after bar 4"; a display, not a control). + and − are one square beside the tempo, its
-    side the cap height, cut in half across (99 × 50 each at 1440).
+    part off the left the transport (six outlined cells sized by use and consequence together:
+    Start / Stop phi units; Accomp and Sync Start 1; the Fill ▲ ▼ pair 2, so each Fill is 1; Fade
+    1; Reset's cell phi at the far end, its golden minor a gutter, so Reset is 1), the rest One
+    Touch (its caption, then 1–4). The reading tier (215) above it, one group, reads style → chord
+    → section → next: a control-height band off its top is the style line (the category and metre
+    right after ›), a fib-34 over the rest; under it, a phi³ step off the left is the chord (324),
+    the rest halved into the section and the tempo (524 each). Each reading cell is a hero row
+    over one small line: the chord, Main B and the tempo are one size, their capitals filling the
+    row (99 at 1440), on one shared line, flush left. A fib-8 under it, one small line across: the
+    chord's notes; what comes next, Main B's subtitle ("then Main C · fill after bar 4", Main C in
+    its hue; a display, not a control); the beat bar (bars the row over phi⁵ deep, faded, the
+    current beat solid). + and − are one square beside the tempo, its side the cap height, cut in
+    half across (99 × 50 each at 1440).
   - Band (1398 × 456): its major part off the left is the faders (864): a header band over nine
     strips, each with its own foot (the part lamps under the part strips, then a sub-cut and the
     functions and the page button), so every lamp sits on its fader's column. The rest (534) is
-    cut minor off the top into knobs (a header band over eight knob cells, an unused knob half as
-    wide, each name in a two-line band and the value inside the ring, so the dial takes the
-    value's band) over pads (a header band over a 4 × 4 grid). Each part's sound sits on its strip
-    in the part's hue, cut short at the strip.
+    cut minor off the top into knobs (a header band over eight knob cells, an unused knob phi²
+    below a live one, each value under its dial and the name on one line under that: its first
+    word where the whole name doesn't fit, never a code) over pads (a header band over a 4 × 4
+    grid). Each part's sound sits on its strip in the part's hue, cut short at the strip; a parked
+    strip is an empty track in the faded hue.
   Each group sits in a `group` wrapper inset fib-13 from its block's cuts; inside a group the cuts
   sit edge to edge. The status line sits at the faders header's right end.
   Each leaf is a size container: the components' size tokens are set from its content box (cq
@@ -150,15 +152,19 @@
   type Foot = BankLamp | 'page'
   const foot: Foot[] = $derived([...faders.partLamps, ...faders.functionLamps, 'page'])
   const footCut = $derived(faders.partLamps.length)
-  /** Size follows use: an unused knob is half a live one. */
-  const knobWeights: Interval[] = $derived(p.knobs.knobs.map((k) => (k.unused ? 'unison' : 'octave')))
   /**
-   * The transport graded by consequence: Start / Stop (a slip starts or stops the band) is the
-   * widest, 2 units (the octave); Accomp, Sync Start, the Fill ▲ ▼ pair (one unit, split in half)
-   * and Fade 1 each; Reset 1 at the far end, set apart from Fade by a sub-cut (a slip onto it is
-   * heard).
+   * Size follows use: an unused knob is two golden steps below a live one (phi², so a live knob's
+   * name has room for one line).
    */
-  const TRANSPORT: Interval[] = ['octave', 'unison', 'unison', 'unison', 'unison', 'unison']
+  const knobWeights: Interval[] = $derived(p.knobs.knobs.map((k) => (k.unused ? 'unison' : 'phi2')))
+  /**
+   * The transport graded by use AND consequence together: Start / Stop (a slip starts or stops the
+   * band) the golden major of one unit (phi units); Accomp and Sync Start 1 each; the Fill ▲ ▼
+   * pair (pressed most, mid-song) 2, so each Fill is 1 unit, as wide as Accomp, the two side by
+   * side; Fade 1; Reset's cell phi at the far end, its golden minor a gutter before it (a slip onto
+   * it is heard), so Reset too is 1 unit.
+   */
+  const TRANSPORT: Interval[] = ['phi', 'unison', 'unison', 'octave', 'unison', 'phi']
 
   const knobTabs: TabItem[] = $derived(
     (p.knobs.pages?.length ? p.knobs.pages : [p.knobs.pageLabel ?? '']).map((label, i) => ({
@@ -222,7 +228,7 @@
         </div>
         <GoldenSplit take="phi3" of="length" from="bottom" name="hero">
           <GoldenSplit take="major" from="left" name="controls">
-            <div class="group" role="toolbar" aria-label="Transport">
+            <div class="group transport" role="toolbar" aria-label="Transport">
               <GoldenGrid weights={TRANSPORT} name="transport">
                 <SectionRow
                   {...p.sectionRow}
@@ -258,7 +264,7 @@
             </div>
           </GoldenSplit>
           <div class="group">
-            <GoldenBand size="control-height" from="top" gap="fib-8" name="reading">
+            <GoldenBand size="control-height" from="top" gap="fib-34" name="reading">
               <div class="leaf style">
                 <StyleLine {...style} cells tipAction={p.tipAction} onprev={p.onprev} onnext={p.onnext} onbrowse={p.onbrowse} />
               </div>
@@ -271,7 +277,7 @@
                     </div>
                     <div class="next" role="group" aria-label="Next section">
                       {#if next}
-                        <span class="swatch" style:--hue="var(--{nextHue})" aria-hidden="true"></span>
+                        <span class="then">then</span>
                         <span class="next-name" style:--hue="var(--{nextHue})" data-hue={nextHue}>{next}</span>
                       {/if}
                       {#if next && when}<span class="dot" aria-hidden="true">·</span>{/if}
@@ -376,6 +382,7 @@
                       kind={strip.kind}
                       hue={strip.hue}
                       layered={layered && isPart(strip)}
+                      empty
                       tip={strip.tip}
                       sound={part?.sound ?? ''}
                       soundName={part ? `${part.partName} sound: ${part.sound}. Opens the quick sound list` : undefined}
@@ -418,8 +425,7 @@
                       unit={knob.unit}
                       fraction={knob.fraction}
                       unused={knob.unused}
-                      lines={2}
-                      valueInside
+                      shorten="word"
                       tip="knobs.knob"
                       tipAction={p.tipAction}
                       onpress={() => p.onknobpress?.(i)}
@@ -499,6 +505,11 @@
     --golden-inset: 0px;
   }
 
+  /* Reset's gutter: its cell's golden minor part (the cell is phi units, so Reset keeps 1). */
+  .transport {
+    --reset-gap: calc(100% - 100% / var(--interval-phi));
+  }
+
   /* The app bar fills its phi⁴ step, edge to edge across the frame. */
   .screen .bar {
     padding: 0;
@@ -526,14 +537,14 @@
 
   /* The reading cells (chord, section, tempo), one leaf each, so descenders stay inside: a hero
      row (--row: all the cell but a label-height line and the --next-gap over it) whose foot is
-     the shared line every hero value stands on, flush left; then one small line (the chord's
-     notes and the beat bar a fib-8 under the line; what comes next a fib-34 under it, its own
-     line). The three heroes are one size, the size whose capitals fill the row (--cap-font: the
-     face's capitals are 0.70 of its size, measured), so the row holds no empty band over them and
-     the tempo's + − square (its side the cap height) is big enough to hit. A fib-13 gutter before
-     the next cut. */
+     the shared line every hero value stands on, flush left; then one small line a fib-8 under
+     it, one cut line across all three: the chord's notes, what comes next (Main B's subtitle) and
+     the beat bar. The three heroes are one size, the size whose capitals fill the row
+     (--cap-font: the face's capitals are 0.70 of its size, measured), so the row holds no empty
+     band over them and the tempo's + − square (its side the cap height) is big enough to hit. A
+     fib-13 gutter before the next cut. */
   .reading {
-    --next-gap: var(--fib-34);
+    --next-gap: var(--fib-8);
     --row: calc(100cqh - var(--label-height) - var(--next-gap));
     --cap-font: calc(var(--row) / 0.7);
     --type-poster: var(--weight-light) var(--cap-font) / var(--cap-font) var(--font-sans);
@@ -590,27 +601,22 @@
   .section .stand {
     --type-poster: var(--weight-light) min(var(--cap-font), 100cqw / (var(--chars) * 0.52)) / 1 var(--font-sans);
   }
-  /* What comes next, its own flush-left line a fib-34 under Main B: a short solid swatch in the
-     next section's hue (a mark, like the pads legend's swatch, not a control), the next section
-     in its hue at the strong weight, "·", when it lands in the plain small text. No outline, no
-     fill: it is a display, not a control. */
+  /* What comes next, Main B's subtitle: a sentence on the small line a fib-8 under Main B, flush
+     with its left edge: "then" in the text ink, the next section in its hue at the strong weight,
+     "·", when it lands. No swatch, no outline, no fill: it is a display, not a control. */
   .next {
     display: flex;
     align-items: center;
     gap: var(--space-4);
     height: var(--label-height);
-    margin: calc(var(--next-gap) - var(--fib-8)) 0 0;
+    margin: 0;
     white-space: nowrap;
     font: var(--type-text);
     letter-spacing: var(--tracking-text);
     color: var(--t);
   }
-  .swatch {
-    flex: none;
-    width: var(--fib-21);
-    height: var(--fib-5);
-    margin-right: var(--space-4);
-    background: var(--hue);
+  .then {
+    color: var(--t);
   }
   .next-name {
     color: var(--hue);

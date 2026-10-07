@@ -12,7 +12,8 @@
   centred and cut short with an ellipsis at the strip (the golden Stage's faders, Option C); `lamp` puts the strip's lamp at the foot. With `onopen`, the strip's name is
   the name button (opens Channel, with its marks).
   `kind="parked"`: an unused fader, narrow enough for half a live strip: no value, no sound text,
-  the name "—" in the dim ink, and the Fader's parked look.
+  the name "—" in the dim ink, and the Fader's parked look (with `empty`, an empty track in the
+  faded hue: the golden Stage, so the live strips and the parked ones read as one row of strips).
   The cell fills the slot it is given, at any width (the Stage gives live strips twice a parked
   one's width). On its own (outside any Golden slot) it takes the size the Stage gives one fader.
 -->
@@ -48,6 +49,8 @@
     hue?: Hue
     /** The non-Vol layer look (Pan, Reverb, Chorus, Delay): meters hidden, bracket and value white. */
     layered?: boolean
+    /** With `kind="parked"`: an empty track in the faded hue (the Fader's `empty`), not the dashed groove. Off by default. */
+    empty?: boolean
     /** The tooltip key, rendered as `data-tip`. */
     tip?: string
     /** The part's sound name on top of the strip ("Stage Grand"). Omitted (the default): no sound band. */
@@ -92,6 +95,7 @@
     kind = 'part',
     hue = 't',
     layered = false,
+    empty = false,
     tip,
     sound,
     soundName,
@@ -159,7 +163,7 @@
         <span style:color="var(--{ink})">{parked ? '' : value}</span>
       </div>
       <div class="track">
-        <Fader {name} value="" {level} {meter} {meter2} {peak} {away} {kind} {hue} {layered} {tip} {tipAction} {onlevel} />
+        <Fader {name} value="" {level} {meter} {meter2} {peak} {away} {kind} {hue} {layered} {empty} {tip} {tipAction} {onlevel} />
       </div>
     </GoldenBand>
   </GoldenBand>
