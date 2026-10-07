@@ -123,7 +123,8 @@ impl Control {
                         .parts
                         .iter()
                         .map(|q| {
-                            let program = q.voice.filter(|v| v.0 < 126).map(|v| v.2);
+                            // The GM program the part will play (by the voice's bank).
+                            let program = q.voice.filter(|v| v.0 < 126).map(|v| crate::voice_gm::keyboard_program(v.0, v.2));
                             OtsPart {
                                 on: q.on,
                                 program,

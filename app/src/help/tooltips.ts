@@ -8,6 +8,14 @@
 // - Pad locations use `padLocation()`'s wording, and a test checks each pad's entry names
 //   the pad it's on.
 // - `npm run docs:controls` renders this catalog to `app/docs/controls.md`.
+// - Each display page's own entries live in `help/tips/<page>.ts`, spread in at the end.
+
+import { channelTips } from './tips/channel.ts'
+import { effectsTips } from './tips/effects.ts'
+import { harmArpTips } from './tips/harmArp.ts'
+import { looperTips } from './tips/looper.ts'
+import { multiPadsTips } from './tips/multiPads.ts'
+import { quickRacksTips } from './tips/quickRacks.ts'
 
 export interface Tip {
   /** The control's name, as the app labels it. */
@@ -53,9 +61,9 @@ const MP_STOP = {
   genos: '[STOP] + pad',
   keys: [],
 }
-// The Quick Rack buttons 1–8 (the bar's, the drawer's and pad page 2's).
+// The Quick Rack buttons 1–8 (the Quick Racks page's and pad page 2's).
 const QUICK_BUTTON = {
-  body: 'Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes. Blue when it holds a rack, red when that rack is loaded, dark when empty. With Store armed, stores the live rack here instead; so does a long-press or right-click.',
+  body: 'Loads the rack on this button of the bank on view (A–H), asking first if the live rack has unsaved changes; tapping the lit one (the loaded rack) recalls it clean with no question, keeping any unsaved changes as a new rack, "Recovered: <name>". On the Quick Racks page the loaded rack is a solid block, a stored one an outline, an empty one a faded outline, and one whose rack is gone shows ⚠; on the pads, blue holds a rack, red is loaded, dark is empty. With Store armed, stores the live rack here instead; so does a long-press or right-click.',
 }
 
 const catalog = {
@@ -297,14 +305,14 @@ const catalog = {
   },
   'tempo.down': {
     title: 'Tempo −',
-    body: 'Slows the tempo by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together for the style\'s own tempo.',
+    body: 'Slows the tempo by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together, or double-click the tempo, for the style\'s own tempo.',
     genos: 'TEMPO −',
     keys: ['-'],
     launchkey: 'Function button (right of the pads)',
   },
   'tempo.up': {
     title: 'Tempo +',
-    body: 'Speeds the tempo up by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together for the style\'s own tempo.',
+    body: 'Speeds the tempo up by 1 BPM; hold it to keep going, faster the longer you hold. Press − and + together, or double-click the tempo, for the style\'s own tempo.',
     genos: 'TEMPO +',
     keys: ['='],
     launchkey: '> (Scene Launch) button (right of the pads)',
@@ -318,29 +326,8 @@ const catalog = {
   },
   'display.tempo': {
     title: 'Tempo',
-    body: 'The current tempo in beats per minute. Loading a style sets the style\'s own tempo.',
+    body: 'The current tempo in beats per minute. Drag it up or down, or scroll on it, to change it; with focus, ↑ and ↓ step it by 1 BPM. Double-click it for the style\'s own tempo (Style tempo), which loading a style also sets.',
     genos: 'Tempo',
-    keys: [],
-    launchkey: null,
-  },
-  'display.timesig': {
-    title: 'Time signature',
-    body: 'The style\'s time signature, from the style file.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'display.position': {
-    title: 'Bar and beat',
-    body: 'Where the band is: bar, and a light per beat. The section playing now and the one queued next are shown alongside, and for a fill the Main it lands on (⤷). The first press picks the fill; later presses before it ends only change where it lands, and its own Main again repeats it.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'display.chord': {
-    title: 'Chord',
-    body: 'The chord the style is following. When Keyboard transpose is not zero, the chord as you fingered it is shown small underneath.',
-    genos: 'Chord (Home display, Style area)',
     keys: [],
     launchkey: null,
   },
@@ -629,28 +616,28 @@ const catalog = {
   // ── One Touch Settings ──────────────────────────────────────────────────
   'ots.1': {
     title: 'OTS 1',
-    body: 'A sound setup for your own hands that the style\'s author picked to suit it: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it swaps your keyboard sounds (or loads the rack of yours chosen for it), and the band doesn\'t change. Dark if the style has none.',
+    body: 'A sound setup for your own hands that the style\'s author picked to suit it: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it applies it at once, swapping your keyboard sounds (or loading the rack of yours chosen for it), and the band doesn\'t change. Dark if the style has none.',
     genos: 'ONE TOUCH SETTING 1',
     keys: ['shift+1'],
     launchkey: pad(P2, 'bottom', 1),
   },
   'ots.2': {
     title: 'OTS 2',
-    body: 'The style\'s second suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it swaps your keyboard sounds, and the band doesn\'t change. If you chose one of your racks for it (OTS rack), that rack loads instead.',
+    body: 'The style\'s second suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it applies it at once, swapping your keyboard sounds, and the band doesn\'t change. If you chose one of your racks for it (OTS rack), that rack loads instead.',
     genos: 'ONE TOUCH SETTING 2',
     keys: ['shift+2'],
     launchkey: pad(P2, 'bottom', 2),
   },
   'ots.3': {
     title: 'OTS 3',
-    body: 'The style\'s third suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it swaps your keyboard sounds, and the band doesn\'t change. If you chose one of your racks for it (OTS rack), that rack loads instead.',
+    body: 'The style\'s third suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it applies it at once, swapping your keyboard sounds, and the band doesn\'t change. If you chose one of your racks for it (OTS rack), that rack loads instead.',
     genos: 'ONE TOUCH SETTING 3',
     keys: ['shift+3'],
     launchkey: pad(P2, 'bottom', 3),
   },
   'ots.4': {
     title: 'OTS 4',
-    body: 'The style\'s fourth suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it swaps your keyboard sounds, and the band doesn\'t change. If you chose one of your racks for it (OTS rack), that rack loads instead.',
+    body: 'The style\'s fourth suggested setup for your hands: the voice, on/off, volume and octave of Right 1–3 and Left. Pressing it applies it at once, swapping your keyboard sounds, and the band doesn\'t change. If you chose one of your racks for it (OTS rack), that rack loads instead.',
     genos: 'ONE TOUCH SETTING 4',
     keys: ['shift+4'],
     launchkey: pad(P2, 'bottom', 4),
@@ -673,28 +660,28 @@ const catalog = {
   // ── Keyboard parts ──────────────────────────────────────────────────────
   'part.right1.on': {
     title: 'Right 1 on/off',
-    body: 'Turns Right 1 on or off. Right parts that are on sound together, which is how you layer voices. On its mixer strip, press and hold On to swap its sound: the knobs are Right 1\'s (knob 1 its sound, 2–8 its mix) until you click On again.',
+    body: 'Turns Right 1 on or off. Right parts that are on sound together, which is how you layer voices. On screen, press and hold its part lamp to swap its sound: the knobs are Right 1\'s (knob 1 its sound, 2–8 its mix) until you click the lamp again.',
     genos: 'PART ON/OFF RIGHT 1',
     keys: ['5'],
     launchkey: 'Panel fader page: button under fader 1',
   },
   'part.right2.on': {
     title: 'Right 2 on/off',
-    body: 'Turns Right 2 on or off. Turn on Right 1 and Right 2 together to layer, for example piano and strings. On its mixer strip, press and hold On to swap its sound: the knobs are Right 2\'s (knob 1 its sound, 2–8 its mix) until you click On again.',
+    body: 'Turns Right 2 on or off. Turn on Right 1 and Right 2 together to layer, for example piano and strings. On screen, press and hold its part lamp to swap its sound: the knobs are Right 2\'s (knob 1 its sound, 2–8 its mix) until you click the lamp again.',
     genos: 'PART ON/OFF RIGHT 2',
     keys: ['6'],
     launchkey: 'Panel fader page: button under fader 2',
   },
   'part.right3.on': {
     title: 'Right 3 on/off',
-    body: 'Turns Right 3 on or off, a third layer for the right hand. On its mixer strip, press and hold On to swap its sound: the knobs are Right 3\'s (knob 1 its sound, 2–8 its mix) until you click On again.',
+    body: 'Turns Right 3 on or off, a third layer for the right hand. On screen, press and hold its part lamp to swap its sound: the knobs are Right 3\'s (knob 1 its sound, 2–8 its mix) until you click the lamp again.',
     genos: 'PART ON/OFF RIGHT 3',
     keys: ['7'],
     launchkey: 'Panel fader page: button under fader 3',
   },
   'part.left.on': {
     title: 'Left on/off',
-    body: 'Turns the Left voice on or off: your left hand plays it below the split. It can\'t be turned off while Manual Bass is on. On its mixer strip, press and hold On to swap its sound: the knobs are Left\'s (knob 1 its sound, 2–8 its mix) until you click On again.',
+    body: 'Turns the Left voice on or off: your left hand plays it below the split. It can\'t be turned off while Manual Bass is on. On screen, press and hold its part lamp to swap its sound: the knobs are Left\'s (knob 1 its sound, 2–8 its mix) until you click the lamp again.',
     genos: 'PART ON/OFF LEFT',
     keys: ['8', 'l'],
     launchkey: 'Panel fader page: button under fader 4; Shift + Pad Bank ▲',
@@ -869,23 +856,9 @@ const catalog = {
     keys: [],
     launchkey: null,
   },
-  'sounds.preset_name': {
-    title: 'Preset name',
-    body: 'The new preset\'s name, also its file name. If a preset of that name exists, yahaha asks before replacing it (the file is shared with Logic and MainStage). Enter saves, Esc cancels.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
   'sounds.preset_category': {
     title: 'Preset category',
     body: 'The category the new preset is listed under in the browser. Kept by yahaha; the .aupreset file itself is not changed.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'sounds.preset_save': {
-    title: 'Save the preset',
-    body: 'Writes the .aupreset and lists it under the plugin. The part then plays that preset.',
     genos: null,
     keys: [],
     launchkey: null,
@@ -915,13 +888,6 @@ const catalog = {
     title: 'Category',
     body: 'The sounds of one Genos voice category. A preset\'s category is its General MIDI family, and a plugin\'s is guessed from its name.',
     genos: 'VOICE category buttons',
-    keys: [],
-    launchkey: null,
-  },
-  'sounds.set_category': {
-    title: 'Plugin category',
-    body: 'The category the selected plugin or plugin preset is listed under. yahaha guesses it from the name (a preset it can\'t place goes with its plugin); pick another to file it where you look for it.',
-    genos: null,
     keys: [],
     launchkey: null,
   },
@@ -1004,13 +970,6 @@ const catalog = {
     keys: ['5', '6', '7'],
     launchkey: 'Panel fader page: buttons under faders 1–3',
   },
-  'part.left_zone': {
-    title: 'Left hand',
-    body: 'Left plays the keys at and below the split point, with its own voice. Under Manual Bass it plays the style\'s Bass voice there instead, and the band\'s own bass goes quiet.',
-    genos: 'Split Point (Left)',
-    keys: [],
-    launchkey: null,
-  },
   'part.written_for': {
     title: 'As written for',
     body: 'The voice the style\'s author wrote this band part for, and its MIDI channel on the yahaha port. Load a matching instrument on that channel in Ableton to hear the style as intended; ≈ marks the nearest General MIDI voice to a Yamaha one.',
@@ -1020,7 +979,7 @@ const catalog = {
   },
   'ots.link_timing': {
     title: 'OTS Link timing',
-    body: 'When OTS Link swaps the setting while the band plays: when the band reaches the Main you pressed (At Main Section Change, the default), or as soon as you press it (Immediate). Change it in Settings, Style.',
+    body: 'When OTS Link swaps the setting while the band plays: when the band reaches the Main you pressed (At Main Section Change, the default), or as soon as you press it (Immediate). Set it here, on the Quick Racks page, in Library › Racks or in Settings › Style.',
     genos: 'OTS Link Timing',
     keys: [],
     launchkey: null,
@@ -1029,17 +988,17 @@ const catalog = {
   // ── Mixer ───────────────────────────────────────────────────────────────
   'mixer.page': {
     title: 'Fader page: Panel / Style',
-    body: 'Switches what the Launchkey faders control: Panel is your four keyboard parts, Style is the band\'s eight parts. The button lights blue on Panel, green on Style.',
+    body: 'Switches what the Launchkey faders control: Panel is your four keyboard parts, Style is the band\'s eight parts. A tap of the button under the master fader switches, on the Launchkey or on screen; hold it (on screen, or right-click it) and the pads show the fader page and layer to choose from until you let go; with Shift it steps to the next fader layer instead. The button lights in the layer\'s colour on Panel, green on Style.',
     genos: 'Mixer tabs (Panel / Style)',
     keys: ['F9'],
-    launchkey: 'Button under the master fader',
+    launchkey: 'Tap the button under the master fader (hold: choose the fader page and layer on the pads)',
   },
   'mixer.layer': {
     title: 'Fader layer: VOL / PAN / REV / CHO / DLY',
     body: 'Switches what the faders move across the parts, as in a DAW\'s sends view: each part\'s volume, or its pan, reverb, chorus or delay send. A fader picks a value up before it moves it. The master fader stays the master.',
     genos: null,
     keys: [],
-    launchkey: 'Shift + button under the master fader',
+    launchkey: 'Shift + button under the master fader (hold: choose the fader page and layer on the pads)',
   },
   'mixer.panel.right1': {
     title: 'Right 1 volume',
@@ -1101,27 +1060,6 @@ const catalog = {
     title: 'EQ Low',
     body: 'Boosts or cuts this part\'s lows, below the Low frequency, by −12 to +12 dB: a shelf yahaha plays on the part\'s audio, SoundFont voice or plugin, and at 0 dB out of the signal (tone, not level: the fader stays the part\'s only level). Drag up or down; double-click for 0 dB. A One Touch Setting with an EQ sets it, and a rack saves it.',
     genos: 'Mixer › Panel › EQ › Low',
-    keys: [],
-    launchkey: null,
-  },
-  'mixer.part.eq_low_freq': {
-    title: 'EQ Low frequency',
-    body: 'Where this part\'s low shelf starts: 32 Hz to 2 kHz, in the XG EQ frequency steps (80 Hz at start). It changes nothing while EQ Low is at 0 dB. Drag up or down; double-click for 80 Hz.',
-    genos: 'Voice Edit › EQ › Low Frequency',
-    keys: [],
-    launchkey: null,
-  },
-  'mixer.part.eq_high_gain': {
-    title: 'EQ High',
-    body: 'Boosts or cuts this part\'s highs, above the High frequency, by −12 to +12 dB: a shelf yahaha plays on the part\'s audio, SoundFont voice or plugin, and at 0 dB out of the signal (tone, not level: the fader stays the part\'s only level). Drag up or down; double-click for 0 dB. A One Touch Setting with an EQ sets it, and a rack saves it.',
-    genos: 'Mixer › Panel › EQ › High',
-    keys: [],
-    launchkey: null,
-  },
-  'mixer.part.eq_high_freq': {
-    title: 'EQ High frequency',
-    body: 'Where this part\'s high shelf starts: 500 Hz to 16 kHz, in the XG EQ frequency steps (10 kHz at start). It changes nothing while EQ High is at 0 dB. Drag up or down; double-click for 10 kHz.',
-    genos: 'Voice Edit › EQ › High Frequency',
     keys: [],
     launchkey: null,
   },
@@ -1241,28 +1179,28 @@ const catalog = {
   },
   'mixer.strip.insert_setting_1': {
     title: 'Insert setting 1',
-    body: 'The insert\'s first setting (its drive, squeeze, sensitivity or depth: what the old single amount was). Drag up or down; double-click for the type\'s default.',
+    body: 'The insert\'s first setting (its drive, squeeze, sensitivity or depth: what the old single amount was). Drag sideways; double-click for the type\'s default.',
     genos: 'Mixer › Effect › Insertion Effect › Parameter',
     keys: [],
     launchkey: null,
   },
   'mixer.strip.insert_setting_2': {
     title: 'Insert setting 2',
-    body: 'The insert\'s second setting, named on the knob (tone, attack, resonance, note, drive or rate). Drag up or down; double-click for the type\'s default.',
+    body: 'The insert\'s second setting, named on the knob (tone, attack, resonance, note, drive or rate). Drag sideways; double-click for the type\'s default.',
     genos: 'Mixer › Effect › Insertion Effect › Parameter',
     keys: [],
     launchkey: null,
   },
   'mixer.strip.insert_setting_3': {
     title: 'Insert setting 3',
-    body: 'The insert\'s third setting, named on the knob. Drag up or down; double-click for the type\'s default.',
+    body: 'The insert\'s third setting, named on the knob. Drag sideways; double-click for the type\'s default.',
     genos: 'Mixer › Effect › Insertion Effect › Parameter',
     keys: [],
     launchkey: null,
   },
   'mixer.strip.insert_setting_4': {
     title: 'Insert setting 4',
-    body: 'The insert\'s fourth setting, where its type has one (the compressor\'s output). Drag up or down; double-click for the type\'s default.',
+    body: 'The insert\'s fourth setting, where its type has one (the compressor\'s output). Drag sideways; double-click for the type\'s default.',
     genos: 'Mixer › Effect › Insertion Effect › Parameter',
     keys: [],
     launchkey: null,
@@ -1272,43 +1210,35 @@ const catalog = {
     body: 'How much of this strip goes to this send effect, 0–127. Sends 1–3 are the part\'s reverb, chorus and delay sends.',
     genos: 'Mixer › Effect › Send level',
     keys: [],
-    launchkey: null,
+    launchkey: 'Reverb, Chorus and Delay fader layers (sends 1–3); swap knob 8 (send 4)',
   },
-  // The Channel view (panels/channel): the selected strip's full channel strip in the display.
+  // The Channel page (panels/channel): one part's whole channel in the display.
   'mixer.channel.level': {
     title: 'Level',
-    body: 'This part\'s level (its CC 7), 0–127. Drag up or down.',
+    body: 'This part\'s level (its CC 7), 0–127. Drag sideways.',
     genos: 'Mixer › Volume',
     keys: [],
-    launchkey: 'Panel faders 1–4 (keyboard parts); Style page faders 1–8 (Style parts)',
+    launchkey: 'Panel fader 1–4',
   },
   'mixer.channel.pan': {
     title: 'Pan',
-    body: 'Where this part sits left to right (CC 10), 64 = centre. Drag up or down; double-click for centre.',
+    body: 'Where this part sits left to right (CC 10), 64 = centre. Drag sideways; double-click for centre.',
     genos: 'Mixer › Pan',
     keys: [],
-    launchkey: null,
+    launchkey: 'Pan fader layer, fader 1–4',
   },
   'mixer.channel.prev': {
     title: 'Previous part',
-    body: 'Shows the part before this one in the Channel view (after Right 1 comes Phrase 2).',
+    body: 'Opens the part before this one (after Right 1 comes Phrase 2).',
     genos: null,
     keys: [],
     launchkey: null,
   },
   'mixer.channel.next': {
     title: 'Next part',
-    body: 'Shows the part after this one in the Channel view (after Phrase 2 comes Right 1).',
+    body: 'Opens the part after this one (after Phrase 2 comes Right 1).',
     genos: null,
     keys: [],
-    launchkey: null,
-  },
-  'mixer.channel.close': {
-    title: 'Close the channel',
-    body: 'Closes the Channel view and puts back what the display showed before. Esc, or clicking the selected strip again, does the same.',
-    genos: null,
-    keys: [],
-    app_keys: ['esc'],
     launchkey: null,
   },
   'fx.reverb_type': {
@@ -1470,13 +1400,13 @@ const catalog = {
     body: 'The rotary speaker switch: lit, every rotary insert spins at its fast speed; off, its slow one. The horn and drum speed up and slow down gradually, as a real rotary speaker does.',
     genos: 'Rotary Speaker speed (Slow/Fast)',
     keys: [],
-    launchkey: null,
+    launchkey: 'Shift + encoder page ▲',
   },
   // The send effects (the mixer rework): sends 1–3 are the style's reverb, chorus and
   // delay; 4–6 are added by you and saved with the rack.
   'fx.send_add': {
     title: 'Add send',
-    body: 'Adds a send effect (up to six), returning at 0 dB. Every strip starts with no level to it. The rack saves it.',
+    body: 'Adds a send effect (up to six): a Hall reverb returning at 0 dB, whose type you change in its settings. Every strip starts with no level to it. The rack saves it.',
     genos: null,
     keys: [],
     launchkey: null,
@@ -1513,20 +1443,6 @@ const catalog = {
     title: 'Rack keeps this type',
     body: 'Lit, the live rack keeps this send\'s type and brings it back when loaded, over the style\'s. Off, the style sets it.',
     genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'fx.send_use_style': {
-    title: 'Use style\'s',
-    body: 'Drops the live rack\'s type for this send, so the style sets it again.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'fx.send_add_kind': {
-    title: 'New send type',
-    body: 'What the next added send effect plays. Add send adds it.',
-    genos: 'Mixer › Effect › Type',
     keys: [],
     launchkey: null,
   },
@@ -1754,13 +1670,6 @@ const catalog = {
     keys: [],
     launchkey: 'Knobs 4 and 5 on the Style knob page',
   },
-  'mixer.track_mute_order': {
-    title: 'Track Mute order',
-    body: 'A starts from Rhythm 2, then Rhythm 1, Bass, Chord 1, Chord 2, Pad, Phrase 1 and Phrase 2. B starts from Chord 1, then Chord 2, Pad, Bass, Phrase 1, Phrase 2 and the rhythm parts last.',
-    genos: 'Style Track Mute A / B',
-    keys: [],
-    launchkey: null,
-  },
   'metronome.on': {
     title: 'Metronome',
     body: 'A click on every beat, with the band while it plays and on its own at the tempo while stopped. It sounds on the built-in synth only and never goes out on the MIDI port.',
@@ -1784,7 +1693,7 @@ const catalog = {
   },
   'metronome.settings': {
     title: 'Metronome settings',
-    body: 'Opens the metronome\'s settings: on/off, the click\'s volume and the bell on beat 1.',
+    body: 'Opens the metronome\'s settings: on/off, the click\'s volume (0–127) and the bell on beat 1. Esc or a click outside closes them.',
     genos: 'Menu › Metronome',
     keys: [],
     launchkey: null,
@@ -1881,10 +1790,10 @@ const catalog = {
   },
   'looper.on_off': {
     title: 'Chord Looper ON/OFF',
-    body: 'Loops the recorded chords from the next bar line, feeding them to the band as if you played them, so both hands are free. While it loops your chords are ignored; press again to stop it at once. Arming a loop turns chart mode off.',
+    body: 'Loops the recorded chords from the next bar line, feeding them to the band as if you played them, so both hands are free. While it loops your chords are ignored; press again to stop it at once. A long press is Loop rec: it records the chords you play from the next bar line.',
     genos: 'CHORD LOOPER [ON/OFF]',
     keys: ['^'],
-    launchkey: 'Panel fader page: button under fader 8 (green while looping)',
+    launchkey: 'Panel fader page: button under fader 8 (lime while looping)',
   },
   'looper.memory': {
     title: 'Chord Looper memory',
@@ -2022,66 +1931,24 @@ const catalog = {
   },
   'mixer.channel.portamento': {
     title: 'Portamento',
-    body: 'Lit, this part glides in pitch from one note to the next instead of jumping. Portamento time sets how long the glide takes.',
+    body: 'Portamento on or off; the strip keeps its glide time. On, this part glides in pitch from one note to the next instead of jumping.',
     genos: 'Voice Edit › Portamento',
     keys: [],
     launchkey: null,
   },
   'mixer.channel.portamento_time': {
     title: 'Portamento time',
-    body: 'How long the glide between notes takes while Portamento is on, 0–127: higher is slower.',
+    body: 'The glide time between notes, 0–127: higher is slower. It applies while Portamento is on; changing it doesn\'t turn Portamento on.',
     genos: 'Voice Edit › Portamento Time',
     keys: [],
     launchkey: null,
   },
   'mixer.strip.select': {
-    title: 'Mixer strip',
-    body: 'Selects this part: its strip lights up. A keyboard part (Right 1–3, Left) also becomes the part you edit, as the Launchkey\'s part buttons do.',
+    title: 'Part name',
+    body: 'Opens the part\'s channel on the Channel page. A keyboard part (Right 1–3, Left) also becomes the part you edit, as the Launchkey\'s part buttons do.',
     genos: 'Mixer › channel',
     keys: [],
     launchkey: null,
-  },
-  'mixer.strip.voice': {
-    title: 'Voice',
-    body: 'The sound this part plays. On a keyboard part, click to choose another in Library › Sounds, loading into this part. A Style part plays the voice the style names; the name is cut short on a narrow strip, so hover it for the whole name.',
-    genos: 'Mixer › Voice',
-    keys: [],
-    launchkey: null,
-  },
-  'mixer.cpu': {
-    title: 'Track CPU',
-    body: 'How much of each audio buffer this track takes to render over the last second (its SoundFont voices, filter and insert effect, or its plugin), where 100% is the whole buffer. "pk" is its slowest single buffer, red past half the buffer, where dropouts start. A larger audio buffer (Settings) gives a heavy plugin more room.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'mixer.cpu_group': {
-    title: 'Group CPU',
-    body: 'How much of each audio buffer this group\'s tracks take together to render over the last second, where 100% is the whole buffer; red past half the buffer. "≤ pk" adds up each track\'s slowest single buffer. Those need not happen in the same buffer, so it is only an upper bound and never turns the readout red; each strip\'s own CPU shows its track\'s real peak.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'mixer.cpu_total': {
-    title: 'CPU, all tracks',
-    body: 'Every track\'s render time together, as a share of the audio buffer, over the last second, and the slowest single buffer (pk). The effects bus and the output are not in it. Near 100% at the peak, the audio drops out: raise the audio buffer in Settings, or find the expensive track on its strip.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'part.plugin_instances': {
-    title: 'Plugin instances',
-    body: 'How many instrument plugins are loaded right now: one for every keyboard or Style part that plays a plugin (each part gets its own), plus one still playing out while its part\'s next plugin loads.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'mixer.info': {
-    title: 'A fader is the channel\'s CC 7',
-    body: 'Each fader shows and sends exactly its channel\'s CC 7 (0–127), with no hidden gain anywhere, so the MIDI output and the synth hear the same level. Loading a style sets the Style faders to the style\'s own levels. While a Fade In/Out runs, the Style parts\' CC 7 goes out scaled by the fade, and the faders stay where they are.',
-    genos: 'Mixer › Volume',
-    keys: [],
-    launchkey: 'The faders, on both fader pages',
   },
   'mixer.pickup': {
     title: 'Waiting for the fader',
@@ -2116,20 +1983,6 @@ const catalog = {
     app_keys: ['PgDn'],
     launchkey: 'Pad Bank ▼ (left of the pads)',
   },
-  'launchkey.shift': {
-    title: 'Shift',
-    body: 'Hold for the second functions: Pad Bank ▲ = Left on/off, Pad Bank ▼ = OTS Link, the buttons under faders 1–4 on the Panel page = edit that part. On screen, click it to latch the Shift layer, or hold Shift on your computer keyboard.',
-    genos: null,
-    keys: [],
-    launchkey: 'Shift button',
-  },
-  'launchkey.rotary_fast': {
-    title: 'Rotary Fast',
-    body: 'The rotary speaker\'s Fast/Slow switch: lit while every rotary insert spins fast, dark while slow; each click switches it. The horn and drum change speed gradually, as a real rotary speaker does. An assignable pedal set to "Organ Rotary Slow/Fast" does the same.',
-    genos: 'Organ Rotary Slow/Fast',
-    keys: [],
-    launchkey: 'Shift + encoder page ▲',
-  },
   'launchkey.status': {
     title: 'Launchkey',
     body: 'Whether the Launchkey is connected in DAW mode, so its pads and buttons are arranger controls.',
@@ -2139,7 +1992,7 @@ const catalog = {
   },
   'launchkey.fader_rack': {
     title: 'Rack fader',
-    body: 'The loaded rack\'s controller map gives this Panel fader something other than its part\'s level: moving it sets what its label says (a pan or send, Harmony/Arp on from halfway up, the split point, a volume). Set it in the Rack panel\'s Controller map.',
+    body: 'The loaded rack\'s controller map gives this Panel fader something other than its part\'s level: moving it sets what its label says (a pan or send, Harmony/Arp on from halfway up, the split point, a volume). Set it in the Rack\'s Controller map; on the Stage, click the fader\'s name to open the Rack.',
     genos: null,
     keys: [],
     launchkey: 'Panel fader page: faders 1–4',
@@ -2160,26 +2013,10 @@ const catalog = {
   },
 
   // ── Stage layout A (the five-row stage): begin ──────────────────────────
-  // The hand surface row, the strips' hardware fader badges and the mixer bar's rack name.
-  // The mixer bar's Rack, Library and Mixer buttons keep `drawer.rack`, `drawer.library`
-  // and `drawer.mixer`; its layer selector keeps `mixer.layer`. Other blocks go elsewhere.
-  'stage.hand_surface': {
-    title: 'Launchkey',
-    body: 'The Launchkey under your hands: its eight knobs over the sixteen pads, with Shift, Pad Bank, Track and the side buttons, each showing what it does on the current pad page and Shift layer. Clicking one does what pressing it does.',
-    genos: null,
-    keys: [],
-    launchkey: 'The knobs, the pads and the buttons around them',
-  },
-  'stage.fader_badge': {
-    title: 'Hardware fader',
-    body: 'The Launchkey fader this strip is on: F1–F8 for faders 1–8 (and the button under it), M for the master fader, on the current fader page (Panel or Style) and Shift layer. No badge: no fader reaches this strip on this page.',
-    genos: null,
-    keys: [],
-    launchkey: 'Faders 1–8 and the master fader',
-  },
+  // The rack name (the Stage's rack readout).
   'stage.rack_name': {
     title: 'Rack',
-    body: 'The loaded rack\'s name, with ● while it has changes you haven\'t saved. On the Panel fader page the faders play its keyboard parts.',
+    body: 'The loaded rack\'s name, with ● while it has changes you haven\'t saved. On the Panel fader page the faders play its keyboard parts. Click it to open the Rack.',
     genos: null,
     keys: [],
     launchkey: null,
@@ -2187,13 +2024,6 @@ const catalog = {
   // ── Stage layout A: end ─────────────────────────────────────────────────
 
   // ── Settings and audio ──────────────────────────────────────────────────
-  'settings.open': {
-    title: 'Settings',
-    body: 'Chord detection, split, transpose, style behaviour, audio, MIDI and the style library. Changes apply at once.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
   'settings.close': {
     title: 'Close settings',
     body: 'Closes the settings panel.',
@@ -2215,23 +2045,9 @@ const catalog = {
     keys: [],
     launchkey: null,
   },
-  'audio.dropouts': {
-    title: 'Audio dropouts',
-    body: 'The audio device missed buffers several times in a short while: clicks or gaps in the sound, from a heavy plugin, a busy computer or a buffer too small for either. Opens Settings › Audio, where a larger buffer size gives each block more time, at a little more latency.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
   'app.health': {
     title: 'Audio health',
     body: 'How the audio is doing: "Audio" when all is well, "Audio off" when the built-in synth isn\'t running. A keyboard part whose plugin failed ("R3 failed") opens its Channel when clicked. Dropouts in the last 30 seconds ("2 dropouts", with "buffer 256?" when the buffer is under 1024) or the synth\'s CPU at 70% or more ("CPU 74%") open the audio settings, where a larger buffer gives each block more time.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'audio.dropouts_dismiss': {
-    title: 'Dismiss',
-    body: 'Hides the dropout notice for ten minutes. Choosing a new buffer size also clears it.',
     genos: null,
     keys: [],
     launchkey: null,
@@ -2251,8 +2067,8 @@ const catalog = {
     launchkey: null,
   },
   'settings.tab.chord': {
-    title: 'Settings: Chord',
-    body: 'Fingering type, chord detection area (Lower or Upper) and Manual Bass.',
+    title: 'Settings: Chord & Split',
+    body: 'Fingering type, chord detection area (Lower or Upper), Manual Bass and the split point. Also on the Launchkey\'s Chord and Setup pad pages.',
     genos: 'Menu › Split & Fingering',
     keys: [],
     launchkey: `${P5}, top row (fingering, Upper); ${P3}, bottom row, pad 1 (Manual Bass)`,
@@ -2273,7 +2089,7 @@ const catalog = {
   },
   'settings.tab.style': {
     title: 'Settings: Style',
-    body: 'How the band starts, stops and fills: Sync Start/Stop, Auto Fill and Stop Accompaniment.',
+    body: 'How the band starts, stops and fills: Sync Start/Stop, Auto Fill and Stop Accompaniment. Also on the Knobs\' Style page.',
     genos: 'Menu › Style Setting',
     keys: [],
     launchkey: `${P1} (Sync Start, Sync Stop, Auto Fill); ${P3}, bottom row, pad 2 (Stop ACMP); ${P5}, bottom row, pads 2–3 (Stop ACMP mode)`,
@@ -2308,7 +2124,7 @@ const catalog = {
   },
   'settings.split_strip': {
     title: 'Split point',
-    body: 'Drag the marker, or click a key, to set the split (C3 = middle C). Keys at and below it are Left and the chord section, keys above it play Right 1–3. With focus, ←/→ move it a key and PgUp/PgDn an octave.',
+    body: 'Drag the white line on the keys to move the split, black keys included, or click it and then click the key it goes on (Esc cancels); a locked split point stays put. Keys at and below it are Left and the chord section, keys above it play Right 1–3 (C3 = middle C). With focus, ←/→ move it a key, PgUp/PgDn an octave, Enter arms the pick.',
     genos: 'Split Point (Style + Left)',
     keys: ['[', ']'],
     launchkey: `${P3}, bottom row, pads 3–4`,
@@ -2385,7 +2201,7 @@ const catalog = {
   },
   'settings.param_lock_split_point': {
     title: 'Lock Split Point',
-    body: 'On: the split point stays where you set it. Loading a rack or a One Touch Setting leaves it alone; you can still move it yourself.',
+    body: 'On: the split point stays where you set it. Loading a rack or a One Touch Setting leaves it alone, and the split line on the keyboard can\'t be dragged or picked; you can still step it with − and + on the Chord & Split page.',
     genos: 'Parameter Lock: Split Point',
     keys: [],
     launchkey: null,
@@ -2488,26 +2304,12 @@ const catalog = {
     keys: [],
     launchkey: null,
   },
-  'midi.output': {
-    title: 'yahaha MIDI output',
-    body: 'The virtual MIDI port yahaha plays the band and your parts on. Pick it as a MIDI input in Ableton to use your own sounds.',
-    genos: 'MIDI Transmit',
-    keys: [],
-    launchkey: null,
-  },
   'midi.palette_leds': {
     title: 'Palette LEDs',
     body: 'Lights the Launchkey with its built-in palette colours and hardware flashing instead of exact RGB colours. Try it if the pads look wrong or lag. `--palette-leds` sets it at launch.',
     genos: null,
     keys: [],
     launchkey: 'Every pad and button light',
-  },
-  'settings.style_folders': {
-    title: 'Style folders',
-    body: 'The folders yahaha reads style files from (.sty, .prs, .sst and more), with subfolders as categories. Pass them on the command line or set YAHAHA_STYLES.',
-    genos: 'Style selection (User / USB)',
-    keys: [],
-    launchkey: null,
   },
   'settings.rescan': {
     title: 'Rescan styles',
@@ -2564,10 +2366,17 @@ const catalog = {
   },
   'quick.bank': {
     title: 'Quick Racks bank',
-    body: 'The bank of eight Quick Racks on view, A to H. Bank − and Bank + step through them; in the Quick Racks drawer, click a letter to view that bank.',
+    body: 'The bank of eight Quick Racks on view, A to H. On the Quick Racks page, tap a letter to view that bank; Bank − and Bank + step through them. Nothing loads until you press a button.',
     genos: null,
     keys: [],
     launchkey: null,
+  },
+  'quick.undo': {
+    title: 'Undo store',
+    body: 'Takes back the last store: the Quick Rack button gets back the rack it held, or goes empty again. If the store saved over that button\'s own rack, the rack gets back what it held from the "Previous: <name>" rack the store kept, which then goes; if that rack is loaded, it reloads as it was, and changes made since the store are kept as "Recovered: <name>".',
+    genos: null,
+    keys: [],
+    launchkey: `${pad(P2, 'bottom', 8)}; lit while there is a store to undo`,
   },
   'quick.clear': {
     title: 'Clear',
@@ -2609,7 +2418,7 @@ const catalog = {
   // ── Pedals and wheels (Settings › Pedals) ───────────────────────────────
   'settings.tab.controllers': {
     title: 'Pedals and wheels',
-    body: 'The sustain pedal and footswitches, what each pedal does, and which parts the pedal and the wheels reach.',
+    body: 'The sustain pedal and footswitches, what each pedal does, and which parts the pedal and the wheels reach. P1 is the Launchkey\'s pedal jack; P2 and P3 come from any MIDI input.',
     genos: 'Assignable, Controller',
     keys: [],
     launchkey: null,
@@ -2646,48 +2455,6 @@ const catalog = {
     title: 'Reverse polarity',
     body: 'For a pedal that works the wrong way round (nothing when pressed, something when let go).',
     genos: 'Polarity',
-    keys: [],
-    launchkey: null,
-  },
-  'pedal.hold_a': {
-    title: 'Hold A',
-    body: 'On while the pedal is held, off when it is let go: how a sustain pedal works.',
-    genos: 'Control Type: Hold A',
-    keys: [],
-    launchkey: null,
-  },
-  'pedal.hold_b': {
-    title: 'Hold B',
-    body: 'Off while the pedal is held, on when it is up: picking it with the pedal up turns the function on at once.',
-    genos: 'Control Type: Hold B',
-    keys: [],
-    launchkey: null,
-  },
-  'pedal.toggle': {
-    title: 'Toggle',
-    body: 'Each press switches it on or off.',
-    genos: 'Control Type: Toggle',
-    keys: [],
-    launchkey: null,
-  },
-  'pedal.range_upper': {
-    title: 'Bend up',
-    body: 'An expression pedal bends the pitch up: heel down is no bend, toe down the full Pitch Bend Range.',
-    genos: 'Range: Upper',
-    keys: [],
-    launchkey: null,
-  },
-  'pedal.range_lower': {
-    title: 'Bend down',
-    body: 'An expression pedal bends the pitch down: heel down is no bend, toe down the full range down.',
-    genos: 'Range: Lower',
-    keys: [],
-    launchkey: null,
-  },
-  'pedal.range_full': {
-    title: 'Bend both ways',
-    body: 'The pedal sweeps the whole bend: heel down is fully down, the middle no bend, toe down fully up.',
-    genos: 'Range: Full',
     keys: [],
     launchkey: null,
   },
@@ -2735,20 +2502,6 @@ const catalog = {
     keys: ['J'],
     launchkey: 'Panel fader page: button under fader 5',
   },
-  'harmony.mode_harmony': {
-    title: 'Harmony types',
-    body: 'Shows the Keyboard Harmony types and selects the one last used: duets, trios, block and 4-way voicings, 1+5, Octave, Strum, Multi Assign, Echo, Tremolo and Trill.',
-    genos: 'Keyboard Harmony',
-    keys: [],
-    launchkey: null,
-  },
-  'harmony.mode_arpeggio': {
-    title: 'Arpeggio patterns',
-    body: 'Shows the arpeggio patterns and selects the one last used. They are yahaha\'s own patterns, not Yamaha\'s.',
-    genos: 'Arpeggio',
-    keys: [],
-    launchkey: null,
-  },
   'harmony.type': {
     title: 'Harmony type',
     body: 'Selects this Keyboard Harmony type. The harmony follows the chord you play for the style, and only the top note of your right hand is harmonised.',
@@ -2760,13 +2513,6 @@ const catalog = {
     title: 'Arpeggio pattern',
     body: 'Selects this arpeggio pattern. The keys you hold right of the split play it, in time with the style (or at the tempo while it is stopped).',
     genos: 'Arpeggio type',
-    keys: [],
-    launchkey: null,
-  },
-  'harmony.prev_type': {
-    title: 'Previous type',
-    body: 'Steps back through the Harmony types and the arpeggios, as one list.',
-    genos: null,
     keys: [],
     launchkey: null,
   },
@@ -2782,7 +2528,7 @@ const catalog = {
     body: 'The level of the added notes, and of the arpeggio. At 127 they play as hard as you do; at 0 they are silent.',
     genos: 'Volume (HrmArpVol)',
     keys: [],
-    launchkey: null,
+    launchkey: 'Knob 5 on the Rack knob page (with the default controller map); a Panel fader mapped to Harmony volume',
   },
   'harmony.speed': {
     title: 'Speed',
@@ -2847,13 +2593,6 @@ const catalog = {
     keys: [],
     launchkey: null,
   },
-  'harmony.close': {
-    title: 'Close Harmony/Arpeggio',
-    body: 'Closes the Harmony/Arpeggio panel. The effect stays as it is.',
-    genos: null,
-    keys: ['esc'],
-    launchkey: null,
-  },
 
   // ── Quick-nav strip in the app bar (lib/nav.ts) ─────────────────────────
   'nav.styles': {
@@ -2866,15 +2605,15 @@ const catalog = {
   },
   'nav.quick': {
     title: 'Quick Racks',
-    body: 'Opens Library on its Racks tab: your racks to load, each with the Quick Rack button that holds it in the bank on view. Press again to go back to Stage.',
+    body: 'Shows the Quick Racks page: your racks on the Quick Rack buttons in banks A to H, Store, and One Touch 1 to 4 with Link. Alt+Q shows it.',
     genos: 'REGISTRATION MEMORY',
     keys: [],
-    app_keys: ['alt+r'],
+    app_keys: ['alt+q'],
     launchkey: null,
   },
   'nav.rack': {
     title: 'Rack',
-    body: 'Opens the Rack: what\'s under your hands (the four keyboard parts with their sounds and mix, the split, Harmony/Arp, transpose) and the style\'s One Touch Settings. Press again to close.',
+    body: 'Opens the Rack: what\'s under your hands (the four keyboard parts with their sounds and mix, the split, Harmony/Arp, transpose) and the style\'s One Touch Settings. On the Stage, click the rack readout; Alt+O opens or closes it anywhere.',
     genos: 'Voice Setting, ONE TOUCH SETTING',
     keys: [],
     app_keys: ['alt+o'],
@@ -2882,7 +2621,7 @@ const catalog = {
   },
   'nav.multipad': {
     title: 'Multi Pads',
-    body: 'Opens the Multi Pads drawer. Press again to close.',
+    body: 'Shows the Multi Pads page: the bank\'s four pads with Select, Stop, Repeat and Chord Match, Synchro Stop and the Multi Pad volume. Alt+P, or the Multi Pad strip\'s name on the Stage, shows it.',
     genos: 'MULTI PAD CONTROL',
     keys: [],
     app_keys: ['alt+p'],
@@ -2890,7 +2629,7 @@ const catalog = {
   },
   'nav.effects': {
     title: 'Effects',
-    body: 'Opens the Effects screen: the Reverb, Chorus and Delay cards (type, settings, return and the band\'s and pads\' sends) and the style\'s inserts. Press again to close.',
+    body: 'Shows the Effects page: the send list and the open bus\'s editor (Reverb, Chorus, Delay), with the style\'s inserts and the Master Compressor and EQ. Alt+E, or the Master strip\'s name on the Stage, shows it.',
     genos: 'Mixer (Effect)',
     keys: [],
     app_keys: ['alt+e'],
@@ -2898,38 +2637,23 @@ const catalog = {
   },
   'nav.channel': {
     title: 'Channel',
-    body: 'Shows the Channel page: one part\'s sound, mix and inserts. Press again to go back to Stage.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'nav.mixer': {
-    title: 'Mixer details',
-    body: 'Shows the mixer row\'s details: its bar (fader page and layer, metronome, Track Mute, Style and Multi Pad volume, CPU) and, on every strip, its Chorus send, EQ, insert and CPU. Press again to hide them.',
-    genos: 'Mixer',
-    keys: [],
-    app_keys: ['alt+m'],
-    launchkey: null,
-  },
-  'nav.looper': {
-    title: 'Chord Looper',
-    body: 'Opens the Chord Looper. Press again to close.',
-    genos: 'Menu › Chord Looper',
-    keys: [],
-    app_keys: ['alt+l'],
-    launchkey: null,
-  },
-  'nav.charts': {
-    title: 'Charts',
-    body: 'Opens the iReal Pro chart player. Press again to close.',
+    body: 'Shows the Channel page: one part\'s sound, level, tone, sends, EQ, compressor, inserts and play settings. A part\'s strip name on the Stage selects that part and shows this page; Alt+C shows it.',
     genos: null,
     keys: [],
     app_keys: ['alt+c'],
     launchkey: null,
   },
+  'nav.looper': {
+    title: 'Chord Looper',
+    body: 'Shows the Chord Looper page: Rec / Stop and On / Off, the loop\'s state, its chords bar by bar and the memories. Alt+L shows it.',
+    genos: 'Menu › Chord Looper',
+    keys: [],
+    app_keys: ['alt+l'],
+    launchkey: null,
+  },
   'nav.harmony': {
     title: 'Harmony/Arp',
-    body: 'Opens the Keyboard Harmony and Arpeggio panel. Press again to close.',
+    body: 'Shows the Harm/Arp page: the Keyboard Harmony / Arpeggio switch, the type, and that type\'s settings. Alt+H shows it.',
     genos: 'HARMONY/ARPEGGIO',
     keys: [],
     app_keys: ['alt+h'],
@@ -2945,7 +2669,7 @@ const catalog = {
   },
   'nav.settings': {
     title: 'Settings',
-    body: 'Opens the settings. Press again to close.',
+    body: 'Shows the Settings page, coming soon. Until then Alt+T opens the settings, and the audio health on the Stage opens them on Audio.',
     genos: null,
     keys: [],
     app_keys: ['alt+t'],
@@ -3058,41 +2782,6 @@ const catalog = {
     keys: [],
     launchkey: 'Panel faders 1–4; the eight knobs on the Rack knob page',
   },
-  'rack.target_part_delay': {
-    title: 'Part delay',
-    body: 'The controller sets this part\'s delay send (send 3).',
-    genos: null,
-    keys: [],
-    launchkey: 'Panel faders 1–4; the eight knobs on the Rack knob page',
-  },
-  'rack.target_insert_on': {
-    title: 'Part insert on/off',
-    body: 'The controller turns one of this part\'s insert slots on (upper half) or off (lower half).',
-    genos: null,
-    keys: [],
-    launchkey: 'Panel faders 1–4; the eight knobs on the Rack knob page',
-  },
-  'rack.target_insert_setting': {
-    title: 'Part insert setting',
-    body: 'The controller sets one setting of one of this part\'s insert slots, across its range.',
-    genos: null,
-    keys: [],
-    launchkey: 'Panel faders 1–4; the eight knobs on the Rack knob page',
-  },
-  'rack.target_part_send': {
-    title: 'Part send',
-    body: 'The controller sets this part\'s level to one of the added send effects (4–6).',
-    genos: null,
-    keys: [],
-    launchkey: 'Panel faders 1–4; the eight knobs on the Rack knob page',
-  },
-  'rack.target_rotary_fast': {
-    title: 'Rotary fast/slow',
-    body: 'The controller switches every rotary insert fast (upper half) or slow (lower half).',
-    genos: 'Rotary Speaker speed (Slow/Fast)',
-    keys: [],
-    launchkey: 'Panel faders 1–4; the eight knobs on the Rack knob page',
-  },
   'rack.insert_chip': {
     title: 'Insert slot',
     body: 'The effect in this insert slot of the part\'s strip. Click to pick its type and set its settings; the lamp beside it turns it on or off. The rack saves both slots.',
@@ -3144,43 +2833,8 @@ const catalog = {
   },
   'launchkey.fader_sound': {
     title: 'Part sound',
-    body: 'The sound this keyboard part plays: ● when its plugin has unsaved edits, ⚠ when its plugin is missing. Click to open Library › Sounds with this part as the target.',
+    body: 'The sound this keyboard part plays: ● when its plugin has unsaved edits, ⚠ when its plugin is missing. Click to pick another: for now that opens Library › Sounds loading into this part.',
     genos: 'Voice name (Home screen)',
-    keys: [],
-    launchkey: null,
-  },
-  'drawer.mixer': {
-    title: 'Mixer details',
-    body: 'Shows the mixer row\'s details: its bar (fader page and layer, metronome, Track Mute, Style and Multi Pad volume, CPU) and, on every strip, its Chorus send, EQ, insert and CPU. Press again to hide them.',
-    genos: 'Mixer (Panel / Style tabs)',
-    keys: [],
-    launchkey: 'The faders and the buttons under them',
-  },
-  'drawer.effects': {
-    title: 'Effects',
-    body: 'Opens the Effects screen: the Reverb, Chorus and Delay cards and the style\'s inserts. Beside it, the type each effect plays now; each strip\'s own sends stay on its knobs here.',
-    genos: 'Mixer › Effect',
-    keys: [],
-    launchkey: null,
-  },
-  'drawer.charts': {
-    title: 'Charts',
-    body: 'Opens the iReal Pro chart player: import playlists, pick a song, and set how the band plays it.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'drawer.harmony': {
-    title: 'Harmony/Arpeggio',
-    body: 'Opens the Keyboard Harmony and Arpeggio panel: the switch, the type and its settings.',
-    genos: 'HARMONY/ARPEGGIO, Keyboard Harmony/Arpeggio settings',
-    keys: [],
-    launchkey: 'Panel fader page: the button under fader 5 is the on/off switch',
-  },
-  'drawer.looper': {
-    title: 'Chord Looper',
-    body: 'Opens the Chord Looper: record a chord progression, loop it, and keep it in one of eight memories.',
-    genos: 'Menu › Chord Looper',
     keys: [],
     launchkey: null,
   },
@@ -3193,13 +2847,6 @@ const catalog = {
   },
 
   // ── Multi Pads ──────────────────────────────────────────────────────────
-  'drawer.multipad': {
-    title: 'Multi Pads',
-    body: 'Opens the Multi Pads: four short phrases from a pad bank that you trigger over the band, and the bank list.',
-    genos: 'MULTI PAD CONTROL',
-    keys: [],
-    launchkey: null,
-  },
   'multipad.pad': { ...MP_PAD, keys: ['Z', 'X', 'C', 'V'], launchkey: `${P4}, top row, pads 1–4` },
   'multipad.pad1': { ...MP_PAD, keys: ['Z'], launchkey: pad(P4, 'top', 1) },
   'multipad.pad2': { ...MP_PAD, keys: ['X'], launchkey: pad(P4, 'top', 2) },
@@ -3243,27 +2890,6 @@ const catalog = {
     keys: [],
     launchkey: null,
   },
-  'multipad.clear': {
-    title: 'No bank',
-    body: 'Unloads the bank: the pads go dark.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'multipad.synchro_style_stop': {
-    title: 'Synchro Stop: Style Stop',
-    body: 'On: looping pads stop when the band stops. Off: they play on until you stop them.',
-    genos: 'Multi Pad Synchro Stop (Style Stop)',
-    keys: [],
-    launchkey: null,
-  },
-  'multipad.synchro_ending': {
-    title: 'Synchro Stop: Style Ending',
-    body: 'On: looping pads stop when an Ending starts. Off: they play through the Ending.',
-    genos: 'Multi Pad Synchro Stop (Style Ending)',
-    keys: [],
-    launchkey: null,
-  },
 
   // ── Sound library ───────────────────────────────────────────────────────
   'drawer.library': {
@@ -3278,7 +2904,7 @@ const catalog = {
   // ── Library (panels/library): the page next to Stage ────────────────────
   'view.stage': {
     title: 'Stage',
-    body: 'Shows the stage: the lead sheet, the Launchkey and the keys. Esc in Library comes back here too.',
+    body: 'Shows the Stage: the display (style, chord, tempo, One Touch Settings), the band of faders, knobs, pads and transport, and the keys. Esc on another page comes back here.',
     genos: null,
     keys: [],
     app_keys: ['alt+b'],
@@ -3286,7 +2912,7 @@ const catalog = {
   },
   'view.library': {
     title: 'Library',
-    body: 'Shows Library in place of the stage: racks, sounds, instruments and the style map. The band and the drawers keep working while it is open.',
+    body: 'Shows the Library in the Stage\'s place: styles, sounds, instruments, racks and the style map, while the band keeps playing. A part\'s sound on the Stage opens it on Sounds for that part; the Stage tab or Esc goes back.',
     genos: 'Voice Selection',
     keys: [],
     app_keys: ['alt+b'],
@@ -3294,9 +2920,10 @@ const catalog = {
   },
   'library.tab_racks': {
     title: 'Racks',
-    body: 'The live rack (what is under your hands, autosaved) and your racks: load, rename, duplicate or delete them, or start a new one.',
+    body: 'The live rack (what is under your hands, autosaved) and your racks: load, rename, duplicate or delete them, or start a new one. Alt+R opens Library on this tab.',
     genos: 'Registration Memory',
     keys: [],
+    app_keys: ['alt+r'],
     launchkey: null,
   },
   'library.tab_sounds': {
@@ -3321,6 +2948,63 @@ const catalog = {
     app_keys: ['alt+y'],
     launchkey: null,
   },
+  // ── The Library screen (panels/library/LibraryScreen): Styles, and the Instruments page's own.
+  'library.tab_styles': {
+    title: 'Styles',
+    body: 'The style library by folder, with Favourites and Recent. Filter it, pick a style and load it; while the band plays it loads on the next bar.',
+    genos: 'Style Selection',
+    keys: [],
+    launchkey: null,
+  },
+  'library.style_row': {
+    title: 'Style',
+    body: 'Click to highlight it (and preview it while stopped, with Preview on select). Enter or a double-click loads it. ● marks the loaded style; ◀ and ▶ the ones Track ◀ and Track ▶ would load.',
+    genos: null,
+    keys: [],
+    launchkey: 'Track ◀ / Track ▶ load the neighbouring styles',
+  },
+  'library.style_load': {
+    title: 'Load style',
+    body: 'Loads the highlighted style now and goes back to the Stage. While the band plays, it loads on the next bar line instead. Enter does the same.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'library.style_cancel': {
+    title: 'Cancel next-bar load',
+    body: 'Would cancel the style waiting for the next bar line. Not available yet: the engine has no command to unqueue a style.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'library.open_file': {
+    title: 'Open file…',
+    body: 'Opens a style file (.sty .prs .sst .bcs .pcs .pst .fps) from any folder, adds it to the library and loads it. Cancel loads nothing.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'library.inst_show': {
+    title: 'Show',
+    body: 'All instruments, only plugins, only SoundFonts, or the ones that need attention: a plugin that is not installed (its parts are silent) or one that failed to load last time.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'library.inst_row': {
+    title: 'Instrument',
+    body: 'Click to see its details; double-click or Enter browses its sounds. New marks a plugin the last scan found that you have not opened yet; ⚠ one that is missing or failed to load.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'library.inst_replace': {
+    title: 'Replace…',
+    body: 'This plugin is not installed, so the parts playing it are silent. Opens Sounds with that part as the target: the sound you pick replaces it and keeps its mix. Off when no part plays it now.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
   'library.target': {
     title: 'Loads into',
     body: 'The keyboard part that Sounds and Instruments load into. It starts on the part you came from; switch it here without leaving Library.',
@@ -3339,13 +3023,6 @@ const catalog = {
     title: 'Search sounds',
     body: 'Narrows the list by name, instrument or category. ↑ ↓ step through the list and play each sound on the target part; Enter plays the selected one.',
     genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'library.list': {
-    title: 'Sound list',
-    body: 'Click a sound to hear it on the target part at once. ↑ ↓ step and play, Enter plays the selected one, Ctrl+D stars it.',
-    genos: 'Voice Selection',
     keys: [],
     launchkey: null,
   },
@@ -3426,13 +3103,6 @@ const catalog = {
     keys: [],
     launchkey: null,
   },
-  'library.inst_more': {
-    title: 'More',
-    body: 'The plugin\'s housekeeping: the category its sounds file under, whether it runs in yahaha\'s process, and its window.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
   'library.inst_show_racks': {
     title: 'Show racks',
     body: 'Opens Racks with Needs attention on: the racks with parts on this missing plugin. Those parts are silent until you pick a new sound or reinstall it.',
@@ -3443,20 +3113,6 @@ const catalog = {
   'library.racks_attention': {
     title: 'Needs attention',
     body: 'Shows only the racks with a part whose plugin is missing. Those parts stay silent until you replace their sound or reinstall the plugin.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'library.rack_live': {
-    title: 'Live rack',
-    body: 'What is under your hands now, with its four parts\' sounds. It autosaves, so it comes back when yahaha starts; ● means changed since it was loaded.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'library.rack_attention': {
-    title: 'Rack that needs attention',
-    body: 'A saved rack with a part whose plugin is missing. The rack itself is kept as it is; load it and pick a new sound for that part, or reinstall the plugin.',
     genos: null,
     keys: [],
     launchkey: null,
@@ -3493,13 +3149,6 @@ const catalog = {
     title: 'Load',
     body: 'Loads this rack: all four parts, the split and Harmony/Arp. With unsaved changes it asks first, in the Rack panel.',
     genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'library.style_rack_load': {
-    title: 'Load OTS',
-    body: 'Recalls this OTS button, as the Racks pad page does: the rack of yours chosen for it, or the style\'s own setup. Loading a rack asks first if the live rack has unsaved changes.',
-    genos: 'ONE TOUCH SETTING 1–4',
     keys: [],
     launchkey: null,
   },
@@ -3552,31 +3201,10 @@ const catalog = {
     keys: [],
     launchkey: null,
   },
-  'sound.search': {
-    title: 'Search',
-    body: 'Shows only the patches whose name, category or tags contain the text.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
   'sound.category': {
     title: 'Category',
     body: 'Shows one category of patches, like the tabs of the Genos Voice Selection display. All shows every patch.',
     genos: 'Voice category tabs',
-    keys: [],
-    launchkey: null,
-  },
-  'sound.favourites': {
-    title: 'Favourites only',
-    body: 'Shows only the patches marked with a star.',
-    genos: 'Favorite tab',
-    keys: [],
-    launchkey: null,
-  },
-  'sound.patch': {
-    title: 'Patch',
-    body: 'Selects the patch to edit it below. A dimmed patch plays the SoundFont fallback; its note says why.',
-    genos: null,
     keys: [],
     launchkey: null,
   },
@@ -3640,13 +3268,6 @@ const catalog = {
     title: 'Category',
     body: 'The Genos voice category the sound is listed under.',
     genos: 'Voice category',
-    keys: [],
-    launchkey: null,
-  },
-  'sound.tags': {
-    title: 'Tags',
-    body: 'Words to find the patch by, separated by commas. Press Enter to keep them.',
-    genos: null,
     keys: [],
     launchkey: null,
   },
@@ -3755,20 +3376,6 @@ const catalog = {
     keys: [],
     launchkey: null,
   },
-  'sound.export_preset_replace': {
-    title: 'Replace',
-    body: 'Replaces the plugin\'s existing preset of this name with this sound. Logic and MainStage see the new one too.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'sound.export_preset_cancel': {
-    title: 'Keep the existing preset',
-    body: 'Leaves the existing preset as it is; rename the sound to export it as a new one.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
   'sound.import_path': {
     title: 'Library file',
     body: 'The path of a sound library file to import: a full library, or a list of patches.',
@@ -3792,41 +3399,6 @@ const catalog = {
   },
 
   // ── Main screen: lead-sheet band and keyboard strip ─────────────────────
-  'lead.section': {
-    title: 'Section playing',
-    body: 'The section the band is playing now, and before the start the Main (and any Intro) it will start with.',
-    genos: 'Section (MAIN VARIATION, INTRO, ENDING)',
-    keys: [],
-    launchkey: 'Pad page 1 (Sections) shows it lit',
-  },
-  'lead.progress': {
-    title: 'Section progress',
-    body: 'One cell per bar of the section, filling beat by beat, so you can see how far into the pattern the band is. This band will also show the chord chart when one is loaded.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'lead.next': {
-    title: 'Next section',
-    body: 'The section queued to play next. A Main or Ending takes over at the next bar line, a fill at the next beat.',
-    genos: null,
-    keys: [],
-    launchkey: 'Pad page 1 (Sections): the queued pad flashes',
-  },
-  'lead.chart': {
-    title: 'Chord chart',
-    body: 'The iReal Pro chart the band is playing, eight bars to a line, with the bar playing ringed. Section letters mark where Main A–D take over; an amber ring means your left hand has taken over until the next bar line.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'keystrip.keys': {
-    title: 'Keyboard',
-    body: 'The keys you are holding, coloured by the part that sounds them: Right 1–3 above the split, Left below it, grey where a key only feeds chord detection. The shaded band is where chord detection listens, and dots mark the tones of the recognised chord, the ringed one its bass. The engine doesn\'t report held keys or chord tones yet; until it does, the strip shows only the split and the detection area.',
-    genos: 'Keyboard (Split Point, chord detection area)',
-    keys: [],
-    launchkey: "The Launchkey's keys",
-  },
   'keystrip.split': {
     title: 'Split point',
     body: 'Where the left-hand section ends (C3 = middle C). Drag the marker, or focus it and use the arrow keys, to move it one key at a time.',
@@ -3834,146 +3406,18 @@ const catalog = {
     keys: ['[', ']'],
     launchkey: `${pad(P3, 'bottom', 3)} and 4`,
   },
-  'keystrip.range': {
-    title: 'Keyboard size',
-    body: 'How many keys the strip shows: 49 or 61 like your Launchkey, or a full 88. It matches the connected Launchkey until you pick one; pick the lit one again to go back to matching.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
 
   // ── App ─────────────────────────────────────────────────────────────────
   'app.help': {
     title: 'Help mode',
-    body: 'Grows the help footer to show the whole entry, and keeps the last control you hovered or tabbed to there while you try it. Controls keep working.',
+    body: 'Keeps the last control you hovered or tabbed to in the status line above the keys while you try it, instead of the line going back to its message. Controls keep working.',
     genos: null,
     keys: ['?'],
-    launchkey: null,
-  },
-  'app.floating_tips': {
-    title: 'Pop-up tips',
-    body: 'Also shows each entry in a pop-up next to the control, as well as in the help footer. Off by default, because a pop-up covers the controls while you play.',
-    genos: null,
-    keys: [],
     launchkey: null,
   },
   'app.theme': {
     title: 'Light / dark',
     body: 'Switches between the dark stage theme and a light one.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-
-  // ── iReal Pro chart player (Charts drawer) ──────────────────────────────
-  'chart.mode': {
-    title: 'Chart mode',
-    body: 'While the band plays, it takes its chords and Main sections from the chosen chart instead of your left hand. A chord you play still takes over, until the next bar line. Turning it on stops a Chord Looper loop.',
-    genos: null,
-    keys: ['M'],
-    launchkey: null,
-  },
-  'chart.prev': {
-    title: 'Previous song',
-    body: 'Chooses the song before this one in the playlist.',
-    genos: null,
-    keys: ['('],
-    launchkey: null,
-  },
-  'chart.next': {
-    title: 'Next song',
-    body: 'Chooses the song after this one in the playlist.',
-    genos: null,
-    keys: [')'],
-    launchkey: null,
-  },
-  'chart.import_file': {
-    title: 'Open playlist',
-    body: 'Imports an iReal Pro playlist exported as an .html file (in iReal Pro: Share, then HTML). Its songs are kept until you quit.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'chart.link': {
-    title: 'iReal Pro link',
-    body: 'Paste an irealb:// link here (a song or a whole playlist, as iReal Pro shares it), then press Import.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'chart.import_link': {
-    title: 'Import link',
-    body: 'Imports the songs in the pasted irealb:// link.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'chart.playlist': {
-    title: 'Playlist',
-    body: 'Shows this playlist\'s songs.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'chart.remove_playlist': {
-    title: 'Remove playlist',
-    body: 'Forgets this playlist. If the song playing is in it, chart mode turns off.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'chart.song': {
-    title: 'Song',
-    body: 'Chooses this chart for the band. With Auto style on, the style its iReal label suggests loads too; with the band stopped, the tempo becomes the chart\'s.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'chart.choruses_down': {
-    title: 'Fewer choruses',
-    body: 'Plays the form one time fewer before the Ending.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'chart.choruses_up': {
-    title: 'More choruses',
-    body: 'Plays the form one more time before the Ending.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'chart.intro': {
-    title: 'Chart Intro',
-    body: 'The Intro the band plays before the chart\'s first bar, or none. An Intro you arm yourself before starting plays instead.',
-    genos: 'INTRO',
-    keys: [],
-    launchkey: null,
-  },
-  'chart.ending': {
-    title: 'Chart Ending',
-    body: 'The Ending the band plays after the chart\'s last bar. With none, the band stops at the end of the last bar.',
-    genos: 'ENDING/rit.',
-    keys: [],
-    launchkey: null,
-  },
-  'chart.loop': {
-    title: 'Loop',
-    body: 'Plays the whole song, or one section, over and over instead of ending. Stop the band or press an Ending to finish.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'chart.auto_style': {
-    title: 'Auto style',
-    body: 'Choosing a song loads the library style its iReal style label suggests. Pick any other style in the browser to override it.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'chart.suggested': {
-    title: 'Suggested style',
-    body: 'The library style that best matches the chart\'s iReal style label. Press it to load that style now.',
     genos: null,
     keys: [],
     launchkey: null,
@@ -4015,14 +3459,14 @@ const catalog = {
   },
   'part.swap': {
     title: 'Swap sound',
-    body: 'Hold a part\'s Panel fader button and turn knob 1 to step that part\'s sound by number, live, keeping its mix; knobs 2–8 are its mix. Let go to keep the sound (dialling back is the cancel); a hold that turns no knob is a tap, which turns the part on or off. On screen, press and hold a keyboard part\'s On on its mixer strip: swap stays on when you let go, so you can turn the knobs here, and a click on that On ends it.',
+    body: 'Hold a part\'s Panel fader button and turn knob 1 to step that part\'s sound by number, live, keeping its mix; knobs 2–8 are its mix. Let go to keep the sound (dialling back is the cancel); a hold that turns no knob is a tap, which turns the part on or off. On screen, press and hold a keyboard part\'s lamp under its fader: swap stays on when you let go, so you can turn the knobs here, and a click on that lamp ends it.',
     genos: null,
     keys: [],
     launchkey: 'Panel fader page: hold the button under fader 1–4 and turn knob 1',
   },
   'quick.store_rack': {
     title: 'Store rack',
-    body: 'Puts the live rack on this Quick Rack button of the bank on view, replacing what it held, as Store then the button does. A rack with unsaved changes, or one never saved, is saved first.',
+    body: 'Puts the live rack on this Quick Rack button of the bank on view, replacing what it held, as Store then the button does. A rack with unsaved changes, or one never saved, is saved first; on the lit button its changes save over that rack, which keeps what it held as "Previous: <name>". Undo store takes it back.',
     genos: 'MEMORY + REGISTRATION MEMORY',
     keys: [],
     launchkey: 'Hold Sound and tap a rack pad (Pad page 2 (Racks), top row)',
@@ -4045,8 +3489,8 @@ const catalog = {
 
   // --- Eyes-free lane D: Settings › Launchkey (docs/eyes-free.md) ---
   'settings.tab.launchkey': {
-    title: 'Settings: Launchkey',
-    body: 'The pad page order: which pad pages Pad Bank ▲/▼ step through after Sections, and in what order.',
+    title: 'Settings: Controller',
+    body: 'The Launchkey\'s pad page order: which pad pages Pad Bank ▲/▼ step through after Sections, and in what order.',
     genos: null,
     keys: [],
     launchkey: 'Pad Bank ▲ / ▼ follow the order',
@@ -4065,20 +3509,6 @@ const catalog = {
     keys: [],
     launchkey: null,
   },
-  'settings.pad_pages.remove': {
-    title: 'Leave page out',
-    body: 'Takes this pad page out of the order: Pad Bank ▲/▼ and Tab skip it. If the pads are showing it, they go back to Sections. Hold Sound still shows Racks.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
-  'settings.pad_pages.add': {
-    title: 'Add page back',
-    body: 'Puts a pad page you left out back into the order, last.',
-    genos: null,
-    keys: [],
-    launchkey: null,
-  },
   'settings.pad_pages.reset': {
     title: 'Default page order',
     body: 'Puts every pad page back in the default order: Sections, Racks, Chord, Multi Pads, Setup.',
@@ -4087,6 +3517,80 @@ const catalog = {
     launchkey: null,
   },
   // --- end eyes-free lane D ---
+
+  // --- The Settings screen (docs/design/push, the six Settings boards) ---
+  'settings.tab.keyboard': {
+    title: 'Settings: Keyboard',
+    body: 'Keyboard and Master transpose, and the parameter locks that keep the split point and the fingering type when you recall a Quick Rack or a One Touch Setting.',
+    genos: 'Menu › Transpose, Utility › Parameter Lock',
+    keys: [],
+    launchkey: `${P3}, bottom row (Kbd Tr −, Kbd Tr +, Tr Reset)`,
+  },
+  'settings.tab.system': {
+    title: 'Settings: System',
+    body: 'Audio (the built-in synth, the output pair, the buffer, master volume), MIDI (which inputs yahaha listens to, its output, the Launchkey LEDs), the style folders and SoundFonts, and the theme.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'settings.split_reset': {
+    title: 'Reset split point',
+    body: 'Puts the split point back at the default, F#2. Nothing to reset while it is there.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'settings.split_pick': {
+    title: 'Set split on the keys',
+    body: 'Arms a pick: the next key you click on the keyboard at the foot of the screen becomes the split point, black keys included. Click again or press Esc to cancel. You can also drag the white split line there, unless the split point is locked.',
+    genos: 'Split Point (Style + Left)',
+    keys: [],
+    launchkey: null,
+  },
+  'settings.split_lock_link': {
+    title: 'Split point lock',
+    body: 'A locked split point stays where it is when you recall a Quick Rack or a One Touch Setting, and the split line on the keyboard stays put; − and + here still move it. Opens the Keyboard page, where the lock is switched.',
+    genos: 'Parameter Lock',
+    keys: [],
+    launchkey: null,
+  },
+  'settings.pad_pages.shown': {
+    title: 'Shown',
+    body: 'Lit: Pad Bank ▲/▼ steps through this pad page. Off: the page is left out and Pad Bank skips it; switch it back on and it goes last. Hold Sound still shows Racks.',
+    genos: null,
+    keys: [],
+    launchkey: 'Pad Bank ▲ / ▼ follow the order',
+  },
+  'dynamics.accent_more': {
+    title: 'More accent settings',
+    body: 'Shows or hides the accent mode (Hits: a drum hit; Fill: the Main’s fill while it plays) and its source (Left: chord-section strikes; Both: right-hand strikes too).',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'pedal.control_type': {
+    title: 'Control type',
+    body: 'How a switch function follows the pedal, for switch functions only: Hold A and Hold B (the Genos’ two hold styles) are on while held; Toggle switches it on or off with each press.',
+    genos: 'Control Type',
+    keys: [],
+    launchkey: null,
+  },
+  'pedal.range': {
+    title: 'Pitch bend range',
+    body: 'Which way a Pitch Bend pedal bends: Upper up only, Lower down only, Full down at rest and up when pressed. Only for Pitch Bend.',
+    genos: 'Range',
+    keys: [],
+    launchkey: null,
+  },
+  // --- end Settings screen ---
+  // The display pages' own tooltips (help/tips/<page>.ts, one file per page lane), last so a page
+  // may replace an entry above.
+  ...channelTips,
+  ...effectsTips,
+  ...quickRacksTips,
+  ...multiPadsTips,
+  ...looperTips,
+  ...harmArpTips,
 } satisfies Record<string, Tip>
 
 export type TipKey = keyof typeof catalog

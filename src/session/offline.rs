@@ -43,7 +43,8 @@ impl Session {
         let EngineLoopParts { engine, io } = p.engine;
         let engine = EngineLoop::new(engine, io, shared.clone());
         p.control.offline = Some(Offline { engine, input: p.input, now: 0, band, keys, audio: None });
-        if p.control.set_transpose(opts.transpose).is_err() {
+        let transpose = p.control.start_transpose(&opts);
+        if p.control.set_transpose(transpose).is_err() {
             p.control.transpose = Transpose::default();
         }
         p.control.shared.parts.set_bass_program(synth::style_bass_program(p.control.info.voices[10]));
@@ -204,6 +205,7 @@ impl Session {
                 plugins,
                 thread: None,
             });
+            ctl.restore_synth_settings(false);
         }
         self.settle();
         Ok(())

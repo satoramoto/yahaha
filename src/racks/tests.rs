@@ -388,3 +388,23 @@ fn the_mixer_targets_round_trip_and_are_checked() {
     assert!(r.controls.set(RackControl::Fader, 0, ControlTarget::PartSend { part: 0, send: 6 }).is_err());
     assert_eq!(Rack::from_json(&r.to_json()).unwrap().controls, r.controls);
 }
+
+/// An OTS part EQ saved on the old scale (1 dB a gain step, clamped: bass 28H read as
+/// -12 dB, treble 46H as +6 dB) is read again on the Genos scale (-5 dB, +1 dB) when the
+/// rack loads; an EQ set by hand, or one with no XG part EQ under it, is kept.
+#[test]
+fn an_ots_part_eq_saved_on_the_old_scale_is_read_on_the_genos_scale() {
+    let mut r = sample();
+    let xg = vec![[8, 0x05, 1], [8, 0x72, 0x28], [8, 0x73, 0x46], [8, 0x76, 21], [8, 0x77, 49]];
+    r.parts[0].tone = ToneReg { xg: xg.clone(), ..ToneReg::default() };
+    r.parts[0].eq = PartEq { low_gain: -12, low_freq: 225, high_gain: 6, high_freq: 5_600 };
+    r.parts[2].tone = ToneReg { xg, ..ToneReg::default() };
+    let by_hand = PartEq { low_gain: -12, low_freq: 225, high_gain: 5, high_freq: 5_600 };
+    r.parts[2].eq = by_hand;
+    let back = Rack::from_json(&r.to_json()).unwrap();
+    assert_eq!(back.parts[0].eq, PartEq { low_gain: -5, low_freq: 225, high_gain: 1, high_freq: 5_600 });
+    assert_eq!(back.parts[2].eq, by_hand, "set by hand: kept");
+    assert_eq!(back.parts[1].eq, r.parts[1].eq, "no XG part EQ under it: kept");
+    // Read again: unchanged.
+    assert_eq!(Rack::from_json(&back.to_json()).unwrap(), back);
+}

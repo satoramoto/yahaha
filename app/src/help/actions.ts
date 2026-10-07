@@ -120,18 +120,20 @@ export function tipFor(cmd: AppCmd | null): TipKey {
     case 'setPaletteLeds': return 'midi.palette_leds'
     case 'setAudioBuffer': return 'audio.buffer'
     case 'rescanLibrary': return 'settings.rescan'
-    case 'importCharts': return 'chart.import_link'
-    case 'importChartFile': return 'chart.import_file'
-    case 'selectChart': return 'chart.song'
-    case 'stepChart': return cmd.delta < 0 ? 'chart.prev' : 'chart.next'
-    case 'removeChartPlaylist': return 'chart.remove_playlist'
+    // Charts are out of the app this release (the terminal keeps its chart player): no app
+    // control or pad sends these, so they have no catalog entry of their own.
+    case 'importCharts':
+    case 'importChartFile':
+    case 'selectChart':
+    case 'stepChart':
+    case 'removeChartPlaylist':
     case 'setChartMode':
-    case 'toggleChartMode': return 'chart.mode'
-    case 'setChartChoruses': return 'chart.choruses_up'
-    case 'setChartLoop': return 'chart.loop'
-    case 'setChartIntro': return 'chart.intro'
-    case 'setChartEnding': return 'chart.ending'
-    case 'setChartAutoStyle': return 'chart.auto_style'
+    case 'toggleChartMode':
+    case 'setChartChoruses':
+    case 'setChartLoop':
+    case 'setChartIntro':
+    case 'setChartEnding':
+    case 'setChartAutoStyle': return 'launchkey.unused'
     case 'toggleFade': return 'transport.fade'
     case 'sectionReset': return 'transport.section_reset'
     case 'toggleRetrigger': return 'transport.retrigger'
@@ -157,6 +159,8 @@ export function tipFor(cmd: AppCmd | null): TipKey {
     // Quick Racks
     case 'pressQuickRack': return QUICK[cmd.slot % 8]
     case 'stepQuickRackBank': return cmd.delta < 0 ? 'quick.bank_prev' : 'quick.bank_next'
+    case 'setQuickRackBank': return 'quick.bank'
+    case 'undoQuickRackStore': return 'quick.undo'
     case 'toggleQuickRackStore': return 'quick.store'
     case 'clearQuickRack': return 'quick.clear'
     case 'stepQuickRack': return cmd.delta < 0 ? 'quick.prev' : 'quick.next'
@@ -178,14 +182,15 @@ export function tipFor(cmd: AppCmd | null): TipKey {
     case 'setMetronomeBell': return 'metronome.bell'
     case 'loadMultiPad':
     case 'loadMultiPadPath': return 'multipad.bank'
-    case 'clearMultiPad': return 'multipad.clear'
+    case 'clearMultiPad': return 'multipad.clear_bank'
     case 'triggerMultiPad': return MP_PAD[cmd.pad] ?? 'multipad.pad'
     case 'stopMultiPad': return MP_STOP[cmd.pad] ?? 'multipad.stop'
     case 'stopAllMultiPads': return 'multipad.stop_all'
     case 'armMultiPad': return MP_ARM[cmd.pad] ?? 'multipad.arm'
     case 'setMultiPadRepeat': return 'multipad.repeat'
     case 'setMultiPadChordMatch': return 'multipad.chord_match'
-    case 'setMultiPadSynchroStop': return 'multipad.synchro_style_stop'
+    // One command sets both Synchro Stop switches; it's explained under the first (Style Stop).
+    case 'setMultiPadSynchroStop': return 'multipad.synchro_stop'
     // Fill Up/Down/Self are pedal functions (no pad has them).
     case 'fill':
     case 'setPedal': return 'pedal.function'
@@ -324,7 +329,7 @@ export function tipFor(cmd: AppCmd | null): TipKey {
     case 'swapSound': return 'part.swap'
     case 'storeRack': return 'quick.store_rack'
     case 'turnSwapKnob': return 'part.swap'
-    case 'setLayer': return cmd.layer.type === 'swap' ? 'part.swap' : 'launchkey.sound'
+    case 'setLayer': return cmd.layer.type === 'swap' ? 'part.swap' : cmd.layer.type === 'fader' ? 'mixer.page' : 'launchkey.sound'
     // --- end eyes-free contract ---
   }
 }

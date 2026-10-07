@@ -305,7 +305,7 @@ The screen shows `sus` beside each part the pedal is holding.
 - Keyboard transpose (`; '`) moves the chart too.
 - `M` (shift+m) turns chart mode on/off (plain `m` is Style part 7); `( )` pick the previous/next song of the playlist.
 
-The desktop app has the same player, with a song browser, the chart in the lead-sheet band and the choruses, loop, Intro/Ending and style settings. [docs/ireal.md](docs/ireal.md) has the details.
+The chart player is terminal-only for now: the desktop app leaves charts out of this release. [docs/ireal.md](docs/ireal.md) has the details.
 
 Chords are recognized in "Fingered On Bass" style, plus some shortcuts:
 - one key = major

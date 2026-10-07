@@ -30,6 +30,24 @@ describe('StatusLine', () => {
     expect(screen.getByRole('status').textContent).toBe('')
   })
 
+  it('a hint replaces the drawn message and gives it back when it goes', async () => {
+    const { rerender } = render(StatusLine, { props: { text: ERROR, error: true, seq: 4 } })
+    const button = screen.getByRole('button', { name: `Error: ${ERROR}` })
+    expect(button.classList.contains('under')).toBe(false)
+
+    await rerender({ hint: { title: 'Accomp', body: 'Turns the accompaniment on or off.', keys: 'A' } })
+    const hint = document.querySelector('.hint')!
+    expect(hint.textContent).toContain('Accomp')
+    expect(hint.textContent).toContain('Key A')
+    expect(hint.textContent).not.toContain('Launchkey')
+    expect(screen.getByRole('button', { name: `Error: ${ERROR}` })).toBe(button)
+    expect(button.classList.contains('under')).toBe(true)
+
+    await rerender({ hint: null })
+    expect(document.querySelector('.hint')).toBeNull()
+    expect(button.classList.contains('under')).toBe(false)
+  })
+
   it('sets an inline width only when given', () => {
     render(StatusLine, { props: { text: NOTICE } })
     expect(screen.getByRole('status').style.width).toBe('')

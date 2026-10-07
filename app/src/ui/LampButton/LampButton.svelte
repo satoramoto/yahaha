@@ -1,9 +1,13 @@
 <!--
-  LampButton: the canvas's on/off control (Accomp, Metronome, part On, Sound, Looper).
-  On is the lime lamp face with an ink label; off is the plain button face with a grey label;
-  waiting is the armed lamp, outlined in its hue. Fully controlled: the face and aria-pressed
-  follow `on` alone, and a click only asks for `!on` through ontoggle. Long press (and
-  right-click) comes from the shared longpress action and never toggles.
+  LampButton: the canvas's on/off control (Accomp, Metronome, part On, Sound, Looper), in the state
+  language. Off is no fill, a 1px outline and the label in its hue (off keeps its colour); on is a
+  solid fill in the hue with the label and code in --on-ink; waiting (armed) is a 2px ring over a
+  faint fill of the hue; record draws on and waiting in record red; lime (`lamp`) lights in --lamp
+  with --lamp-ink and outlines in --lamp-line; disabled is a 1px outline and
+  the label in the lamp's own hue at reduced strength (its --absent-<hue>), no fill. No lamp is
+  grey: the deprecated `m` draws exactly as the neutral `t`. Fully controlled: the face and aria-pressed follow `on` alone, and a click
+  only asks for `!on` through ontoggle. Long press (and right-click) comes from the shared
+  longpress action and never toggles.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -12,23 +16,23 @@
   type Props = {
     /** The word on the face. */
     label: string
-    /** Lit (lamp face) or off. Controlled: a click asks for `!on` through `ontoggle` and changes nothing itself. */
+    /** Lit (solid fill in its hue) or off. Controlled: a click asks for `!on` through `ontoggle` and changes nothing itself. */
     on?: boolean
+    /** The hue of every face: `t` neutral (Accomp, Metronome, the function lamps), a part (`r1` `r2` `r3` `l`), `ok` green (Start / Stop), `lamp` lime (the Looper while looping or loop armed); disabled draws the same hue at reduced strength. `m` is a deprecated alias of `t` and draws exactly as it: no lamp is grey. */
+    hue?: 't' | 'r1' | 'r2' | 'r3' | 'l' | 'ok' | 'lamp' | 'm'
     /** Small code after the label, e.g. `ACMP`. */
     code?: string
     /** Shown, not pressable: no toggle and no long press. Stays focusable. */
     disabled?: boolean
-    /** Record lamp: lit is the solid record-red face instead of the lamp face. */
+    /** Record lamp: lit, and waiting, draw in record red instead of `hue`. */
     rec?: boolean
-    /** The waiting (armed) face while not on: no fill, a 1px outline and the label in `hue`. */
+    /** The waiting (armed) face while not on: a 2px ring and the label in the hue (record red with `rec`) over a faint fill of it. */
     waiting?: boolean
-    /** The waiting face's colour: `lamp` (Loop armed, in `--lamp-line`) or `rec` (Rec armed). */
-    hue?: 'lamp' | 'rec'
     /** `md` 32px tall (section row), `sm` 28px (settings rows), `cell` 32px filling its container (the band's lamp row). */
     size?: 'md' | 'sm' | 'cell'
     /** A fixed width in px, label centred, no side padding (e.g. 64 for the settings rows' On/Off). Wins over the size's width. */
     width?: number
-    /** Joined to a neighbour: `start` rounds only the left corners, `end` only the right. */
+    /** Joined to a neighbour: `start` on its right, `end` on its left (corners are square anyway). */
     join?: 'start' | 'end'
     /** The accessible name when the label alone isn't enough ("Right 1 on"). Default: label and code. */
     name?: string
@@ -47,11 +51,11 @@
   let {
     label,
     on = false,
+    hue = 't',
     code,
     disabled = false,
     rec = false,
     waiting = false,
-    hue = 'lamp',
     size = 'md',
     width,
     join,
@@ -65,6 +69,8 @@
 
   /** The face as drawn: on (or record) > waiting > off. */
   let face = $derived(on ? (rec ? 'record' : 'on') : waiting ? 'waiting' : 'off')
+  /** The hue drawn: record red when `rec` and not off; the deprecated grey `m` is the neutral `t`. */
+  let drawn = $derived(rec && face !== 'off' ? 'rec' : hue === 'm' ? 't' : hue)
 
   /** Applies the parent's tooltip action when both it and a key are given. */
   const tipped: Action<HTMLElement, string | undefined> = (node, key) => {
@@ -93,7 +99,7 @@
   class:disabled
   style:width={width === undefined ? undefined : `${width}px`}
   data-face={disabled ? 'disabled' : face}
-  data-hue={face === 'waiting' ? hue : undefined}
+  data-hue={drawn}
   data-contrast={disabled ? 'dim' : undefined}
   data-tip={tip}
   aria-pressed={on}
@@ -103,40 +109,83 @@
   use:tipped={tip}
   use:longpress={{ onlongpress, onlongrelease, disabled: disabled || onlongpress === undefined }}
 >
-  {label}{#if code}<span class="sub">{code}</span>{/if}
+  <span class="label">{label}{#if code}<span class="sub">{code}</span>{/if}</span>
 </button>
 
 <style>
+  /* Each hue sets --hue (the rest outline and label, the on fill, the waiting ring and fill) and
+     --hue-absent (the disabled outline and label: the same hue at reduced strength). */
   .lamp {
+    --hue: var(--neutral);
+    --hue-absent: var(--absent-neutral);
+    /* The on fill and its label: the hue and --on-ink, except lime (its own fill and ink). */
+    --hue-fill: var(--hue);
+    --hue-ink: var(--on-ink);
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     box-sizing: border-box;
     height: var(--control-height);
     margin: 0;
     padding: 0 var(--space-16);
     border: 0;
     border-radius: var(--radius);
-    background: var(--btn);
-    color: var(--m);
-    font-family: var(--font-sans);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
+    /* Rest: no fill, a 1px inset outline (the box never changes size) and the label in the hue. */
+    background: transparent;
+    box-shadow: inset 0 0 0 var(--outline-width) var(--hue);
+    color: var(--hue);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
-    line-height: normal;
     white-space: nowrap;
     cursor: pointer;
+  }
+  .lamp[data-hue='r1'] {
+    --hue: var(--r1);
+    --hue-absent: var(--absent-r1);
+  }
+  .lamp[data-hue='r2'] {
+    --hue: var(--r2);
+    --hue-absent: var(--absent-r2);
+  }
+  .lamp[data-hue='r3'] {
+    --hue: var(--r3);
+    --hue-absent: var(--absent-r3);
+  }
+  .lamp[data-hue='l'] {
+    --hue: var(--l);
+    --hue-absent: var(--absent-l);
+  }
+  .lamp[data-hue='ok'] {
+    --hue: var(--ok);
+    --hue-absent: var(--absent-ok);
+  }
+  /* Lime: --lamp-line for the outline, label and ring on the ground (it passes AA there in light
+     too); the lit face is --lamp with --lamp-ink. */
+  .lamp[data-hue='lamp'] {
+    --hue: var(--lamp-line);
+    --hue-absent: var(--absent-lamp);
+    --hue-fill: var(--lamp);
+    --hue-ink: var(--lamp-ink);
+  }
+  .lamp[data-hue='rec'] {
+    --hue: var(--rec);
+    --hue-absent: var(--absent-rec);
   }
   .sm {
     height: var(--control-height-compact);
     padding: 0 var(--space-14);
-    font-size: var(--text-13);
   }
   .cell {
     width: 100%;
     min-width: 0;
     padding: 0;
-    font-size: var(--text-13);
   }
   .fixed {
-    padding: 0;
+    padding-right: 0;
+    padding-left: 0;
   }
   .join-start {
     border-radius: var(--radius) 0 0 var(--radius);
@@ -144,48 +193,52 @@
   .join-end {
     border-radius: 0 var(--radius) var(--radius) 0;
   }
+  .label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* The small code: the label's colour at --code-opacity, full on a fill. */
   .sub {
     margin-left: var(--space-6);
-    color: var(--m);
-    font-size: var(--text-12);
-    font-weight: var(--weight-regular);
-  }
-  .face-on {
-    background: var(--lamp);
-    color: var(--lamp-ink);
-    font-weight: var(--weight-medium);
-  }
-  .face-on .sub {
-    color: var(--lamp-ink);
     opacity: var(--code-opacity);
   }
+
+  /* On (and record): a solid fill in the hue, the label and code in --on-ink (lime: --lamp, --lamp-ink). */
+  .face-on,
   .face-record {
-    background: var(--rec);
-    color: var(--solid-ink);
-    font-weight: var(--weight-medium);
+    background: var(--hue-fill);
+    color: var(--hue-ink);
   }
-  /* The code on the record face is full ink: at --code-opacity it fails AA on --rec. */
+  .face-on .sub,
   .face-record .sub {
-    color: var(--solid-ink);
-  }
-  /* Armed: an inset outline, so the box is the same size as every other face. */
-  .face-waiting {
-    --hue: var(--lamp-line);
-    background: transparent;
-    box-shadow: inset 0 0 0 var(--line-width) var(--hue);
-    color: var(--hue);
-  }
-  .face-waiting[data-hue='rec'] {
-    --hue: var(--rec);
-  }
-  .face-waiting .sub {
-    color: var(--hue);
-  }
-  .disabled,
-  .disabled .sub {
-    color: var(--d);
     opacity: 1;
+  }
+  /* Waiting (armed): a 2px inset ring in the hue over a faint fill of it, drawn under the label. */
+  .face-waiting {
+    box-shadow: inset 0 0 0 var(--outline-width-wait) var(--hue);
+  }
+  .face-waiting::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--hue);
+    opacity: var(--wait-fill-opacity);
+  }
+
+  /* Disabled: a 1px outline and the label in the hue at reduced strength, no fill, whatever the face. */
+  .lamp.disabled {
+    background: transparent;
+    box-shadow: inset 0 0 0 var(--outline-width) var(--hue-absent);
+    color: var(--hue-absent);
     cursor: default;
+  }
+  .lamp.disabled::before {
+    content: none;
+  }
+  .disabled .sub {
+    opacity: 1;
   }
   .lamp:focus-visible {
     outline: var(--line-width) solid var(--focus);

@@ -1,8 +1,14 @@
 <!--
-  ChosenTabs: a short run of choices side by side, the chosen one on a white block at the bottom.
-  `page` tabs are page navigation (buttons with aria-current, inside the parent's nav); `header` and
-  `compact` tabs are a tablist with roving focus and automatic activation (the band's fader page
-  and layer). Controlled: it draws `chosen` as given and only calls onchoose; the parent moves it.
+  ChosenTabs: the one tab style, for every one-of-many choice in a header (the app's pages, the
+  fader page, the fader layer, the knob page, the pad bank). A short run of plain --type-text
+  labels in --tab-rest with no outline (a run, not buttons), --tab-pad-side a side; the chosen one
+  on a solid --neutral block, --tab-block tall, standing on the row's bottom (the rule), its label
+  in --on-ink. Every label sits on the row's one baseline (`--header-baseline`), so the chosen
+  label is centred in its block and lines up with the row's other texts when the parent
+  baseline-aligns them (GroupHeader, AppBar). Every size draws identically; `size` sets only the
+  kind: `page` tabs are page navigation (buttons with aria-current, inside the parent's nav),
+  `header` and `compact` tabs a tablist with roving focus and automatic activation. Controlled: it
+  draws `chosen` as given and only calls onchoose; the parent moves it.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -13,7 +19,7 @@
     tabs: TabItem[]
     /** The `id` of the chosen tab; `null` = none is chosen. A click never moves it: the parent does. */
     chosen?: string | null
-    /** `page` 36 tall, 14px, page navigation; `header` 35 tall, 13px, a tablist; `compact` as `header` with 8px sides. */
+    /** The kind: `page` is page navigation (buttons with aria-current); `header` and `compact` are a tablist with roving focus. Every size draws the same: `--type-text`, `--tab-pad-side` sides, 34 tall (a 36px row minus its 2px rule), a `--tab-block` chosen block. */
     size?: 'page' | 'header' | 'compact'
     /** The tablist's accessible name (`header`, `compact`). Ignored at `page` (the parent's nav carries it). */
     label?: string
@@ -86,7 +92,7 @@
 
 {#if isList}
   <div
-    class="run {size}"
+    class="run"
     data-size={size}
     role="tablist"
     aria-label={label || undefined}
@@ -117,7 +123,7 @@
     {/each}
   </div>
 {:else}
-  <div class="run {size}" data-size={size}>
+  <div class="run" data-size={size}>
     {#each tabs as tab (tab.id)}
       <button
         type="button"
@@ -145,53 +151,38 @@
     align-items: stretch;
     flex-wrap: nowrap;
   }
-  .page {
-    --tab-h: var(--bar-height);
-    --tab-pad-top: var(--space-10);
-    --tab-pad-side: var(--space-10);
-    --tab-font: var(--text-14);
-    --tab-blk: var(--tab-block);
-  }
-  .header {
-    --tab-h: var(--tab-height-header);
-    --tab-pad-top: var(--space-11);
-    --tab-pad-side: var(--space-10);
-    --tab-font: var(--text-13);
-    --tab-blk: var(--tab-block-header);
-  }
-  .compact {
-    --tab-h: var(--tab-height-header);
-    --tab-pad-top: var(--space-11);
-    --tab-pad-side: var(--space-8);
-    --tab-font: var(--text-13);
-    --tab-blk: var(--tab-block-header);
-  }
+  /* The label sits on the row's baseline: the empty strut before it is as tall as the baseline is
+     deep, and the strut's bottom is the baseline the label aligns to. */
   .tab {
     display: flex;
-    align-items: flex-start;
+    align-items: baseline;
     justify-content: center;
     box-sizing: border-box;
-    height: var(--tab-h);
+    height: var(--tab-height-header);
     margin: 0;
-    padding: var(--tab-pad-top) var(--tab-pad-side) 0;
+    padding: 0 var(--tab-pad-side);
     border: 0;
     border-radius: 0;
     background: transparent;
-    color: var(--m);
-    font-family: var(--font-sans);
-    font-size: var(--tab-font);
-    font-weight: var(--weight-regular);
+    color: var(--tab-rest);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
-    line-height: normal;
     white-space: nowrap;
     cursor: pointer;
   }
+  .tab::before {
+    content: '';
+    flex: none;
+    width: 0;
+    height: var(--header-baseline);
+  }
   .chosen {
-    background: linear-gradient(var(--t), var(--t)) left bottom / 100% var(--tab-blk) no-repeat;
-    color: var(--g);
+    background: linear-gradient(var(--neutral), var(--neutral)) left bottom / 100% var(--tab-block) no-repeat;
+    color: var(--on-ink);
   }
   .tab[aria-disabled='true'] {
-    color: var(--d);
+    color: var(--absent);
     cursor: default;
   }
   .tab:focus-visible {

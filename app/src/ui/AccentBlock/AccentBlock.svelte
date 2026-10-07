@@ -14,7 +14,7 @@
     empty?: string
     /** `button` calls onpress (the style name); `span` is a plain label (the knob page). */
     as?: 'span' | 'button'
-    /** `line` 26 tall, 18px medium (the style line); `knob` 22 tall, 13px regular (a band header row). */
+    /** `line` `--block-height` (32) tall, as tall as ◀ ▶ (the style line); `knob` `--block-height-knob` (24) tall (a band header row). Both `--type-strong`. */
     size?: 'line' | 'knob'
     /** A fixed width in px; a longer label ends in an ellipsis. Default: as wide as the label. */
     width?: number
@@ -84,23 +84,23 @@
     text-align: left;
     background: var(--a);
     color: var(--g);
-    font-family: var(--font-sans);
-    font-variant-numeric: tabular-nums;
     cursor: default;
   }
   .line {
     height: var(--block-height);
-    line-height: var(--block-height);
     padding: 0 var(--space-10);
-    font-size: var(--text-18);
-    font-weight: var(--weight-medium);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
+    font-variant-numeric: tabular-nums;
+    line-height: var(--block-height);
   }
   .knob {
     height: var(--block-height-knob);
-    line-height: var(--block-height-knob);
     padding: 0 var(--space-8);
-    font-size: var(--text-13);
-    font-weight: var(--weight-regular);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
+    font-variant-numeric: tabular-nums;
+    line-height: var(--block-height-knob);
   }
   button.block {
     cursor: pointer;

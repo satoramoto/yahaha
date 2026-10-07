@@ -1,14 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
 import { createRawSnippet, mount, unmount } from 'svelte'
 import { expect, fn, userEvent, within } from 'storybook/test'
-import AccentBlock from '../AccentBlock/AccentBlock.svelte'
 import ChosenTabs from '../ChosenTabs/ChosenTabs.svelte'
 import { faderPageTabs, layerTabs } from '../ChosenTabs/ChosenTabs.fixtures'
+import HueLegend from '../HueLegend/HueLegend.svelte'
 import GroupHeader from './GroupHeader.svelte'
 
 type Content = 'faders' | 'knobs' | 'pads' | 'none'
+type End = 'legend' | 'none'
+type LegendItem = { label: string; hue: string }
 
-/** The story's args: GroupHeader's own props plus the child args mapped into `children`. */
+/** The story's args: GroupHeader's own props plus the child args mapped into `children` and `end`. */
 type Args = {
   title: string
   detail?: string
@@ -22,45 +24,39 @@ type Args = {
   layerChosen: string
   onchooseLayer: (id: string) => void
   tipAction: (node: HTMLElement, key: string) => void
-  knobPageLabel: string
-  padPageName: string
+  bankChosen: string
+  onchooseBank: (id: string) => void
+  endContent: End
+  legendItems: LegendItem[]
 }
 
-const HUES = [
-  ['Intro', 'intro'],
-  ['Main', 'main'],
-  ['Ending', 'ending'],
-  ['Break', 'brk'],
-  ['Fill', 'fill'],
-] as const
+const SECTION_LEGEND: LegendItem[] = [
+  { label: 'Intro', hue: 'intro' },
+  { label: 'Main', hue: 'main' },
+  { label: 'Ending', hue: 'ending' },
+  { label: 'Break', hue: 'brk' },
+  { label: 'Fill', hue: 'fill' },
+]
 
 const FADERS =
   '<span style="display: contents">' +
   '<span data-mount="page" style="display: contents"></span>' +
-  '<span aria-hidden="true" style="flex: none; width: var(--line-width); height: var(--space-16); background: var(--line)"></span>' +
-  '<span style="display: flex; align-items: center">' +
-  '<span style="margin-right: var(--space-4); font-size: var(--text-14); font-weight: var(--weight-regular); color: var(--m)">Layer</span>' +
+  '<span aria-hidden="true" style="flex: none; align-self: flex-end; margin-bottom: var(--separator-lift); width: var(--line-width); height: var(--separator-length); background: var(--line)"></span>' +
+  '<span style="display: flex; align-items: baseline">' +
+  '<span style="margin-right: var(--space-4); font: var(--type-text); letter-spacing: var(--tracking-text); color: var(--caption-ink)">Layer</span>' +
   '<span data-mount="layer" style="display: contents"></span>' +
   '</span></span>'
 
-const KNOBS = '<span data-mount="block" style="display: contents"></span>'
+const BANK = '<span data-mount="bank" style="display: contents"></span>'
 
-const PADS =
-  '<span style="display: contents">' +
-  '<span data-text="page" style="font-size: var(--text-14); font-weight: var(--weight-regular); color: var(--t)"></span>' +
-  '<span style="margin-left: var(--space-4); display: flex; align-items: center; gap: var(--space-12); font-size: var(--text-12); font-weight: var(--weight-regular)">' +
-  HUES.map(
-    ([word, hue]) =>
-      `<span style="display: flex; align-items: center; gap: var(--space-6); color: var(--${hue})">` +
-      `<span aria-hidden="true" style="width: var(--space-10); height: var(--space-2); border-radius: var(--line-width); background: var(--${hue})"></span>` +
-      `${word}</span>`,
-  ).join('') +
-  '</span></span>'
+const KNOB_PAGES = ['Style', 'Rack', 'Pan', 'Reverb', 'Chorus', 'Delay']
+const PAD_BANKS = ['Sections', 'Quick Racks', 'Chord', 'Multi Pads', 'Setup']
+const PAD_TIPS = ['padpage.sections', 'padpage.racks', 'padpage.chord', 'padpage.multi_pads', 'padpage.setup']
 
-/** The `children` snippet for a story's `content`, mounting the real ChosenTabs and AccentBlock. */
+/** The `children` snippet for a story's `content`, mounting the real ChosenTabs. */
 function children(args: Args) {
   if (args.content === 'none') return undefined
-  const html = { faders: FADERS, knobs: KNOBS, pads: PADS }[args.content]
+  const html = { faders: FADERS, knobs: BANK, pads: BANK }[args.content]
   return createRawSnippet(() => ({
     render: () => html,
     setup: (root: Element) => {
@@ -91,11 +87,22 @@ function children(args: Args) {
             },
           }),
         )
-      } else if (args.content === 'knobs') {
-        mounted.push(mount(AccentBlock, { target: host('block'), props: { label: args.knobPageLabel, size: 'knob' } }))
       } else {
-        const page = root.querySelector('[data-text="page"]')
-        if (page) page.textContent = args.padPageName
+        const knobs = args.content === 'knobs'
+        const names = knobs ? KNOB_PAGES : PAD_BANKS
+        mounted.push(
+          mount(ChosenTabs, {
+            target: host('bank'),
+            props: {
+              size: 'header',
+              label: knobs ? 'Knob page' : 'Pad bank',
+              tabs: names.map((name, i) => ({ id: String(i), label: name, tip: knobs ? 'knobs.page' : PAD_TIPS[i] })),
+              chosen: args.bankChosen,
+              onchoose: args.onchooseBank,
+              tipAction: args.tipAction,
+            },
+          }),
+        )
       }
       return () => {
         for (const instance of mounted) void unmount(instance)
@@ -104,13 +111,28 @@ function children(args: Args) {
   }))
 }
 
+/** The `end` snippet for a story's `endContent`, mounting the real HueLegend. */
+function end(args: Args) {
+  if (args.endContent === 'none') return undefined
+  return createRawSnippet(() => ({
+    render: () => '<span style="display: contents"></span>',
+    setup: (root: Element) => {
+      const legend = mount(HueLegend, { target: root, props: { items: args.legendItems } })
+      return () => {
+        void unmount(legend)
+      }
+    },
+  }))
+}
+
 /**
- * The hairline row that names a group of controls and holds its page tabs or page counter.
- * The stories mount the real children (ChosenTabs, AccentBlock) into the `children` snippet;
- * their args are grouped by child in the Controls panel.
+ * The row, a bright `--type-strong` title over a bold rule, that names a group of controls and
+ * holds its tabs (the one tab style, ChosenTabs), its hue legend at the right end (`end`) and its
+ * page counter. The stories mount the real children (ChosenTabs, HueLegend) into the
+ * snippets; their args are grouped by child in the Controls panel.
  */
 const meta: Meta<Args> = {
-  title: 'Components/GroupHeader',
+  title: 'Primitives/GroupHeader',
   component: GroupHeader,
   render: (args: Args) => ({
     Component: GroupHeader,
@@ -122,6 +144,7 @@ const meta: Meta<Args> = {
       id: args.id,
       width: args.width,
       children: children(args),
+      end: end(args),
       // The story's args map onto GroupHeader's props here; Storybook types `props` as the args.
     } as unknown as Args,
   }),
@@ -133,8 +156,10 @@ const meta: Meta<Args> = {
     layerChosen: 'volume',
     onchooseLayer: fn(),
     tipAction: fn(),
-    knobPageLabel: 'Style',
-    padPageName: 'Sections',
+    bankChosen: '0',
+    onchooseBank: fn(),
+    endContent: 'none',
+    legendItems: SECTION_LEGEND,
   },
   argTypes: {
     title: { control: 'text' },
@@ -161,17 +186,30 @@ const meta: Meta<Args> = {
       table: { category: 'ChosenTabs · layer' },
     },
     onchooseLayer: { table: { category: 'ChosenTabs · layer' } },
-    knobPageLabel: { control: 'text', table: { category: 'AccentBlock' } },
-    padPageName: { control: 'text', table: { category: 'Pads content' } },
+    bankChosen: {
+      control: 'select',
+      options: ['0', '1', '2', '3', '4', '5'],
+      table: { category: 'ChosenTabs · knob page or pad bank' },
+    },
+    onchooseBank: { table: { category: 'ChosenTabs · knob page or pad bank' } },
+    endContent: {
+      control: 'inline-radio',
+      options: ['legend', 'none'],
+      table: { category: 'end' },
+    },
+    legendItems: { control: 'object', table: { category: 'HueLegend' } },
   },
 }
 
 export default meta
 type Story = StoryObj<Args>
 
-/** The Faders header: title, Panel chosen, the separator, "Layer" and Vol chosen, over the hairline. */
+/**
+ * The Faders header: title, the fader page tabs with Panel chosen, the separator, "Layer" and the
+ * layer tabs with Vol chosen, both on the one `--neutral` block, over the bold rule.
+ */
 export const Board: Story = {
-  args: { title: 'Faders', width: 654, content: 'faders' },
+  args: { title: 'Faders', width: 646, content: 'faders' },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByRole('heading', { level: 2, name: 'Faders' })).toBeInTheDocument()
@@ -188,29 +226,32 @@ export const Board: Story = {
   },
 }
 
-/** Knobs, the violet "Style" page block, and "Page 1/6" at the right end. */
+/** Knobs and the knob page tabs, Style chosen on the same neutral block as every header's tabs. */
 export const Knobs: Story = {
-  args: { title: 'Knobs', width: 626, count: { label: 'Page', value: '1/6' }, content: 'knobs' },
-  play: async ({ canvasElement }) => {
+  args: { title: 'Knobs', width: 666, content: 'knobs' },
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByRole('heading', { name: 'Knobs' })).toBeInTheDocument()
-    const block = await canvas.findByText('Style')
-    await expect(block).toHaveAttribute('data-face', 'accent')
-    await expect(canvas.getByText('1/6').parentElement?.textContent).toBe('Page 1/6')
+    await expect(await canvas.findByRole('tab', { name: 'Style' })).toHaveAttribute('aria-selected', 'true')
+    await userEvent.click(canvas.getByRole('tab', { name: 'Reverb' }))
+    await expect(args.onchooseBank).toHaveBeenCalledWith('3')
   },
 }
 
-/** Pads, the "Sections" page name, the five-hue section legend, and "Bank 1/5" at the right end. */
+/**
+ * Pads, the pad bank tabs with Sections chosen, and at the right end the five-hue section legend
+ * (`end`, where every header's legend goes).
+ */
 export const Pads: Story = {
-  args: { title: 'Pads', width: 626, count: { label: 'Bank', value: '1/5' }, content: 'pads' },
+  args: { title: 'Pads', width: 666, content: 'pads', endContent: 'legend' },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByRole('heading', { name: 'Pads' })).toBeInTheDocument()
-    await expect(await canvas.findByText('Sections')).toBeInTheDocument()
+    await expect(await canvas.findByRole('tab', { name: 'Sections' })).toHaveAttribute('data-tip', 'padpage.sections')
     const text = canvasElement.textContent ?? ''
-    const order = HUES.map(([word]) => text.indexOf(word))
+    const order = SECTION_LEGEND.map((item) => item.label).map((word) => text.lastIndexOf(word))
     await expect(order.every((at) => at >= 0)).toBe(true)
     await expect([...order].sort((a, b) => a - b)).toEqual(order)
-    await expect(canvas.getByText('1/5').parentElement?.textContent).toBe('Bank 1/5')
+    await expect(text.indexOf('Setup')).toBeLessThan(order[0])
   },
 }

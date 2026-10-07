@@ -29,6 +29,18 @@
   --warn: var(--orange-700);
   --ok: var(--green-700);
 
+  /* The state language: as dark. Light hues are dark, so the ink on a fill is white. */
+  --neutral: var(--t);
+  --on-ink: var(--white);
+  --absent-mix: 45%; /* light hues over a light ground fade faster: keep a little more */
+  --tab-rest: var(--t2);
+  --wait-fill-opacity: 0.14;
+
+  --caption-ink: var(--m);
+  --value-ink: var(--t);
+  --header-ink: var(--t);
+  --header-rule: var(--t);
+
   --a: var(--violet-600);
 
   --r1: var(--blue-700);

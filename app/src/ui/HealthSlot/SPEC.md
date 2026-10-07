@@ -1,5 +1,10 @@
 # HealthSlot
 
+> **One baseline (PR #550).** The slot no longer has its own 35px height or centres its text: the
+> slot and its button align by baseline (`align-items: baseline`) and the slot is as tall as its
+> text, so the parent (AppBar) puts the text on the header baseline (`--header-baseline`, 28px)
+> with every other text in the bar. Where the sections below say 35px or centred, this note wins.
+
 ## Identity (all stations)
 
 - **Kind:** primitive
@@ -72,12 +77,12 @@ It returns a `Health`, where `label` is `Audio health: fine` for row 6 and `Audi
 
 ### Visual rules
 
-- **Tokens used:** `--m`, `--ending`, `--focus`, `--font-sans`, `--text-14`, `--weight-regular`, `--space-8`, `--line-width`, `--focus-offset`.
-- **Structure:** the root is a `<span class="slot">` with `data-hue` = `hue` and no role: `position: relative`, `box-sizing: border-box`, `display: flex; align-items: center; justify-content: flex-end` (the text sits at the right edge), height 35px (the app bar's 36px less its 1px bottom border; D5), `padding-left: var(--space-8)`, `min-width: 0`, width `width` px (inline `style:width`) or `flex: 1 1 auto` in its container, `color: var(--m)` or `var(--ending)` from `hue`, no background (the app bar's ground shows through). Inside it, in order:
+- **Tokens used:** `--m`, `--ending`, `--focus`, `--type-text`, `--tracking-text`, `--space-8`, `--line-width`, `--focus-offset`.
+- **Structure:** the root is a `<span class="slot">` with `data-hue` = `hue` and no role: `position: relative`, `box-sizing: border-box`, `display: flex; align-items: center; justify-content: flex-end` (the text sits at the right edge), height 34px (the app bar's 36px less its 2px header rule, `--tab-height-header`; D5), `padding-left: var(--space-8)`, `min-width: 0`, width `width` px (inline `style:width`) or `flex: 1 1 auto` in its container, `color: var(--m)` or `var(--ending)` from `hue`, no background (the app bar's ground shows through). Inside it, in order:
   1. the live region: `<span role="status" class="hidden-word">{label}</span>`, visually hidden (scoped CSS: `position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap`, the same rule as `app.css`'s `.visually-hidden`, which the library can't rely on), so it takes no room. Its text is `label` (`Audio health: fine`, `Audio health: CPU 74%`); a change of text is what a screen reader announces (D13).
   2. with a target: one `<button type="button">`: `display: flex; align-items: center` (so the inner span is a flex item and its ellipsis works), margin 0, padding 0, border 0, background transparent, `color: inherit`, `font: inherit`, `max-width: 100%`, `min-width: 0`, cursor `pointer`, holding the text in a `<span>` with `overflow: hidden; text-overflow: ellipsis; white-space: nowrap`.
   3. without one (calm): the text `Audio` in the same ellipsis `<span>`, with `aria-hidden="true"` (the live region already says "Audio health: fine").
-- **Size:** 35px tall; width as above. The text never wraps; when it's wider than the slot less its 8px left padding, it ends in "…" (the slot's own box doesn't clip, so the focus ring shows).
+- **Size:** 34px tall; width as above. The text never wraps; when it's wider than the slot less its 8px left padding, it ends in "…" (the slot's own box doesn't clip, so the focus ring shows).
 - **States drawn by:** colour only (no face, no fill, no border; a text button, kit › Text buttons):
   - calm: `Audio` in `--m`, plain text, default cursor.
   - no audio: `Audio off` in `--m`, a button.
@@ -85,7 +90,7 @@ It returns a `Health`, where `label` is `Audio health: fine` for row 6 and `Audi
   - too long: ellipsis (the buffer hint in the 92px of text room the app bar's 100px slot has, D4).
   - keyboard focus (`:focus-visible` on the button): a `--line-width` solid outline in `--focus`, `--focus-offset` outside the button. Nothing on mouse focus.
   - No hover or pressed look (kit: Hover, press and cursor).
-- **Type:** DM Sans (`--font-sans`), `--text-14`, `--weight-regular`, `line-height: normal`, sentence case as listed, `font-variant-numeric: tabular-nums` (so "CPU 74%" doesn't jitter as the number changes).
+- **Type:** `--type-text` (DM Sans 13 regular, 16px line) with `--tracking-text`, sentence case as listed, `font-variant-numeric: tabular-nums` (so "CPU 74%" doesn't jitter as the number changes).
 - **Contrast (AA 4.5:1, `tokens/contrast.test.ts`):** `--m` on `--g` (exists); `--ending` on `--g` is a **new row** ("health slot trouble (HealthSlot)"; 4.96:1 dark, #c45a5a on #000000; 5.20:1 light, #a84444 on #f2f1ee), which passes with today's values and lands in the orchestrator's tokens contract PR before the build (L1). Every token used exists today: no new tokens.
 - **Motion:** none. The text changes when the props change; no blink, no timer.
 

@@ -31,6 +31,27 @@
   --warn: var(--orange-400); /* missing, warning */
   --ok: var(--green-400); /* connected, running */
 
+  /* The state language, one treatment per state for every control (LampButton, Button,
+     ChosenTabs, OneTouchPicker, Pad):
+     - rest (off): no fill, a 1px outline in the control's hue, the label in that hue;
+     - on, chosen, playing: a solid fill in the hue, the label in --on-ink;
+     - waiting (queued, armed): a 2px ring in the hue over a faint fill of it (--wait-fill-opacity);
+     - disabled, absent: a 1px outline and the label in the control's own hue at reduced strength
+       (--absent-mix of it over the ground, state.css), never grey.
+     A neutral control's hue is --neutral; no control is grey. Tabs and One Touch numbers are a
+     run, not buttons: they have no rest outline, only the chosen --neutral block. */
+  --neutral: var(--t); /* a control without a hue of its own */
+  --on-ink: var(--black); /* the label on any solid fill */
+  --absent-mix: 40%; /* how much of its hue an absent control keeps over the ground */
+  --tab-rest: var(--t2); /* an unchosen tab or One Touch number */
+  --wait-fill-opacity: 0.16; /* the waiting fill: the hue at this opacity */
+
+  /* Text roles */
+  --caption-ink: var(--m); /* captions, small codes, units, a row's leading word */
+  --value-ink: var(--t); /* a value or name read at a glance */
+  --header-ink: var(--t); /* a section header's title */
+  --header-rule: var(--t); /* a section header's bold rule */
+
   /* The violet accent: the style, the chord, knob arcs and values */
   --a: var(--violet-300);
 

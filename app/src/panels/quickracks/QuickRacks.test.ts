@@ -5,14 +5,28 @@
 
 import { cleanup, fireEvent, render } from '@testing-library/svelte'
 import { flushSync } from 'svelte'
-import { afterEach, describe, expect, it } from 'vitest'
+import type { Action } from 'svelte/action'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../../App.svelte'
 import { BINDINGS } from '../../lib/keys'
+import { NAV } from '../../lib/nav'
 import { MockSession } from '../../lib/api/mock'
 import { quickLook } from '../../lib/api/quick-racks'
 import { app, ui } from '../../lib/store.svelte'
-import Launchkey from '../launchkey/Launchkey.svelte'
-import QuickBar from './QuickBar.svelte'
+import { tip } from '../../lib/tooltip/tip.svelte'
+import { stagePage } from '../stage/page.svelte'
+import QuickRacksPage from './QuickRacksPage.svelte'
+
+/** The Quick Racks page tab, alone (StageScreen puts it in the Stage's display box). */
+const renderPage = () =>
+  render(QuickRacksPage, { props: { tipAction: tip as unknown as Action<HTMLElement, string> } })
+
+/** The app on session `s` with the Quick Racks page tab chosen: the page in the Stage's display box, and the Rack drawer. */
+function renderApp(s: MockSession) {
+  stagePage.page = 'quickRacks'
+  render(App, { props: { session: s } })
+  flushSync()
+}
 
 function setup() {
   const session = new MockSession({ manual: true })
@@ -22,9 +36,12 @@ function setup() {
 
 const q = <T extends Element = HTMLButtonElement>(sel: string) => document.querySelector<T>(sel)!
 const tipped = <T extends Element = HTMLButtonElement>(key: string) => [...document.querySelectorAll<T>(`[data-tip="${key}"]`)]
-/** The stage's Quick Racks row (panels/knobracks). */
+/** The old stage's Quick Racks row, now gone: nothing may ask there. */
 const STAGE = 'section[aria-label="Quick Racks"]'
-const names = () => [...document.querySelectorAll('.qbar .bname .txt')].map((e) => e.textContent)
+const names = () => [...document.querySelectorAll('.slot .text')].map((e) => e.textContent)
+/** The bank letter on view: the chosen bank tab. */
+const letter = () => q('[aria-label="Quick Racks bank"] [aria-selected="true"]').textContent?.trim()
+const bankTab = (l: string) => q(`[role="tab"][aria-label="Bank ${l}"]`)
 
 async function click(el: Element) {
   await fireEvent.click(el)
@@ -41,34 +58,26 @@ async function storeAs(slot: number, name: string) {
 }
 
 afterEach(() => {
+  vi.restoreAllMocks()
   cleanup()
   app.detach()
   ui.view = 'stage'
   ui.rack = false
+  stagePage.page = 'stage'
 })
 
-describe('Quick Racks bar', () => {
-  it('replaces the Registration bar on the stage, in the Quick Racks row (panels/knobracks)', () => {
-    render(App, { props: { session: new MockSession({ demo: true, manual: true }) } })
-    flushSync()
-    const bar = q<HTMLElement>(STAGE)
-    expect(document.querySelector('section[aria-label="Registration"]')).toBeNull()
-    // Bank ◀ ▶, eight buttons and Store; no Freeze, Sequence, Playlist or Panel.
-    expect(bar.querySelectorAll('[data-tip^="quick."]').length).toBeGreaterThanOrEqual(11)
-    expect(bar.textContent).not.toMatch(/Freeze|Sequence|Playlist|Panel/)
-  })
-
+describe('Quick Racks page', () => {
   it('starts on bank A with eight empty buttons', () => {
     setup()
-    render(QuickBar)
-    expect(q('.qbar .letter').textContent).toBe('A')
-    expect(names()).toEqual(Array(8).fill('empty'))
-    expect(document.querySelectorAll('.qbar .clear')).toHaveLength(0)
+    renderPage()
+    expect(letter()).toBe('A')
+    expect(names()).toEqual(Array(8).fill('Empty'))
+    expect(tipped('quick.clear')).toHaveLength(0)
   })
 
   it('Store on a never-saved rack asks its name, saves it and stores it on the button', async () => {
     const s = setup()
-    render(QuickBar)
+    renderPage()
     await click(tipped('quick.store')[0])
     expect(s.state.quickRacks.store).toBe(true)
     expect(quickLook(s.state.quickRacks, 5).anim).toBe('flash')
@@ -76,7 +85,8 @@ describe('Quick Racks bar', () => {
     // Nothing stored yet: the button waits for the save, and the bar asks.
     expect(s.state.quickRacks.storeWaiting).toBe(2)
     expect(s.state.quickRacks.buttons[2].rack).toBeNull()
-    expect(q('.qbar').textContent).toContain('Save the rack to store it on A3')
+    expect(q('[aria-label="Save the rack to store it on A3"]').textContent).toContain('A3 waiting for Save · name the new rack')
+    expect(q('[data-tip="quick.3"]').getAttribute('aria-label')).toBe('Quick Rack A3, empty, waiting for Save')
     const input = q<HTMLInputElement>('[data-tip="quick.save_name"]')
     expect(input.value).toBe('New rack')
     await fireEvent.input(input, { target: { value: 'Ballad' } })
@@ -91,7 +101,7 @@ describe('Quick Racks bar', () => {
 
   it('Store with a saved, unmodified rack stores at once; a modified one is saved first', async () => {
     const s = setup()
-    render(QuickBar)
+    renderPage()
     await storeAs(0, 'Ballad')
     await click(tipped('quick.store')[0])
     await click(tipped('quick.2')[0])
@@ -103,7 +113,8 @@ describe('Quick Racks bar', () => {
     await click(tipped('quick.store')[0])
     await click(tipped('quick.4')[0])
     expect(s.state.quickRacks.storeWaiting).toBe(3)
-    expect(q('.qbar').textContent).toContain('Save Ballad to store it on A4')
+    expect(q('[aria-label="Save the rack to store it on A4"]').textContent).toContain('A4 waiting for Save · Ballad modified')
+    expect(tipped('quick.save_name')).toHaveLength(0)
     await click(tipped('quick.save')[0])
     expect(s.state.liveRack).toMatchObject({ name: 'Ballad', modified: false })
     expect(s.state.racks).toHaveLength(1)
@@ -112,7 +123,7 @@ describe('Quick Racks bar', () => {
 
   it('Cancel while waiting disarms Store and stores nothing', async () => {
     const s = setup()
-    render(QuickBar)
+    renderPage()
     await click(tipped('quick.store')[0])
     await click(tipped('quick.1')[0])
     await click(tipped('quick.cancel_store')[0])
@@ -123,7 +134,8 @@ describe('Quick Racks bar', () => {
 
   it('a waiting Store whose save needs sound names asks them in the Rack drawer, then saves and stores', async () => {
     const s = setup()
-    render(App, { props: { session: s } })
+    // The Quick Racks page tab, in the app: its Rack drawer opens over the Stage.
+    renderApp(s)
     s.send({ type: 'listPluginPresets', id: 'au:aumu Smp7 Fake' })
     s.send({ type: 'setPartPluginPreset', part: 0, id: 'aumu Smp7 Fake', preset: 'f:1' })
     s.advance(5000)
@@ -146,7 +158,8 @@ describe('Quick Racks bar', () => {
 
   it('a button loads its rack; with unsaved changes the Rack drawer opens and asks: Keep editing, Discard and switch, Save first', async () => {
     const s = setup()
-    render(App, { props: { session: s } })
+    // The Quick Racks page tab, in the app (as above).
+    renderApp(s)
     s.send({ type: 'setPartVoice', part: 0, program: 40 })
     await storeAs(0, 'Strings')
     const strings = s.state.liveRack.id!
@@ -188,36 +201,176 @@ describe('Quick Racks bar', () => {
     expect(s.state.keyboardParts[0].program).toBe(40)
   })
 
-  it('an empty button says so; Bank −/+ step A–H and stop at the ends', async () => {
+  it('a tap on another stored rack with unsaved changes asks first, in the Rack drawer', async () => {
     const s = setup()
-    render(QuickBar)
+    renderApp(s)
+    s.send({ type: 'setPartVoice', part: 0, program: 40 })
+    await storeAs(2, 'Strings')
+    s.send({ type: 'newRack' })
+    s.send({ type: 'setPartVoice', part: 0, program: 1 })
+    flushSync()
+    await storeAs(0, 'Ballad')
+    s.send({ type: 'setPartVoice', part: 0, program: 12 })
+    flushSync()
+    expect(s.state.liveRack).toMatchObject({ name: 'Ballad', modified: true })
+    await click(tipped('quick.3')[0])
+    expect(s.state.liveRack.prompt).toMatchObject({ kind: 'unsavedChanges', then: { kind: 'load', name: 'Strings' } })
+    expect(ui.rack).toBe(true)
+    const alert = document.querySelector('[role="alert"].unsaved')
+    expect(alert?.textContent).toContain('The rack has unsaved changes: save them before loading Strings?')
+  })
+
+  it('a tap on the lit rack recalls it clean with no prompt, keeping the changes as "Recovered: <name>"', async () => {
+    const s = setup()
+    renderApp(s)
+    await storeAs(0, 'Ballad')
+    s.send({ type: 'setPartVoice', part: 0, program: 12 })
+    flushSync()
+    const sent = vi.spyOn(s, 'send')
+    await click(tipped('quick.1')[0])
+    expect(sent.mock.calls.map(([c]) => c)).toEqual([{ type: 'pressQuickRack', slot: 0 }])
+    expect(s.state.liveRack).toMatchObject({ name: 'Ballad', modified: false, prompt: null })
+    expect(ui.rack).toBe(false)
+    expect(s.state.racks.map((r) => r.name)).toContain('Recovered: Ballad')
+  })
+
+  it('after a store over a button, Undo shows what it undoes and takes it back (undoQuickRackStore)', async () => {
+    const s = setup()
+    renderPage()
+    s.send({ type: 'setPartVoice', part: 0, program: 40 })
+    await storeAs(2, 'Strings')
+    s.send({ type: 'newRack' })
+    s.send({ type: 'setPartVoice', part: 0, program: 1 })
+    flushSync()
+    await storeAs(0, 'Ballad')
+    // The last store (Ballad on A1) is the one Undo names.
+    expect(tipped('quick.undo').map((b) => b.textContent?.trim())).toEqual(['Undo store on A1'])
+    await fireEvent.contextMenu(tipped('quick.3')[0])
+    flushSync()
+    expect(s.state.quickRacks.buttons[2].name).toBe('Ballad')
+    const undo = tipped('quick.undo')
+    expect(undo).toHaveLength(1)
+    expect(undo[0].textContent).toContain('Undo store on A3')
+    const sent = vi.spyOn(s, 'send')
+    await click(undo[0])
+    expect(sent.mock.calls.map(([c]) => c)).toEqual([{ type: 'undoQuickRackStore' }])
+    expect(s.state.quickRacks.buttons[2].name).toBe('Strings')
+    expect(tipped('quick.undo')).toHaveLength(0)
+  })
+
+  it('a bank letter sends one setQuickRackBank, however far away', async () => {
+    const s = setup()
+    renderPage()
+    const sent = vi.spyOn(s, 'send')
+    await click(bankTab('F'))
+    expect(sent.mock.calls.map(([c]) => c)).toEqual([{ type: 'setQuickRackBank', bank: 5 }])
+  })
+
+  it('an empty button says so; a bank letter shows that bank, any distance away', async () => {
+    const s = setup()
+    renderPage()
     await click(tipped('quick.5')[0])
     expect(s.state.message).toMatchObject({ error: true, text: 'Quick Rack A5 is empty' })
-    await click(tipped('quick.bank_prev')[0])
-    expect(s.state.quickRacks.bank).toBe(0)
-    await click(tipped('quick.bank_next')[0])
+    await click(bankTab('B'))
     expect(s.state.quickRacks.bank).toBe(1)
-    expect(q('.qbar .letter').textContent).toBe('B')
-    for (let i = 0; i < 9; i++) await click(tipped('quick.bank_next')[0])
+    expect(letter()).toBe('B')
+    await click(bankTab('H'))
     expect(s.state.quickRacks.bank).toBe(7)
-    expect(q('.qbar .letter').textContent).toBe('H')
+    expect(letter()).toBe('H')
+    expect(names()[0]).toBe('Empty')
+    expect(q('[data-tip="quick.1"]').getAttribute('aria-label')).toBe('Quick Rack H1, empty')
+    await click(bankTab('A'))
+    expect(s.state.quickRacks.bank).toBe(0)
   })
 
   it('each bank has its own buttons, and ✕ clears one', async () => {
     const s = setup()
-    render(QuickBar)
+    renderPage()
     await storeAs(0, 'Ballad')
-    await click(tipped('quick.bank_next')[0])
+    await click(bankTab('B'))
     expect(s.state.quickRacks.buttons[0].rack).toBeNull()
     await click(tipped('quick.store')[0])
     await click(tipped('quick.8')[0])
     expect(s.state.quickRacks.buttons[7].name).toBe('Ballad')
-    await click(tipped('quick.bank_prev')[0])
+    await click(bankTab('A'))
     expect(names()[0]).toBe('Ballad')
-    await click(q('.qbar .clear'))
+    await click(tipped('quick.clear')[0])
     expect(s.state.quickRacks.buttons[0].rack).toBeNull()
-    await click(tipped('quick.bank_next')[0])
+    await click(bankTab('B'))
     expect(s.state.quickRacks.buttons[7].name).toBe('Ballad')
+  })
+
+  it('the lit one is the solid block, with the modified dot once it changes; Lit names it', async () => {
+    const s = setup()
+    renderPage()
+    await storeAs(1, 'Ballad')
+    const a2 = q('[data-tip="quick.2"]')
+    expect(a2.getAttribute('aria-label')).toBe('Quick Rack A2, Ballad, loaded')
+    expect(a2.dataset.face).toBe('chosen')
+    expect(document.querySelector('section[aria-label="Quick Racks"]')!.textContent).toContain('Lit A2')
+    s.send({ type: 'setPartVoice', part: 0, program: 12 })
+    flushSync()
+    expect(a2.getAttribute('aria-label')).toBe('Quick Rack A2, Ballad, loaded, modified')
+  })
+
+  it('a long press or right-click saves the live rack over a button in one step (storeRack)', async () => {
+    const s = setup()
+    renderPage()
+    await storeAs(0, 'Ballad')
+    s.send({ type: 'setPartVoice', part: 0, program: 12 })
+    flushSync()
+    await fireEvent.contextMenu(tipped('quick.3')[0])
+    flushSync()
+    expect(s.state.quickRacks.buttons[2]).toMatchObject({ loaded: true })
+    expect(s.state.quickRacks.store).toBe(false)
+  })
+
+  it('Rack ◀ ▶ step through the stored racks of the bank', async () => {
+    const s = setup()
+    renderPage()
+    await storeAs(0, 'Ballad')
+    s.send({ type: 'newRack', discard: true })
+    s.send({ type: 'setPartVoice', part: 0, program: 40 })
+    flushSync()
+    await storeAs(2, 'Strings')
+    await click(tipped('quick.prev')[0])
+    expect(s.state.liveRack.name).toBe('Ballad')
+    expect(s.state.quickRacks.buttons[0].loaded).toBe(true)
+    await click(tipped('quick.next')[0])
+    expect(s.state.liveRack.name).toBe('Strings')
+  })
+
+  it('One Touch: a press applies it, the select picks what it loads, Link and its timing switch', async () => {
+    const s = new MockSession({ demo: true, manual: true })
+    app.attach(s)
+    renderPage()
+    await storeAs(0, 'Ballad')
+    const ballad = s.state.liveRack.id!
+    await click(tipped('ots.2')[0])
+    expect(s.state.ots.applied).toBe(2)
+    expect(tipped('ots.2')[0].getAttribute('aria-pressed')).toBe('true')
+    const pick = tipped<HTMLSelectElement>('ots.rack')[0]
+    await fireEvent.change(pick, { target: { value: ballad } })
+    flushSync()
+    expect(s.state.ots.racks[0]).toMatchObject({ rack: ballad, name: 'Ballad' })
+    expect(tipped<HTMLSelectElement>('ots.rack')[0].value).toBe(ballad)
+    await fireEvent.change(tipped<HTMLSelectElement>('ots.rack')[0], { target: { value: '' } })
+    flushSync()
+    expect(s.state.ots.racks[0].rack).toBeNull()
+    const link = s.state.ots.link
+    await click(tipped('ots.link')[0])
+    expect(s.state.ots.link).toBe(!link)
+    const [immediate] = tipped('ots.link_timing')
+    await click(immediate)
+    expect(s.state.ots.linkTiming).toBe('immediate')
+  })
+
+  it('Library › Racks opens the Library on its Racks page', async () => {
+    setup()
+    renderPage()
+    await click(tipped('quick.library')[0])
+    expect(ui.view).toBe('library')
+    expect(ui.libraryTab).toBe('racks')
   })
 })
 
@@ -298,7 +451,7 @@ describe('Quick Racks in the mock', () => {
     expect([pad(115).label, pad(115).key]).toEqual(['OTS 4', '⇧4'])
     expect([pad(116).action, pad(116).key, pad(116).level, pad(117).level]).toEqual([{ type: 'stepQuickRackBank', delta: -1 }, '⇧O', 'off', 'dim'])
     expect([pad(118).label, pad(118).key, pad(118).action]).toEqual(['STORE', 'F5', { type: 'toggleQuickRackStore' }])
-    expect([pad(119).label, pad(119).key, pad(119).action, pad(119).level]).toEqual(['', '', null, 'off'])
+    expect([pad(119).label, pad(119).key, pad(119).action, pad(119).level]).toEqual(['UNDO', '', { type: 'undoQuickRackStore' }, 'off'])
     s.send({ type: 'toggleQuickRackStore' })
     expect([pad(96).anim, pad(118).anim]).toEqual(['flash', 'flash'])
     s.send({ type: 'pressQuickRack', slot: 0 })
@@ -333,23 +486,10 @@ describe('Quick Racks in the mock', () => {
     for (const k of ['F6', 'F11', 'F12', '<', '>']) expect(BINDINGS[k], k).toBeUndefined()
   })
 
-  it('a Racks page pad on the mirror loads its rack', async () => {
-    const s = setup()
-    s.send({ type: 'toggleQuickRackStore' })
-    s.send({ type: 'pressQuickRack', slot: 2 })
-    s.send({ type: 'saveRackAs', name: 'Organ' })
-    s.send({ type: 'newRack' })
-    s.send({ type: 'setPadPage', page: 'racks' })
-    flushSync()
-    render(Launchkey)
-    await click(q('.pad[data-note="98"]'))
-    expect(s.state.liveRack.name).toBe('Organ')
-    expect(s.state.quickRacks.buttons[2].loaded).toBe(true)
-  })
 })
 
 describe('Library › Racks', () => {
-  it('opens from nav "Quick Racks" and loads your racks (double-click), labelled with their Quick Rack button', async () => {
+  it('opens with Alt+R and loads your racks (double-click), labelled with their Quick Rack button', async () => {
     const s = setup()
     render(App, { props: { session: s } })
     s.send({ type: 'toggleQuickRackStore' })
@@ -358,18 +498,20 @@ describe('Library › Racks', () => {
     s.send({ type: 'newRack' })
     s.send({ type: 'setPartVoice', part: 0, program: 3 })
     flushSync()
-    const nav = [...document.querySelectorAll('nav.quick-nav button')].find((b) => b.textContent!.trim() === 'Quick Racks')!
-    await click(nav)
+    // Alt+Q shows the Quick Racks page tab; Alt+R is Library › Racks.
+    expect(NAV.find((n) => n.label === 'Quick Racks')!.key).toBe('alt+q')
+    expect(NAV.find((n) => n.key === 'alt+r')!.tip).toBe('library.tab_racks')
+    await fireEvent.keyDown(window, { key: 'r', code: 'KeyR', altKey: true })
+    flushSync()
     expect(ui.view).toBe('library')
     expect(ui.libraryTab).toBe('racks')
-    const rack = tipped('library.rack_row')
+    const rack = tipped('library.rack_row').filter((el) => el.getAttribute('role') === 'option')
     expect(rack.map((b) => b.textContent)).toEqual([expect.stringContaining('Ballad')])
     expect(rack[0].textContent).toContain('A1')
     await fireEvent.dblClick(rack[0])
     flushSync()
-    // The prompt is asked in the docked Rack panel, not the Quick Racks bar; no drawer opens.
-    expect(ui.rack).toBe(false)
-    expect(document.querySelector('.library-slot .qbar')!.textContent).not.toContain('Ballad?')
+    // The prompt is asked in the Rack drawer, which opens over Library.
+    expect(ui.rack).toBe(true)
     expect(tipped('rack.discard_switch')).toHaveLength(1)
     await click(tipped('rack.discard_switch')[0])
     expect(s.state.liveRack).toMatchObject({ name: 'Ballad', modified: false })

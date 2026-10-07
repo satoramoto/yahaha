@@ -1,6 +1,7 @@
 //! Quick Racks in the dev mock (docs/app-api.md › Quick Racks), kept in memory: press
 //! (through the rack guard), Store (waiting for the save when the rack is unsaved), bank
-//! −/+, clear, previous/next rack, `storeRack`, the Racks pad page. As mock-quick-racks.ts.
+//! −/+ and set, clear, previous/next rack, `storeRack`, undo of the last store, the lit
+//! button's clean recall (a Recovered rack), the Racks pad page. As mock-quick-racks.ts.
 //! The mock has no hardware, so every press takes the app's path.
 
 use super::MockSession;
@@ -16,7 +17,14 @@ pub(super) struct MockQuick {
     bank: u8,
     store: bool,
     waiting: Option<(u8, u8)>,
+    /// The last store (`quickRacks.undo`) and the rack id the button held before it.
+    undo: Option<(QuickRackUndo, Option<String>)>,
 }
+
+/// The rack the hardware keeps unsaved changes in, and the one a store over a rack keeps
+/// its old content in (the session's names).
+const RECOVERED: &str = "Recovered: ";
+const PREVIOUS: &str = "Previous: ";
 
 fn label(bank: u8, slot: u8) -> String {
     format!("{}{}", (b'A' + bank) as char, slot + 1)
@@ -29,7 +37,7 @@ impl MockQuick {
 
     /// The bank the Racks page shows, for the live rack `live`.
     fn panel(&self, live: Option<&str>) -> QuickPanel {
-        let mut p = QuickPanel { bank: self.bank, store: self.store, ..QuickPanel::default() };
+        let mut p = QuickPanel { bank: self.bank, store: self.store, undo: self.undo.is_some(), ..QuickPanel::default() };
         for s in 0..SLOTS as u8 {
             if let Some(id) = self.get(self.bank, s) {
                 p.stored |= 1 << s;
@@ -63,8 +71,10 @@ impl MockQuick {
             store: self.store,
             store_waiting: self.waiting.filter(|w| w.0 == self.bank).map(|w| w.1),
             read_only: false,
+            undo: self.undo.as_ref().map(|u| u.0.clone()),
         };
-        if layer.pads(st.pads.page) == Page::Racks {
+        // Under the fader hold the pads are the fader picker (`MockSession::derive`).
+        if layer != Layer::Fader && layer.pads(st.pads.page) == Page::Racks {
             let panel = lk::Panel { page: Page::Racks, layer, ..super::lk_panel(st, self.panel(live.as_deref())) };
             st.pads.pads = lk::racks_looks(&panel)
                 .iter()
@@ -127,6 +137,13 @@ impl MockSession {
             QuickRackCmd::StepQuickRackBank { delta } => {
                 self.quick.bank = (self.quick.bank as i16 + delta.signum() as i16).clamp(0, BANKS as i16 - 1) as u8;
             }
+            QuickRackCmd::SetQuickRackBank { bank } => {
+                if bank as usize >= BANKS {
+                    return self.message(format!("no Quick Rack bank {}", bank as usize + 1), true);
+                }
+                self.quick.bank = bank;
+            }
+            QuickRackCmd::UndoQuickRackStore => self.undo_quick(),
             QuickRackCmd::ToggleQuickRackStore => {
                 self.quick.store = !self.quick.store;
                 self.quick.waiting = None;
@@ -146,6 +163,7 @@ impl MockSession {
                     return self.message(format!("no Quick Rack {bank}:{slot}"), true);
                 }
                 self.quick.banks[bank as usize][slot as usize] = None;
+                self.quick.undo = None;
             }
             QuickRackCmd::StepQuickRack { delta, discard } => {
                 let bank = self.quick.bank;
@@ -176,13 +194,71 @@ impl MockSession {
             return self.message(format!("Quick Rack {}'s rack is gone", label(bank, slot)), true);
         }
         self.quick.waiting = None;
+        // The lit button recalls its rack clean with no prompt, keeping unsaved changes as
+        // "Recovered: <name>", as the hardware does.
+        let lr = &self.state.live_rack;
+        if !discard && lr.modified && lr.id.as_deref() == Some(id.as_str()) {
+            return self.recall_clean(id);
+        }
         self.rack_cmd(RackCmd::LoadRack { id, discard });
+    }
+
+    /// Load rack `id` with no prompt, keeping unsaved changes first as "Recovered: <name>"
+    /// (the session's `switch_rack_unattended`).
+    fn recall_clean(&mut self, id: String) {
+        let lr = &self.state.live_rack;
+        if lr.modified {
+            let racks = self.racks.entries();
+            let base = format!("{RECOVERED}{}", lr.name);
+            let name = yahaha::racks::quick::unique_name(&base, |n| racks.iter().any(|r| r.name.eq_ignore_ascii_case(n)));
+            if self.save_live(Some(name)).is_none() {
+                return self.message("the unsaved rack was not kept", true);
+            }
+        }
+        self.rack_cmd(RackCmd::LoadRack { id, discard: true });
+    }
+
+    /// Before a store saves over rack `id`: keep its content as "Previous: <name>",
+    /// replacing a rack of that name. That rack's id and name, if kept.
+    fn keep_previous(&mut self, id: &str) -> Option<(String, String)> {
+        let before = self.racks.entries();
+        let name = format!("{PREVIOUS}{}", before.iter().find(|r| r.id == id)?.name);
+        if let Some(old) = before.iter().find(|r| r.name == name) {
+            if self.state.live_rack.id.as_deref() == Some(old.id.as_str()) {
+                return None;
+            }
+            self.cmd(AppCmd::Rack(RackCmd::DeleteRack { id: old.id.clone() }));
+        }
+        self.rack_cmd(RackCmd::DuplicateRack { id: id.to_string() });
+        let copy = self.racks.entries().into_iter().find(|r| !before.iter().any(|b| b.id == r.id))?.id;
+        self.rack_cmd(RackCmd::RenameRack { id: copy.clone(), name: name.clone() });
+        Some((copy, name))
+    }
+
+    /// `undoQuickRackStore`: the button gets back what it held; the "Previous: <name>" rack
+    /// is gone. A live rack that is the restored one reloads, keeping changes made since the
+    /// store as "Recovered: <name>" (the mock keeps no rack content, so only that shows).
+    fn undo_quick(&mut self) {
+        let Some((u, rack)) = self.quick.undo.take() else {
+            return self.message("Nothing to undo", true);
+        };
+        self.quick.banks[u.bank as usize][u.slot as usize] = rack.clone();
+        if let Some(prev) = &u.previous {
+            let kept = self.racks.entries().into_iter().find(|r| r.name == *prev);
+            if let Some(kept) = kept.filter(|k| self.state.live_rack.id.as_deref() != Some(k.id.as_str())) {
+                self.cmd(AppCmd::Rack(RackCmd::DeleteRack { id: kept.id }));
+            }
+            if let Some(id) = rack.clone().filter(|_| self.state.live_rack.id == rack) {
+                self.recall_clean(id);
+            }
+        }
+        self.message(format!("Undid the store on Quick Rack {}", label(u.bank, u.slot)), false);
     }
 
     fn store_quick(&mut self, bank: u8, slot: u8) {
         let lr = &self.state.live_rack;
         match lr.id.clone().filter(|id| !lr.modified && self.racks.entries().iter().any(|r| r.id == *id)) {
-            Some(id) => self.put_quick(bank, slot, id),
+            Some(id) => self.put_quick(bank, slot, id, None),
             None => {
                 self.quick.waiting = Some((bank, slot));
                 self.message(format!("Save the rack first; then it goes on Quick Rack {}", label(bank, slot)), false);
@@ -199,9 +275,20 @@ impl MockSession {
         let modified = self.state.live_rack.modified;
         let own = self.state.live_rack.id.clone().filter(|id| racks.iter().any(|r| r.id == *id));
         let lit = own.is_some() && self.quick.get(bank, slot) == own.as_deref();
+        let mut previous = None;
         let id = match own {
             Some(id) if !modified => Some(id),
-            Some(_) if lit => self.save_live(None),
+            // Saved over its own rack: its old content is kept as "Previous: <name>".
+            Some(id) if lit => {
+                let kept = self.keep_previous(&id);
+                let saved = self.save_live(None);
+                match kept {
+                    Some((copy, _)) if saved.is_none() => self.cmd(AppCmd::Rack(RackCmd::DeleteRack { id: copy })),
+                    Some((_, name)) => previous = Some(name),
+                    None => {}
+                }
+                saved
+            }
             _ => {
                 let sounds: Vec<&str> = self.state.keyboard_parts.iter().filter(|k| k.on).map(|k| k.voice_name.as_str()).collect();
                 let base = yahaha::racks::quick::name_from_sounds(sounds).unwrap_or_else(|| "New Rack".into());
@@ -210,7 +297,7 @@ impl MockSession {
             }
         };
         match id {
-            Some(id) => self.put_quick(bank, slot, id),
+            Some(id) => self.put_quick(bank, slot, id, previous),
             None => self.message("the rack was not saved", true),
         }
     }
@@ -233,7 +320,17 @@ impl MockSession {
         lr.id.clone().filter(|_| !lr.modified && lr.prompt.is_none())
     }
 
-    fn put_quick(&mut self, bank: u8, slot: u8, id: String) {
+    /// Rack `id` on button (`bank`, `slot`); `previous` names the "Previous: <name>" rack
+    /// kept when the store saved over the button's own rack. A store that changes the
+    /// button or saves over a rack is the one `undoQuickRackStore` takes back.
+    fn put_quick(&mut self, bank: u8, slot: u8, id: String, previous: Option<String>) {
+        let old = self.quick.banks[bank as usize][slot as usize].clone();
+        if old.as_deref() != Some(id.as_str()) || previous.is_some() {
+            let racks = self.racks.entries();
+            let held = old.and_then(|o| racks.into_iter().find(|r| r.id == o));
+            let (rack, name) = held.map_or((None, String::new()), |r| (Some(r.id), r.name));
+            self.quick.undo = Some((QuickRackUndo { bank, slot, name, previous }, rack));
+        }
         self.quick.banks[bank as usize][slot as usize] = Some(id);
         self.quick.store = false;
         self.quick.waiting = None;
@@ -249,7 +346,7 @@ impl MockSession {
             RackCmd::SaveRack { .. } | RackCmd::SaveRackAs { .. } => {
                 let lr = &self.state.live_rack;
                 if let (Some((bank, slot)), Some(id), false) = (self.quick.waiting, lr.id.clone(), lr.modified || lr.prompt.is_some()) {
-                    self.put_quick(bank, slot, id);
+                    self.put_quick(bank, slot, id, None);
                 }
             }
             RackCmd::DeleteRack { id } if !self.racks.entries().iter().any(|r| r.id == *id) => {

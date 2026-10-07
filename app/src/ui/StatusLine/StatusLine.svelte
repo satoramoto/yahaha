@@ -3,11 +3,29 @@
   refused (`state.message`). An error leads with the ⚠; a click, Enter or Space asks the parent to
   clear it (`onclear`). Empty, the 20px row stays so the keys never move. The contents are keyed
   on `seq`, so the same text sent twice is announced twice while the button keeps its focus.
+  With a `hint` (the hovered or focused control's tooltip) the line shows the hint instead; the
+  message stays in the live region, visually hidden, so a new one is still announced (D13).
 -->
+<script lang="ts" module>
+  /** A control's tooltip, shown in the line's place while the control is hovered or focused. */
+  export type StatusHint = {
+    /** The entry's title. */
+    title: string
+    /** What the control does. */
+    body: string
+    /** Its keys, already labelled ("Y", "Shift+Y / F5"). */
+    keys?: string | null
+    /** Where it is on the Launchkey. */
+    launchkey?: string | null
+  }
+</script>
+
 <script lang="ts">
   import type { Action } from 'svelte/action'
 
   type Props = {
+    /** The hovered or focused control's tooltip: shown in place of the message while set. */
+    hint?: StatusHint | null
     /** `message.text`. `null` or `''`: no message, the line is empty. */
     text?: string | null
     /** `message.error`: the ⚠ shows before the text. Ignored while there is no text. */
@@ -24,7 +42,7 @@
     onclear?: () => void
   }
 
-  let { text = null, error = false, seq = 0, width, tip = 'display.status', tipAction, onclear }: Props = $props()
+  let { hint = null, text = null, error = false, seq = 0, width, tip = 'display.status', tipAction, onclear }: Props = $props()
 
   /** Applies the parent's tooltip action when both it and a key are given. */
   const tipped: Action<HTMLElement, string | null | undefined> = (node, key) => {
@@ -39,9 +57,23 @@
   }
 </script>
 
+<!-- The hint is hidden from the live region: the focused control already points
+     aria-describedby at its own entry, and hovering shouldn't read out every control the
+     pointer crosses. The blocks touch, so an empty line has no text at all. -->
 <p class="status" role="status" aria-live="polite" style:width={width === undefined ? undefined : `${width}px`}>
-  {#if text}
-    <button type="button" class="line" data-tip={tip ?? undefined} use:tipped={tip} onclick={() => onclear?.()}>
+  {#if hint}
+    <span class="hint" aria-hidden="true">
+      <span class="hint-title">{hint.title}</span>
+      <span class="hint-body">{hint.body}</span>
+      {#if hint.keys || hint.launchkey}
+        <span class="hint-meta">
+          {#if hint.keys}<span>Key {hint.keys}</span>{/if}
+          {#if hint.launchkey}<span>Launchkey: {hint.launchkey}</span>{/if}
+        </span>
+      {/if}
+    </span>
+  {/if}{#if text}
+    <button type="button" class="line" class:under={hint} data-tip={tip ?? undefined} use:tipped={tip} onclick={() => onclear?.()}>
       {#key seq}
         {#if error}
           <svg aria-hidden="true" data-hue="warn" class="warn" width="12" height="12" viewBox="0 0 12 12">
@@ -68,10 +100,8 @@
     margin: 0;
     overflow: visible;
     background: transparent;
-    font-family: var(--font-sans);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
-    line-height: var(--space-20);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
   }
   .line {
@@ -111,6 +141,42 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* The hint: title, then what it does (ends in "…"), then the keys and Launchkey place at the
+     right, which give way first when the line is short. */
+  .hint {
+    display: flex;
+    align-items: center;
+    gap: var(--space-16);
+    width: 100%;
+    min-width: 0;
+    height: var(--space-20);
+    white-space: nowrap;
+  }
+  .hint-title {
+    flex: none;
+    color: var(--t);
+    font: var(--type-strong);
+    letter-spacing: var(--tracking-strong);
+  }
+  .hint-body {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--t2);
+  }
+  .hint-meta {
+    flex: 0 100 auto;
+    display: flex;
+    gap: var(--space-16);
+    min-width: 0;
+    margin-left: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--m);
+  }
+  /* Under a hint, the message keeps its place in the live region but isn't drawn. */
+  .line.under,
   .hidden-word {
     position: absolute;
     width: 1px;

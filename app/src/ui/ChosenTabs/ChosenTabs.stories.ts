@@ -7,8 +7,11 @@ import { displayPageTabs, faderPageTabs, fullPageTabs, layerTabs } from './Chose
 const ALL_IDS = [...new Set([displayPageTabs, fullPageTabs, faderPageTabs, layerTabs].flat().map((tab) => tab.id))]
 
 /**
- * A short run of choices side by side, the chosen one on a white block: the app's pages,
- * the fader page and the fader layer. The parent owns `chosen`; a click only calls `onchoose`.
+ * The one tab style for every one-of-many choice in a header: a short run of `--type-text` labels,
+ * the chosen one on a solid `--neutral` block (`--tab-block` tall) in `--on-ink`, the rest in
+ * `--tab-rest` with no outline: the app's pages, the fader page and layer, the knob page, the pad
+ * bank. Every `size` draws the same; it sets only the kind (page navigation or a tablist). The
+ * parent owns `chosen`; a click only calls `onchoose`.
  */
 const meta = {
   title: 'Primitives/ChosenTabs',
@@ -27,7 +30,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 /**
- * The app bar's first run: Stage on the 24px white block, Channel … Harm/Arp grey. Page tabs are
+ * The app bar's first run: Stage on the `--neutral` block, Channel … Harm/Arp in `--tab-rest`. Page tabs are
  * buttons with `aria-current`; a click calls through and leaves `chosen` to the parent.
  */
 export const Board: Story = {
@@ -63,7 +66,12 @@ export const Board: Story = {
   },
 }
 
-/** The band header's fader layer: a tablist of five, Vol chosen. */
+/** The band header's fader page: Panel on the same `--neutral` block as every other run. */
+export const FaderPage: Story = {
+  args: { tabs: faderPageTabs, chosen: faderPageTabs[0].id, label: 'Fader page (master button)' },
+}
+
+/** The band header's fader layer: a tablist of five, Vol chosen on the same `--neutral` block. */
 export const Layers: Story = {
   args: { tabs: layerTabs, chosen: 'volume', label: 'Fader layer' },
   play: async ({ canvasElement }) => {
@@ -77,6 +85,7 @@ export const Layers: Story = {
       'Delay send',
     ])
     await expect(canvas.getByRole('tab', { name: 'Volume' })).toHaveAttribute('aria-selected', 'true')
+    await expect(canvas.getByRole('tablist')).not.toHaveAttribute('data-tone')
   },
 }
 
@@ -120,7 +129,7 @@ export const Arrows: Story = {
   },
 }
 
-/** A disabled tab: "Style" in `--d`, skipped by clicks and arrows. */
+/** A disabled tab: "Style" in `--absent`, skipped by clicks and arrows. */
 export const Disabled: Story = {
   args: {
     tabs: [faderPageTabs[0], { ...faderPageTabs[1], disabled: true }],

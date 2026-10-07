@@ -185,11 +185,11 @@ Style Section Reset, the Fade In/Out times and the Style Retrigger length. The s
 
 | Command | Fields | Does |
 |---|---|---|
-| `setFaderPage` / `toggleFaderPage` | `page`: `panel` \| `style` | What the Launchkey faders control. |
-| `setFaderLayer` | `layer`: `volume` \| `pan` \| `reverb` \| `chorus` \| `delay` | The fader layer (the mixer's VOL · PAN · REV · CHO · DLY): what the faders move across the parts. Volume: each part's CC7 (as always). A send layer: Panel faders 1–4 move Right 1–3 and Left's pan / CC91 / CC93 / CC94 (as `setPartPan` / `setPartSend`, with soft takeover); Style faders 1–8 move the Style parts' reverb / chorus / delay sends (as `setStylePartSend`, with soft takeover; the Style parts have no pan, so PAN leaves them alone). Faders 5–6 on the Panel page stay the Style and Multi Pad levels, and the master fader stays the master. On the Launchkey, **Shift + the master fader's button** steps the layer; the button alone still switches the page. |
+| `setFaderPage` / `toggleFaderPage` | `page`: `panel` \| `style` | What the Launchkey faders control. On the Launchkey a tap of the master fader's button toggles it (on release); holding the button shows the fader picker on the pads (see `setLayer`). |
+| `setFaderLayer` | `layer`: `volume` \| `pan` \| `reverb` \| `chorus` \| `delay` | The fader layer (the mixer's VOL · PAN · REV · CHO · DLY): what the faders move across the parts. Volume: each part's CC7 (as always). A send layer: Panel faders 1–4 move Right 1–3 and Left's pan / CC91 / CC93 / CC94 (as `setPartPan` / `setPartSend`, with soft takeover); Style faders 1–8 move the Style parts' reverb / chorus / delay sends (as `setStylePartSend`, with soft takeover; the Style parts have no pan, so PAN leaves them alone). Faders 5–6 on the Panel page stay the Style and Multi Pad levels, and the master fader stays the master. On the Launchkey, **Shift + the master fader's button** steps the layer; a tap of the button alone still switches the page, and holding it lets the pads pick the page and layer (the fader picker, `setLayer` `fader`). |
 | `stepFaderLayer` | `delta` | The next/previous fader layer, wrapping (VOL → PAN → REV → CHO → DLY → VOL). |
 | `setPadPage` | `page`: `sections` \| `racks` \| `chord` \| `multiPads` \| `setup` | The Launchkey pad page (see [`pads`](#pads)). Refused (`Failed`, with a message) for a page left out of the page order (`setPadPageOrder`). The old names are still read: `otsParts`, `quickRacks` and `registration` as `racks`, `chordSetup` as `chord`. |
-| `setLayer` | `layer`: Layer | The app's mirror of the Launchkey's holds (parity; see [`surface`](#surface) `layer`): `{"type":"sound"}` does what holding Sound (Panel fader button 6) does: the pads act and light as the Racks page from any page (`pads.pageName` "Racks", `pads.page` unchanged), and a tap on the lit or an empty Quick Rack pad captures the live rack (`storeRack`). `{"type":"swap","part":1}` is a part's Panel fader button held with a knob turned: the knobs are that part's (`knobs.pageName` "Swap R1"…, and `turnKnob` acts as `turnSwapKnob`). `{"type":"none"}` releases either, as the Launchkey's release does (leaving swap mode commits it). Refused (`Failed`) for a part outside 0–3. Example: `{"type":"setLayer","layer":{"type":"swap","part":1}}`. |
+| `setLayer` | `layer`: Layer | The app's mirror of the Launchkey's holds (parity; see [`surface`](#surface) `layer`): `{"type":"sound"}` does what holding Sound (Panel fader button 6) does: the pads act and light as the Racks page from any page (`pads.pageName` "Racks", `pads.page` unchanged), and a tap on the lit or an empty Quick Rack pad captures the live rack (`storeRack`). `{"type":"swap","part":1}` is a part's Panel fader button held with a knob turned: the knobs are that part's (`knobs.pageName` "Swap R1"…, and `turnKnob` acts as `turnSwapKnob`). `{"type":"fader"}` does what holding the master fader's button does: the pads are the fader picker from any page (`pads.pageName` "Faders", `pads.page` unchanged): top row PANEL and STYLE (`setFaderPage`), bottom row VOL, PAN, REV, CHO, DLY (`setFaderLayer`), the current page and layer bright, the other choices dim, the rest dark. `{"type":"none"}` releases any of them, as the Launchkey's release does (leaving swap mode commits it; releasing `fader` here switches no page: the app sends `toggleFaderPage` for a tap). Refused (`Failed`) for a part outside 0–3. Example: `{"type":"setLayer","layer":{"type":"swap","part":1}}`. |
 | `cyclePadPage` | `delta` | Steps the pad page through the page order (`pads.pages`), wrapping. |
 | `setPadPageOrder` | `pages`: Page[] | The order of pad pages 2–5 (Settings › Launchkey), for example `{"type":"setPadPageOrder","pages":["racks","chord","multiPads","setup"]}` (the default). Sections is always page 1; Pad Bank ▲/▼ (which stop at either end) and `cyclePadPage` walk Sections, then `pages`. A page left out can't be paged to, but holding Sound still shows the Racks pads. On a page left out, the pads go to Sections. Refused (`Failed`) if `pages` names `sections`, names a page twice, or has more than four; nothing changes. Saved in `settings.json` (`settings.padPages`). |
 | `setMasterVolume` | `volume` 0–127 | Synth master (100 = unity). Fails when the synth is off. |
@@ -719,11 +719,13 @@ a button of the bank on view, 0–7.
 
 | Command | Fields | What it does |
 |---|---|---|
-| `pressQuickRack` | `slot`, `discard`? | Not armed: loads the button's rack as `loadRack` does, with the same guard (`{"kind":"unsavedChanges"}` and `liveRack.prompt`; `discard: true` switches anyway). Armed (`toggleQuickRackStore`): stores the live rack on the button and disarms. A live rack with unsaved changes, or never saved, isn't stored yet: `quickRacks.storeWaiting` holds the button until `saveRack` / `saveRackAs` succeeds, which stores the saved rack there. Fails for an empty button, or one whose rack is gone. Slots 8 and 9 run on into the next bank's 1 and 2 (the `regist9`/`regist10` pedal functions). |
+| `pressQuickRack` | `slot`, `discard`? | Not armed: loads the button's rack as `loadRack` does, with the same guard (`{"kind":"unsavedChanges"}` and `liveRack.prompt`; `discard: true` switches anyway). On the lit button (the live rack's own rack) it recalls that rack clean with no prompt, keeping unsaved changes as a `Recovered: <name>` rack, as the Launchkey and pedals do; with `discard: true` it recalls without keeping them. Armed (`toggleQuickRackStore`): stores the live rack on the button and disarms. A live rack with unsaved changes, or never saved, isn't stored yet: `quickRacks.storeWaiting` holds the button until `saveRack` / `saveRackAs` succeeds, which stores the saved rack there. Fails for an empty button, or one whose rack is gone. Slots 8 and 9 run on into the next bank's 1 and 2 (the `regist9`/`regist10` pedal functions). |
 | `stepQuickRackBank` | `delta` | Bank −/+: views the previous/next bank. It stops at A and at H. |
+| `setQuickRackBank` | `bank` 0–7 | Views bank `bank` (0 = A … 7 = H). Refused (`Failed`) outside 0–7. Example: `{"type":"setQuickRackBank","bank":2}`. |
 | `toggleQuickRackStore` | | Store: arms or disarms it for the next press. Disarming lets a waiting button go. |
-| `storeRack` | `slot` 0–7 | Captures the live rack on button `slot` of the bank on view in one step, with no arming and no save dialog. On the lit button (the live rack's own rack) that rack is overwritten with the live rack (saved, as `saveRack`). On any other button a saved, unmodified live rack goes on as it is; otherwise the live rack is saved as a new rack named from its on parts' sounds ("Rhodes Soft + Strings", numbered if taken) and goes on. Store armed clears. On the Launchkey: hold Sound (Panel fader button 6) and tap the lit or an empty Quick Rack pad; a pad holding another rack recalls it. Refused (`Failed`) for a slot outside 0–7. Example: `{"type":"storeRack","slot":0}`. |
-| `clearQuickRack` | `bank` 0–7, `slot` 0–7 | Empties a button. |
+| `storeRack` | `slot` 0–7 | Captures the live rack on button `slot` of the bank on view in one step, with no arming and no save dialog. On the lit button (the live rack's own rack) that rack is overwritten with the live rack (saved, as `saveRack`); with unsaved changes, the rack as it was is first kept as a `Previous: <name>` rack (one per rack name, replaced by the next such store), which `undoQuickRackStore` puts back. On any other button a saved, unmodified live rack goes on as it is; otherwise the live rack is saved as a new rack named from its on parts' sounds ("Rhodes Soft + Strings", numbered if taken) and goes on. Store armed clears. Every store that changes a button or saves over a rack sets `quickRacks.undo`. On the Launchkey: hold Sound (Panel fader button 6) and tap the lit or an empty Quick Rack pad; a pad holding another rack recalls it. Refused (`Failed`) for a slot outside 0–7. Example: `{"type":"storeRack","slot":0}`. |
+| `undoQuickRackStore` | | Undoes the last store (`quickRacks.undo`): the button gets back the rack it held (or empty). When the store saved over the lit button's own rack (`storeRack` on the lit button with unsaved changes, or the Sound-hold tap), that rack gets back its old content from the `Previous: <name>` rack, which the store kept and the undo removes (it stays if a Quick Rack button names it). If that rack is the live rack, it is then reloaded, so what plays matches the restored rack (`liveRack.modified` false); unsaved changes the live rack had at undo time (made since the store) are first kept as a `Recovered: <name>` rack, as a recall of the lit button from the hardware does. Sounds saved over by that save stay saved. Clears `quickRacks.undo`. Refused (`Failed`) with nothing to undo, or when the rack or its Previous copy is gone. A new store replaces the undo and `clearQuickRack` drops it; it is kept in memory only, not across restarts. On the Launchkey: the Racks pad page's Undo pad (bottom row pad 8, note 119), lit dim orange while `quickRacks.undo` is set and dark otherwise (pressed then, it says "Nothing to undo"); it has no keyboard key. Example: `{"type":"undoQuickRackStore"}`. |
+| `clearQuickRack` | `bank` 0–7, `slot` 0–7 | Empties a button. Drops `quickRacks.undo`. |
 | `stepQuickRack` | `delta`, `discard`? | Previous/next rack in the bank on view: the stored button before/after the lit one (from none, + the first and − the last; it stops at either end), loaded as `pressQuickRack` loads. Fails when the bank has no racks. |
 
 `deleteRack` empties every button naming that rack; `dismissRackPrompt`, or loading
@@ -765,12 +767,13 @@ The session owns the Launchkey, so it works the same whichever client is running
   against session-internal atomics), Pad Bank ▲/▼ and the fader-page button. A pad
   pressed straight after a page change must already read the new page. Pad Bank ▲/▼
   walk the page order (`settings.padPages`). The holds are read there too: Sound (fader
-  button 6, either fader page) and a Panel fader button 1–4 held while a knob turns
+  button 6, either fader page), the master fader's button (the fader picker; a tap toggles
+  the fader page on release) and a Panel fader button 1–4 held while a knob turns
   (swap mode) set `surface.layer`; a Panel fader button 1–4 toggles its part on release
   when no knob turned. In swap mode the knobs are the held part's (`turnSwapKnob`). Under
   Sound, a tap on the lit or an empty Quick Rack pad captures the live rack there
   (`storeRack`, one step, no dialog); a pad holding another rack recalls it. The app
-  mirrors both holds with `setLayer`. A Panel fader 1–4
+  mirrors the holds with `setLayer`. A Panel fader 1–4
   that the live rack's controller map gives another target than its own part's level
   becomes `moveRackFader` (Volume layer; none does nothing); the map reaches the MIDI
   thread as a fixed table, updated when it changes.
@@ -860,7 +863,7 @@ Indices are 0-based unless a field says otherwise.
 | `pan` | 0–127 | Pan (CC10): 0 left, 64 centre, 127 right. 64 until something sets it (`setPartPan`, a library patch, an OTS). |
 | `reverb`, `chorus` | 0–127 | *Superseded by `strip.sends[0]` and `[1]` (always the same values); still sent.* Reverb and chorus send depth (CC91, CC93). Until something sets them (`setPartSend`, a library patch, an OTS), Genos-like defaults sent at start: reverb 50 and chorus 10 on Right 1–3, reverb 40 and chorus 10 on Left. They go out again after a Panic, a Reset All Controllers from the keyboard, or a new synth. |
 | `variation` | 0–127 | *Superseded by `strip.sends[2]`; still sent.* Variation send depth (CC94): the effect bus's tempo delay. 0 until something sets it. |
-| `eq` | PartEq | *Superseded by `strip.eq` (always the same); still sent.* Its channel-strip EQ (`setPartEq`): `lowGain`, `highGain` (dB, −12..12) and `lowFreq`, `highFreq` (Hz). Flat (0 dB, 80 Hz, 0 dB, 10000 Hz) until something sets it. An OTS recall sets it from the OTS's XG part EQ (bass/treble gain and frequency, XG multi part 72H, 73H, 76H, 77H: 40H = 0 dB, 1 dB a step, frequencies from the XG EQ frequency table), the bands it leaves out flat; a part the OTS gives a voice but no EQ goes flat; any other part keeps its EQ. A voice change keeps it. |
+| `eq` | PartEq | *Superseded by `strip.eq` (always the same); still sent.* Its channel-strip EQ (`setPartEq`): `lowGain`, `highGain` (dB, −12..12) and `lowFreq`, `highFreq` (Hz). Flat (0 dB, 80 Hz, 0 dB, 10000 Hz) until something sets it. An OTS recall sets it from the OTS's XG part EQ (bass/treble gain and frequency, XG multi part 72H, 73H, 76H, 77H: gain 00H–40H–7FH = −12…0…+12 dB, linear on each side of 40H, rounded to the dB, frequencies from the XG EQ frequency table), the bands it leaves out flat; a part the OTS gives a voice but no EQ goes flat; any other part keeps its EQ. A voice change keeps it. |
 | `insert` | PartInsert | *Superseded by `strip.inserts[0]` (its kind, `on`, and its first setting as the amount); still sent.* Its insert slot (`setKeyboardInsertEffect`, `setKeyboardInsertOn`, `setKeyboardInsertAmount`): `effect` (`distortion` \| `compressor` \| `autoWah` \| `tremolo` \| `rotary` \| `phaser`), `on`, `amount` 0–127. Off (a distortion, amount 64) until something sets it. An OTS recall sets it from the OTS's XG Insertion Effect type for the part (block n is part n: Right 1, Right 2, Right 3, Left), mapped as the Style parts' are (`effects.inserts`): on with the effect that plays it and its amount, or off when nothing here plays that type (THRU, an EQ, a delay...); a part the OTS gives a voice but no insertion type turns it off; any other part keeps its slot. A voice change and a plugin swap keep it. |
 | `fader` | 0–127? | Where its Launchkey fader (Panel page, faders 1–4) physically is, as last reported. Null until that fader moves. |
 | `plugin` | PartPlugin? | The instrument plugin the part plays instead of its SoundFont voice. The key is absent when there is none. `id`, `name`, `manufacturer`, `status` (`loading` \| `playing` \| `failed` \| `muted`: still on the SoundFont, or the previous plugin, while loading; on the SoundFont after a failed load, keeping the choice so it is saved and can be retried; silent after the plugin crashed or produced bad audio), `stage` (while loading: `queued`, `instantiating`, `initializing`, `restoringState`), `error`, `outOfProcess` (runs in its own process), `inProcessFallback` (the system refused to host it in its own process, so it loaded in yahaha's process instead: a crash in it takes yahaha down; the app shows a warning badge), `cpu` (share of real time, updated once a second), `overruns` (renders slower than half the buffer, since it loaded), `recentOverruns` (those in the last 10 seconds, updated once a second: the live readout the mixer badge shows; a larger `setAudioBuffer` gives the plugin more time), `editor` (its window can be opened), `missing` (the plugin isn't installed: the last scan did not find it. The status is `failed`, the part is silent rather than on its SoundFont voice, and its mix, sound and saved state are kept; once the plugin is back and the plugins are scanned again, it loads as it was. A plugin that is installed but fails to load is not missing). Its volume is still `volume` (CC7), and its pan is CC10; the host applies both to the plugin's output. |
@@ -930,7 +933,7 @@ control's meaning, and every LED as the hardware shows it.
 | Field | Type | Meaning |
 |---|---|---|
 | `page` | `sections` \| `racks` \| `chord` \| `multiPads` \| `setup` | The current Launchkey pad page (the pages are below). |
-| `pageName` | string | `Sections`, `Racks`, `Chord`, `Multi Pads` or `Setup`. |
+| `pageName` | string | `Sections`, `Racks`, `Chord`, `Multi Pads` or `Setup`: what the pads show (`Racks` while Sound is held; `Faders` while the master fader's button is held). |
 | `pageNumber`, `pageCount` | number | `page`'s 1-based position in the page order, and how many pages the order has: for example 3 and 5 for Chord in the default order. |
 | `pages` | object[] | The page order Pad Bank ▲/▼ and `cyclePadPage` walk: `{ page, name }` for Sections, then each page of `settings.padPages`. |
 | `pads` | Pad[16] | This page: the top row (notes 96–103), then the bottom row (112–119). |
@@ -946,7 +949,8 @@ row 112–119.
 - **Racks** (orange): top row Quick Racks 1–8 of the bank on view (red: the loaded rack,
   blue: a rack, dark: empty; all flashing while Store is armed). Bottom row OTS 1–4
   (`recallOts`; dark past the style's OTS count, bright for the one recalled), Bank −,
-  Bank +, Store (flashing red while armed), a dark pad. Rack −/+ (`stepQuickRack`) are
+  Bank +, Store (flashing red while armed), UNDO (`undoQuickRackStore`; dim orange while
+  `quickRacks.undo` is set, dark otherwise). Rack −/+ (`stepQuickRack`) are
   Shift + Track ◀ ▶.
 - **Chord** (cyan): the top row is dark; the bottom row Manual Bass, Stop ACMP, Split −,
   Split +, Keyboard Transpose −, +, Transpose reset, Retrigger.
@@ -962,6 +966,15 @@ and light as the Racks page, whatever page is on view (`surface.layer` is `sound
 held captures the live rack there in one step (`storeRack`: the lit rack is overwritten,
 otherwise it is saved as a new rack named from its sounds; no dialog); a pad holding another
 rack recalls it. The app holds Sound with `setLayer`.
+
+**Hold the master fader's button**: while it is held the pads are the fader picker,
+whatever page is on view (`surface.layer` is `fader`, `pageName` "Faders"). Top row: PANEL
+(the rack's parts, lit in the fader layer's colour) and STYLE (the band, green); bottom
+row: VOL, PAN, REV, CHO, DLY, each in its layer colour; the current page and layer bright,
+the other choices dim, the other pads dark. A pad sets the page (`setFaderPage`) or layer
+(`setFaderLayer`) at once. Release gives the page on view back. Released with no pad
+pressed, the button is a tap and switches the fader page, as before; Shift + it steps the
+layer and holds nothing. The app holds it with `setLayer`.
 
 #### Pad
 | Field | Type | Meaning |
@@ -1049,11 +1062,12 @@ The Launchkey beyond the pads.
 | Field | Type | Meaning |
 |---|---|---|
 | `shift` | bool | The Shift button is held. Show the controls' Shift layer (`shiftLabel`, `shiftAction`) while it is. The pads have no Shift layer: the firmware keeps Shift + pad for itself. |
-| `layer` | Layer | A held control has turned the pads or knobs into another surface (docs/eyes-free.md). An object with `type`: `none` (nothing held); `sound` (Panel fader button 6, Sound, is held on either fader page: the pads act and light as the Racks page, from any page); `swap`, with `part` 0–3 (a Panel fader button 1–4 is held and a knob was turned: knob 1 steps that part's sound by number, `swapSound`; knobs 2–8 are its mix; releasing commits). A hold with no knob turned is a tap: the part toggles on release. |
+| `layer` | Layer | A held control has turned the pads or knobs into another surface (docs/eyes-free.md). An object with `type`: `none` (nothing held); `sound` (Panel fader button 6, Sound, is held on either fader page: the pads act and light as the Racks page, from any page); `fader` (the master fader's button is held: the pads are the fader picker, from any page); `swap`, with `part` 0–3 (a Panel fader button 1–4 is held and a knob was turned: knob 1 steps that part's sound by number, `swapSound`; knobs 2–8 are its mix; releasing commits). A hold with no knob turned is a tap: the part toggles on release. |
 | `controls` | SurfaceControl[17] | Every button, in this order: `padBankUp`, `padBankDown`, `trackPrev`, `trackNext`, `play`, `stop`, `scene` (right of the top pad row), `function` (right of the bottom row), `faderButton1`…`faderButton8` (under the faders), `masterButton` (under the master fader). |
 | `faders` | SurfaceFader[9] | Faders 1–8 on the active fader page, then the master fader. |
 | `trackPrev`, `trackNext` | Neighbour? | Where Track ◀ / ▶ (and `stepStyle`) go: `{ id, name, path }` of the previous and next style in library order, skipping files known not to load. Null when there is nowhere to go. |
 | `clock` | ClockState | The beat clocks. See [below](#surfaceclock). |
+| `partSelectSeq` | number | Counts part selects made on the Launchkey (Shift + Panel fader button 1–4, `selectPart`) and wraps. Only those: `selectPart` from the app, its F1–F4 keys, a sound pick, or a rack or OTS load leave it alone. When it changes, the app opens the Channel page on the selected part; it never does on the first state it sees. Missing in older states: 0. |
 
 #### SurfaceControl
 | Field | Type | Meaning |
@@ -1470,6 +1484,7 @@ change on disk. A rack that can't be read is not listed.
 | `store` | bool | Store is armed: the next press stores the live rack. |
 | `storeWaiting` | 0–7? | A button of the bank on view waiting for the live rack to be saved before it is stored there. |
 | `readOnly` | bool | Quick Racks can't be changed: no data folder, or the file is from a newer yahaha (or can't be read). |
+| `undo` | QuickRackUndo? | The last store, which `undoQuickRackStore` takes back; null when there is none. `bank` (0 = A) and `slot` (0–7): the button stored on. `name`: the rack the undo puts back on it (empty when the button was empty). `previous`: the `Previous: <name>` rack's name when the store saved over a rack, else null. |
 
 ### `settings`
 The settings kept in `<data>/settings.json` and restored at start.
@@ -1478,9 +1493,37 @@ The settings kept in `<data>/settings.json` and restored at start.
 |---|---|---|
 | `padPages` | Page[] | The order of pad pages 2–5 (`setPadPageOrder`); Sections is always page 1. Default `["racks", "chord", "multiPads", "setup"]`. |
 
-The same file keeps the Setup pad page's switches, which the state shows where they act:
-the fingering type and Chord Detection Area (`chord.fingering`, `chord.upper`), OTS Link
-(`ots.link`) and the Stop ACMP mode (`transport.stopAcmpMode`).
+The same file keeps every global setting of the Settings screen, which the state shows
+where it acts. Each is saved when it changes, however it changed (the app, a Launchkey pad
+or fader, a pedal, a rack): offline at once, live once the settings have been still for
+half a second (a dragged slider is written once), and on stop. Saving runs on the control
+thread. At start each is put back before the app sees the state; a field the file lacks,
+or holds a value this build can't read, keeps its default and the rest still load. An
+older file is not rewritten until a setting changes.
+
+| Group | Saved in `settings.json` |
+|---|---|
+| Chord & Split | the fingering type and Chord Detection Area (`chord.fingering`, `chord.upper`), Manual Bass, Left Hold, the chord-settle window (`chord.manualBass`, `chord.leftHold`, `chord.settleMs`) |
+| Style | OTS Link and its timing (`ots.link`, `ots.linkTiming`), the Stop ACMP mode (`transport.stopAcmpMode`), every `styleSettings` field but `swing`, Change Behavior (`styleChange`), Auto Fill, Half Bar Fill, the Unison type (`transport.autoFill`, `transport.halfBarFill`, `transport.unisonType`), Dynamics Control, Touch and Accent (`dynamics` but `level`) |
+| Keyboard | Master Transpose (`chord.transposeMaster`) |
+| Pedals | P1–P3 (`controllers.pedals`: CC, function, control type, reverse, range) and which controllers reach each keyboard part (`controllers.parts[].sustain`, `pitchBend`, `modulation`) |
+| System | synth on/off, the output pair and the master volume (`io.synth.muted`, `io.synth.outputPair`, `mixer.master`; put back when the synth starts, and kept as saved while it doesn't), the MIDI inputs (`io.allInputs` and the sources picked), palette LEDs (`pads.paletteLeds`) |
+| Launchkey | the pad page order (`settings.padPages`) |
+
+A launch option (`--all-inputs`, `--input`, `--palette-leds`, `--audio-out`, a non-zero
+`--master-transpose`) wins over the saved setting. Kept elsewhere:
+
+- **Per rack** (the live rack, `live-rack.json`, and each saved rack): the split point,
+  Keyboard Transpose and each part's Pitch Bend Range (`controllers.parts[].bendRange`).
+- **Per style** (each style load sets them back, so nothing is saved): Swing
+  (`styleSettings.swing`) and the Dynamics level (`dynamics.level`).
+- **Not saved** (performance switches, off at start as on the Genos, where they are not
+  System settings): Style Retrigger on/off (`transport.retrigger`), Sync Stop
+  (`transport.syncStop`, which also cancels itself) and Unison latched
+  (`transport.unisonLatched`).
+- The audio buffer (`audio.json`, `setAudioBuffer`), Parameter Lock (`param-locks.json`)
+  and the app's theme (the app's local storage). The style folders and the SoundFonts are
+  folders the app is started with, not settings.
 
 ### `message`
 `{ seq, text, error }` or null. It holds the last notice or error, for example a style
@@ -2022,7 +2065,8 @@ after `"C Am F G7"`) and `library.json` (`corpus/MOX_v2`).
       "sectionAnchorBeats": 0.0,
       "ledAnchorMs": 0.0,
       "ledAnchorBeats": 0.0
-    }
+    },
+    "partSelectSeq": 0
   },
   "io": {
     "outputPort": "yahaha",
@@ -2376,7 +2420,8 @@ after `"C Am F G7"`) and `library.json` (`corpus/MOX_v2`).
     ],
     "store": false,
     "storeWaiting": null,
-    "readOnly": false
+    "readOnly": false,
+    "undo": null
   },
   "settings": { "padPages": ["racks", "chord", "multiPads", "setup"] },
   "message": null

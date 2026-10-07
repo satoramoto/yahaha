@@ -42,6 +42,16 @@ const XG_TREBLE_GAIN: u8 = 0x73;
 const XG_BASS_FREQ: u8 = 0x76;
 const XG_TREBLE_FREQ: u8 = 0x77;
 
+/// An XG part EQ gain value (00H-7FH) in whole dB on the Genos scale: 00H -12, 40H 0,
+/// 7FH +12, linear on each side of 40H (64 steps below, 63 above).
+fn xg_gain_db(v: u8) -> i8 {
+    let d = v.min(127) as i32 - 64;
+    let span = if d < 0 { 64 } else { 63 };
+    // Round half away from zero, in integers.
+    let n = d * MAX_GAIN_DB as i32;
+    ((n + n.signum() * span / 2) / span) as i8
+}
+
 /// A part's EQ: each shelf's gain (dB, -12..=12) and corner frequency (Hz).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -85,22 +95,23 @@ impl PartEq {
     /// The part EQ that XG multi part parameters (hh, nn, vv) set, over `FLAT` (a parameter
     /// they leave out is at its XG default); None when they set none of it.
     ///
-    /// Gains: 40H is 0 dB, a step is 1 dB, clamped to +-12 dB (the XG range is 34H-4CH;
-    /// the Genos Data List gives 00H-7FH as -12..+12 dB without a curve, so a value outside
-    /// 34H-4CH is read as the nearest end). Frequencies: Table#3, clamped to the band's
-    /// range.
+    /// Gains: the Genos scale (Data List, MULTI PART 72H/73H: 00H-40H-7FH is -12..0..+12
+    /// dB), linear on each side of 40H and rounded to the whole dB, so 00H is -12 dB, 50H
+    /// +3 dB and 7FH +12 dB. Not XG's 34H-4CH at 1 dB a step: Genos OTS data spreads over
+    /// the whole 00H-7FH (a corpus scan: about one value in six outside 34H-4CH), and read
+    /// as 1 dB a step those all became a full +-12 dB shelf. Frequencies: Table#3, clamped
+    /// to the band's range.
     pub fn from_xg(items: impl IntoIterator<Item = (u8, u8, u8)>) -> Option<PartEq> {
         let mut eq = PartEq::FLAT;
         let mut any = false;
-        let gain = |v: u8| (v as i16 - 64).clamp(-(MAX_GAIN_DB as i16), MAX_GAIN_DB as i16) as i8;
         let freq = |v: u8| XG_FREQ[(v as usize).min(XG_FREQ.len() - 1)];
         for (hh, nn, vv) in items {
             if hh != 0x08 {
                 continue;
             }
             match nn {
-                XG_BASS_GAIN => eq.low_gain = gain(vv),
-                XG_TREBLE_GAIN => eq.high_gain = gain(vv),
+                XG_BASS_GAIN => eq.low_gain = xg_gain_db(vv),
+                XG_TREBLE_GAIN => eq.high_gain = xg_gain_db(vv),
                 XG_BASS_FREQ => eq.low_freq = freq(vv),
                 XG_TREBLE_FREQ => eq.high_freq = freq(vv),
                 _ => continue,
@@ -396,13 +407,23 @@ mod tests {
     #[test]
     fn xg_part_eq_maps_onto_the_part_eq() {
         assert_eq!(PartEq::from_xg([(0x08, 0x05, 0), (0x08, 0x18, 30)]), None, "no EQ parameter");
-        let eq = PartEq::from_xg([(0x08, 0x72, 0x46), (0x08, 0x73, 0x3A), (0x08, 0x76, 0x14), (0x08, 0x77, 0x30)]).unwrap();
-        assert_eq!(eq, PartEq { low_gain: 6, low_freq: 200, high_gain: -6, high_freq: 5_000 });
+        // The Genos scale: 00H-40H-7FH is -12..0..+12 dB, rounded to the whole dB.
+        let eq = PartEq::from_xg([(0x08, 0x72, 0x5B), (0x08, 0x73, 0x28), (0x08, 0x76, 0x14), (0x08, 0x77, 0x30)]).unwrap();
+        assert_eq!(eq, PartEq { low_gain: 5, low_freq: 200, high_gain: -5, high_freq: 5_000 });
         // One parameter: the others at their XG defaults (80 Hz, 10 kHz, 0 dB).
-        assert_eq!(PartEq::from_xg([(0x08, 0x73, 0x44)]), Some(PartEq { high_gain: 4, ..PartEq::FLAT }));
-        // Outside the ranges: the nearest end.
+        assert_eq!(PartEq::from_xg([(0x08, 0x73, 0x50)]), Some(PartEq { high_gain: 3, ..PartEq::FLAT }));
+        // The ends: 7FH +12 dB, 00H -12 dB; frequencies outside a band's range: its nearest end.
         let eq = PartEq::from_xg([(0x08, 0x72, 0x7F), (0x08, 0x73, 0x00), (0x08, 0x76, 0x7F), (0x08, 0x77, 0x00)]).unwrap();
         assert_eq!(eq, PartEq { low_gain: 12, low_freq: 2_000, high_gain: -12, high_freq: 500 });
+        // A value just outside XG's 34H-4CH is a small boost or cut on the Genos, not a
+        // full shelf (read at 1 dB a step, 4DH-7FH all boosted a full +12 dB).
+        let eq = PartEq::from_xg([(0x08, 0x72, 0x4D), (0x08, 0x73, 0x33)]).unwrap();
+        assert_eq!((eq.low_gain, eq.high_gain), (2, -2));
+        // Every value: monotonic, within +-12 dB, 0 dB only at 40H's neighbours.
+        let all: Vec<i8> = (0..=127u8).map(xg_gain_db).collect();
+        assert!(all.windows(2).all(|w| w[0] <= w[1]));
+        assert_eq!((all[0], all[64], all[127]), (-12, 0, 12));
+        assert!(all.iter().filter(|&&g| g.abs() == 12).count() <= 6, "only the ends are full shelves");
         // The XG defaults are the flat EQ.
         assert_eq!(PartEq::from_xg([(0x08, 0x72, 0x40), (0x08, 0x73, 0x40), (0x08, 0x76, 0x0C), (0x08, 0x77, 0x36)]), Some(PartEq::FLAT));
     }

@@ -18,6 +18,7 @@ const meta = {
     seq: { control: 'number' },
     width: { control: 'number' },
     tip: { control: 'text' },
+    hint: { control: 'object' },
   },
 } satisfies Meta<typeof StatusLine>
 
@@ -64,6 +65,45 @@ export const Clears: Story = {
     await expect(args.onclear).toHaveBeenCalledTimes(2)
     await userEvent.keyboard(' ')
     await expect(args.onclear).toHaveBeenCalledTimes(3)
+  },
+}
+
+const HINT = {
+  title: 'Sync Start',
+  body: 'Arms the band to start on the first chord you play with your left hand.',
+  keys: 'Y',
+  launchkey: 'Shift + Play',
+}
+
+/** A hovered control's tooltip in the line's place: the title, what it does, its key and Launchkey place. */
+export const Hint: Story = {
+  args: { hint: HINT, text: null, width: 1392 },
+  play: async ({ canvasElement }) => {
+    const status = within(canvasElement).getByRole('status')
+    const hint = status.querySelector('.hint')!
+    await expect(hint).toHaveAttribute('aria-hidden', 'true')
+    await expect(hint.textContent).toContain('Sync Start')
+    await expect(hint.textContent).toContain('Key Y')
+    await expect(hint.textContent).toContain('Launchkey: Shift + Play')
+    await expect(within(canvasElement).queryByRole('button')).toBeNull()
+  },
+}
+
+/** A hint over an error: the hint shows; the error stays in the live region, not drawn. */
+export const HintOverMessage: Story = {
+  args: {
+    hint: { title: 'Accomp', body: 'Turns the accompaniment on or off.' },
+    text: "Can't delete Sunday drive: it's the loaded rack.",
+    error: true,
+    seq: 4,
+    width: 1392,
+  },
+  play: async ({ canvasElement }) => {
+    const status = within(canvasElement).getByRole('status')
+    await expect(status.querySelector('.hint')!.textContent).toContain('Accomp')
+    const button = within(status).getByRole('button', { name: "Error: Can't delete Sunday drive: it's the loaded rack." })
+    await expect(button).toHaveClass('under')
+    await expect(button).toHaveAttribute('data-tip', 'display.status')
   },
 }
 

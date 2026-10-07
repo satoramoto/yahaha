@@ -46,5 +46,6 @@ export function emptyQuickRacks(): QuickRacksState {
     store: false,
     storeWaiting: null,
     readOnly: false,
+    undo: null,
   }
 }

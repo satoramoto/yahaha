@@ -274,7 +274,7 @@ export interface SoundPick {
 export type View = 'stage' | 'library'
 
 /** Library's tabs. */
-export type LibraryTab = 'racks' | 'sounds' | 'instruments' | 'map'
+export type LibraryTab = 'styles' | 'racks' | 'sounds' | 'instruments' | 'map'
 
 class UiStore {
   /** The page in place of the stage: Stage | Library (the header's switch, Alt+B). Drawers
@@ -289,17 +289,9 @@ class UiStore {
   settings = $state(false)
   /** The Rack panel's drawer on Stage (docs/racks.md). */
   rack = $state(false)
-  /** The mixer row's details (panels/mixer): its bar and each strip's EQ, insert, Chorus and CPU. */
-  mixer = $state(false)
-  /** The mixer strip clicked last: 0–3 the keyboard parts (Right 1–3, Left), 4–11 the
+  /** The part the Channel page shows: 0–3 the keyboard parts (Right 1–3, Left), 4–11 the
    * Style parts (Rhythm 1 … Phrase 2). */
   selectedPart = $state(0)
-  /** The Effects screen: the Reverb, Chorus and Delay blocks and the style's inserts. */
-  effects = $state(false)
-  charts = $state(false)
-  looper = $state(false)
-  multipad = $state(false)
-  harmony = $state(false)
   /** The sound picker for a program map rule (Library › Style map, #117): what for, the
    * patch it names now, and where the pick goes. Null: not picking. */
   soundPick = $state.raw<SoundPick | null>(null)
@@ -314,24 +306,11 @@ class UiStore {
     return this.shiftLatched || this.shiftHeld
   }
 
-  /** Open one side drawer (closing the others), or close it if it's open. The mixer's
-   * Details layer isn't a drawer: it stays as it was. */
-  toggleDrawer(d: 'rack' | 'effects' | 'settings' | 'charts' | 'looper' | 'multipad' | 'harmony') {
+  /** Open the Rack drawer or Settings (closing the other), or close it if it's open. */
+  toggleDrawer(d: 'rack' | 'settings') {
     const open = !this[d]
-    this.rack = this.effects = this.settings = this.charts = this.looper = this.multipad = this.harmony = false
+    this.rack = this.settings = false
     this[d] = open
-  }
-
-  /** Show or hide the mixer row's Details layer (Alt+M, the master strip's Details, the
-   * Launchkey mirror's Mixer). The row lives on Stage, so from Library this goes to Stage
-   * and shows the details, so that something visible happens. */
-  toggleMixer() {
-    if (this.view === 'library') {
-      this.view = 'stage'
-      this.mixer = true
-    } else {
-      this.mixer = !this.mixer
-    }
   }
 
   /** Show Library, on `tab` (else the last one) and loading into `part` (else the last one). */
@@ -369,13 +348,6 @@ class UiStore {
     if (this.browser) return !(this.browser = false)
     if (this.settings) return !(this.settings = false)
     if (this.rack) return !(this.rack = false)
-    if (this.effects) return !(this.effects = false)
-    if (this.charts) return !(this.charts = false)
-    if (this.looper) return !(this.looper = false)
-    if (this.multipad) return !(this.multipad = false)
-    if (this.harmony) return !(this.harmony = false)
-    // The mixer's Details layer sits under the drawers, so they close first.
-    if (this.mixer) return !(this.mixer = false)
     // Library is a page, not an overlay: Esc goes back to Stage once nothing is open over it.
     if (this.view === 'library') {
       this.view = 'stage'

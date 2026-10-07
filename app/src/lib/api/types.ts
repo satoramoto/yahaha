@@ -22,8 +22,9 @@ export type PadPage = 'sections' | 'racks' | 'chord' | 'multiPads' | 'setup'
 /** A held control's layer (docs/eyes-free.md): `sound` while Panel fader button 6 (Sound)
  * is held, the pads acting and lighting as the Racks page from any page; `swap` while a
  * Panel part button is held and a knob turned: knob 1 steps `part`'s sound by number,
- * knobs 2-8 are its mix. */
-export type Layer = { type: 'none' } | { type: 'sound' } | { type: 'swap'; part: number }
+ * knobs 2-8 are its mix; `fader` while the master fader's button is held, the pads a
+ * picker for the fader page (PANEL, STYLE) and layer (VOL, PAN, REV, CHO, DLY). */
+export type Layer = { type: 'none' } | { type: 'sound' } | { type: 'swap'; part: number } | { type: 'fader' }
 
 /** What the Launchkey faders control, like the Genos Mixer's Panel and Style tabs. */
 export type FaderPage = 'panel' | 'style'
@@ -151,8 +152,10 @@ export type AppCmd =
   | { type: 'setPadPageOrder'; pages: PadPage[] }
   /** The held control's layer (`surface.layer`), for the app's mirror of the Launchkey:
    * `sound` holds Sound (the pads are the Racks page, from any page), `swap` holds keyboard
-   * part `part`'s Panel fader button with a knob turned (swap mode), `none` releases
-   * either, as the Launchkey's button release does. Refused for a part outside 0-3. */
+   * part `part`'s Panel fader button with a knob turned (swap mode), `fader` holds the
+   * master fader's button (the pads pick the fader page and layer), `none` releases any
+   * of them, as the Launchkey's button release does (it never switches the fader page).
+   * Refused for a part outside 0-3. */
   | { type: 'setLayer'; layer: Layer }
   | { type: 'setMasterVolume'; volume: number }
   // One Touch Settings
@@ -411,11 +414,21 @@ export function defaultStrip(): StripState {
 export type QuickRackCmd =
   /** Press a button. With Store armed, store the live rack on it (a rack with unsaved
    * changes, or one never saved, waits for the save: `quickRacks.storeWaiting`). Otherwise
-   * load its rack as `loadRack` does, with the same guard and `discard`. Slots 8 and 9 run
-   * on into the next bank's 1 and 2 (the Regist 9-10 pedal functions). */
+   * load its rack as `loadRack` does, with the same guard and `discard`; on the lit button
+   * (the live rack's own) it recalls that rack clean with no prompt, keeping unsaved changes
+   * as "Recovered: <name>", as the hardware does. Slots 8 and 9 run on into the next bank's
+   * 1 and 2 (the Regist 9-10 pedal functions). */
   | { type: 'pressQuickRack'; slot: number; discard?: boolean }
   /** Bank −/+: view the previous/next bank (A-H; it stops at either end). */
   | { type: 'stepQuickRackBank'; delta: number }
+  /** View bank `bank` (0 = A, 7 = H); refused outside. */
+  | { type: 'setQuickRackBank'; bank: number }
+  /** Undo the last store (`quickRacks.undo`): the button gets back what it held, and a rack
+   * saved over gets back what its "Previous: <name>" copy kept (that copy goes); if that
+   * rack is the live rack, it reloads as it was (`liveRack.modified` false), unsaved changes
+   * made since the store first kept as a rack "Recovered: <name>". Refused with nothing to
+   * undo. The Racks pad page's bottom-right pad sends it, lit while there is a store to undo. */
+  | { type: 'undoQuickRackStore' }
   /** Store: arm (or disarm) it for the next button press. Disarming lets a waiting button go. */
   | { type: 'toggleQuickRackStore' }
   /** Store the live rack on button `slot` (0-7) of the bank on view in one step (hold
@@ -1378,6 +1391,10 @@ export interface SurfaceState {
   trackNext: Neighbour | null
   /** The beat clocks (see ClockState). */
   clock: ClockState
+  /** Counts the part selects made on the Launchkey (Shift + fader button 1–4), wrapping
+   * (u32); the app opens the Channel page on the selected part when it moves. Never moves
+   * on `selectPart` from the app, F1–F4, a sound pick or a rack or OTS load. Starts at 0. */
+  partSelectSeq: number
 }
 
 /**
@@ -1625,6 +1642,21 @@ export interface QuickRacksState {
   storeWaiting: number | null
   /** Quick Racks can't be changed: the file is from a newer yahaha, or there is no data folder. */
   readOnly: boolean
+  /** The last store, which `undoQuickRackStore` takes back; null when there is none. */
+  undo: QuickRackUndo | null
+}
+
+/** The store `undoQuickRackStore` takes back. */
+export interface QuickRackUndo {
+  /** The button stored on: its bank (0 = A) and slot (0-7). */
+  bank: number
+  slot: number
+  /** The rack's name the undo puts back on the button; empty when the button was empty (or
+   * its rack is gone). */
+  name: string
+  /** The "Previous: <name>" rack kept when the store saved over the button's own rack; null
+   * when no rack was saved over. */
+  previous: string | null
 }
 
 /** One Quick Rack button. */

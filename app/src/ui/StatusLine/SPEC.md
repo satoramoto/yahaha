@@ -9,7 +9,7 @@
   - `Prompts-Dark.dc.html:401` (an error: the ⚠ and "Can't delete Sunday drive: it's the loaded rack."); light: `Prompts-Light.dc.html:393`.
   - `Prompts-More-Dark.dc.html:416` (a notice: "Added SlowWalker.T552 to the library and loaded it."); light: `Prompts-More-Light.dc.html:397`.
   - Empty, on the Stage: the 20px gap between the band and the keys, `Stage-Dark.dc.html:389-391` (the end of the band and the `KEYS` comment); light: `Stage-Light.dc.html:365-367`. The Stage board draws no element there (D2).
-- **Not this component's job:** no store, no API, no Tauri: the parent passes the message's fields and sends `clearMessage` on `onclear`. It never decides what to say, never coaches ("press this to…") and never times itself out: a message stays until the state clears it (a successful style change or `clearMessage`). It is not the health slot (audio trouble lives in `HealthSlot`), not the help footer and not a toast.
+- **Not this component's job:** no store, no API, no Tauri: the parent passes the message's fields and sends `clearMessage` on `onclear`. It never decides what to say, never coaches ("press this to…") and never times itself out: a message stays until the state clears it (a successful style change or `clearMessage`). It is not the health slot (audio trouble lives in `HealthSlot`) and not a toast. It does show the hovered control's tooltip when the parent passes one (`hint`, D13): the old help footer is gone and its job moved here.
 
 ## API (Component station)
 
@@ -19,6 +19,7 @@ The props mirror `state.message` (`{ seq, text, error } | null`, `docs/app-api.m
 
 | Prop | Type | Default | Meaning |
 |---|---|---|---|
+| `hint` | `StatusHint \| null` | `null` | The hovered or focused control's tooltip, `{ title, body, keys?, launchkey? }` (exported type `StatusHint`), from the wiring. While set it is drawn in the message's place (D13): the title in `--type-strong` `--t`, 16px gap, the body in `--type-text` `--t2` ending in "…", and at the right `Key {keys}` and `Launchkey: {launchkey}` in `--m`, which shrink away first. The hint is `aria-hidden`; the message's button stays in the live region, visually hidden (class `under`). |
 | `text` | `string \| null` | `null` | `message.text`. `null` or `''`: no message, the line is empty. |
 | `error` | `boolean` | `false` | `message.error`: the ⚠ shows before the text. Ignored while there is no text. |
 | `seq` | `number` | `0` | `message.seq`. A new `seq` re-creates the button's contents (`{#key seq}` inside the button, D10), so a screen reader announces a repeat of the same text as a new message, and the button itself (with its focus) stays. |
@@ -40,7 +41,7 @@ The props mirror `state.message` (`{ seq, text, error } | null`, `docs/app-api.m
 
 ### Visual rules
 
-- **Tokens used:** `--t`, `--warn`, `--focus`, `--font-sans`, `--text-14`, `--weight-regular`, `--space-8`, `--space-20`, `--line-width`, `--focus-offset`. All exist in `app/src/ui/tokens/*` today: no new tokens and no new contrast rows (L1). The button's height is `var(--space-20)`.
+- **Tokens used:** `--t`, `--warn`, `--focus`, `--type-text`, `--tracking-text`, `--space-8`, `--space-20`, `--line-width`, `--focus-offset`. All exist in `app/src/ui/tokens/*` today: no new tokens and no new contrast rows (L1). The button's height is `var(--space-20)`.
 - **Structure:** a `<p role="status" aria-live="polite">`, margin 0, `box-sizing: border-box`, `width: 100%` (overridden by the inline width when `width` is set), `min-width: 0`, height `--space-20` (20px), `display: flex; align-items: center`, `overflow: visible` (so the focus ring isn't clipped), transparent background (the ground shows through). With a message it holds one `<button type="button">`; without one it holds nothing.
 - **The button:** `display: flex; align-items: center; gap: var(--space-8)`; `max-width: 100%`; `min-width: 0`; height 20; margin 0; padding 0; border 0; background transparent; `color: var(--t)`; `font: inherit`; text-align left; cursor `pointer`. No `aria-label`: its name is its content (D8). Its children are inside one `{#key seq}` block (the button is outside it, D10), in order:
   1. with `error`: the warn mark, an inline svg drawn exactly as `PartMarks`' ⚠ (PartMarks D9: geometry in attributes, paint in CSS), `flex: none`, vertically centred (4px above and below in the 20px row):
@@ -62,7 +63,7 @@ The props mirror `state.message` (`{ seq, text, error } | null`, `docs/app-api.m
   - long text: ellipsis at the right edge.
   - keyboard focus (`:focus-visible` on the button): a `--line-width` solid outline in `--focus`, `--focus-offset` outside the button. Nothing on mouse focus.
   - No hover or pressed look, no fill, no border, no glow (kit: Hover, press and cursor).
-- **Type:** DM Sans (`--font-sans`), `--text-14`, `--weight-regular`, line-height 20px (`--space-20`), sentence case as given (the text is shown exactly as the state sends it), `font-variant-numeric: tabular-nums`.
+- **Type:** `--type-text` (DM Sans 13 regular, 16px line) with `--tracking-text`, sentence case as given (the text is shown exactly as the state sends it), `font-variant-numeric: tabular-nums`.
 - **Contrast (AA 4.5:1, `tokens/contrast.test.ts`):** `--t` on `--g` (exists). The warn mark is a non-text graphic (WCAG 1.4.11, 3:1): `--warn` on `--g` is 9.9:1 dark and 3.6:1 light; no new row (the test checks text pairs only).
 - **Motion:** none. A new message replaces the text at once; no fade, no timer.
 
@@ -83,6 +84,8 @@ Title `Primitives/StatusLine`, `layout: 'centered'`. Every story renders in dark
 | `Notice` | `{ text: 'Added SlowWalker.T552 to the library and loaded it.', seq: 5, width: 1392 }` | the text alone, from the left edge | `Notice-{dark,light}.png` (Prompts-More 24,800 1392×20) | the button is named `Added SlowWalker.T552 to the library and loaded it.`; no element with `data-hue="warn"` |
 | `Clears` | `{ text: 'One Touch 3 applied · Recovered: Sunday drive', seq: 6, width: 1392 }` | — | — (not drawn on a status line; QuickRacks draws the text elsewhere) | click the button → `onclear` called once with no arguments; focus it and press Enter → called twice; Space → three times (the story's args don't change, so the button stays) |
 | `LongText` | `{ text: 'Rhodes Soft + Strings could not load: the plugin Sampler Deluxe is missing, so Right 1 plays its SoundFont voice until the plugin is installed and scanned again.', error: true, seq: 7, width: 600 }` | the text ends in "…" on one line inside 600px, the row stays 20px | — (the boards draw no long message) | the button's accessible name is the whole text with "Error: " |
+| `Hint` | `{ hint: { title: 'Sync Start', body: …, keys: 'Y', launchkey: 'Shift + Play' }, text: null, width: 1392 }` | the hint: title, body, then key and Launchkey place at the right | — (D13) | the `.hint` is `aria-hidden` and holds the title, `Key Y` and `Launchkey: Shift + Play`; no button |
+| `HintOverMessage` | `{ hint: { title: 'Accomp', body: … }, text: "Can't delete…", error: true, seq: 4, width: 1392 }` | the hint; the error isn't drawn | — (D13) | the hint shows; the error's button is still in the `status` element, with class `under` and `data-tip` |
 | `Focused` | `{ text: "Can't delete Sunday drive: it's the loaded rack.", error: true, seq: 4, width: 1392 }`, `parameters: { pseudo: { focusVisible: true } }` | the 1px focus ring 2px outside the button (around the mark and the text) | — (the boards draw no focus) | — |
 
 Crop positions are `board x,y w×h` in the 1440×900 renders, the same box in the dark and light render. The Prompts boards draw a wash over the Stage above y 820; at the status line it is the ground colour in both themes (dark: black at 62% over black; light: the ground at 72% over the ground), so the crops' background is plain `--g`, as the story's.
@@ -115,3 +118,4 @@ Crop positions are `board x,y w×h` in the 1440×900 renders, the same box in th
 - **D10 · The key block is inside the button.** `{#key seq}` wraps the mark and the text span, never the button, so a new message doesn't drop keyboard focus.
 - **D11 · Unset width fills the container.** Without `width`, the `<p>` is `width: 100%` of its container; the display page's wiring gives it the 1392px row, so it never sizes to its text.
 - **D12 · Clearing drops focus.** When the message clears the button is removed and focus goes to the document; the line doesn't move focus elsewhere (there's nothing after it to take it).
+- **D13 · Tooltips take the line (owner, 2026-10-05: "lose our old tooltip footer… move the tooltips to where our current error display is").** A `hint` prop draws the hovered or focused control's entry in the message's place, in the line's own 20px row, so nothing moves. The library only draws it; the wiring decides when (`panels/stage/model.ts` `statusHint`: errors that arrive during a hover win, the line's own button shows no hint). The hint is `aria-hidden` (the focused control's `aria-describedby` already describes it, and hover shouldn't read out every control crossed); the message stays in the live region under it, clipped like the hidden word, so a new message is still announced. Not drawn on a board: no crop, judged by Inspect. Stories `Hint` and `HintOverMessage`.

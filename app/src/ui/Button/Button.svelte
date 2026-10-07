@@ -1,7 +1,10 @@
 <!--
-  Button: does one thing when pressed (Panic, Stop, a page step, a One Touch), in the plain button
-  face, and shows when that thing is chosen, switched on or waiting. Every face comes from props
-  (precedence chosen, on, waiting, off); it holds no state of its own. Glyphs are the fixed
+  Button: does one thing when pressed (Panic, Stop, a page step, a One Touch), in the state
+  language: at rest a 1px outline and label in its hue, no fill; on or chosen a solid fill in the
+  hue with the label in --on-ink; waiting a 2px ring over a faint fill of the hue; disabled a 1px
+  outline and the label in its own hue at reduced strength (--absent-<hue>), no fill. No button is
+  grey: the deprecated `t2` and `m` draw exactly as the neutral `t`. Every face comes from props (precedence chosen, on, waiting, off);
+  it holds no state of its own. Glyphs are the fixed
   `symbol` list. Long press comes from the shared longpress action; `hold` reports pointer down
   and up through onhold for the parent's repeat (Tempo ±). No timers.
 -->
@@ -35,29 +38,29 @@
     symbol?: Glyph
     /** `icon` 32 × 32; `md` width from the label; `band` 88 wide, left-aligned; `pair` 41 wide; `cell` fills its container; `caret` the 20 × 32 ▾. */
     size?: 'icon' | 'md' | 'band' | 'pair' | 'cell' | 'caret'
-    /** A 13px label instead of 14 in `icon`, `md` and `band` (`pair`, `cell` and `caret` are always 13). */
+    /** Kept for compatibility; changes nothing (every label is the one small control type). */
     compact?: boolean
-    /** The label in `--t` at medium weight on the off face (Start / Stop). */
+    /** Kept for compatibility; changes nothing (the rest face's label is already in its hue). */
     strong?: boolean
-    /** The running bar, `band` only. Undefined: no bar. `false`: the bar's room kept, nothing drawn. `true`: the green bar. */
+    /** Start / Stop running, `band` only. `true`: the on face in `--ok` (solid green, `--on-ink` label), marked `data-bar`. `false` or undefined: the face the other props give. */
     bar?: boolean
-    /** The lamp face: switched on (help mode's ?, Fade while fading). */
+    /** The on face: switched on (help mode's ?, Fade while fading), a solid fill in `hue`. */
     on?: boolean
-    /** The chosen face: the one picked from a set (the applied One Touch). */
+    /** The chosen face: the one picked from a set (the applied One Touch), a solid fill in `hue`. */
     chosen?: boolean
-    /** The waiting face: queued or armed, outlined in `hue`. */
+    /** The waiting face: queued or armed, a 2px ring over a faint fill of `hue`. */
     waiting?: boolean
-    /** The colour token (without `--`) of the waiting face's outline and label; `lamp` draws in `--lamp-line`. */
+    /** The colour token (without `--`) of every face: the rest outline and label, the on and chosen fill, the waiting ring; disabled draws the same hue at reduced strength. `t` draws in `--neutral`, `lamp` in `--lamp-line`. `t2` and `m` are deprecated aliases of `t` and draw exactly as it: no button is grey. */
     hue?: Hue
     /** Sets `aria-pressed` for a switch or a choice. Undefined: no `aria-pressed`. Never changes the look. */
     pressed?: boolean
     /** Sets `aria-haspopup` (the caret opens a dialog). */
     popup?: 'dialog' | 'menu'
-    /** With `popup`: `aria-expanded`, and the caret's ▾ turns `--t` while open. */
+    /** With `popup`: `aria-expanded`, and the on face while open. */
     expanded?: boolean
     /** Sets `aria-controls`: the id of the popover this button opens. */
     controls?: string
-    /** Joined to a neighbour: `start` rounds only the left corners, `end` only the right. */
+    /** Joined to a neighbour: `start` on its right, `end` on its left (corners are square anyway). */
     join?: 'start' | 'end'
     /** Shown, not pressable: no press, hold or long press. Stays focusable. */
     disabled?: boolean
@@ -83,13 +86,11 @@
     label = '',
     symbol,
     size = 'md',
-    compact = false,
-    strong = false,
     bar,
     on = false,
     chosen = false,
     waiting = false,
-    hue = 't2',
+    hue = 't',
     pressed,
     popup,
     expanded = false,
@@ -125,11 +126,17 @@
     caret: 'options',
   }
 
-  /** The face as drawn: chosen, then on, then waiting, then off. */
-  let face = $derived(chosen ? 'chosen' : on ? 'on' : waiting ? 'waiting' : 'off')
+  /** Start / Stop running: the on face in `--ok`. */
+  let running = $derived(size === 'band' && bar === true)
+  let open = $derived(popup !== undefined && expanded)
+  /** The face as drawn: chosen, then on (switched on, running or open), then waiting, then off. */
+  let face = $derived(chosen ? 'chosen' : on || running || open ? 'on' : waiting ? 'waiting' : 'off')
+  /** The hue drawn: running is green unless chosen; the deprecated grey `t2` and `m` are the neutral `t`. */
+  let drawn = $derived<Hue>(running && !chosen ? 'ok' : hue === 't2' || hue === 'm' ? 't' : hue)
+  let hueColour = $derived(drawn === 't' ? 'var(--neutral)' : drawn === 'lamp' ? 'var(--lamp-line)' : `var(--${drawn})`)
+  /** The disabled outline and label: the drawn hue at reduced strength. */
+  let absentColour = $derived(`var(--absent-${drawn === 't' ? 'neutral' : drawn})`)
   let accessibleName = $derived(name ?? [label, symbol ? WORDS[symbol] : ''].filter(Boolean).join(' '))
-  let small = $derived(compact || size === 'pair' || size === 'cell' || size === 'caret')
-  let barRoom = $derived(size === 'band' && bar !== undefined)
 
   let node: HTMLButtonElement | undefined = $state()
   /** The pointer of the hold in progress; not reactive, the effects below only read it. */
@@ -194,17 +201,15 @@
   bind:this={node}
   type="button"
   class="btn {size} face-{face}"
-  class:small
-  class:strong
   class:alone={label === ''}
-  class:expanded={popup !== undefined && expanded}
-  class:bar-room={barRoom}
   class:join-start={join === 'start'}
   class:join-end={join === 'end'}
   class:disabled
-  style:--hue={face === 'waiting' ? (hue === 'lamp' ? 'var(--lamp-line)' : `var(--${hue})`) : undefined}
+  style:--hue={hueColour}
+  style:--hue-absent={absentColour}
   data-face={disabled ? 'disabled' : face}
-  data-hue={face === 'waiting' ? hue : undefined}
+  data-hue={drawn}
+  data-bar={running ? '' : undefined}
   data-contrast={disabled ? 'dim' : undefined}
   data-tip={tip}
   aria-label={accessibleName}
@@ -222,34 +227,36 @@
   use:longpress={{ onlongpress, onlongrelease, disabled: disabled || hold || onlongpress === undefined }}
 >
   {label}{#if symbol}{label ? ' ' : ''}<span class="sym sym-{symbol}" aria-hidden="true">{GLYPHS[symbol]}</span
-    >{/if}{#if barRoom && bar}<span class="bar" data-bar aria-hidden="true"></span>{/if}
+    >{/if}
 </button>
 
 <style>
+  /* Rest: no fill, a 1px inset outline and the label in the hue (inset, so the box never changes
+     size). The hue comes in as --hue. */
   .btn {
     position: relative;
+    isolation: isolate;
     box-sizing: border-box;
     height: var(--control-height);
     margin: 0;
     padding: 0;
     border: 0;
     border-radius: var(--radius);
-    background: var(--btn);
-    color: var(--t2);
-    font-family: var(--font-sans);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
+    background: transparent;
+    box-shadow: inset 0 0 0 var(--outline-width) var(--hue);
+    color: var(--hue);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
-    line-height: normal;
     text-align: center;
     white-space: nowrap;
     cursor: pointer;
   }
-  .small {
-    font-size: var(--text-13);
-  }
 
-  /* Sizes */
+  /* Sizes. Every size but `cell` keeps its width in a crowded flex row. */
+  .btn:not(.cell) {
+    flex: none;
+  }
   .icon {
     width: var(--control-height);
   }
@@ -260,9 +267,6 @@
     width: var(--button-band-width);
     padding: 0 var(--space-8);
     text-align: left;
-  }
-  .band.bar-room {
-    padding: 0 var(--space-4) var(--bar-lift) var(--space-8);
   }
   .pair {
     width: var(--button-pair-width);
@@ -276,56 +280,45 @@
   }
 
   /* Glyphs: inline on the label's baseline, no line-height of their own. */
-  .sym-prev,
-  .sym-next,
-  .alone .sym-up,
-  .alone .sym-down,
-  .alone .sym-caret {
-    font-size: var(--text-12);
-  }
+  /* Glyphs: ▲ ▼ ▾ small, ◀ ▶ a step larger; + − are the label's own type. */
   .sym-up,
-  .sym-down {
-    font-size: var(--text-9);
+  .sym-down,
+  .sym-caret {
+    font-size: var(--glyph-sm);
   }
-  .sym-caret,
-  .caret.alone .sym-caret {
-    font-size: var(--text-10);
-  }
-  .sym-plus,
-  .sym-minus {
-    font-weight: var(--weight-light);
+  .sym-prev,
+  .sym-next {
+    font-size: var(--glyph-md);
   }
 
-  /* Faces */
-  .face-off.strong {
-    color: var(--t);
-    font-weight: var(--weight-medium);
-  }
-  .face-off.caret:not(.disabled) {
-    color: var(--m);
-  }
-  .face-off.caret.expanded:not(.disabled) {
-    color: var(--t);
-  }
-  .face-on {
-    background: var(--lamp);
-    color: var(--lamp-ink);
-    font-weight: var(--weight-medium);
-  }
+  /* On and chosen: a solid fill in the hue, the label in --on-ink. */
+  .face-on,
   .face-chosen {
-    background: var(--t);
-    color: var(--g);
-    font-weight: var(--weight-medium);
+    background: var(--hue);
+    color: var(--on-ink);
   }
-  /* Waiting: an inset outline, so the box never changes size. */
+  /* Waiting: a 2px inset ring in the hue over a faint fill of it, drawn under the label. */
   .face-waiting {
-    background: transparent;
-    box-shadow: inset 0 0 0 var(--line-width) var(--hue);
-    color: var(--hue);
+    box-shadow: inset 0 0 0 var(--outline-width-wait) var(--hue);
   }
+  .face-waiting::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--hue);
+    opacity: var(--wait-fill-opacity);
+  }
+  /* Disabled: a 1px outline and the label in the hue at reduced strength (--hue-absent), no fill,
+     whatever the face. */
   .btn.disabled {
-    color: var(--d);
+    background: transparent;
+    box-shadow: inset 0 0 0 var(--outline-width) var(--hue-absent);
+    color: var(--hue-absent);
     cursor: default;
+  }
+  .btn.disabled::before {
+    content: none;
   }
 
   .join-start {
@@ -333,17 +326,6 @@
   }
   .join-end {
     border-radius: 0 var(--radius) var(--radius) 0;
-  }
-
-  .bar {
-    position: absolute;
-    right: var(--space-8);
-    bottom: var(--bar-bottom);
-    left: var(--space-8);
-    height: var(--space-2);
-    border-radius: calc(var(--space-2) / 2);
-    background: var(--ok);
-    box-shadow: var(--bg);
   }
 
   .btn:focus-visible {

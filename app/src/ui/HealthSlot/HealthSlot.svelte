@@ -72,17 +72,14 @@
     position: relative;
     box-sizing: border-box;
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: flex-end;
-    height: 35px;
     padding-left: var(--space-8);
     min-width: 0;
     color: var(--m);
-    font-family: var(--font-sans);
-    font-size: var(--text-14);
-    font-weight: var(--weight-regular);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     font-variant-numeric: tabular-nums;
-    line-height: normal;
   }
   .fill {
     flex: 1 1 auto;
@@ -100,7 +97,7 @@
   }
   button {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     max-width: 100%;
     min-width: 0;
     margin: 0;

@@ -54,10 +54,8 @@
     flex: none;
     gap: var(--space-8);
     white-space: nowrap;
-    font-family: var(--font-sans);
-    font-size: var(--text-12);
-    font-weight: var(--weight-regular);
-    line-height: normal;
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
     color: var(--m);
   }
   .strip {

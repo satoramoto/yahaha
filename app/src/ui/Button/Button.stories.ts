@@ -4,7 +4,8 @@ import Button from './Button.svelte'
 
 const NONE = 'none'
 const SIZES = ['icon', 'md', 'band', 'pair', 'cell', 'caret']
-const HUES = ['t', 't2', 'm', 'a', 'lamp', 'rec', 'ok', 'r1', 'r2', 'r3', 'l', 'intro', 'main', 'ending', 'brk', 'fill']
+/** The hues that draw a distinct look (the deprecated `t2` and `m` draw as `t`, so they're left out). */
+const HUES = ['t', 'a','lamp', 'rec', 'ok', 'r1', 'r2', 'r3', 'l', 'intro', 'main', 'ending', 'brk', 'fill']
 const SYMBOLS = ['prev', 'next', 'up', 'down', 'plus', 'minus', 'caret']
 /** A select whose first option is `none` (undefined), so the control can go back to "no value". */
 const optional = (options: string[]) => ({ control: 'select' as const, options: [NONE, ...options], mapping: { [NONE]: undefined } })
@@ -17,8 +18,11 @@ const threeWay = {
 
 /**
  * The plain button: does one thing when pressed (Panic, Stop, a page step, a One Touch), and shows
- * when that thing is chosen, switched on or waiting. Every face is a prop; the parent acts on
- * `onpress`, `onhold`, `onlongpress` and `onlongrelease`.
+ * when that thing is chosen, switched on or waiting, in the state language: at rest a 1px outline
+ * and label in its `hue`, no fill; on or chosen a solid fill in the hue, label in `--on-ink`;
+ * waiting a 2px ring over a faint fill of the hue; disabled a 1px outline and the label in its own
+ * hue at reduced strength, no fill. No button is grey.
+ * Every face is a prop; the parent acts on `onpress`, `onhold`, `onlongpress` and `onlongrelease`.
  */
 const meta = {
   title: 'Primitives/Button',
@@ -81,7 +85,7 @@ export const Board: Story = {
   },
 }
 
-/** Help mode's ?: a 32 × 32 off button with a 14px character, a switch that is off. */
+/** Help mode's ?: a 32 × 32 button at rest (neutral outline and label), a switch that is off. */
 export const Icon: Story = {
   args: { label: '?', size: 'icon', pressed: false, name: 'Help mode' },
   play: async ({ canvasElement }) => {
@@ -91,7 +95,12 @@ export const Icon: Story = {
   },
 }
 
-/** The lamp face: help mode switched on. */
+/** A band button switched on: Fade while fading, the solid neutral fill. */
+export const BandOn: Story = {
+  args: { label: 'Fade', size: 'band', on: true, pressed: true },
+}
+
+/** The on face: help mode switched on, the solid neutral fill with the "?" in `--on-ink`. */
 export const On: Story = {
   args: { label: '?', size: 'icon', on: true, pressed: true, name: 'Help mode' },
   play: async ({ canvasElement }) => {
@@ -101,7 +110,7 @@ export const On: Story = {
   },
 }
 
-/** The white chosen block with a medium label: the applied One Touch. */
+/** The chosen face, a solid fill in the hue with the label in `--on-ink`: the applied One Touch. */
 export const Chosen: Story = {
   args: { label: '2', size: 'icon', chosen: true, pressed: true, name: 'One Touch 2, applied' },
   play: async ({ canvasElement }) => {
@@ -116,13 +125,45 @@ export const Band: Story = {
   args: { label: 'Stop', size: 'band', name: 'Stop (fade with hold)' },
 }
 
-/** The waiting face: Fade armed, outlined in `--t2` with no fill. */
+/** Start / Stop running (`bar`): the on face in `--ok`, solid green with the label in `--on-ink`. */
+export const Running: Story = {
+  args: {
+    label: 'Start / Stop',
+    size: 'band',
+    compact: true,
+    strong: true,
+    bar: true,
+    pressed: true,
+    name: 'Start / Stop, running',
+    tip: 'transport.start_stop',
+  },
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getByRole('button', { name: 'Start / Stop, running' })
+    await expect(button).toHaveAttribute('data-bar')
+    await expect(button).toHaveAttribute('data-face', 'on')
+    await expect(button).toHaveAttribute('data-hue', 'ok')
+    await expect(button).toHaveAttribute('aria-pressed', 'true')
+  },
+}
+
+/** Start / Stop stopped (`bar: false`): the rest face, a neutral outline and label. */
+export const Stopped: Story = {
+  args: { ...Running.args, bar: false, pressed: false, name: 'Start / Stop' },
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getByRole('button', { name: 'Start / Stop' })
+    await expect(button).not.toHaveAttribute('data-bar')
+    await expect(button).toHaveAttribute('data-face', 'off')
+    await expect(button).toHaveAttribute('data-hue', 't')
+    await expect(button).toHaveAttribute('aria-pressed', 'false')
+  },
+}
+
+/** The waiting face: Fade armed, a 2px neutral ring over a faint neutral fill, the label in `--neutral`. */
 export const Waiting: Story = {
   args: {
     label: 'Fade',
     size: 'pair',
     waiting: true,
-    hue: 't2',
     pressed: false,
     name: 'Fade, armed',
     tip: 'transport.fade',
@@ -130,11 +171,11 @@ export const Waiting: Story = {
   play: async ({ canvasElement }) => {
     const button = within(canvasElement).getByRole('button', { name: 'Fade, armed' })
     await expect(button).toHaveAttribute('data-face', 'waiting')
-    await expect(button).toHaveAttribute('data-hue', 't2')
+    await expect(button).toHaveAttribute('data-hue', 't')
   },
 }
 
-/** Shown, not pressable: the `--d` label on the off face. No press, hold or long press. */
+/** Shown, not pressable: the neutral hue at reduced strength (`--absent-neutral`) for the outline and label, no fill. No press, hold or long press. */
 export const Disabled: Story = {
   args: { label: 'Audition', size: 'md', compact: true, disabled: true, name: 'Audition (stop the band first)' },
   play: async ({ canvasElement, args }) => {
@@ -151,6 +192,20 @@ export const Disabled: Story = {
     await fireEvent.pointerUp(button, pointer(1))
     await expect(args.onlongpress).not.toHaveBeenCalled()
     await expect(args.onhold).not.toHaveBeenCalled()
+  },
+}
+
+/**
+ * A hued button, absent: disabled draws its own hue at reduced strength (here `--absent-fill`) for
+ * the outline, label and glyph, no fill; fainter than the rest face, never grey.
+ */
+export const DisabledHue: Story = {
+  args: { label: 'Fill', symbol: 'up', size: 'pair', hue: 'fill', disabled: true, name: 'Fill up (none in this style)' },
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getByRole('button', { name: 'Fill up (none in this style)' })
+    await expect(button).toHaveAttribute('data-face', 'disabled')
+    await expect(button).toHaveAttribute('data-hue', 'fill')
+    await expect(button).toHaveAttribute('data-contrast', 'dim')
   },
 }
 

@@ -1,5 +1,38 @@
 # LampButton
 
+> **The state language (Stage screen cleanup, PR #550).** The lime face, the grey `--btn` tile and
+> the bar under the label are gone; the lamp draws the one state language every clickable control
+> shares. `hue: 't' | 'r1' | 'r2' | 'r3' | 'l' | 'ok' | 'm'` (default `t`) colours every face: `t`
+> is `--neutral` (Accomp, Metronome and the function lamps), a part its part hue, `ok` `--ok`; it
+> replaces D13/D19's `hue: 'lamp' | 'rec'`. No lamp is grey (owner): `m` stays in the type for
+> callers that still pass it, but is a deprecated alias of `t` and draws exactly as it
+> (`data-hue="t"`). With `rec`, on and waiting draw in `--rec` (`data-hue="rec"` when `rec` and
+> not off).
+>
+> **The Looper lamp (UI rewrite cleanup, owner's rule).** `hue: 'lamp'` is back as the lime hue:
+> outline, label and waiting ring in `--lamp-line`, the lit fill `--lamp` with the label in
+> `--lamp-ink`, disabled `--absent-lamp` (all existing tokens). The band's Looper lamp is lime
+> while looping (`on`, `lamp`), red while recording (`on`, `rec`), the waiting outline when armed
+> (`recArmed`: `waiting` + `rec`; `loopArmed`: `waiting` + `lamp`) and white (`t`, `--neutral`)
+> when off. The band's `BankLamp` (`ui/FaderBank/types.ts`) carries `rec` and `waiting`.
+> - **Off (rest):** no fill, a 1px inset outline (`box-shadow: inset 0 0 0 var(--outline-width) var(--hue)`,
+>   so the size never changes) and the label in the hue. Off keeps its colour; it never goes grey.
+>   The code is the label's colour at `--code-opacity`.
+> - **On, record:** a solid fill in the hue, label and code in `--on-ink` at full opacity. No bar,
+>   no glow.
+> - **Waiting (armed):** a 2px inset ring (`--outline-width-wait`) in the hue over a faint fill of
+>   it (a `::before` under the label: `background: var(--hue); opacity: var(--wait-fill-opacity)`),
+>   label in the hue.
+> - **Disabled (absent):** the lamp's own hue at reduced strength, never grey: a 1px outline and the
+>   label and code in `--absent-<hue>` (`t` → `--absent-neutral`, `r1` → `--absent-r1`, `ok` →
+>   `--absent-ok`, `rec` → `--absent-rec`; set per hue as `--hue-absent`), no fill, in every face;
+>   `data-contrast="dim"`. The focus ring stays full strength.
+> - **Type:** every size's label and code are `--type-text` / `--tracking-text` with tabular
+>   numerals; no weight changes between faces, so a lit lamp is as wide as an off one (D12 no
+>   longer holds). Corners are square (`--radius: 0`); `join` keeps its classes.
+>
+> Where the sections below disagree, this note wins.
+
 ## Identity (all stations)
 
 - **Kind:** primitive
@@ -24,10 +57,10 @@
 | `on` | `boolean` | `false` | Lit (lamp face) or off. Controlled: the face and `aria-pressed` follow `on` alone; a click calls `ontoggle(!on)` and changes nothing until the parent passes a new `on` (Stage D49, D17). |
 | `code` | `string \| undefined` | — | Small code after the label, e.g. `ACMP`. |
 | `disabled` | `boolean` | `false` | Shown, not pressable (`aria-disabled="true"`, stays focusable; no `aria-disabled` attribute at all when enabled, L5). No toggle and no long press. |
-| `rec` | `boolean` | `false` | The record lamp: lit is the solid `--rec` face with `--solid-ink` label instead of the lamp face. |
-| `waiting` | `boolean` | `false` | The waiting (armed) face while not pressed: transparent fill, a 1px outline and the label in `hue` (Visual rules). Precedence: on (or record) > waiting > off, so it shows only while `on` is false. It never changes `aria-pressed`. |
-| `hue` | `'lamp' \| 'rec'` | `'lamp'` | The waiting face's colour: `lamp` (Looper's Loop armed) draws in `--lamp-line`, `rec` (Rec armed) in `--rec`. Ignored by the other faces. |
-| `size` | `'md' \| 'sm' \| 'cell'` | `'md'` | `md`: 32px tall, 14px label, 16px side padding (section row). `sm`: 28px, 13px, 14px (settings and strip rows). `cell`: 32px, 13px, no padding, fills its container's width (the band's lamp row). |
+| `rec` | `boolean` | `false` | The record lamp: on and waiting draw in `--rec` instead of `hue`. |
+| `waiting` | `boolean` | `false` | The waiting (armed) face while not pressed: a 2px ring over a faint fill of the hue, the label in the hue (Visual rules). Precedence: on (or record) > waiting > off, so it shows only while `on` is false. It never changes `aria-pressed`. |
+| `hue` | `'t' \| 'r1' \| 'r2' \| 'r3' \| 'l' \| 'ok' \| 'lamp' \| 'm'` | `'t'` | The colour of every face: `t` `--neutral`, a part its hue, `ok` `--ok`, `lamp` lime (`--lamp-line` outline and label, `--lamp` fill with `--lamp-ink`); disabled draws the same hue's `--absent-<hue>`. `m` is a deprecated alias of `t` (draws as `t`). |
+| `size` | `'md' \| 'sm' \| 'cell'` | `'md'` | `md`: 32px tall, 16px side padding (section row). `sm`: 28px, 14px padding (settings and strip rows). `cell`: 32px, no padding, fills its container's width (the band's lamp row). Every size's label is `--type-text`. |
 | `width` | `number \| undefined` | — | A fixed width in px with the label centred and no side padding (settings rows' 64px On/Off, strips' 72px). It wins over the size's width and padding: with `md` or `sm` the padding becomes 0 and the width is `width`; with `cell` the button is `width` px instead of filling its container. Height and label size still come from `size` (D11). |
 | `join` | `'start' \| 'end' \| undefined` | — | Joined to a neighbour with no gap between their faces: `start` rounds only the left corners (`border-radius: var(--radius) 0 0 var(--radius)`, i.e. `4px 0 0 4px`), `end` only the right (`0 var(--radius) var(--radius) 0`, i.e. `0 4px 4px 0`). Undefined: all four corners `--radius`. The Metronome lamp is `join: 'start'` beside its caret (the parent, `MetronomeSplit`, sets the 1px gap). |
 | `name` | `string \| undefined` | — | The accessible name when the label alone isn't enough (`Right 1 on`). Default: the label, plus the code if any. |
@@ -52,20 +85,21 @@
 
 ### Visual rules
 
-- **Tokens used:** `--btn`, `--m`, `--d`, `--lamp`, `--lamp-ink`, `--lamp-line` (new), `--rec`, `--solid-ink`, `--focus`, `--radius`, `--font-sans`, `--text-12`, `--text-13`, `--text-14`, `--weight-regular`, `--weight-medium`, `--space-6`, `--space-14`, `--space-16`, `--control-height`, `--control-height-compact`, `--line-width`, `--focus-offset`, `--code-opacity`; and, through the action, `--long-press` (new).
-- **Size:** height 32 (`md`, `cell`) or 28 (`sm`); width from the label plus side padding, or `width`, or the container (`cell`); `width` wins over both (see Props). Never wraps. `join` changes only the corner radii, never the size. **The width follows the label's weight:** without `width`, an `md` or `sm` button is its label's (and code's) text width plus its padding, and a lit label is medium (500) where an off one is regular (400), so the same label is wider lit: Metronome is 107px off and 108px on (`JoinStart` against `JoinStartOn`), Accomp ACMP is 127px on. A parent that needs a stable width passes `width` (D12). The waiting face uses the regular weight, so it is as wide as off.
-- **States drawn by:**
-  - off: `--btn` face, `--m` label, regular weight; code `--m`. `data-face="off"`.
-  - on: `--lamp` face, `--lamp-ink` label, medium weight; code in `--lamp-ink` at `--code-opacity`. `data-face="on"`.
-  - on, `rec`: `--rec` face, `--solid-ink` label and code (the code at full ink: at `--code-opacity` it fails AA on `--rec`). `data-face="record"`.
-  - waiting (`waiting` true and not pressed): `background: transparent`; the 1px outline is `box-shadow: inset 0 0 0 var(--line-width) var(--<hue token>)` (no `border`, so the box is the same size as every other face, D13); label and code in the hue token, regular weight, the code at full opacity; `--lamp-line` for `hue: 'lamp'`, `--rec` for `hue: 'rec'`. `data-face="waiting"` and `data-hue="lamp"` or `"rec"` (`data-hue` only in this face). `rec` doesn't change the waiting face.
-  - disabled: label and code turn `--d`, the code at full opacity (the face and the waiting outline unchanged), `cursor: default`, no press (D14); `data-face="disabled"` and `data-contrast="dim"` on the `<button>` (D18).
+- **Tokens used:** `--neutral`, `--r1`, `--r2`, `--r3`, `--l`, `--ok`, `--rec`, `--lamp`, `--lamp-line`, `--lamp-ink`, `--on-ink`, `--absent-neutral`, `--absent-lamp`, `--absent-r1`, `--absent-r2`, `--absent-r3`, `--absent-l`, `--absent-ok`, `--absent-rec`, `--code-opacity`, `--wait-fill-opacity`, `--outline-width`, `--outline-width-wait`, `--focus`, `--radius`, `--type-text`, `--tracking-text`, `--space-6`, `--space-14`, `--space-16`, `--control-height`, `--control-height-compact`, `--line-width`, `--focus-offset`; and, through the action, `--long-press`.
+- **Size:** height 32 (`md`, `cell`) or 28 (`sm`); width from the label plus side padding, or `width`, or the container (`cell`); `width` wins over both (see Props). Never wraps. `join` changes only the corner radii, never the size. Every face uses the same weight and the outlines are inset, so the width never changes with the face.
+- **States drawn by** (`--hue` is the hue token, or `--rec` with `rec` on and waiting):
+  - off: transparent, `box-shadow: inset 0 0 0 var(--outline-width) var(--hue)`, label in `--hue`, code in `--hue` at `--code-opacity`. `data-face="off"`.
+  - on: `background: var(--hue)`, label and code in `--on-ink` at full opacity. `data-face="on"`.
+  - on, `rec`: the same in `--rec`. `data-face="record"`.
+  - on, `hue: 'lamp'`: `background: var(--lamp)`, label and code in `--lamp-ink` (the component's `--hue-fill` and `--hue-ink`, which default to `--hue` and `--on-ink`). `data-face="on"`, `data-hue="lamp"`.
+  - waiting (`waiting` true and not pressed): `box-shadow: inset 0 0 0 var(--outline-width-wait) var(--hue)` over a `::before` filling the box in `--hue` at `--wait-fill-opacity` (the button isolates, the `::before` sits at `z-index: -1` under the label); label and code in `--hue`. `data-face="waiting"`.
+  - disabled: transparent, a 1px outline, label and code at full opacity, all in `--hue-absent` (the hue's `--absent-<hue>`), no waiting fill, in every face; `cursor: default`, no press (D14); `data-face="disabled"` and `data-contrast="dim"` on the `<button>` (D18).
   - joined (`join`): the radii above; the face is otherwise unchanged in every state.
   - long press held: no change of its own (the parent may change `on` in answer).
-  - keyboard focus: a `--line-width` outline in `--focus`, `--focus-offset` outside the face (the outline follows the joined radii).
-  - No bar, border, glow or hover change (the kit draws none).
-- **Test hook:** `data-face` on the `<button>`: `off`, `on`, `record` or `waiting` from the face as drawn, or `disabled` while disabled (D18); `data-hue` in the waiting face only (kept while a waiting lamp is disabled).
-- **Type:** DM Sans, sentence case as given, tabular numerals; label 14px (`md`) or 13px (`sm`, `cell`); code 12px regular, `--space-6` after the label.
+  - keyboard focus: a `--line-width` outline in `--focus`, `--focus-offset` outside the face.
+  - No bar, glow or hover change.
+- **Test hook:** `data-face` on the `<button>`: `off`, `on`, `record` or `waiting` from the face as drawn, or `disabled` while disabled (D18); `data-hue` is the hue drawn (`t` for `m`), or `rec` when `rec` and not off.
+- **Type:** `font: var(--type-text); letter-spacing: var(--tracking-text)` then `font-variant-numeric: tabular-nums`, sentence case as given, at every size and in every face; the code the same, `--space-6` after the label.
 
 #### New tokens
 
@@ -76,7 +110,7 @@ Not in `app/src/ui/tokens/*` today; they land in the orchestrator's tokens contr
 | `--long-press` | `350ms` | `350ms` | the long-press time, through the action (`scale.css`) |
 | `--lamp-line` | `var(--lime-400)` (`#9fe04a`, the same as `--lamp`) | `var(--lime-750)`, a new palette step `--lime-750: #477b0c` in `palette.css` | the lime of a waiting face's outline and label on the ground (`hue: 'lamp'`); `--lamp` itself stays the fill (D15) |
 
-- **Contrast (AA 4.5:1, `tokens/contrast.test.ts`):** existing rows `--m` on `--btn`; `--lamp-ink` on `--lamp`, and at `--code-opacity`; `--solid-ink` on `--rec`. New rows: `--rec` on `--g` ("armed record lamp label (LampButton)": 5.67:1 dark, 5.27:1 light, passes) and `--lamp-line` on `--g` ("armed loop lamp label (LampButton)": 13.24:1 dark; light 4.53:1 with the new value). With today's tokens the light pair would be `--lamp` (`#4f8a0e`) on `--g` (`#f2f1ee`) at 3.74:1, which fails, and no single `--lamp` passes both it and `--lamp-ink` (black) on `--lamp` (that needs `#4b820d` or lighter, which is at most 4.13:1 on `--g`), hence the separate token (L2). The tokens contract PR lands before this component is built (D7), so `ArmedLoop` passes axe like every other story; no story carries an a11y exemption. Disabled `--d` is exempt. (`join` adds no pair.)
+- **Contrast (AA 4.5:1, `tokens/contrast.test.ts`):** existing rows `--lamp-ink` on `--lamp`, and at `--code-opacity`; `--solid-ink` on `--rec`. New rows: `--rec` on `--g` ("armed record lamp label (LampButton)": 5.67:1 dark, 5.27:1 light, passes) and `--lamp-line` on `--g` ("armed loop lamp label (LampButton)": 13.24:1 dark; light 4.53:1 with the new value). With today's tokens the light pair would be `--lamp` (`#4f8a0e`) on `--g` (`#f2f1ee`) at 3.74:1, which fails, and no single `--lamp` passes both it and `--lamp-ink` (black) on `--lamp` (that needs `#4b820d` or lighter, which is at most 4.13:1 on `--g`), hence the separate token (L2). The tokens contract PR lands before this component is built (D7), so `ArmedLoop` passes axe like every other story; no story carries an a11y exemption. A disabled lamp's `--absent-<hue>` is exempt (`data-contrast="dim"`, `aria-disabled`). (`join` adds no pair.)
 - **Motion:** none.
 
 ### Accessibility
@@ -87,30 +121,33 @@ Not in `app/src/ui/tokens/*` today; they land in the orchestrator's tokens contr
 
 ## Stories (Story station)
 
-Title `Primitives/LampButton`, `layout: 'centered'` unless the row says otherwise. Every story renders in dark and light (the toolbar theme). The meta's `args` are `{ ontoggle: fn(), onlongpress: fn(), onlongrelease: fn(), tipAction: fn() }` (axiom 7; `tipAction` an action so the story test accepts it, L3), so every story has a long press; a short click still toggles. The existing stories (`Off`, `On`, `Toggles`, `Disabled`, `Recording`, `PartOn`, `LongLabel`, `Focused`) keep their args exactly; new stories add a real `tip` where the table gives one.
+Title `Primitives/LampButton`, `layout: 'centered'` unless the row says otherwise. Every story renders in dark and light (the toolbar theme). The meta's `args` are `{ ontoggle: fn(), onlongpress: fn(), onlongrelease: fn(), tipAction: fn() }` (axiom 7; `tipAction` an action so the story test accepts it, L3), so every story has a long press; a short click still toggles. The table below is the story file as it stands after the Round 2 restyle (PR #550).
 
-**Controls (argTypes):** `label`, `code`, `name`, `tip` text; `on`, `disabled`, `rec`, `waiting` boolean; `size` a select of `md` / `sm` / `cell`; `hue` a select of `lamp` / `rec`; `join` a select with an empty option for undefined, `start`, `end`; `width` a number (cleared = undefined); `ontoggle`, `onlongpress`, `onlongrelease`, `tipAction` actions.
+**Controls (argTypes):** `label`, `code`, `name`, `tip` text; `on`, `disabled`, `rec`, `waiting` boolean; `size` a select of `md` / `sm` / `cell`; `hue` a select of `t` / `r1` / `r2` / `r3` / `l` / `ok` / `lamp` (the deprecated `m` draws as `t`, so it isn't offered); `join` a select with an empty option for undefined, `start`, `end`; `width` a number (cleared = undefined); `ontoggle`, `onlongpress`, `onlongrelease`, `tipAction` actions.
 
 **Timing in plays (L4):** pointer events are `fireEvent.pointerDown` / `pointerUp(button, { pointerId: 1, button: 0, clientX: 0, clientY: 0 })` (jsdom 30 has `PointerEvent`). Plays use real time: "wait 500 ms" is `await new Promise((r) => setTimeout(r, 500))`, and a long press is awaited with `waitFor(…, { timeout: 1000 })`. The action's fake-timer cases are in its own unit tests.
 
 | Story | Args | Shows | Crop | Play (interaction check) |
 |---|---|---|---|---|
 | `Board` | `{ label: 'Accomp', code: 'ACMP', on: true, tip: 'transport.acmp' }` | the first LampButton on the Stage board at the board fixture (`transport.acmp` true): lit, with the code | `Board-{dark,light}.png` (Stage 24,68 127×32; the same box as `On`) | the button named `Accomp ACMP` has `aria-pressed="true"`, `data-face="on"`, `data-tip="transport.acmp"`; `tipAction` was called with the button and `'transport.acmp'` |
-| `Off` | `{ label: 'Metronome' }` | the off face: `--btn` fill, grey label | `Off-{dark,light}.png` (Stage 1114,68 107×32; see D4) | `data-face` is `off`; the button has no `aria-disabled` attribute and no `data-hue` |
-| `On` | `{ label: 'Accomp', code: 'ACMP', on: true }` | lime face, ink label, the small code | `On-{dark,light}.png` (Stage 24,68 127×32) | — |
+| `On` | `{ label: 'Accomp', code: 'ACMP', on: true }` | lit: the solid `--neutral` fill, label and code in `--on-ink` | `On-{dark,light}.png` (Stage 24,68 127×32) | the button named `Accomp ACMP` has `aria-pressed="true"` and `data-face="on"` |
 | `Toggles` | `{ label: 'Unison' }` | — | — | click → `ontoggle` called once with `true`, and `aria-pressed` is still `false` and `data-face` still `off` (controlled: the args don't change, D17); focus it, Space → called with `true` again; Enter → again; 3 calls, every one `true`; `onlongpress` not called |
-| `Disabled` | `{ label: 'Off', size: 'sm', width: 64, disabled: true, name: 'Manual Bass, works with Upper on' }` | dimmed label on the off face, 64 × 28 | `Disabled-{dark,light}.png` (SettingsChord 858,234 64×28) | `aria-disabled` is `true`, `data-face="disabled"`, `data-contrast="dim"`; click → still not pressed and `ontoggle` not called; `fireEvent.pointerDown(button, { pointerId: 1, button: 0, clientX: 0, clientY: 0 })`, wait 500 ms (real time) → `onlongpress` not called; `fireEvent.pointerUp` (same init) → `onlongrelease` not called |
-| `Recording` | `{ label: 'Rec / Stop', rec: true, on: true }` | the solid record-red face | — | `data-face` is `record` |
-| `PartOn` | `{ label: 'On', size: 'cell', on: true, name: 'Right 1 on' }`, `layout: 'padded'` | a part lamp filling its container, 13px label | — (the band's cells are fractional widths) | the button named `Right 1 on` is pressed |
-| `LongLabel` | `{ label: 'Port sends mapped', size: 'sm', on: true }` | the longest real lamp label stays on one line | — | — |
-| `JoinStart` | `{ label: 'Metronome', join: 'start' }` | the Metronome lamp off, square right corners where its caret joins | `JoinStart-{dark,light}.png` (Stage 1093,68 107×32) | — |
-| `JoinStartOn` | `{ label: 'Metronome', join: 'start', on: true }` | the joined lamp lit (Metronome on) | `JoinStartOn-{dark,light}.png` (Stage-Metronome 1092,68 108×32) | — |
-| `JoinEnd` | `{ label: 'Metronome', join: 'end' }` | square left corners, rounded right | — (no board draws an end-joined lamp) | — |
-| `Armed` | `{ label: 'Looper', size: 'cell', waiting: true, hue: 'rec', name: 'Looper, rec armed. Long press: loop rec', tip: 'looper.rec' }`, `layout: 'padded'` | Looper's Rec armed in the lamp row: no fill, 1px `--rec` outline, `--rec` 13px regular label | — (no board draws an armed LampButton, D10) | `data-face="waiting"`, `data-hue="rec"`, `aria-pressed="false"`; click → `ontoggle` called once with `true`, and the face is still `data-face="waiting"` (the parent, not the click, lights it, D17) |
-| `ArmedLoop` | `{ label: 'Looper', size: 'cell', waiting: true, hue: 'lamp', name: 'Looper, loop armed', tip: 'looper.on_off' }`, `layout: 'padded'` | Loop armed: the outline and label in `--lamp-line` | — (D10) | `data-face="waiting"`, `data-hue="lamp"`. Expected to fail axe in light until `--lamp-line` lands (Contrast) |
-| `LongPress` | `{ label: 'On', size: 'cell', on: true, name: 'Right 1 on. Long press: swap mode', tip: 'part.right1.on' }`, `layout: 'padded'` | a part lamp's long press (swap): the face doesn't change | — | `fireEvent.pointerDown(button, { pointerId: 1, button: 0, clientX: 0, clientY: 0 })` → `onlongpress` not called at once; `await waitFor(() => expect(onlongpress).toHaveBeenCalledTimes(1), { timeout: 1000 })` (real time); `fireEvent.pointerUp(button, { pointerId: 1, button: 0, clientX: 0, clientY: 0 })` → `onlongrelease` called once; `fireEvent.click(button)` → `ontoggle` not called and `aria-pressed` still `true`; then `userEvent.click(button)` → `ontoggle` called once with `false` (real timers: about 0.35 s per theme) |
-| `RightClick` | `{ label: 'Looper', size: 'cell', name: 'Looper. Long press: loop rec', tip: 'looper.on_off' }`, `layout: 'padded'` | a right-click does the long press | — | `fireEvent.contextMenu(button)` (no `buttons`, so the button is up) → `onlongpress` then `onlongrelease` called once each; `ontoggle` not called; `aria-pressed` still `false` |
-| `Focused` | `{ label: 'Metronome' }`, `pseudo: { focusVisible: true }` | the focus ring | — | — |
+| `Disabled` | `{ label: 'Off', size: 'sm', width: 64, disabled: true, name: 'Manual Bass, works with Upper on' }` | the `--absent-neutral` outline and label, no fill, 64 × 28 | `Disabled-{dark,light}.png` (SettingsChord 858,234 64×28) | `aria-disabled` is `true`, `data-face="disabled"`, `data-contrast="dim"`; click → still not pressed and `ontoggle` not called; `fireEvent.pointerDown(button, { pointerId: 1, button: 0, clientX: 0, clientY: 0 })`, wait 500 ms (real time) → `onlongpress` not called; `fireEvent.pointerUp` (same init) → `onlongrelease` not called |
+| `Off` | `{ label: 'Metronome' }` | the off face: a 1px `--neutral` outline and label, no fill | `Off-{dark,light}.png` (Stage 1114,68 107×32; see D4) | — |
+| `PartOn` | `{ label: 'On', size: 'cell', on: true, hue: 'r1', name: 'Right 1 on' }`, `layout: 'padded'` | a part lamp, lit: the solid Right 1 fill, `--on-ink` label | — (the band's cells are fractional widths) | — |
+| `PartOnR2` | `{ label: 'On', size: 'cell', on: true, hue: 'r2', name: 'Right 2 on' }`, `layout: 'padded'` | the same in Right 2's pink | — | — |
+| `PartOff` | `{ label: 'Off', size: 'cell', hue: 'r3', name: 'Right 3 off' }`, `layout: 'padded'` | a part lamp, off: the outline and label in Right 3's hue, no fill | — | — |
+| `LeftOn` | `{ label: 'On', size: 'cell', on: true, hue: 'l', name: 'Left on' }`, `layout: 'padded'` | the Left part lamp, lit, in teal | — | — |
+| `PartDisabled` | `{ label: 'On', size: 'cell', hue: 'r1', disabled: true, name: 'Right 1 on (no sound loaded)' }`, `layout: 'padded'` | a part lamp, absent: the outline and label in `--absent-r1`, no fill, fainter than `PartOff`, never grey | — | `data-face="disabled"`, `data-hue="r1"`, `data-contrast="dim"` |
+| `FunctionOff` | `{ label: 'Harm/Arp', size: 'cell' }`, `layout: 'padded'` | a function lamp, off: the neutral outline and label | — | — |
+| `FunctionOn` | `{ label: 'Sound', size: 'cell', on: true }`, `layout: 'padded'` | a function lamp, latched: the solid neutral fill, `--on-ink` label | — | — |
+| `Running` | `{ label: 'Start / Stop', on: true, hue: 'ok' }` | the running lamp: the solid `--ok` fill | — | — |
+| `Recording` | `{ label: 'Looper', size: 'cell', on: true, rec: true, name: 'Looper, recording' }`, `layout: 'padded'` | the record lamp, lit: the solid `--rec` fill | — | — |
+| `Looping` | `{ label: 'Looper', size: 'cell', on: true, hue: 'lamp', name: 'Looper, looping' }`, `layout: 'padded'` | the Looper looping: the solid lime `--lamp` fill, the label in `--lamp-ink` | — | `data-face="on"`, `data-hue="lamp"` |
+| `ArmedLoop` | `{ label: 'Looper', size: 'cell', waiting: true, hue: 'lamp', name: 'Looper, loop armed' }`, `layout: 'padded'` | Loop armed: a 2px `--lamp-line` ring over a faint lime fill, the label in `--lamp-line` | — (D10) | `data-face="waiting"`, `data-hue="lamp"` |
+| `Armed` | `{ label: 'Looper', size: 'cell', waiting: true, rec: true, name: 'Looper, rec armed. Long press: loop rec', tip: 'looper.rec' }`, `layout: 'padded'` | Looper's Rec armed in the lamp row: a 2px `--rec` ring over a faint `--rec` fill, the label in `--rec` | — (no board draws an armed LampButton, D10) | `data-face="waiting"`, `data-hue="rec"`, `aria-pressed="false"`; click → `ontoggle` called once with `true`, and the face is still `data-face="waiting"` (the parent, not the click, lights it, D17) |
+
+Not built yet: `LongLabel`, `JoinStart`, `JoinStartOn` and `JoinEnd` (their `JoinStart` and `JoinStartOn` crops are already cut), `LongPress`, `RightClick` and `Focused`. When they are built: `LongPress` presses with `fireEvent.pointerDown` / `pointerUp` (init `{ pointerId: 1, button: 0, clientX: 0, clientY: 0 }`), waits for `onlongpress` with `waitFor(…, { timeout: 1000 })`, then checks a following `fireEvent.click` doesn't toggle and a `userEvent.click` does; `RightClick` fires `fireEvent.contextMenu` and expects `onlongpress` then `onlongrelease`, no toggle; `Focused` uses `pseudo: { focusVisible: true }`.
 
 Crop positions are `board x,y w×h` in the 1440×900 renders, the same box in the dark and light render; each crop is exactly the button's own box (the focus ring, outside it, is never in a crop; L6).
 
@@ -135,13 +172,14 @@ Crop positions are `board x,y w×h` in the 1440×900 renders, the same box in th
 - **D9 · L5, `aria-disabled`.** Rendered as `"true"` only when disabled and left off entirely when enabled (today's component renders `"false"`; the build changes that).
 - **D10 · The armed face has no crop.** The Looper board is drawn `looping` and its armed outlines are in the state readout, not on a LampButton, and the Stage lamp row's Looper is off, so `Armed` and `ArmedLoop` are checked by `data-face`/`data-hue` and by eye, not by shots.
 - **D11 · `width` wins.** A set `width` replaces the size's width and side padding (padding 0, label centred) and stops `cell` from filling its container; height and label size still follow `size`.
-- **D12 · Width follows the weight.** An unfixed button is as wide as its label at the weight drawn, so lighting it widens it by the medium weight's extra width (Metronome 107 → 108px), as the boards draw it; parents needing a fixed width pass `width`.
+- **D12 · Width follows the weight (superseded, PR #550).** Every face now uses the same weight, so lighting a lamp no longer widens it; `width` still fixes a width where a parent needs one.
 - **D13 · The waiting face (lead's call).** `waiting` (default false) and `hue: 'lamp' | 'rec'` (default `lamp`) draw transparent fill, a 1px inset-shadow outline (so the box never changes size) and the label in the hue, with `data-face="waiting"` and `data-hue`; precedence on (or record) > waiting > off; used by LampRow for Looper's Rec armed (`rec`) and Loop armed (`lamp`).
-- **D14 · Disabled code.** When disabled, the code turns `--d` at full opacity with the label, in every face.
+- **D14 · Disabled code.** When disabled, the code turns the hue's `--absent-<hue>` at full opacity with the label, in every face.
 - **D15 · L2, the lime on the ground.** `--lamp` on `--g` in light is 3.74:1 and no one lime passes both that and black ink on the lamp face, so the waiting lime is a new token `--lamp-line` (light `#477b0c`, 4.53:1; dark the same lime as `--lamp`, 13.24:1); `--rec` on `--g` passes in both themes (5.67:1, 5.27:1). `ArmedLoop` (light) fails axe until it lands.
 - **D16 · L4, plays.** Pointer plays use `fireEvent.pointerDown/Up` with `{ pointerId: 1, button: 0, clientX: 0, clientY: 0 }` and real time (`waitFor` timeout 1000, or a 500 ms real wait); LampButton calls no pointer-capture API.
 - **D17 · Controlled (review; Stage D49).** `aria-pressed` and the face follow `on` alone; a click, Space or Enter calls `ontoggle(!on)` and draws nothing new until the parent passes the next `on`, so a lamp lit from `sounding` or `surface.layer` never shows a state the engine refused. Today's local flip goes; `Toggles` and `Armed` check `ontoggle`'s payload and an unchanged face, which a local flip would fail.
-- **D18 · `data-face="disabled"` and `data-contrast="dim"` (review).** Stage D49 lists `disabled` among the lamp's `data-face` values, as Stage.md › The base Button and kit D41 do for every faced control; Button D25 takes the same rule. A disabled lamp's `--d` label carries `data-contrast="dim"` (Stage.md › The base Button, D47).
+- **D18 · `data-face="disabled"` and `data-contrast="dim"` (review).** Stage D49 lists `disabled` among the lamp's `data-face` values, as Stage.md › The base Button and kit D41 do for every faced control; Button D25 takes the same rule. A disabled lamp's `--absent-<hue>` label carries `data-contrast="dim"` (Stage.md › The base Button, D47).
+- **D20 · No grey lamps; absent keeps its hue (owner, Stage screen).** No lamp draws a grey hue at rest, on or waiting: `m` is a deprecated alias of `t` (kept in the type so existing callers type-check). Disabled is the lamp's own hue at reduced strength (`--absent-<hue>`, state.css), not one grey for every lamp, so an absent part lamp still reads as that part's.
 - **D19 · `waiting` is a boolean plus `hue` (review).** Stage.md row 2 and D49 write `waiting: 'lamp' | 'rec'`; this spec keeps D13's `waiting: boolean` with `hue: 'lamp' | 'rec'` (the same two faces, and Button's waiting/hue pair has the same shape). Stage's `waiting="rec"` is `waiting hue="rec"` here.
 
 Follow-ups: Stage.md row 2 and D49 could adopt D19's prop shape; kit.md › Dimmed text's carriers list needs a row for disabled controls (Button D26).

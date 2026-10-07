@@ -624,8 +624,22 @@ fn launchkey_pads_are_commands() {
     assert!(s.state().keyboard_parts[2].on);
     s.midi_in(Port::Pads, &[0xB0, SHIFT_CC, 127, 0xB0, 38, 127, 0xB0, SHIFT_CC, 0]);
     assert!(s.state().keyboard_parts[1].selected);
-    // The master fader button: the Style page.
+    // The master fader button held: the pads (and the app's mirror) are the fader picker;
+    // REV picks the layer; release gives the pads back and switches no page.
     s.midi_in(Port::Pads, &[0xB0, 45, 127]);
+    let st = s.state();
+    assert_eq!((st.surface.layer, st.pads.page_name.as_str()), (crate::launchkey::Layer::Fader, "Faders"));
+    let labels: Vec<_> = st.pads.pads.iter().map(|p| p.label.as_str()).collect();
+    assert_eq!((&labels[..2], &labels[8..13]), (&["PANEL", "STYLE"][..], &["VOL", "PAN", "REV", "CHO", "DLY"][..]));
+    assert_eq!(st.pads.pads[1].action, Some(MixerCmd::SetFaderPage { page: FaderPage::Style }.into()), "the mirror's pad does what the Launchkey's does");
+    s.midi_in(Port::Pads, &[0x90, 114, 100]);
+    assert_eq!(s.state().mixer.fader_layer, crate::parts::FaderLayer::Reverb);
+    s.midi_in(Port::Pads, &[0xB0, 45, 0]);
+    let st = s.state();
+    assert_eq!((st.surface.layer, st.mixer.fader_page), (crate::launchkey::Layer::None, FaderPage::Panel));
+    s.send(MixerCmd::SetFaderLayer { layer: crate::parts::FaderLayer::Volume }).unwrap();
+    // The master fader button tapped: the Style page.
+    s.midi_in(Port::Pads, &[0xB0, 45, 127, 0xB0, 45, 0]);
     assert_eq!(s.state().mixer.fader_page, FaderPage::Style);
     // Page 1 pads are engine buttons: Start/Stop.
     s.send(PadsCmd::SetPadPage { page: Page::Sections }).unwrap();
@@ -737,6 +751,9 @@ fn style_volume_scales_the_style_parts() {
 #[test]
 fn versions_and_events() {
     let Some(s) = offline("SlowWalker.T552.sty") else { return };
+    // The index thread's results land on whichever command runs next (`pump_index`), an
+    // extra version and event under load: land them all before counting.
+    s.finish_indexing();
     let rx = s.subscribe();
     let v = s.version();
     assert_eq!(s.state().version, v);
@@ -791,6 +808,8 @@ fn launchkey_hardware_matches_its_commands() {
         let mut st = (*s.state()).clone();
         (st.version, st.io.last_control) = (0, 0);
         st.io.unmapped.clear();
+        // Only the hardware counts its part selects (CH-D15): the one intended difference.
+        st.surface.part_select_seq = 0;
         // When the state last changed is not what it is: read the clock now.
         st.surface.clock = st.surface.clock.at(ns_to_ms(s.now()));
         (st, s.take_output())
@@ -1052,6 +1071,8 @@ fn launchkey_buttons_are_what_the_state_says() {
         let mut st = (*s.state()).clone();
         (st.version, st.io.last_control) = (0, 0);
         st.io.unmapped.clear();
+        // Only the hardware counts its part selects (CH-D15): the one intended difference.
+        st.surface.part_select_seq = 0;
         // When the state last changed is not what it is: read the clock now.
         st.surface.clock = st.surface.clock.at(ns_to_ms(s.now()));
         (st, s.take_output())

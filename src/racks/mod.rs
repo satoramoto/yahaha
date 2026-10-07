@@ -183,9 +183,26 @@ impl RackPart {
     }
 
     /// Make the strip's sends 1-3 and insert 1 match the older fields, which are the
-    /// source of truth for them.
+    /// source of truth for them, and re-read an OTS part EQ saved on the old scale
+    /// ([`RackPart::migrate_xg_eq`]).
     pub fn normalize(&mut self) {
         self.strip = self.mirrored_strip();
+        self.migrate_xg_eq();
+    }
+
+    /// An EQ an OTS set before `PartEq::from_xg` read the Genos scale (00H-40H-7FH is
+    /// -12..+12 dB) took 1 dB a gain step, clamped to +-12 dB, so most OTS EQs were saved
+    /// as full +-12 dB shelves. A part whose EQ is exactly what that old reading gives
+    /// from its own XG part parameters (`tone.xg`) gets the Genos reading instead; any
+    /// other EQ (set by hand, or already right) is kept.
+    fn migrate_xg_eq(&mut self) {
+        let xg = || self.tone.xg.iter().map(|&[h, n, v]| (h, n, v));
+        let Some(now) = PartEq::from_xg(xg()) else { return };
+        let old_gain = |nn: u8| xg().filter(|&(h, n, _)| h == 0x08 && n == nn).last().map_or(0, |(_, _, v)| (v.min(127) as i8 - 64).clamp(-12, 12));
+        let old = PartEq { low_gain: old_gain(0x72), high_gain: old_gain(0x73), ..now };
+        if self.eq == old {
+            self.eq = now;
+        }
     }
 
     /// A normalized strip says nothing beyond the older fields: no compressor, insert 2

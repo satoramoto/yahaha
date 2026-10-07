@@ -1469,9 +1469,10 @@ impl MockSession {
         }
         // The page and the page order (`settings.padPages`), as the session shows them.
         let order = page_order(st);
-        // Hold Sound: the pads show (and do) the Racks page; `page` stays the one on view.
+        // Hold Sound: the pads show (and do) the Racks page; hold the master fader's button:
+        // the fader picker; `page` stays the one on view.
         let shown = layer.pads(st.pads.page);
-        st.pads.page_name = shown.name().into();
+        st.pads.page_name = layer.pads_name(st.pads.page).into();
         st.pads.page_number = order.position(st.pads.page).map_or(1, |i| i as u8 + 1);
         st.pads.page_count = order.len() as u8;
         st.pads.pages = order.pages().map(|page| PadPageInfo { page, name: page.name().into() }).collect();
@@ -1483,6 +1484,14 @@ impl MockSession {
         st.home = crate::mock_home::home(st);
         st.pads.pads = pads_for(st, shown);
         self.quick.fill(st, &self.racks.entries(), layer);
+        if layer == Layer::Fader {
+            // The fader picker, as the engine draws it (`launchkey::faders_looks`).
+            let panel = lk::Panel { layer, fader_page: st.mixer.fader_page, fader_layer: st.mixer.fader_layer, ..lk::Panel::default() };
+            st.pads.pads = lk::faders_looks(&panel)
+                .iter()
+                .map(|(note, l)| pad(*note, l.label, l.key, lk::pad_action(st.pads.page, layer, *note).map(AppCmd::from), (l.rgb.into(), l.level, l.anim)))
+                .collect();
+        }
         self.style_racks.fill(st, &self.racks.entries());
         // Every part's strip and the send effects (`Strips::fill`, as the session).
         self.strips.fill(st);
@@ -1718,6 +1727,8 @@ impl MockSession {
         let t = &st.transport;
         SurfaceState {
             shift: false,
+            // The mock has no Launchkey: no hardware part select ever comes.
+            part_select_seq: 0,
             layer: self.layer,
             controls,
             faders,
@@ -2669,6 +2680,8 @@ fn lk_panel(s: &AppState, quick: lk::QuickPanel) -> lk::Panel {
         selected: parts.iter().position(|p| p.selected).unwrap_or(0) as u8,
         quick,
         rotary_fast: s.effects.rotary_fast,
+        fader_page: s.mixer.fader_page,
+        fader_layer: s.mixer.fader_layer,
     }
 }
 
@@ -3899,8 +3912,6 @@ mod tests {
         let q = &m.state.quick_racks;
         assert_eq!((q.store, q.store_waiting, q.buttons[1].name.as_str(), q.buttons[1].loaded), (false, None, "Ballad", true));
         m.send(PartsCmd::SetPartVolume { part: 0, volume: 30 });
-        m.send(QuickRackCmd::PressQuickRack { slot: 1, discard: false });
-        assert!(matches!(m.state.live_rack.prompt, Some(RackPrompt::UnsavedChanges { .. })), "the guard");
         m.send(QuickRackCmd::PressQuickRack { slot: 1, discard: true });
         assert!(!m.state.live_rack.modified);
         m.send(PadsCmd::SetPadPage { page: Page::Racks });
@@ -3908,11 +3919,11 @@ mod tests {
         assert_eq!(pads.len(), 16);
         assert_eq!((pads[1].rgb, pads[0].level), ([127, 0, 0], Level::Off));
         let labels: Vec<&str> = pads[8..].iter().map(|p| p.label.as_str()).collect();
-        assert_eq!((pads[0].label.as_str(), labels), ("QUICK 1", vec!["OTS 1", "OTS 2", "OTS 3", "OTS 4", "BANK -", "BANK +", "STORE", ""]));
+        assert_eq!((pads[0].label.as_str(), labels), ("QUICK 1", vec!["OTS 1", "OTS 2", "OTS 3", "OTS 4", "BANK -", "BANK +", "STORE", "UNDO"]));
         assert_eq!(pads[1].action, Some(AppCmd::QuickRacks(QuickRackCmd::PressQuickRack { slot: 1, discard: false })));
         assert_eq!(pads[8].action, Some(AppCmd::Ots(OtsCmd::RecallOts { index: 0 })));
         assert_eq!(pads[14].action, Some(AppCmd::QuickRacks(QuickRackCmd::ToggleQuickRackStore)));
-        assert_eq!(pads[15].action, None, "the spare pad");
+        assert_eq!(pads[15].action, Some(AppCmd::QuickRacks(QuickRackCmd::UndoQuickRackStore)), "Undo");
         let n = m.state.ots.settings.len();
         assert!(pads[8..12].iter().enumerate().all(|(i, p)| (p.level == Level::Off) == (i >= n)), "OTS past the style's count are dark");
         m.send(QuickRackCmd::StepQuickRackBank { delta: 1 });
@@ -3946,21 +3957,149 @@ mod tests {
         // Saved and unchanged: it goes on as it is.
         m.send(QuickRackCmd::StoreRack { slot: 0 });
         assert_eq!((m.state.quick_racks.buttons[0].rack.clone(), m.state.racks.len()), (id.clone(), racks));
-        // Changed, on the lit button: saved over its own rack.
+        // Changed, on the lit button: saved over its own rack (its old content kept as
+        // "Previous: <name>").
         m.send(PartsCmd::SetPartPan { part: 0, pan: 10 });
         assert!(m.state.live_rack.modified);
         m.send(QuickRackCmd::StoreRack { slot: 0 });
-        assert_eq!((m.state.live_rack.id.clone(), m.state.live_rack.modified, m.state.racks.len()), (id.clone(), false, racks));
+        assert_eq!((m.state.live_rack.id.clone(), m.state.live_rack.modified, m.state.racks.len()), (id.clone(), false, racks + 1));
         // Changed, elsewhere: a new rack, named from the sounds, on the button.
         m.send(PartsCmd::SetPartPan { part: 0, pan: 20 });
         m.send(QuickRackCmd::StoreRack { slot: 5 });
         let q = &m.state.quick_racks;
-        assert_eq!((q.buttons[5].name.clone(), q.buttons[5].loaded, m.state.racks.len()), (format!("{name} 2"), true, racks + 1));
+        assert_eq!((q.buttons[5].name.clone(), q.buttons[5].loaded, m.state.racks.len()), (format!("{name} 2"), true, racks + 2));
         assert_eq!(q.buttons[0].rack, id, "the other buttons keep the rack they had");
         // No slot 9.
         assert!(!m.state.message.as_ref().is_some_and(|x| x.error));
         m.send(QuickRackCmd::StoreRack { slot: 8 });
         assert!(m.state.message.as_ref().is_some_and(|x| x.error));
+    }
+
+    /// `setQuickRackBank` views a bank; past H it is refused.
+    #[test]
+    fn set_quick_rack_bank_views_a_bank() {
+        let mut m = MockSession::new();
+        m.send(QuickRackCmd::SetQuickRackBank { bank: 7 });
+        assert_eq!(m.state.quick_racks.bank, 7);
+        assert!(!m.state.message.as_ref().is_some_and(|x| x.error));
+        m.send(QuickRackCmd::SetQuickRackBank { bank: 8 });
+        assert_eq!(m.state.quick_racks.bank, 7);
+        assert!(m.state.message.as_ref().is_some_and(|x| x.error));
+    }
+
+    /// The lit button recalls its rack clean with no prompt, keeping unsaved changes as
+    /// "Recovered: <name>"; another button keeps the guard.
+    #[test]
+    fn press_lit_quick_rack_recalls_clean_and_keeps_a_recovered_rack() {
+        let mut m = MockSession::new();
+        m.send(RackCmd::SaveRackAs { name: "Ballad".into(), sound_names: Default::default() });
+        let ballad = m.state.live_rack.id.clone();
+        m.send(QuickRackCmd::StoreRack { slot: 0 });
+        let racks = m.state.racks.len();
+        m.send(PartsCmd::SetPartPan { part: 0, pan: 10 });
+        assert!(m.state.live_rack.modified);
+        m.send(QuickRackCmd::PressQuickRack { slot: 0, discard: false });
+        let lr = &m.state.live_rack;
+        assert_eq!((lr.id.clone(), lr.modified, lr.prompt.is_none()), (ballad.clone(), false, true));
+        assert_eq!(m.state.racks.len(), racks + 1);
+        assert!(m.state.racks.iter().any(|r| r.name == "Recovered: Ballad"));
+        assert!(m.state.quick_racks.buttons[0].loaded);
+        // Unchanged: it just recalls, keeping nothing.
+        m.send(QuickRackCmd::PressQuickRack { slot: 0, discard: false });
+        assert_eq!(m.state.racks.len(), racks + 1);
+        // Another button, with changes: the guard.
+        m.send(RackCmd::SaveRackAs { name: "Jazz".into(), sound_names: Default::default() });
+        m.send(QuickRackCmd::StoreRack { slot: 1 });
+        m.send(PartsCmd::SetPartPan { part: 0, pan: 20 });
+        m.send(QuickRackCmd::PressQuickRack { slot: 0, discard: false });
+        assert!(matches!(m.state.live_rack.prompt, Some(RackPrompt::UnsavedChanges { .. })), "the guard");
+        assert!(m.state.live_rack.modified);
+    }
+
+    /// A store that changes a button is kept in `quickRacks.undo`, and `undoQuickRackStore`
+    /// puts the button's rack back; a store that changes nothing leaves it; clear ends it.
+    #[test]
+    fn undo_quick_rack_store_puts_the_button_back() {
+        let mut m = MockSession::new();
+        m.send(QuickRackCmd::UndoQuickRackStore);
+        assert!(m.state.message.as_ref().is_some_and(|x| x.error && x.text == "Nothing to undo"));
+        m.send(RackCmd::SaveRackAs { name: "Ballad".into(), sound_names: Default::default() });
+        let ballad = m.state.live_rack.id.clone();
+        m.send(QuickRackCmd::StoreRack { slot: 0 });
+        let empty = QuickRackUndo { bank: 0, slot: 0, name: String::new(), previous: None };
+        assert_eq!(m.state.quick_racks.undo, Some(empty.clone()));
+        // The same rack again: nothing changes.
+        m.send(QuickRackCmd::StoreRack { slot: 0 });
+        assert_eq!(m.state.quick_racks.undo, Some(empty));
+        // Another rack over it, by Store + press.
+        m.send(RackCmd::SaveRackAs { name: "Jazz".into(), sound_names: Default::default() });
+        m.send(QuickRackCmd::ToggleQuickRackStore);
+        m.send(QuickRackCmd::PressQuickRack { slot: 0, discard: false });
+        assert_eq!(m.state.quick_racks.undo, Some(QuickRackUndo { bank: 0, slot: 0, name: "Ballad".into(), previous: None }));
+        m.send(QuickRackCmd::UndoQuickRackStore);
+        let q = &m.state.quick_racks;
+        assert_eq!((q.buttons[0].rack.clone(), q.undo.clone()), (ballad, None));
+        m.send(QuickRackCmd::UndoQuickRackStore);
+        assert!(m.state.message.as_ref().is_some_and(|x| x.error));
+        // Clear ends it.
+        m.send(QuickRackCmd::StoreRack { slot: 2 });
+        assert!(m.state.quick_racks.undo.is_some());
+        m.send(QuickRackCmd::ClearQuickRack { bank: 0, slot: 2 });
+        assert_eq!(m.state.quick_racks.undo, None);
+    }
+
+    /// Saved over the lit button's own rack with changes: its old content is kept as
+    /// "Previous: <name>" (one of that name, replaced); the undo drops it and reloads the
+    /// live rack, keeping changes made since the store as "Recovered: <name>". The Racks
+    /// page's Undo pad (119) is lit only while there is a store to undo.
+    #[test]
+    fn undo_a_store_over_the_lit_rack_drops_its_previous_copy() {
+        let mut m = MockSession::new();
+        m.send(RackCmd::SaveRackAs { name: "Ballad".into(), sound_names: Default::default() });
+        let ballad = m.state.live_rack.id.clone();
+        m.send(QuickRackCmd::StoreRack { slot: 0 });
+        let racks = m.state.racks.len();
+        let previous = |m: &MockSession| m.state.racks.iter().filter(|r| r.name == "Previous: Ballad").count();
+        for pan in [10, 20] {
+            m.send(PartsCmd::SetPartPan { part: 0, pan });
+            m.send(QuickRackCmd::StoreRack { slot: 0 });
+            let undo = QuickRackUndo { bank: 0, slot: 0, name: "Ballad".into(), previous: Some("Previous: Ballad".into()) };
+            assert_eq!(m.state.quick_racks.undo, Some(undo));
+            assert_eq!((m.state.racks.len(), previous(&m), m.state.live_rack.modified), (racks + 1, 1, false));
+        }
+        m.send(PadsCmd::SetPadPage { page: Page::Racks });
+        let undo_pad = |m: &MockSession| m.state.pads.pads.iter().find(|p| p.note == 119).map(|p| (p.label.clone(), p.level)).unwrap();
+        assert_eq!(undo_pad(&m), ("UNDO".into(), Level::Dim), "lit: a store to undo");
+        // A change since the store: kept aside as the rack reloads.
+        m.send(PartsCmd::SetPartPan { part: 0, pan: 30 });
+        m.send(QuickRackCmd::UndoQuickRackStore);
+        let q = &m.state.quick_racks;
+        assert_eq!((q.buttons[0].rack.clone(), q.undo.clone()), (ballad.clone(), None));
+        assert_eq!((m.state.racks.len(), previous(&m)), (racks + 1, 0), "the copy went; a Recovered rack came");
+        assert!(m.state.racks.iter().any(|r| r.name == "Recovered: Ballad"));
+        assert_eq!((m.state.live_rack.id.clone(), m.state.live_rack.modified), (ballad, false), "reloaded");
+        assert_eq!(undo_pad(&m), ("UNDO".into(), Level::Off), "dark: nothing to undo");
+    }
+
+    /// `setLayer {fader}`: the pads are the fader picker from any page, the current page and
+    /// layer bright; a picker pad sets them; `none` gives the page on view back.
+    #[test]
+    fn set_layer_fader_shows_the_picker() {
+        use yahaha::parts::FaderLayer;
+        let mut m = MockSession::new();
+        m.send(PadsCmd::SetPadPage { page: Page::Racks });
+        m.send(PadsCmd::SetLayer { layer: Layer::Fader });
+        assert_eq!((m.state.surface.layer, m.state.pads.page, m.state.pads.page_name.as_str()), (Layer::Fader, Page::Racks, "Faders"));
+        let pad = |m: &MockSession, note: u8| m.state.pads.pads.iter().find(|p| p.note == note).unwrap().clone();
+        assert_eq!((pad(&m, 96).label.as_str(), pad(&m, 96).level), ("PANEL", Level::Bright));
+        assert_eq!((pad(&m, 97).label.as_str(), pad(&m, 97).level), ("STYLE", Level::Dim));
+        assert_eq!(pad(&m, 113).action, Some(MixerCmd::SetFaderLayer { layer: FaderLayer::Pan }.into()));
+        m.send(pad(&m, 97).action.unwrap());
+        m.send(pad(&m, 113).action.unwrap());
+        assert_eq!((m.state.mixer.fader_page, m.state.mixer.fader_layer), (FaderPage::Style, FaderLayer::Pan));
+        assert_eq!((pad(&m, 97).level, pad(&m, 113).level, pad(&m, 112).level), (Level::Bright, Level::Bright, Level::Dim));
+        m.send(PadsCmd::SetLayer { layer: Layer::None });
+        assert_eq!((m.state.pads.page_name.as_str(), pad(&m, 112).label.as_str()), ("Racks", "OTS 1"));
     }
 
     /// `setLayer`: under Sound the pads are the Racks page from any page (`pads.page` stays

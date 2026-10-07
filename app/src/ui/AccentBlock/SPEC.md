@@ -1,5 +1,12 @@
 # AccentBlock
 
+> **Type roles and heights (the one-size-per-line scale).** Both sizes are `font: var(--type-strong);
+> letter-spacing: var(--tracking-strong)` (13px medium), followed by `font-variant-numeric:
+> tabular-nums` and the block's height as line-height. `line` is `--block-height` (32px,
+> `--control-height`: as tall as ◀ ▶ beside it); `knob` is `--block-height-knob` (24px,
+> `--tab-block`). The look is unchanged (solid `--a`, `--g` ink). Where the sections below
+> disagree, this note wins.
+
 ## Identity (all stations)
 
 - **Kind:** primitive
@@ -21,7 +28,7 @@ Every prop gets a JSDoc comment in the component.
 | `label` | `string` | — | The text in the block ("Sunday Drive Pop", "Style", "Swap R1"). |
 | `empty` | `string` | `'—'` | What the block shows when `label.trim() === ''` (empty or whitespace only; otherwise the label is drawn as given, untrimmed), so it never collapses to a sliver. The style line passes `'No style'`. |
 | `as` | `'span' \| 'button'` | `'span'` | `button`: a text button that calls `onpress` (the style name). `span`: a plain label (the knob page). |
-| `size` | `'line' \| 'knob'` | `'line'` | `line`: 26 tall, 18px medium, padding 0 10 (the style line). `knob`: 22 tall, 13px regular, padding 0 8 (a band header row: the knob page). |
+| `size` | `'line' \| 'knob'` | `'line'` | `line`: 32 tall, `--type-strong`, padding 0 10 (the style line). `knob`: 24 tall, `--type-strong`, padding 0 8 (a band header row: the knob page). |
 | `width` | `number \| undefined` | — | A fixed width in px; a longer label ends in an ellipsis. Without it the block is as wide as its label and can still shrink inside a flex row (`min-width: 0`), ellipsizing the same way. |
 | `name` | `string \| undefined` | — | The accessible name when the label alone isn't enough (`button` only), set as `aria-label`: "Sunday Drive Pop: open the Browser". Default: no `aria-label`, so the name is the shown text. The parent builds it from the shown text, so with no style StyleLine passes `label: ''`, `empty: 'No style'` and `name: 'No style: open the Browser'` (D9). |
 | `tip` | `string \| undefined` | — | The tooltip key, rendered as `data-tip` on the element when `as: 'button'` (the style name passes `browser.open`, which exists in `tooltips.ts`). Ignored for `span` (not a control, no `data-tip`). L3. |
@@ -41,7 +48,7 @@ Every prop gets a JSDoc comment in the component.
 
 ### Visual rules
 
-- **Tokens used:** `--a`, `--g`, `--focus`, `--font-sans`, `--text-13`, `--text-18`, `--weight-regular`, `--weight-medium`, `--space-8`, `--space-10`, `--line-width`, `--focus-offset`, and the new tokens below.
+- **Tokens used:** `--a`, `--g`, `--focus`, `--type-strong`, `--tracking-strong`, `--space-8`, `--space-10`, `--line-width`, `--focus-offset`, and the tokens below.
 
 #### New tokens
 
@@ -49,8 +56,8 @@ Not in `app/src/ui/tokens/*` today. They land in the orchestrator's tokens contr
 
 | Token | Dark | Light | Used for |
 |---|---|---|---|
-| `--block-height` | `26px` | `26px` | the block's height and line-height at `line` (scale.css) |
-| `--block-height-knob` | `22px` | `22px` | the block's height and line-height at `knob` (scale.css) |
+| `--block-height` | `32px` | `32px` | the block's height and line-height at `line`, `var(--control-height)` (scale.css) |
+| `--block-height-knob` | `24px` | `24px` | the block's height and line-height at `knob`, `var(--tab-block)` (scale.css) |
 
 - **Element:** `as: 'span'` a `<span>`; `as: 'button'` a `<button type="button">` with the browser look removed (border 0, margin 0, `appearance: none`, font family, size and weight set from the type below). Both: `display: inline-block`, `vertical-align: top` (an inline-block with `overflow: hidden` would otherwise sit on its bottom edge as baseline), `box-sizing: border-box`, `flex: 0 1 auto`, `min-width: 0`, `max-width: 100%`, `overflow: hidden`, `white-space: nowrap`, `text-overflow: ellipsis`, `text-align: left`, radius 0 (square corners, as both board instances).
 - **Face:** fill `--a` always (swap mode too, Stage D51), label `--g`. No border, bar, glow or shadow.
@@ -58,8 +65,8 @@ Not in `app/src/ui/tokens/*` today. They land in the orchestrator's tokens contr
 
   | Size | Height and line-height | Padding (top/bottom 0) | Type |
   |---|---|---|---|
-  | `line` | `--block-height` (26) | `--space-10` each side | `--text-18`, `--weight-medium` (500) |
-  | `knob` | `--block-height-knob` (22) | `--space-8` each side | `--text-13`, `--weight-regular` (400) |
+  | `line` | `--block-height` (32) | `--space-10` each side | `--type-strong` (13 medium) |
+  | `knob` | `--block-height-knob` (24) | `--space-8` each side | `--type-strong` (13 medium) |
 
   Width: the label plus the padding (measured on the board: "Sunday Drive Pop" at `line` is 168 wide, "Style" at `knob` 46), or `width` (set as an inline `width: <n>px`), or less when the parent squeezes it; whenever the label doesn't fit, it ends in "…". Being `inline-block`, the block shrink-wraps its label in a block or inline parent (the stories' centred root), capped at the parent's width by `max-width: 100%`; in a flex row (StyleLine, the knob header) it is a flex item and `flex: 0 1 auto; min-width: 0` let the row shrink it (D8).
 - **States drawn by:**
@@ -68,10 +75,10 @@ Not in `app/src/ui/tokens/*` today. They land in the orchestrator's tokens contr
   - long label: clipped with an ellipsis at the block's width (above).
   - keyboard focus (`button` only, `:focus-visible`): a `--line-width` outline in `--focus`, `--focus-offset` outside the block; nothing on mouse focus.
   - No hover, pressed or disabled look.
-- **Type:** DM Sans (`--font-sans`), tabular numerals, the label as given.
+- **Type:** the size's role (above) then `font-variant-numeric: tabular-nums`, the label as given.
 - **Cursor:** `pointer` for `button`, `default` for `span`.
 - **Test hooks:** the element carries `data-face="accent"`, `data-hue="a"` (always; kept so parents' tests read the block the same way) and `data-size="<size>"`.
-- **Contrast (AA 4.5:1, `tokens/contrast.test.ts`):** new row (lands with the tokens contract PR, L1): `--g` on `--a`, "style name and knob page label (AccentBlock)" (both sizes: 18px medium and 13px are normal text): 7.80 dark, 5.95 light, both pass today. No part-hue fill, so no other pair (D12).
+- **Contrast (AA 4.5:1, `tokens/contrast.test.ts`):** new row (lands with the tokens contract PR, L1): `--g` on `--a`, "style name and knob page label (AccentBlock)" (both sizes: 13px medium is normal text): 7.80 dark, 5.95 light, both pass today. No part-hue fill, so no other pair (D12).
 - **Not checkable in jsdom:** the fill, the sizes and the ellipsis; the `Board` and `KnobPage` crops and the `LongName` story (judged by Inspect) cover them.
 - **Motion:** none.
 
@@ -89,8 +96,8 @@ Title `Primitives/AccentBlock`, `layout: 'centered'`. Every story renders in dar
 
 | Story | Args | Shows | Crop | Play (interaction check) |
 |---|---|---|---|---|
-| `Board` | `{ label: 'Sunday Drive Pop', as: 'button', size: 'line', name: 'Sunday Drive Pop: open the Browser', empty: 'No style', tip: 'browser.open' }` | the style name: violet `--a` block, 18px medium label in `--g` (black in dark, the pale ground colour in light), square corners | `Board-{dark,light}.png` (Stage 87,132 168×26) | a `button` named "Sunday Drive Pop: open the Browser" with `data-face="accent"`, `data-hue="a"`, `data-size="line"`, `data-tip="browser.open"` and no `aria-pressed`; `tipAction` was called with (the button, `'browser.open'`); click → `onpress` called once with no arguments; focus it, press Enter → called twice; press Space → three times |
-| `KnobPage` | `{ label: 'Style', size: 'knob', tip: 'browser.open' }` | the knob page block, 22 tall, 13px | `KnobPage-{dark,light}.png` (Stage 742,439 46×22) | no `button` in the story root; the text "Style" is in an element with `data-size="knob"` and `data-hue="a"`; nothing focusable; no `[data-tip]` (a span ignores `tip`) and `tipAction` not called |
+| `Board` | `{ label: 'Sunday Drive Pop', as: 'button', size: 'line', name: 'Sunday Drive Pop: open the Browser', empty: 'No style', tip: 'browser.open' }` | the style name: violet `--a` block, `--type-strong` label in `--g` (black in dark, the pale ground colour in light), square corners | `Board-{dark,light}.png` (Stage 87,132 168×26) | a `button` named "Sunday Drive Pop: open the Browser" with `data-face="accent"`, `data-hue="a"`, `data-size="line"`, `data-tip="browser.open"` and no `aria-pressed`; `tipAction` was called with (the button, `'browser.open'`); click → `onpress` called once with no arguments; focus it, press Enter → called twice; press Space → three times |
+| `KnobPage` | `{ label: 'Style', size: 'knob', tip: 'browser.open' }` | the knob page block, 24 tall, `--type-strong` | `KnobPage-{dark,light}.png` (Stage 742,439 46×22) | no `button` in the story root; the text "Style" is in an element with `data-size="knob"` and `data-hue="a"`; nothing focusable; no `[data-tip]` (a span ignores `tip`) and `tipAction` not called |
 | `SwapR1` | `{ label: 'Swap R1', size: 'knob' }` | the knob page in swap mode: "Swap R1" in the same accent block (Stage D51; the part's hue shows on its lamp and strip) | — (no board draws swap mode) | the text "Swap R1" is in an element with `data-hue="a"` and `data-size="knob"` |
 | `LongName` | `{ label: 'Bossa Nova Lounge Session With Strings And Brushes Deluxe 2', as: 'button', width: 240, name: 'Bossa Nova Lounge Session With Strings And Brushes Deluxe 2: open the Browser' }` | a 59-character style name clipped at 240px with "…" | — (no board; Inspect judges the clip) | the button's accessible name is the whole name plus ": open the Browser" |
 | `Empty` | `{ label: '', as: 'button', empty: 'No style' }` | the block reads "No style" | — | a `button` named "No style" |
@@ -114,7 +121,7 @@ Crop positions are `board x,y w×h` in the 1440×900 renders, the same box in th
 - **D3 · Ellipsis, never wrap.** A long style name ends in "…" at whatever width the row leaves it (`min-width: 0`) or at `width`; the full name stays in the button's accessible name. The knob page names are short and fixed, so the same rule never bites there.
 - **D4 · Swap hues.** Superseded by D12. The swap block is `--g` on the part's hue; in light, `--r3` and `--l` give 3.65 and 3.58 against `--g`, so those two part tokens need darkening in the tokens PR (or the owner picks another ink); `SwapR1`, the case the Stage state names, passes.
 - **D5 · Empty text.** An empty label shows `empty` (default "—", "No style" from the style line) so the block keeps its height and something to click; `StyleState.name` is a string the session can leave empty before a style loads.
-- **D6 · Weight follows size.** `line` is medium (500), `knob` regular (400), as the boards draw them; a separate weight prop isn't needed until a board draws another mix.
+- **D6 · One role.** Superseded by the one-size-per-line scale: both sizes are `--type-strong` (13px medium); only the height and padding differ. A separate weight prop isn't needed.
 - **D7 · No disabled state.** Nothing on the boards disables the style name (the Browser exists today, so D32's interim rule doesn't apply); a disabled look would need a fifth meaning for the block, so there isn't one.
 - **D8 · Inline-block.** The element is `display: inline-block` (`vertical-align: top`), not `block`, so on its own it is as wide as its label; in a flex row it is a flex item either way and `min-width: 0` lets the row shrink it.
 - **D9 · No-style name.** With no style the parent keeps the "{shown text}: open the Browser" template, so StyleLine passes `name: 'No style: open the Browser'` with `empty: 'No style'`; the component itself never composes a name.
