@@ -639,6 +639,16 @@ export class MockSession implements Session {
     return this.sound.stateOf(id)
   }
 
+  /** Stands in for the Launchkey (tests, the demo): Shift + fader button `part + 1` selects
+   * keyboard part `part` (0–3) and moves `surface.partSelectSeq`, as only a part select on
+   * the hardware does. */
+  hardwareSelectPart(part: number) {
+    const st = this.state
+    st.keyboardParts.forEach((p, i) => (p.selected = i === (part & 3)))
+    st.surface.partSelectSeq = (st.surface.partSelectSeq + 1) >>> 0
+    this.publish()
+  }
+
   dispose() {
     if (this.timer) clearInterval(this.timer)
     this.subs.clear()

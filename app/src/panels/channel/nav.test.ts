@@ -1,5 +1,6 @@
-// channelNav (nav.svelte.ts): the part opener and the page's close. A part becoming selected
-// elsewhere doesn't open Channel.
+// channelNav (nav.svelte.ts): the part opener and the page's close; a Launchkey part select
+// (`surface.partSelectSeq` moving) opens Channel on the selected part, and a part becoming
+// selected any other way doesn't.
 
 import { flushSync } from 'svelte'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -79,5 +80,102 @@ describe('channelNav', () => {
     flushSync()
     expect(stagePage.page).toBe('stage')
     expect(ui.view).toBe('library')
+  })
+})
+
+describe('a Launchkey part select (surface.partSelectSeq)', () => {
+  /** Every command the session got from the app. */
+  function spy(s: MockSession) {
+    const sent: unknown[] = []
+    const send = s.send.bind(s)
+    s.send = (cmd) => {
+      sent.push(cmd)
+      send(cmd)
+    }
+    return sent
+  }
+
+  it('opens the Channel page on the selected part, from any page, without a selectPart of its own', () => {
+    const s = attach()
+    const sent = spy(s)
+    ui.view = 'library'
+    stagePage.page = 'effects'
+    s.hardwareSelectPart(2)
+    flushSync()
+    expect(stagePage.page).toBe('channel')
+    expect(ui.view).toBe('stage')
+    expect(ui.selectedPart).toBe(2)
+    expect(sent).toEqual([])
+    // Each select opens it again, even of the part already open.
+    stagePage.page = 'stage'
+    s.hardwareSelectPart(2)
+    flushSync()
+    expect(stagePage.page).toBe('channel')
+    s.hardwareSelectPart(1)
+    flushSync()
+    expect(ui.selectedPart).toBe(1)
+  })
+
+  it('the first state is a baseline: a session whose counter already moved opens nothing', () => {
+    const s = new MockSession({ demo: true, manual: true })
+    s.hardwareSelectPart(3)
+    s.hardwareSelectPart(1)
+    app.attach(s)
+    s.advance(16)
+    flushSync()
+    expect(stagePage.page).toBe('stage')
+    expect(ui.selectedPart).toBe(0)
+  })
+
+  it('app selects, F-key selects, sound picks, channelNav.show and rack loads never open it', () => {
+    const s = attach()
+    const changes: string[] = []
+    const step = (what: string, f: () => void) => {
+      f()
+      s.advance(16)
+      flushSync()
+      if (stagePage.page !== 'stage' || ui.selectedPart !== 0) changes.push(what)
+      stagePage.page = 'stage'
+      ui.selectedPart = 0
+    }
+    for (const part of [1, 2, 3, 0]) step(`selectPart ${part}`, () => app.send({ type: 'selectPart', part }))
+    step('assignSound', () => app.send({ type: 'assignSound', part: 2, id: 'sf:GeneralUser-GS.sf2:0:33' }))
+    step('storeRack', () => app.send({ type: 'storeRack', slot: 0 }))
+    step('selectPart before a load', () => app.send({ type: 'selectPart', part: 3 }))
+    step('pressQuickRack', () => app.send({ type: 'pressQuickRack', slot: 0, discard: true }))
+    expect(changes).toEqual([])
+    // channelNav.show opens Channel itself; the selectPart it sends opens nothing more.
+    channelNav.show(1)
+    s.advance(16)
+    flushSync()
+    stagePage.page = 'stage'
+    s.advance(16)
+    flushSync()
+    expect(stagePage.page).toBe('stage')
+    expect(s.state.surface.partSelectSeq).toBe(0)
+  })
+
+  it('after attaching a new session, its first state is a baseline again', () => {
+    const a = attach()
+    a.hardwareSelectPart(1)
+    flushSync()
+    expect(stagePage.page).toBe('channel')
+    stagePage.page = 'stage'
+    // A new session whose counter differs from the old one's: nothing opens on its first state.
+    const b = new MockSession({ demo: true, manual: true })
+    app.attach(b)
+    b.advance(16)
+    flushSync()
+    expect(b.state.surface.partSelectSeq).not.toBe(a.state.surface.partSelectSeq)
+    expect(stagePage.page).toBe('stage')
+    // Its own selects open it.
+    b.hardwareSelectPart(2)
+    flushSync()
+    expect([stagePage.page, ui.selectedPart]).toEqual(['channel', 2])
+    // And the old session, detached, opens nothing.
+    stagePage.page = 'stage'
+    a.hardwareSelectPart(3)
+    flushSync()
+    expect(stagePage.page).toBe('stage')
   })
 })

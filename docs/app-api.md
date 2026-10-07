@@ -724,7 +724,7 @@ a button of the bank on view, 0–7.
 | `setQuickRackBank` | `bank` 0–7 | Views bank `bank` (0 = A … 7 = H). Refused (`Failed`) outside 0–7. Example: `{"type":"setQuickRackBank","bank":2}`. |
 | `toggleQuickRackStore` | | Store: arms or disarms it for the next press. Disarming lets a waiting button go. |
 | `storeRack` | `slot` 0–7 | Captures the live rack on button `slot` of the bank on view in one step, with no arming and no save dialog. On the lit button (the live rack's own rack) that rack is overwritten with the live rack (saved, as `saveRack`); with unsaved changes, the rack as it was is first kept as a `Previous: <name>` rack (one per rack name, replaced by the next such store), which `undoQuickRackStore` puts back. On any other button a saved, unmodified live rack goes on as it is; otherwise the live rack is saved as a new rack named from its on parts' sounds ("Rhodes Soft + Strings", numbered if taken) and goes on. Store armed clears. Every store that changes a button or saves over a rack sets `quickRacks.undo`. On the Launchkey: hold Sound (Panel fader button 6) and tap the lit or an empty Quick Rack pad; a pad holding another rack recalls it. Refused (`Failed`) for a slot outside 0–7. Example: `{"type":"storeRack","slot":0}`. |
-| `undoQuickRackStore` | | Undoes the last store (`quickRacks.undo`): the button gets back the rack it held (or empty). When the store saved over the lit button's own rack (`storeRack` on the lit button with unsaved changes, or the Sound-hold tap), that rack gets back its old content from the `Previous: <name>` rack, which the store kept and the undo removes (it stays if a Quick Rack button names it). If that rack is the live rack it then shows unsaved changes (`liveRack.modified`); the sound playing doesn't change. Sounds saved over by that save stay saved. Clears `quickRacks.undo`. Refused (`Failed`) with nothing to undo, or when the rack or its Previous copy is gone. A new store replaces the undo and `clearQuickRack` drops it; it is kept in memory only, not across restarts. Example: `{"type":"undoQuickRackStore"}`. |
+| `undoQuickRackStore` | | Undoes the last store (`quickRacks.undo`): the button gets back the rack it held (or empty). When the store saved over the lit button's own rack (`storeRack` on the lit button with unsaved changes, or the Sound-hold tap), that rack gets back its old content from the `Previous: <name>` rack, which the store kept and the undo removes (it stays if a Quick Rack button names it). If that rack is the live rack, it is then reloaded, so what plays matches the restored rack (`liveRack.modified` false); unsaved changes the live rack had at undo time (made since the store) are first kept as a `Recovered: <name>` rack, as a recall of the lit button from the hardware does. Sounds saved over by that save stay saved. Clears `quickRacks.undo`. Refused (`Failed`) with nothing to undo, or when the rack or its Previous copy is gone. A new store replaces the undo and `clearQuickRack` drops it; it is kept in memory only, not across restarts. On the Launchkey: the Racks pad page's Undo pad (bottom row pad 8, note 119), lit dim orange while `quickRacks.undo` is set and dark otherwise (pressed then, it says "Nothing to undo"); it has no keyboard key. Example: `{"type":"undoQuickRackStore"}`. |
 | `clearQuickRack` | `bank` 0–7, `slot` 0–7 | Empties a button. Drops `quickRacks.undo`. |
 | `stepQuickRack` | `delta`, `discard`? | Previous/next rack in the bank on view: the stored button before/after the lit one (from none, + the first and − the last; it stops at either end), loaded as `pressQuickRack` loads. Fails when the bank has no racks. |
 
@@ -949,7 +949,8 @@ row 112–119.
 - **Racks** (orange): top row Quick Racks 1–8 of the bank on view (red: the loaded rack,
   blue: a rack, dark: empty; all flashing while Store is armed). Bottom row OTS 1–4
   (`recallOts`; dark past the style's OTS count, bright for the one recalled), Bank −,
-  Bank +, Store (flashing red while armed), a dark pad. Rack −/+ (`stepQuickRack`) are
+  Bank +, Store (flashing red while armed), UNDO (`undoQuickRackStore`; dim orange while
+  `quickRacks.undo` is set, dark otherwise). Rack −/+ (`stepQuickRack`) are
   Shift + Track ◀ ▶.
 - **Chord** (cyan): the top row is dark; the bottom row Manual Bass, Stop ACMP, Split −,
   Split +, Keyboard Transpose −, +, Transpose reset, Retrigger.
@@ -1066,6 +1067,7 @@ The Launchkey beyond the pads.
 | `faders` | SurfaceFader[9] | Faders 1–8 on the active fader page, then the master fader. |
 | `trackPrev`, `trackNext` | Neighbour? | Where Track ◀ / ▶ (and `stepStyle`) go: `{ id, name, path }` of the previous and next style in library order, skipping files known not to load. Null when there is nowhere to go. |
 | `clock` | ClockState | The beat clocks. See [below](#surfaceclock). |
+| `partSelectSeq` | number | Counts part selects made on the Launchkey (Shift + Panel fader button 1–4, `selectPart`) and wraps. Only those: `selectPart` from the app, its F1–F4 keys, a sound pick, or a rack or OTS load leave it alone. When it changes, the app opens the Channel page on the selected part; it never does on the first state it sees. Missing in older states: 0. |
 
 #### SurfaceControl
 | Field | Type | Meaning |
@@ -2063,7 +2065,8 @@ after `"C Am F G7"`) and `library.json` (`corpus/MOX_v2`).
       "sectionAnchorBeats": 0.0,
       "ledAnchorMs": 0.0,
       "ledAnchorBeats": 0.0
-    }
+    },
+    "partSelectSeq": 0
   },
   "io": {
     "outputPort": "yahaha",

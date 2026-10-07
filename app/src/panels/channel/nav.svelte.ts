@@ -5,10 +5,15 @@
 // page tab. The parts list and ◀ ▶ use it. The Channel page has no close of its own (CH-D4): the
 // Stage tab, its Alt key or Esc (stagePage.escape) leave it.
 //
-// A part becoming selected doesn't open Channel: a sound pick, F1–F4, a rack slot or a rack load
-// select parts too, and the state can't yet say a select came from the hardware. Opening it on a
-// hardware part select (CH-D15) waits for the contract's `surface.partSelectSeq`.
+// A part select on the Launchkey (Shift + fader button 1–4) opens the Channel page on that part
+// (CH-D15), whatever page shows: the watcher below reacts to `surface.partSelectSeq` moving, which
+// counts only those. A part becoming selected otherwise (`selectPart` from the app, F1–F4, a sound
+// pick, a rack slot or a rack load) doesn't open it, and the watcher sends no `selectPart` of its
+// own (the hardware already selected the part). A session's first state is a baseline, also after
+// attaching another session, whose counter has nothing to do with the last one's.
 
+import { untrack } from 'svelte'
+import type { AppState } from '../../lib/api/types'
 import { app, ui } from '../../lib/store.svelte'
 import type { ChannelTab } from '../../ui/Channel/types'
 import { stagePage } from '../stage/page.svelte'
@@ -39,3 +44,37 @@ class ChannelNav {
 }
 
 export const channelNav = new ChannelNav()
+
+/** The state shown when a session was attached (the empty state, or the last session's): not
+ * the attached session's, so never its baseline. */
+let before: AppState = app.state
+/** The attached session's `partSelectSeq` last seen; null until its first state. */
+let seen: number | null = null
+
+// The store has no attach hook, so note each attach here: its first state is a new baseline.
+const attach = app.attach.bind(app)
+app.attach = (session) => {
+  before = app.state
+  seen = null
+  attach(session)
+}
+
+/** A Launchkey part select: the Channel page on the selected keyboard part. */
+function openSelected(s: AppState) {
+  const part = s.keyboardParts.findIndex((p) => p.selected)
+  if (part < 0) return
+  ui.selectedPart = part
+  stagePage.show('channel')
+}
+
+$effect.root(() => {
+  $effect(() => {
+    const s = app.state
+    if (s === before) return
+    // An engine before the counter has none: nothing opens.
+    const seq: number | undefined = s.surface.partSelectSeq
+    const moved = seen !== null && seq !== seen
+    seen = seq ?? null
+    if (moved) untrack(() => openSelected(s))
+  })
+})

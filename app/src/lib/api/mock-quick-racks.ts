@@ -209,7 +209,8 @@ export class MockQuickRacks {
 
   /** `undoQuickRackStore`: the button gets back what it held; a rack saved over gets its
    * "Previous: <name>" copy's content back, the copy goes, and if it is the live rack it
-   * shows unsaved changes (what plays is still the stored version). */
+   * reloads as it was, unsaved changes made since the store kept as "Recovered: <name>"
+   * (as a recall of the lit button does). */
   private takeBack(ctx: QuickCtx) {
     const u = this.undo
     if (u === null) return ctx.message('Nothing to undo', true)
@@ -219,7 +220,7 @@ export class MockQuickRacks {
     if (u.own !== null && u.previous !== null && st.racks.some((r) => r.id === u.previous) && st.racks.some((r) => r.id === u.own)) {
       ctx.copyRack(u.previous, u.own)
       ctx.rack({ type: 'deleteRack', id: u.previous })
-      if (st.liveRack.id === u.own) st.liveRack.modified = true
+      if (st.liveRack.id === u.own) this.recall(u.own, ctx)
     }
     ctx.message(`Undid the store on Quick Rack ${quickLabel(u.bank, u.slot)}`)
   }
