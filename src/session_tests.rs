@@ -751,6 +751,9 @@ fn style_volume_scales_the_style_parts() {
 #[test]
 fn versions_and_events() {
     let Some(s) = offline("SlowWalker.T552.sty") else { return };
+    // The index thread's results land on whichever command runs next (`pump_index`), an
+    // extra version and event under load: land them all before counting.
+    s.finish_indexing();
     let rx = s.subscribe();
     let v = s.version();
     assert_eq!(s.state().version, v);
