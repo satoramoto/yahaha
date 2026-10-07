@@ -37,9 +37,9 @@ export const SPOTS: readonly BloomSpot[] = [
  */
 export const FALLOFF: readonly (readonly [number, number])[] = [
   [0, 1],
-  [0.25, 0.74],
-  [0.5, 0.4],
-  [0.75, 0.13],
+  [0.3, 0.88],
+  [0.55, 0.58],
+  [0.8, 0.2],
   [1, 0],
 ]
 
@@ -50,19 +50,24 @@ export const FALLOFF: readonly (readonly [number, number])[] = [
 export function hues(palette: BloomPalette, section: BloomSection = 'main'): string[] {
   if (palette === 'parts') return ['--bloom-a', '--bloom-r1', '--bloom-r2', '--bloom-l', '--bloom-r3']
   if (palette === 'section') return ['--bloom-a', `--bloom-${section}`, `--bloom-${section}`, `--bloom-${section}`]
-  return ['--bloom-a', '--bloom-r1', '--bloom-l', '--bloom-brk']
+  // Aurora keeps to the hues that glow plainly on black within AA (blue- and red-led, no green):
+  // the accent violet, blue, magenta and plum.
+  return ['--bloom-a', '--bloom-r1', '--bloom-r2', '--bloom-brk']
 }
 
 /** The swell (scale) and the drift (a multiple of each spot's dx, dy) at the top of a breath. */
 export const MOTION: Record<BloomMotion, { swell: number; drift: number }> = {
-  calm: { swell: 0.06, drift: 1 },
-  lively: { swell: 0.12, drift: 2 },
+  calm: { swell: 0.14, drift: 2.5 },
+  lively: { swell: 0.22, drift: 3.5 },
 }
 
-/** The opacity of a bloom at the bottom of a breath (it reaches 1 at the top). */
-export const EXHALE = 0.82
+/**
+ * The opacity of a bloom at the bottom of a breath (it reaches 1 at the top). Deep enough that a
+ * breath shows at a glance on a real screen, not only side by side in a story.
+ */
+export const EXHALE = 0.5
 /** The whole backdrop's opacity when the band is stopped: still and calm. */
-export const REST = 0.75
+export const REST = 0.7
 /** The backdrop's opacity while playing, at level 0 and at level 1. */
 export const PLAY_QUIET = 0.85
 export const PLAY_LOUD = 1

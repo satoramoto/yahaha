@@ -1,30 +1,46 @@
 /*
  * The blooms behind a screen (app/src/ui/Blooms): their hues and strength per theme, and the ground
- * a screen paints under its regions. Blooms/blooms.ts picks the hues per palette. The strength is
+ * a screen paints under its regions. Blooms/blooms.ts picks the hues per palette. The hues are
  * tuned so every text role still reaches AA on the brightest (dark) or darkest (light) spot the
  * blooms make (Blooms/contrast.test.ts).
  */
 
 [data-theme='dark'] {
-  /* A bloom's alpha at its core, at full strength: subtle; the readouts stay the brightest things. */
-  --bloom-peak: 12%;
-  /* The hues: the theme's accent, part and section hues. */
-  --bloom-a: var(--a);
-  --bloom-r1: var(--r1);
-  --bloom-r2: var(--r2);
-  --bloom-r3: var(--r3);
-  --bloom-l: var(--l);
-  --bloom-intro: var(--intro);
-  --bloom-main: var(--main);
-  --bloom-ending: var(--ending);
-  --bloom-brk: var(--brk);
-  --bloom-fill: var(--fill);
+  /* Each bloom's core is its glow colour itself (below): the glows are already as strong as the text
+     allows, so they are drawn at full strength rather than faded in. Where two overlap, the one on
+     top covers the other rather than adding to it, so no spot is ever brighter than one glow. */
+  --bloom-peak: 100%;
+  --bloom-a: var(--bloom-glow-violet);
+  --bloom-r1: var(--bloom-glow-blue);
+  --bloom-r2: var(--bloom-glow-pink);
+  --bloom-r3: var(--bloom-glow-orange);
+  --bloom-l: var(--bloom-glow-teal);
+  --bloom-intro: var(--bloom-glow-gold);
+  --bloom-main: var(--bloom-glow-green);
+  --bloom-ending: var(--bloom-glow-rose);
+  --bloom-brk: var(--bloom-glow-plum);
+  --bloom-fill: var(--bloom-glow-slate);
   /* The ground a screen and its opaque regions paint. A screen wrapper with a backdrop behind it
      sets this to transparent for its subtree, so the blooms show through. */
   --backdrop-ground: var(--g);
 }
 
 :root {
+  /* Dark's bloom glows: each hue as saturated as it goes at the most light the black ground can take
+     under the text. The dark red and plum text roles (--ending, --brk) leave the ground almost no
+     headroom (a luminance of about 0.008), so the glows spend it on colour, not brightness: mostly
+     red and blue, which cost little luminance, and almost no green, which costs the most. Deep
+     indigo, navy and magenta pools read plainly on black where a faded bright hue reads as grey. */
+  --bloom-glow-violet: #1b004f;
+  --bloom-glow-blue: #000a52;
+  --bloom-glow-pink: #30001d;
+  --bloom-glow-orange: #2c0a00;
+  --bloom-glow-teal: #00181e;
+  --bloom-glow-gold: #181400;
+  --bloom-glow-green: #001806;
+  --bloom-glow-rose: #2e000c;
+  --bloom-glow-plum: #27003c;
+  --bloom-glow-slate: #0a141e;
   /* Light's bloom tints: each bright hue mixed into white until it is just lighter than the light
      ground (--stone-94), so a bloom tints the ground and lifts it a hair, never darkening it under
      the text (light's --lamp-line has almost no headroom on the ground). */

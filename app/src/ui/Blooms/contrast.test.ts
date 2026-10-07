@@ -143,6 +143,23 @@ describe('text contrast on the blooms', () => {
       expect(all.some((c) => Math.abs(luminance(c) - g) > 0.002)).toBe(true)
     })
 
+    if (theme === 'dark') {
+      // The owner's bug: at 12% of the bright hues a core was about (20, 17, 31) on black, too faint
+      // to see on a real screen. Each core of the app's palette (aurora) must light a channel of the
+      // black ground to at least 40 of 255, plainly coloured at a glance; every other hue to at least
+      // 20 (green and gold cost the most luminance, so the text leaves them the least).
+      it('dark: every bloom is plainly coloured at its core', () => {
+        const ground = rgb(resolve('--g'))
+        for (const [pal, section] of PALETTES) {
+          for (const h of hues(pal, section)) {
+            const core = rgb(resolve(h)).map((v, k) => ground[k] * (1 - peak) + v * peak)
+            const lift = Math.max(...core.map((v, k) => v - ground[k]))
+            expect(lift, `${h} in ${pal}`).toBeGreaterThanOrEqual(hues('aurora').includes(h) ? 40 : 20)
+          }
+        }
+      })
+    }
+
     for (const text of TEXT_ON_GROUND) {
       it(`${theme}: ${text} on the worst spot`, () => {
         const fg = rgb(resolve(text))
