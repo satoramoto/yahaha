@@ -1,7 +1,25 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
+import { createRawSnippet, mount, unmount, type ComponentProps } from 'svelte'
 import { expect, fn, within } from 'storybook/test'
+import GoldenGrid from '../Golden/GoldenGrid.svelte'
 import SectionRow from './SectionRow.svelte'
 import { sectionRowBoard } from './SectionRow.fixtures'
+
+/**
+ * A GoldenGrid's cells holding a `cells` SectionRow: the toolbar (the role the parent supplies) is
+ * a `display: contents` element, so each control is a grid item, one a cell.
+ */
+function inGrid(args: ComponentProps<typeof SectionRow>) {
+  return createRawSnippet(() => ({
+    render: () => '<div role="toolbar" aria-label="Transport" style="display: contents"></div>',
+    setup: (root: Element) => {
+      const row = mount(SectionRow, { target: root, props: args })
+      return () => {
+        void unmount(row)
+      }
+    },
+  }))
+}
 
 /**
  * The toolbar under the app bar: the transport at the left (Start / Stop, Accomp, Sync Start,
@@ -40,6 +58,7 @@ const meta = {
     help: { control: 'boolean', table: { category: 'Button' } },
     groups: { control: { type: 'inline-radio' }, options: ['all', 'transport', 'helpers'] },
     orientation: { control: { type: 'inline-radio' }, options: ['horizontal', 'vertical'] },
+    cells: { control: 'boolean' },
   },
 } satisfies Meta<typeof SectionRow>
 
@@ -78,6 +97,31 @@ export const Helpers: Story = {
     const canvas = within(canvasElement)
     await expect(canvas.getByRole('toolbar', { name: 'Helpers' })).toBeInTheDocument()
     await expect(canvas.queryByRole('group', { name: 'Transport' })).toBeNull()
+  },
+}
+
+/**
+ * The transport in cells (`cells`, `groups` transport) in a 7-cell GoldenGrid, its cuts drawn: no
+ * wrapper, each control one top-level element filling its cell, the word centred; "● Playing" keeps
+ * the running hue. The grid's toolbar element supplies the role.
+ */
+export const Cells: Story = {
+  args: { running: true, groups: 'transport', cells: true },
+  parameters: { sample: { width: 610, height: 55 } },
+  render: (args) => ({
+    // GoldenGrid hosts the story; Storybook types `Component` and `props` as SectionRow's.
+    Component: GoldenGrid as unknown as typeof SectionRow,
+    props: { columns: 7, overlay: true, name: 'Transport', children: inGrid(args) } as unknown as typeof args,
+  }),
+  play: async ({ canvasElement }) => {
+    const toolbar = within(canvasElement).getByRole('toolbar', { name: 'Transport' })
+    const controls = [...toolbar.children]
+    await expect(controls).toHaveLength(7)
+    await expect(controls.every((el) => el.tagName === 'BUTTON')).toBe(true)
+    await expect(toolbar.parentElement).toHaveAttribute('data-golden-slots', 'grid')
+    await expect(controls[0]).toHaveAttribute('aria-pressed', 'true')
+    await expect(controls[0]).toHaveClass('running')
+    await expect(canvasElement.querySelector('.group, .pair, .start-word, .row')).toBeNull()
   },
 }
 

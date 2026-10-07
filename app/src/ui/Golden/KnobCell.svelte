@@ -1,9 +1,10 @@
 <!--
   KnobCell: one band knob as a Golden tree. A box in the knob's shape (the tuning decides it; a
   knob stands tall), a square taken off its top for the dial (the real Knob, drawn as its ring
-  alone, filling the square), and the rest cut in steps: the value, then the name. The value and
-  the name are one line each, centred, and end in an ellipsis when they don't fit, so the overlay
-  reports them ("Retrig rate").
+  alone, filling the square), and the rest: the name in a label-height band at the foot (a line of
+  text is a fixed token, which a phi step left a px or two short at 1280 × 800), the value above
+  it. The value and the name are one line each, centred, and end in an ellipsis when they don't
+  fit, so the overlay reports them ("Retrig rate").
   The cell fills the slot it is given; inside a grid fitted to a cell shape, the grid fits it. On
   its own (outside any Golden slot) it takes the size the Stage gives one knob cell.
 -->
@@ -12,7 +13,7 @@
   import Knob from '../Knob/Knob.svelte'
   import GoldenBox from './GoldenBox.svelte'
   import GoldenSplit from './GoldenSplit.svelte'
-  import GoldenSteps from './GoldenSteps.svelte'
+  import GoldenBand from './GoldenBand.svelte'
 
   type Props = {
     /** The plain name ("Dynamics", "Retrig rate"). For an unused knob, the board's "---". */
@@ -63,24 +64,25 @@
       <div class="dial">
         <Knob {label} {code} value="" unit="" {fraction} {unused} name={spoken} {tip} {tipAction} {onpress} {onstep} />
       </div>
-      <GoldenSteps>
+      <GoldenBand size="label-height" from="bottom">
+        <div class="text name" class:unused aria-hidden="true"><span>{label}</span></div>
         <div class="text value" class:unused aria-hidden="true">
           <span>{unused ? '' : value}{unused ? '' : unit}</span>
         </div>
-        <div class="text name" class:unused aria-hidden="true"><span>{label}</span></div>
-      </GoldenSteps>
+      </GoldenBand>
     </GoldenSplit>
   </GoldenBox>
 </div>
 
 <style>
   .cell {
-    /* The Stage's knobs block (the band's square over phi², inset fib-13, under its header), cut
-       in eight: one knob cell, for a cell on its own. */
-    --cell-frame: calc(
-      var(--screen-height) - 2 * var(--fib-21) - var(--bar-height) - var(--keys-height) - 2 * var(--fib-8)
-    );
-    --cell-band: calc(var(--cell-frame) / var(--interval-phi));
+    /* The Stage's knobs block (the page frame's minor part across, the band's minor part deep,
+       inset fib-13, under its header), cut in eight: one knob cell, for a cell on its own. The
+       page frame is the screen less its fib-21 margins; the band is the frame's minor part less
+       the keys' phi⁴ step. A cell inside a Golden tree has no inset of its own. */
+    --golden-inset: 0px;
+    --cell-frame: calc(var(--screen-width) - 2 * var(--fib-21));
+    --cell-band: calc(var(--cell-frame) / var(--interval-phi2) * (1 - 1 / var(--interval-phi4)));
     box-sizing: border-box;
     width: 100%;
     height: 100%;
@@ -93,7 +95,7 @@
   }
   /* On its own: the size of one knob cell on the Stage. */
   :global(:not([data-golden-slots])) > .cell {
-    width: calc((var(--cell-band) - 2 * var(--fib-13)) / 8);
+    width: calc((var(--cell-frame) / var(--interval-phi2) - 2 * var(--fib-13)) / 8);
     height: calc(var(--cell-band) / var(--interval-phi2) - 2 * var(--fib-13) - var(--group-header-height));
   }
 

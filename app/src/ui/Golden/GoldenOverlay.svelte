@@ -1,6 +1,8 @@
 <!--
   GoldenOverlay: draws the Golden tree inside it (its children) as it is rendered: every slot's
-  cut line, each leaf's inset (dashed) and the golden spiral in each phi box. It checks the rules
+  cut line (in a shade for its nesting depth, thinner and fainter the deeper it is), each leaf's
+  inset (dashed) and a golden spiral at every level: in each phi box (wide or tall) and in each
+  golden-section split (`major`, `minor`), turning from the split's `from` side. It checks the rules
   as it goes and draws what breaks one red: a slot whose content overflows it (or has text cut
   short), and a row or column whose cells don't add up to its box. What it finds is data: the
   wrapper carries `data-overflow` and `data-rows-off` (counts), `onreport` gets the whole report,
@@ -17,10 +19,17 @@
     summary,
     type BoxMeasure,
     type GoldenReport,
+    type GroupMeasure,
     type LineMeasure,
     type Rect,
+    type Side,
     type SlotMeasure,
+    type SpiralMeasure,
   } from './golden'
+
+  /** The depth shades cycle through this many tokens (`--golden-overlay-depth-0` …). */
+  const SHADES = 6
+  const shade = (depth: number) => `d${depth % SHADES}`
 
   type Props = {
     /** Draw the lines (off: the tree is still checked and reported). */
@@ -39,7 +48,7 @@
 
   let root: HTMLDivElement | undefined = $state()
   let content: HTMLDivElement | undefined = $state()
-  let found: GoldenReport = $state({ slots: [], overflow: [], rowsOff: [], rows: 0, boxes: [], spirals: [] })
+  let found: GoldenReport = $state({ slots: [], overflow: [], rowsOff: [], rows: 0, boxes: [], spirals: [], groups: [] })
   let size = $state({ w: 0, h: 0 })
   let insets: Rect[] = $state([])
   let offLines: Rect[] = $state([])
@@ -50,11 +59,12 @@
     return { x: r.left - origin.left, y: r.top - origin.top, w: r.width, h: r.height }
   }
 
-  /** The text of each element in a leaf that is cut short (an ellipsis, or clipped). */
+  /** The text of each element in a leaf that is cut short (an ellipsis, or clipped). Visually
+      hidden text (a 1px screen-reader-only box) is meant to be clipped and isn't counted. */
   function clippedIn(leaf: HTMLElement): string[] {
     const out: string[] = []
     for (const el of [leaf, ...leaf.querySelectorAll<HTMLElement>('*')]) {
-      if (el.scrollWidth <= el.clientWidth + 1 || el.clientWidth === 0) continue
+      if (el.scrollWidth <= el.clientWidth + 1 || el.clientWidth <= 1) continue
       const style = getComputedStyle(el)
       if (style.overflowX === 'visible') continue
       const text = el.textContent?.trim()
@@ -72,18 +82,49 @@
     )
   }
 
+  /** How many slots holders are around an element, inside the overlay: its nesting depth. */
+  function depthOf(el: Element, top: Element): number {
+    let n = 0
+    for (let p = el.parentElement; p && p !== top; p = p.parentElement) if (p.hasAttribute('data-golden-slots')) n++
+    return n
+  }
+
   function measure() {
     if (!root || !content) return
     const origin = root.getBoundingClientRect()
     const slots: SlotMeasure[] = []
     const boxes: BoxMeasure[] = []
     const lines: LineMeasure[] = []
-    const spirals: Rect[] = []
+    const spirals: SpiralMeasure[] = []
     const pads: Rect[] = []
+    const groups: GroupMeasure[] = []
+    const top = content
+    const named = [...content.querySelectorAll<HTMLElement>('[data-golden-name]')]
+
+    // Each named node: its root's rect, and its fit's when the fit is shaped (its spare).
+    for (const el of named) {
+      const fit = el.querySelector(':scope > [data-golden-fit][data-shape]')
+      groups.push({
+        name: el.getAttribute('data-golden-name') ?? '',
+        depth: depthOf(el, top),
+        rect: within(origin, el),
+        fit: fit ? within(origin, fit) : undefined,
+      })
+    }
+    const ownerOf = (el: Element): number | undefined => {
+      const owner = el.closest('[data-golden-name]')
+      const i = owner ? named.indexOf(owner as HTMLElement) : -1
+      return i < 0 ? undefined : i
+    }
 
     for (const holder of content.querySelectorAll<HTMLElement>('[data-golden-slots]')) {
       const kind = holder.getAttribute('data-golden-slots')
+      const depth = depthOf(holder, top)
       const cells = [...holder.children] as HTMLElement[]
+      const take = holder.getAttribute('data-take')
+      if (kind === 'cut' && (take === 'major' || take === 'minor')) {
+        spirals.push({ ...within(origin, holder), from: (holder.getAttribute('data-from') as Side | null) ?? 'top', depth })
+      }
       for (const el of cells) {
         const cut = el.hasAttribute('data-golden')
         // A leaf that only wraps another Golden tree (a control cell) is checked through that tree.
@@ -106,7 +147,7 @@
           client = { w: box.width, h: box.height }
           scroll = { w: right - box.left, h: bottom - box.top }
         }
-        slots.push({ rect, client, scroll, clipped: cut ? [] : clippedIn(el), name: nameOf(el), cut })
+        slots.push({ rect, client, scroll, clipped: cut ? [] : clippedIn(el), name: nameOf(el), cut, depth, group: ownerOf(el) })
         if (!cut) {
           const style = getComputedStyle(el)
           const t = parseFloat(style.paddingTop) || 0
@@ -143,10 +184,13 @@
       const slot = fit.parentElement ? within(origin, fit.parentElement) : rect
       const shape = fit.getAttribute('data-shape') ?? ''
       boxes.push({ shape, rect, slot })
-      if (shape === 'phi' && fit.getAttribute('data-orient') === 'wide') spirals.push(rect)
+      if (shape === 'phi') {
+        const from: Side = fit.getAttribute('data-orient') === 'tall' ? 'top' : 'left'
+        spirals.push({ ...rect, from, depth: depthOf(fit, top) })
+      }
     }
 
-    const next = makeReport(slots, boxes, lines, spirals)
+    const next = makeReport(slots, boxes, lines, spirals, groups)
     found = next
     size = { w: origin.width, h: origin.height }
     insets = pads
@@ -155,7 +199,12 @@
 
   let last = ''
   $effect(() => {
-    const text = JSON.stringify({ o: found.overflow, r: found.rowsOff, b: found.boxes.map((b) => [b.shape, Math.round(b.w), Math.round(b.h)]) })
+    const text = JSON.stringify({
+      o: found.overflow,
+      r: found.rowsOff,
+      b: found.boxes.map((b) => [b.shape, Math.round(b.w), Math.round(b.h)]),
+      g: found.groups.map((g) => [g.name, Math.round(g.w), Math.round(g.h), Math.round(g.spareW), Math.round(g.spareH), g.overflow.length]),
+    })
     if (text === last) return
     last = text
     onreport?.(found)
@@ -203,13 +252,25 @@
         <rect class="inset" x={r.x} y={r.y} width={Math.max(0, r.w)} height={Math.max(0, r.h)} />
       {/each}
       {#each found.slots as slot, i (i)}
-        <rect class="cut" class:off={slot.off} x={slot.rect.x} y={slot.rect.y} width={slot.rect.w} height={slot.rect.h} />
+        <rect
+          class="cut {shade(slot.depth)}"
+          class:off={slot.off}
+          style:--golden-depth={Math.min(slot.depth, SHADES - 1)}
+          x={slot.rect.x}
+          y={slot.rect.y}
+          width={slot.rect.w}
+          height={slot.rect.h}
+        />
       {/each}
       {#each offLines as r, i (i)}
         <rect class="cut off" x={r.x} y={r.y} width={r.w} height={r.h} />
       {/each}
       {#each found.spirals as r, i (i)}
-        <path class="spiral" d={spiralPath(r)} />
+        <path
+          class="spiral {shade(r.depth ?? 0)}"
+          style:--golden-depth={Math.min(r.depth ?? 0, SHADES - 1)}
+          d={spiralPath(r, 12, r.from)}
+        />
       {/each}
     </svg>
   {/if}
@@ -244,23 +305,48 @@
     fill: none;
     vector-effect: non-scaling-stroke;
   }
-  .cut {
+  /* Each cut in its depth's shade (they cycle every six levels); thinner and fainter the deeper it
+     is, so the top cuts dominate. */
+  .cut,
+  .spiral {
     stroke: var(--golden-overlay-cut);
-    stroke-width: var(--line-width);
+    stroke-opacity: calc(1 - var(--golden-depth, 0) * 0.1);
   }
+  .cut {
+    stroke-width: calc(var(--header-rule-width) / (1 + var(--golden-depth, 0) * 0.5));
+  }
+  .spiral {
+    stroke-width: calc(var(--header-rule-width) / (1 + var(--golden-depth, 0) * 0.35));
+  }
+  .d0 {
+    stroke: var(--golden-overlay-depth-0);
+  }
+  .d1 {
+    stroke: var(--golden-overlay-depth-1);
+  }
+  .d2 {
+    stroke: var(--golden-overlay-depth-2);
+  }
+  .d3 {
+    stroke: var(--golden-overlay-depth-3);
+  }
+  .d4 {
+    stroke: var(--golden-overlay-depth-4);
+  }
+  .d5 {
+    stroke: var(--golden-overlay-depth-5);
+  }
+  /* Red wins over the depth shade. */
   .cut.off {
     fill: var(--golden-overlay-off-fill);
     stroke: var(--golden-overlay-off);
+    stroke-opacity: 1;
     stroke-width: var(--header-rule-width);
   }
   .inset {
     stroke: var(--golden-overlay-inset);
     stroke-width: var(--line-width);
     stroke-dasharray: 4 4;
-  }
-  .spiral {
-    stroke: var(--golden-overlay-spiral);
-    stroke-width: var(--header-rule-width);
   }
   .report {
     position: absolute;

@@ -164,31 +164,34 @@ export const PageSlot: Story = {
 
 /**
  * A proposal: the Stage laid out as a Golden tree (`layout="golden"`, StageGolden, built from the
- * Golden primitives), here at 1440 × 900. Every size comes from a cut; turn on `overlay` to see them.
+ * Golden primitives), here at 1440 × 900. Every size comes from a cut, and the cuts recurse: the page
+ * lays out groups, each group lays out its items, each control is a frame again. Turn on `overlay`
+ * to see every level.
  *
- * - **Screen**: a fib-21 margin, then a stack as wide as the frame: the app bar on top (a
- *   bar-height band: the page tabs, the helpers Metronome ▾, Unison, Panic, ?, then the Launchkey
- *   and audio health), the keys at the foot (a keys-height band, black keys keys-height / φ), a
- *   fib-8 gap each; no section row.
- * - **Frame**: a phi box (about 1214 × 750 here) between the two bands.
- * - **Cut 1**, the frame's minor part off the top: the display row, cells square, square, 1:φ, 1:φ,
- *   square (= φ³): chord (the style line, the chord, its notes), song (the section on the chord's
- *   line, "then …", the tempo), transport (a list: "● Playing", Accomp, Sync Start, Reset, Fill ▲
- *   Fill ▼, Fade), One Touch (1–4 stacked), parts (the four part rows). The beat bar runs over all
- *   five, ¾ of the way down.
- * - **Cut 2**, a square off the band's right: knobs (its minor part, on top) over pads (a 4 × 4
- *   grid). The faders take the rest of the band, the status line at their foot.
- * - **Leaves**: each region sits in a leaf with a fib-13 inset, so its content stays inside the cuts;
- *   its size tokens come from the leaf's box (container query units).
+ * - **Page**: the whole screen is the frame, a phi box (1398 × 864) between fib-21 margins. Its
+ *   minor part off the top is the top half (330), the rest the bottom half (534); each half takes a
+ *   phi⁴ step off its outer edge: the app bar (48: the page tabs, the helpers Metronome ▾, Unison,
+ *   Panic, ?, the Launchkey and audio health) and the keys (78).
+ * - **Hero** (1398 × 282), two tiers: the reading tier (its major part, 174) in thirds, the style
+ *   line over the chord, the section over what comes next, the tempo over the beat bar; then the
+ *   controls tier (108), its major part the transport as a row of seven ("● Playing", Accomp, Sync
+ *   Start, Reset, Fill ▲, Fill ▼, Fade), the rest One Touch and 1–4 in a row. No parts block: each
+ *   part's sound is on top of its own fader strip (Option C).
+ * - **Band** (1398 × 456): its major part the faders (a header band, the status line at its right
+ *   end, over nine strips: sound, track, value, name, lamp); the rest knobs (its minor part, on
+ *   top: a header band over eight knob cells) over pads (a header band over a 4 × 4 grid).
+ * - **Groups**: each group is inset fib-13 from its block's cuts; inside it the cuts sit edge to
+ *   edge. Size tokens come from each leaf's box (container query units).
  */
 export const Golden: Story = {
   args: { layout: 'golden', overlay: false },
 }
 
 /**
- * The golden layout with `overlay` on: a GoldenOverlay draws every cut, each leaf's inset (dashed)
- * and the golden spiral in the phi frame, and draws red whatever breaks a rule (a row whose cells
- * don't add up, a slot whose content overflows). The display row adds up: φ³.
+ * The golden layout with `overlay` on: a GoldenOverlay draws every level's cuts, each nesting depth
+ * in its own shade, each leaf's inset (dashed) and a spiral in every phi box and golden cut, turned
+ * to its cut's side; it draws red whatever breaks a rule (a row whose cells don't add up, a slot
+ * whose content overflows).
  */
 export const GoldenOverlay: Story = {
   name: 'Golden › overlay',
@@ -197,8 +200,16 @@ export const GoldenOverlay: Story = {
     const overlay = canvasElement.querySelector('[data-golden="overlay"]')
     await expect(overlay).not.toBeNull()
     await waitFor(() => expect(overlay?.getAttribute('data-rows-off')).toBe('0'))
-    const row = canvasElement.querySelector('[data-golden-name="display"] [data-golden-slots="row"]')
-    await expect(row?.getAttribute('data-golden-adds')).toBe('yes')
+    // The halves each take a phi⁴ step off their outer edge: the app bar and the keys.
+    const steps = canvasElement.querySelectorAll('[data-golden-slots="cut"][data-take="phi4"][data-of="length"]')
+    await expect([...steps].map((s) => s.getAttribute('data-from'))).toEqual(['top', 'bottom'])
+    // The hero holds no parts block (Option C): each part's sound is on its fader strip.
+    await expect(canvasElement.querySelector('[data-golden-name="hero"] [aria-label$="Opens the quick sound list"]')).toBeNull()
+    const strips = canvasElement.querySelector('[data-golden-name="strips"]')
+    await expect(strips?.querySelectorAll('[aria-label$="Opens the quick sound list"]').length).toBe(4)
+    // The transport is a row of seven cells.
+    const transport = canvasElement.querySelector('[data-golden-name="transport"] [data-golden-slots="grid"]')
+    await expect(transport?.children.length).toBe(7)
   },
 }
 

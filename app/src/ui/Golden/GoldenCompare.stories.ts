@@ -6,7 +6,7 @@ import GoldenCompare from './GoldenCompare.svelte'
 
 /**
  * The knob group and the fader group under each tuning, side by side, at the size the Stage gives
- * them at 1440 × 900 (knobs 463 × 177, faders 750 × 463), each with its overlay and report line.
+ * them at 1440 × 900 (knobs 534 × 174, faders 864 × 456), each with its overlay and report line.
  * The Style knob page has "Retrig rate", the longest name, to show where names are cut short.
  */
 const meta = {

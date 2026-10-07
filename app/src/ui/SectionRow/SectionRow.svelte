@@ -3,7 +3,8 @@
   and `orientation` vertical makes it a list: the golden Stage's transport block). The transport at the left, in this
   order: Start / Stop (first; the same control as pad 16), Accomp, Sync Start, Reset, Fill ▲,
   Fill ▼ and Fade. The helpers at the right: Metronome joined with its ▾ settings caret, Unison,
-  Panic and help mode's ?. The count (bar, beat, sections) lives on the display, not here. Every
+  Panic and help mode's ?. With `cells` there is no wrapper: each control is a top-level element
+  for its parent's grid to place, one a cell. The count (bar, beat, sections) lives on the display, not here. Every
   switch is controlled: a press only calls back.
 
   The controls are in the display's language, at `--tab-block` with no boxes: each switch a dot and a word (the dot filled in the switch's hue
@@ -19,6 +20,14 @@
     groups?: 'all' | 'transport' | 'helpers'
     /** `horizontal`: one row, the screen wide with `groups` all. `vertical`: a list, one control a line (Fill ▲ and Fill ▼ share one), as wide as its words. */
     orientation?: 'horizontal' | 'vertical'
+    /**
+     * Cells: no wrapper. Each control is one top-level element, in order (the transport's Start /
+     * Stop, Accomp, Sync Start, Reset, Fill ▲, Fill ▼, Fade; the helpers' Metronome with its ▾ as
+     * one element, Unison, Panic, ?), each filling its parent's cell with its word centred, so a
+     * GoldenGrid lays them out one a cell. `groups` still picks which; `orientation` is unused.
+     * The parent supplies the toolbar role and its name.
+     */
+    cells?: boolean
     /** The style is running: Start / Stop is solid green and aria-pressed. */
     running?: boolean
     /** Accompaniment (ACMP) on. */
@@ -68,6 +77,7 @@
   let {
     groups = 'all',
     orientation = 'horizontal',
+    cells = false,
     running = false,
     accomp = false,
     syncStart = false,
@@ -117,6 +127,8 @@
     type="button"
     class="word switch"
     class:on
+    class:cell={cells}
+    class:running={cells && hue === 'ok' && on}
     style:--hue="var(--{hue})"
     aria-pressed={on}
     aria-label={name}
@@ -127,11 +139,84 @@
 {/snippet}
 
 {#snippet action(label: string, glyph: string, name: string, tip: string, press: (() => void) | undefined)}
-  <button type="button" class="word" aria-label={name} data-tip={tip} use:tipOn={tip} onclick={() => press?.()}
+  <button type="button" class="word" class:cell={cells} aria-label={name} data-tip={tip} use:tipOn={tip} onclick={() => press?.()}
     >{label}{#if glyph}<span class="glyph" aria-hidden="true">{glyph}</span>{/if}</button
   >
 {/snippet}
 
+{#snippet startStop()}
+  {@render dotSwitch(
+    running ? 'Playing' : 'Stopped',
+    running,
+    'transport.start_stop',
+    () => onstartstop?.(),
+    `${running ? 'Playing' : 'Stopped'}: Start / Stop (Play). The same control as pad 16`,
+    'ok',
+  )}
+{/snippet}
+
+{#snippet fills()}
+  {@render action(
+    'Fill',
+    '▲',
+    'Fill Up: a fill, then the next Main up (at Main D, its own fill)',
+    'transport.fill_up',
+    onfillup,
+  )}
+  {@render action(
+    'Fill',
+    '▼',
+    'Fill Down: a fill, then the next Main down (at Main A, its own fill)',
+    'transport.fill_down',
+    onfilldown,
+  )}
+{/snippet}
+
+{#snippet metronomeWords()}
+  {@render dotSwitch('Metronome', metronome, 'metronome.on', () => onmetronome?.(!metronome))}
+  <button
+    type="button"
+    class="word caret"
+    class:open={metronomeOpen}
+    aria-haspopup="dialog"
+    aria-expanded={metronomeOpen}
+    aria-controls={metronomeControls}
+    aria-label="Metronome settings: on/off, volume, bell on beat 1"
+    data-tip="metronome.settings"
+    use:tipOn={'metronome.settings'}
+    onclick={() => onmetronomesettings?.()}><span class="glyph" aria-hidden="true">▾</span></button
+  >
+{/snippet}
+
+{#snippet otherHelpers()}
+  {@render dotSwitch('Unison', unison, 'transport.unison', () => onunison?.(!unison))}
+  {@render action('Panic', '', 'Panic: all notes off', 'transport.panic', onpanic)}
+  {@render dotSwitch(
+    '?',
+    help,
+    'app.help',
+    () => onhelp?.(!help),
+    'Help mode: point at any control to learn what it does',
+  )}
+{/snippet}
+
+{#if cells}
+  <!-- Cells: each control a top-level element, one a cell; the parent is the toolbar. -->
+  {#if transport}
+    {@render startStop()}
+    {@render dotSwitch('Accomp', accomp, 'transport.acmp', () => onaccomp?.(!accomp), 'Accomp (ACMP)')}
+    {@render dotSwitch('Sync Start', syncStart, 'transport.sync_start', () => onsyncstart?.(!syncStart))}
+    {@render action('Reset', '', 'Section reset: restart the section from its first bar', 'transport.section_reset', onreset)}
+    {@render fills()}
+    {@render dotSwitch('Fade', fading, 'transport.fade', () => onfade?.(), 'Fade in/out')}
+  {/if}
+  {#if helpers}
+    <span class="joined-word cell" role="group" aria-label="Metronome">
+      {@render metronomeWords()}
+    </span>
+    {@render otherHelpers()}
+  {/if}
+{:else}
   <div
     class="row dots"
     class:full={groups === 'all'}
@@ -143,33 +228,13 @@
     {#if transport}
     <span class="group" role="group" aria-label="Transport">
       <span class="start-word" class:running>
-        {@render dotSwitch(
-          running ? 'Playing' : 'Stopped',
-          running,
-          'transport.start_stop',
-          () => onstartstop?.(),
-          `${running ? 'Playing' : 'Stopped'}: Start / Stop (Play). The same control as pad 16`,
-          'ok',
-        )}
+        {@render startStop()}
       </span>
       {@render dotSwitch('Accomp', accomp, 'transport.acmp', () => onaccomp?.(!accomp), 'Accomp (ACMP)')}
       {@render dotSwitch('Sync Start', syncStart, 'transport.sync_start', () => onsyncstart?.(!syncStart))}
       {@render action('Reset', '', 'Section reset: restart the section from its first bar', 'transport.section_reset', onreset)}
       <span class="pair">
-        {@render action(
-          'Fill',
-          '▲',
-          'Fill Up: a fill, then the next Main up (at Main D, its own fill)',
-          'transport.fill_up',
-          onfillup,
-        )}
-        {@render action(
-          'Fill',
-          '▼',
-          'Fill Down: a fill, then the next Main down (at Main A, its own fill)',
-          'transport.fill_down',
-          onfilldown,
-        )}
+        {@render fills()}
       </span>
       {@render dotSwitch('Fade', fading, 'transport.fade', () => onfade?.(), 'Fade in/out')}
     </span>
@@ -177,32 +242,13 @@
     {#if helpers}
     <span class="group helpers">
       <span class="joined-word" role="group" aria-label="Metronome">
-        {@render dotSwitch('Metronome', metronome, 'metronome.on', () => onmetronome?.(!metronome))}
-        <button
-          type="button"
-          class="word caret"
-          class:open={metronomeOpen}
-          aria-haspopup="dialog"
-          aria-expanded={metronomeOpen}
-          aria-controls={metronomeControls}
-          aria-label="Metronome settings: on/off, volume, bell on beat 1"
-          data-tip="metronome.settings"
-          use:tipOn={'metronome.settings'}
-          onclick={() => onmetronomesettings?.()}><span class="glyph" aria-hidden="true">▾</span></button
-        >
+        {@render metronomeWords()}
       </span>
-      {@render dotSwitch('Unison', unison, 'transport.unison', () => onunison?.(!unison))}
-      {@render action('Panic', '', 'Panic: all notes off', 'transport.panic', onpanic)}
-      {@render dotSwitch(
-        '?',
-        help,
-        'app.help',
-        () => onhelp?.(!help),
-        'Help mode: point at any control to learn what it does',
-      )}
+      {@render otherHelpers()}
     </span>
     {/if}
   </div>
+{/if}
 
 <style>
   /* The display's language. One row at the tab block's height, words in the small text role. */
@@ -303,5 +349,22 @@
   }
   .caret .glyph {
     margin-left: 0;
+  }
+  /* Cells: each control fills its parent's cell, its word centred in it. */
+  .word.cell,
+  .joined-word.cell {
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+  }
+  .joined-word.cell .word {
+    height: 100%;
+  }
+  .joined-word.cell .word.cell {
+    width: auto;
+  }
+  .word.cell.running {
+    color: var(--ok);
   }
 </style>

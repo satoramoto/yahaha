@@ -15,6 +15,13 @@
     take?: Take
     /** The side it is taken from. */
     from?: Side
+    /**
+     * What an interval `take` divides: the box's `cross` size (a strip as deep as the box is across
+     * over the interval; the default) or its `length` (a step: the length over the interval, so
+     * `take="phi4" of="length"` is a phi⁴ step, the cut a bar takes off a half's outer edge).
+     * `square`, `major` and `minor` ignore it.
+     */
+    of?: 'cross' | 'length'
     /** Fit the split itself into its slot in this interval (contain); by default it fills the slot. */
     shape?: Ratio
     /** With `shape`: `wide` or `tall`. */
@@ -38,6 +45,7 @@
   let {
     take = 'square',
     from = 'top',
+    of = 'cross',
     shape,
     orient,
     inset,
@@ -58,7 +66,7 @@
         ? 'calc(100% / var(--interval-phi))'
         : take === 'minor'
           ? 'calc(100% / var(--interval-phi2))'
-          : `calc(${cross} / ${ratioVar(take)})`,
+          : `calc(${of === 'length' ? '100%' : cross} / ${ratioVar(take)})`,
   )
 </script>
 
@@ -74,5 +82,5 @@
   {over}
   {children}
   slotStyle={`--golden-take: ${size}`}
-  attrs={{ 'data-from': from, 'data-take': take }}
+  attrs={{ 'data-from': from, 'data-take': take, 'data-of': of }}
 />

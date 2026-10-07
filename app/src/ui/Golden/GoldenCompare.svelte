@@ -1,9 +1,10 @@
 <!--
   GoldenCompare: the band's knob group and fader group under each tuning, side by side, at the size
-  the Stage gives them at the screen size (the screen tokens): the frame is the screen's height
-  less the app bar, the keys and their gaps (750 at 900); the band is the frame over phi (463);
-  the faders block is the frame across and the band deep (750 × 463), the knobs block the band's
-  square over phi² (463 × 177); each is inset fib-13. Each group is a Golden tree (a header band
+  the Stage gives them at the screen size (the screen tokens): the page frame is the screen's width
+  less its fib-21 margins (1398 at 1440); the band is the frame's minor part less the keys' phi⁴
+  step (456); the faders block is the frame's major part across and the band deep (864 × 456),
+  the knobs block the frame's minor part across and the band's minor part deep (534 × 174); each
+  is inset fib-13. Each group is a Golden tree (a header band
   over a grid of cells fitted to the control's shape) under a GoldenOverlay, with its report line
   under the block: the cell's size, its spare, what overflows and whether the rows add up.
   A design aid for choosing a tuning.
@@ -102,11 +103,9 @@
 
 <style>
   .compare {
-    /* The Stage's frame and band at the screen size (tokens/stage-frame.css, scale.css, golden.css). */
-    --compare-frame: calc(
-      var(--screen-height) - 2 * var(--fib-21) - var(--bar-height) - var(--keys-height) - 2 * var(--fib-8)
-    );
-    --compare-band: calc(var(--compare-frame) / var(--interval-phi));
+    /* The Stage's page frame and band at the screen size (tokens/stage-frame.css, golden.css). */
+    --compare-frame: calc(var(--screen-width) - 2 * var(--fib-21));
+    --compare-band: calc(var(--compare-frame) / var(--interval-phi2) * (1 - 1 / var(--interval-phi4)));
     display: flex;
     flex-direction: column;
     gap: var(--fib-34);
@@ -135,11 +134,11 @@
     outline: var(--line-width) solid var(--line);
   }
   .knobs {
-    width: var(--compare-band);
+    width: calc(var(--compare-frame) / var(--interval-phi2));
     height: calc(var(--compare-band) / var(--interval-phi2));
   }
   .faders {
-    width: var(--compare-frame);
+    width: calc(var(--compare-frame) / var(--interval-phi));
     height: var(--compare-band);
   }
   .header {

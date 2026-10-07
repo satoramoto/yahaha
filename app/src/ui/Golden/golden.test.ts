@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { addsUp, cellTrack, overflows, PHI, report, spiralSlots, summary, type SlotMeasure } from './golden'
+import { addsUp, cellTrack, groupLines, overflows, PHI, report, spiralPath, spiralSlots, summary, type SlotMeasure } from './golden'
+
+/** A spiral path's points: where it starts, then each arc's end (and any bridging line's). */
+const points = (d: string): [number, number][] => {
+  const out: [number, number][] = []
+  for (const m of d.matchAll(/([MLA])([^MLA]*)/g)) {
+    const n = m[2].trim().split(/\s+/).map(Number)
+    out.push([n[n.length - 2], n[n.length - 1]])
+  }
+  return out
+}
+const near = (p: [number, number], x: number, y: number) => {
+  expect(p[0]).toBeCloseTo(x, 3)
+  expect(p[1]).toBeCloseTo(y, 3)
+}
 
 const slot = (over: Partial<SlotMeasure>): SlotMeasure => ({
   rect: { x: 0, y: 0, w: 50, h: 20 },
@@ -46,6 +60,59 @@ describe('spiralSlots', () => {
   })
 })
 
+describe('spiralPath', () => {
+  const wide = { x: 0, y: 0, w: 100 * PHI, h: 100 }
+  const tall = { x: 0, y: 0, w: 100, h: 100 * PHI }
+
+  it('from the left of a wide box by default: the first arc across the left square, then the bottom', () => {
+    const d = spiralPath(wide)
+    expect(d).toBe(spiralPath(wide, 12, 'left'))
+    const [start, first, second] = points(d)
+    near(start, 0, 0)
+    near(first, 100, 100)
+    // The next square sits at the bottom of what is left, as wide as it.
+    near(second, 100 + 100 / PHI, 100 - 100 / PHI)
+    // A phi box's arcs join up: no bridging lines.
+    expect(d).not.toContain('L')
+  })
+
+  it('from the right of a wide box: the first square at its right, turning to the top', () => {
+    const [start, first, second] = points(spiralPath(wide, 12, 'right'))
+    near(start, 100 * PHI, 100)
+    near(first, 100 * PHI - 100, 0)
+    near(second, 100 * PHI - 100 - 100 / PHI, 100 / PHI)
+  })
+
+  it('from the top of a tall box: the first square across its top, turning to the left', () => {
+    const d = spiralPath(tall, 12, 'top')
+    const [start, first, second] = points(d)
+    near(start, 100, 0)
+    near(first, 0, 100)
+    near(second, 100 / PHI, 100 + 100 / PHI)
+    expect(d).not.toContain('L')
+  })
+
+  it('from the bottom of a tall box: the first square across its bottom', () => {
+    const [start, first] = points(spiralPath(tall, 12, 'bottom'))
+    near(start, 0, 100 * PHI)
+    near(first, 100, 100 * PHI - 100)
+  })
+
+  it("a side that can't take a square passes the turn on: left of a tall box starts at its bottom", () => {
+    expect(spiralPath(tall, 12, 'left')).toBe(spiralPath(tall, 12, 'bottom'))
+  })
+
+  it('stays inside its box, wherever it is', () => {
+    const box = { x: 40, y: 10, w: 100, h: 100 * PHI }
+    for (const [x, y] of points(spiralPath(box, 12, 'top'))) {
+      expect(x).toBeGreaterThanOrEqual(box.x - 1e-6)
+      expect(x).toBeLessThanOrEqual(box.x + box.w + 1e-6)
+      expect(y).toBeGreaterThanOrEqual(box.y - 1e-6)
+      expect(y).toBeLessThanOrEqual(box.y + box.h + 1e-6)
+    }
+  })
+})
+
 describe('overflow', () => {
   it('a slot overflows when its content is past it, or when text in it is cut short', () => {
     expect(overflows(slot({}))).toBe(false)
@@ -71,5 +138,30 @@ describe('overflow', () => {
     expect(r.rowsOff).toEqual(['short', 'named'])
     expect(r.boxes[0]).toMatchObject({ spareW: 0, spareH: 27 })
     expect(summary(r, 'knob')).toBe("knob 54 × 88 · spare 0 × 27 · overflow 2 (Retrig rate, value) · 2 of 3 rows don't add up")
+    expect(r.groups).toEqual([])
+  })
+
+  it('each named node gets its size, its spare and the overflow of the slots it owns', () => {
+    const r = report(
+      [
+        slot({ clipped: ['Retrig rate'], group: 1, depth: 2 }),
+        slot({ name: 'value', scroll: { w: 50, h: 30 }, group: 0, depth: 1 }),
+        slot({ group: 1 }),
+      ],
+      [],
+      [],
+      [],
+      [
+        { name: 'hero', depth: 0, rect: { x: 0, y: 0, w: 1398.4, h: 282 } },
+        { name: 'knob', depth: 2, rect: { x: 0, y: 0, w: 54, h: 115 }, fit: { x: 0, y: 13.5, w: 54, h: 88 } },
+      ],
+    )
+    expect(r.slots.map((s) => s.depth)).toEqual([2, 1, 0])
+    expect(r.groups[0]).toEqual({ name: 'hero', depth: 0, w: 1398.4, h: 282, spareW: 0, spareH: 0, overflow: ['value'] })
+    expect(r.groups[1]).toMatchObject({ spareW: 0, spareH: 27, overflow: ['Retrig rate'] })
+    expect(groupLines(r)).toEqual(['hero 1398 × 282 · spare 0 × 0 · overflow 1 (value)', 'knob 54 × 115 · spare 0 × 27 · overflow 1 (Retrig rate)'])
+    expect(groupLines(report([], [], [], [], [{ name: 'hero', depth: 0, rect: { x: 0, y: 0, w: 1398, h: 282 } }]))).toEqual([
+      'hero 1398 × 282 · spare 0 × 0 · overflow 0',
+    ])
   })
 })

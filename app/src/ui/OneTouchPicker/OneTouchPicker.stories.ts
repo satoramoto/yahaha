@@ -1,6 +1,24 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
+import { createRawSnippet, mount, unmount, type ComponentProps } from 'svelte'
 import { expect, fn, within } from 'storybook/test'
+import GoldenGrid from '../Golden/GoldenGrid.svelte'
 import OneTouchPicker from './OneTouchPicker.svelte'
+
+/**
+ * A GoldenGrid's cells holding a `cells` OneTouchPicker: the group (the role the parent supplies)
+ * is a `display: contents` element, so the label and each number are grid items, one a cell.
+ */
+function inGrid(args: ComponentProps<typeof OneTouchPicker>) {
+  return createRawSnippet(() => ({
+    render: () => '<div role="group" aria-label="One Touch Setting (OTS)" style="display: contents"></div>',
+    setup: (root: Element) => {
+      const picker = mount(OneTouchPicker, { target: root, props: args })
+      return () => {
+        void unmount(picker)
+      }
+    },
+  }))
+}
 
 /**
  * One Touch on the display: "One Touch" in `--caption-ink`, then 1-4 as plain text (no boxes) in
@@ -18,6 +36,7 @@ const meta = {
     numbers: { control: { type: 'number', min: 1, max: 4, step: 1 } },
     label: { control: 'text' },
     orientation: { control: { type: 'inline-radio' }, options: ['horizontal', 'vertical'] },
+    cells: { control: 'boolean' },
     name: { control: 'text' },
   },
 } satisfies Meta<typeof OneTouchPicker>
@@ -45,6 +64,31 @@ export const Vertical: Story = {
     const buttons = within(canvasElement).getAllByRole('button')
     await expect(buttons[1]).toHaveAttribute('aria-pressed', 'true')
     await expect(canvasElement.querySelector('.ots')).toHaveClass('vertical')
+  },
+}
+
+/**
+ * Cells (`cells`) in a 5-cell GoldenGrid, its cuts drawn: no wrapper, the label (visible, spoken)
+ * and 1-4 each one top-level element filling its cell, centred. The grid's group element supplies
+ * the role.
+ */
+export const Cells: Story = {
+  args: { applied: 2, cells: true },
+  parameters: { sample: { width: 610, height: 55 } },
+  render: (args) => ({
+    Component: GoldenGrid,
+    // GoldenGrid hosts the story; Storybook types `props` as OneTouchPicker's.
+    props: { columns: 5, overlay: true, name: 'One Touch', children: inGrid(args) } as unknown as typeof args,
+  }),
+  play: async ({ canvasElement }) => {
+    const group = within(canvasElement).getByRole('group', { name: 'One Touch Setting (OTS)' })
+    const items = [...group.children]
+    await expect(items).toHaveLength(5)
+    await expect(items[0]).toHaveTextContent('One Touch')
+    await expect(items[0]).not.toHaveAttribute('aria-hidden')
+    await expect(group.parentElement).toHaveAttribute('data-golden-slots', 'grid')
+    await expect(within(group).getAllByRole('button')[1]).toHaveAttribute('aria-pressed', 'true')
+    await expect(canvasElement.querySelector('.ots')).toBeNull()
   },
 }
 

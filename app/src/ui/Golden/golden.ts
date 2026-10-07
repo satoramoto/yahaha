@@ -20,6 +20,7 @@ export type Interval =
   | 'phi2'
   | 'double-octave'
   | 'phi3'
+  | 'phi4'
 
 /** A control's interval, set by the tuning (`--shape-<name>`). */
 export type Shape = 'knob' | 'fader' | 'pad' | 'button' | 'steps'
@@ -42,8 +43,9 @@ export type Orient = 'wide' | 'tall'
 /** What GoldenSplit takes: a square, the golden section's major or minor part, or a strip in an interval. */
 export type Take = 'square' | 'major' | 'minor' | Ratio
 
-/** The existing size tokens a GoldenBand may be sized by: header rows, hit targets, the frame's strips. */
+/** The existing size tokens a GoldenBand may be sized by: header rows, hit targets, a line of text, the frame's strips. */
 export type BandSize =
+  | 'label-height'
   | 'bar-height'
   | 'group-header-height'
   | 'control-height'
@@ -74,6 +76,7 @@ export const INTERVALS: Record<Interval, number> = {
   phi2: ((1 + Math.sqrt(5)) / 2) ** 2,
   'double-octave': 4,
   phi3: ((1 + Math.sqrt(5)) / 2) ** 3,
+  phi4: ((1 + Math.sqrt(5)) / 2) ** 4,
 }
 
 export const PHI = INTERVALS.phi
@@ -179,32 +182,55 @@ export function spiralSlots(count: number): Rect[] {
   return slots.map((s) => ({ x: s.x / PHI, y: s.y, w: s.w / PHI, h: s.h }))
 }
 
+/** The order the spiral cuts its squares off in: each turn takes the next side. */
+const SPIRAL_SIDES: Side[] = ['left', 'bottom', 'right', 'top']
+
 /**
- * The golden spiral's SVG path in a rectangle: a quarter arc in each square cut off it in turn
- * (left, bottom, right, top, …), until the squares are under a px.
+ * One square cut off a side of a rectangle: where its quarter arc starts (the corner on the box's
+ * edge it enters from), where it ends (the inner corner), and what is left. Undefined when that
+ * side can't take a square (a left or right cut off a tall box, a top or bottom cut off a wide one).
  */
-export function spiralPath(box: Rect, turns = 12): string {
+function cutSquare(r: Rect, side: Side): { s: number; start: [number, number]; end: [number, number]; rest: Rect } | undefined {
+  const s = Math.min(r.w, r.h)
+  if ((side === 'left' || side === 'right') && r.w < r.h) return undefined
+  if ((side === 'top' || side === 'bottom') && r.h < r.w) return undefined
+  if (side === 'left') return { s, start: [r.x, r.y], end: [r.x + s, r.y + s], rest: { x: r.x + s, y: r.y, w: r.w - s, h: r.h } }
+  if (side === 'bottom')
+    return { s, start: [r.x, r.y + r.h], end: [r.x + s, r.y + r.h - s], rest: { x: r.x, y: r.y, w: r.w, h: r.h - s } }
+  if (side === 'right')
+    return { s, start: [r.x + r.w, r.y + s], end: [r.x + r.w - s, r.y], rest: { x: r.x, y: r.y, w: r.w - s, h: r.h } }
+  return { s, start: [r.x + s, r.y], end: [r.x, r.y + s], rest: { x: r.x, y: r.y + s, w: r.w, h: r.h - s } }
+}
+
+/**
+ * The golden spiral's SVG path in a rectangle, wide or tall: a quarter arc in each square cut off
+ * it in turn, the first off `from`, then round in the order left, bottom, right, top, …, until the
+ * squares are under a px. A side that can't take a square (`left` off a tall box) passes its turn
+ * to the next, so a spiral from the left of a tall box starts at its bottom. In a phi box the arcs
+ * join up; in any other box a straight segment bridges each gap.
+ */
+export function spiralPath(box: Rect, turns = 12, from: Side = 'left'): string {
   let r = { ...box }
-  let d = `M ${r.x} ${r.y}`
+  let k = SPIRAL_SIDES.indexOf(from)
+  let d = ''
+  let at: [number, number] | undefined
   for (let i = 0; i < turns; i++) {
-    const side = i % 4
-    const s = Math.min(r.w, r.h)
-    if (s < 1) break
-    if (side === 0) {
-      d += ` A ${s} ${s} 0 0 0 ${r.x + s} ${r.y + s}`
-      r = { x: r.x + s, y: r.y, w: r.w - s, h: r.h }
-    } else if (side === 1) {
-      d += ` A ${s} ${s} 0 0 0 ${r.x + s} ${r.y + r.h - s}`
-      r = { x: r.x, y: r.y, w: r.w, h: r.h - s }
-    } else if (side === 2) {
-      d += ` A ${s} ${s} 0 0 0 ${r.x + r.w - s} ${r.y}`
-      r = { x: r.x, y: r.y, w: r.w - s, h: r.h }
-    } else {
-      d += ` A ${s} ${s} 0 0 0 ${r.x} ${r.y + s}`
-      r = { x: r.x, y: r.y + s, w: r.w, h: r.h - s }
+    if (Math.min(r.w, r.h) < 1) break
+    let cut = cutSquare(r, SPIRAL_SIDES[k % 4])
+    if (!cut) {
+      k++
+      cut = cutSquare(r, SPIRAL_SIDES[k % 4])
     }
+    if (!cut) break
+    const [sx, sy] = cut.start
+    if (!at) d = `M ${sx} ${sy}`
+    else if (Math.abs(at[0] - sx) > 0.5 || Math.abs(at[1] - sy) > 0.5) d += ` L ${sx} ${sy}`
+    d += ` A ${cut.s} ${cut.s} 0 0 0 ${cut.end[0]} ${cut.end[1]}`
+    at = cut.end
+    r = cut.rest
+    k++
   }
-  return d
+  return d || `M ${box.x} ${box.y}`
 }
 
 /** One slot as measured: its box, its content's scroll size, and what it is called. */
@@ -219,6 +245,10 @@ export type SlotMeasure = {
   name: string
   /** A Golden primitive (a cut), not a leaf. */
   cut: boolean
+  /** How deep its slots holder is: 0 for the outermost in the overlay, +1 per holder around it. */
+  depth?: number
+  /** The index (in the groups measured) of the nearest named node it is in, if any. */
+  group?: number
 }
 
 /** A fitted box as measured: the shape it holds, its size, and the room around it in its slot. */
@@ -227,10 +257,24 @@ export type BoxMeasure = { shape: string; rect: Rect; slot: Rect }
 /** A row or column as measured: its cells' lengths against its own. */
 export type LineMeasure = { name: string; rect: Rect; along: number; sum: number; declared?: boolean }
 
+/** A named node (`data-golden-name`) as measured: its root's rect, and its fitted box if it has a shape. */
+export type GroupMeasure = { name: string; depth: number; rect: Rect; fit?: Rect }
+
+/** A spiral to draw: its box, the side its first square is cut off, and the depth it is at. */
+export type SpiralMeasure = Rect & { from?: Side; depth?: number }
+
+/**
+ * A named node in the report: its size, its spare (for a fitted node, the room its fit leaves in its
+ * root; else 0), and what overflows in it. A slot's overflow is counted in its nearest named node
+ * only (the deepest owner), not in every named node around it, so the groups' overflow adds up to
+ * the report's.
+ */
+export type GroupReport = { name: string; depth: number; w: number; h: number; spareW: number; spareH: number; overflow: string[] }
+
 /** What GoldenOverlay finds: the data a story's `play` asserts on, and the report it draws. */
 export type GoldenReport = {
-  /** Every slot, as a rectangle relative to the overlay. */
-  slots: { rect: Rect; off: boolean }[]
+  /** Every slot, as a rectangle relative to the overlay, with its nesting depth. */
+  slots: { rect: Rect; off: boolean; depth: number }[]
   /** Slots whose content is too big for them, by name ("Retrig rate"). */
   overflow: string[]
   /** Rows and columns whose cells don't add up to their box. */
@@ -239,8 +283,10 @@ export type GoldenReport = {
   rows: number
   /** Each fitted box (GoldenBox, a fitted grid cell): its size and its spare, the room left in its slot. */
   boxes: { shape: string; w: number; h: number; spareW: number; spareH: number }[]
-  /** Phi boxes, where the spiral is drawn. */
-  spirals: Rect[]
+  /** Where a spiral is drawn: each phi box, and each golden-section split (`major`, `minor`). */
+  spirals: SpiralMeasure[]
+  /** Each named node, outermost first (document order). */
+  groups: GroupReport[]
 }
 
 const PX = 1
@@ -257,15 +303,23 @@ export function lineAddsUp(line: LineMeasure): boolean {
 }
 
 /** The report, from what was measured. */
-export function report(slots: SlotMeasure[], boxes: BoxMeasure[], lines: LineMeasure[], spirals: Rect[]): GoldenReport {
+export function report(
+  slots: SlotMeasure[],
+  boxes: BoxMeasure[],
+  lines: LineMeasure[],
+  spirals: SpiralMeasure[],
+  groups: GroupMeasure[] = [],
+): GoldenReport {
   const overflow: string[] = []
+  const owned: string[][] = groups.map(() => [])
   const marked = slots.map((slot) => {
     const off = overflows(slot)
     if (off) {
-      if (slot.clipped.length > 0) overflow.push(...slot.clipped)
-      else overflow.push(slot.name)
+      const names = slot.clipped.length > 0 ? slot.clipped : [slot.name]
+      overflow.push(...names)
+      if (slot.group !== undefined && owned[slot.group]) owned[slot.group].push(...names)
     }
-    return { rect: slot.rect, off }
+    return { rect: slot.rect, off, depth: slot.depth ?? 0 }
   })
   const rowsOff = lines.filter((line) => !lineAddsUp(line)).map((line) => line.name)
   return {
@@ -281,7 +335,25 @@ export function report(slots: SlotMeasure[], boxes: BoxMeasure[], lines: LineMea
       spareH: Math.max(0, b.slot.h - b.rect.h),
     })),
     spirals,
+    groups: groups.map((g, i) => ({
+      name: g.name,
+      depth: g.depth,
+      w: g.rect.w,
+      h: g.rect.h,
+      spareW: g.fit ? Math.max(0, g.rect.w - g.fit.w) : 0,
+      spareH: g.fit ? Math.max(0, g.rect.h - g.fit.h) : 0,
+      overflow: owned[i],
+    })),
   }
+}
+
+/** The report's groups, a line each: "hero 1398 × 282 · spare 0 × 0 · overflow 0". */
+export function groupLines(r: GoldenReport): string[] {
+  return r.groups.map((g) => {
+    const names = [...new Set(g.overflow)]
+    const more = names.length === 0 ? '' : ` (${names.slice(0, 4).join(', ')}${names.length > 4 ? ', …' : ''})`
+    return `${g.name} ${Math.round(g.w)} × ${Math.round(g.h)} · spare ${Math.round(g.spareW)} × ${Math.round(g.spareH)} · overflow ${g.overflow.length}${more}`
+  })
 }
 
 /** A report in one line: "knob 54 × 88 · spare 0 × 27 · overflow 2 (Retrig rate, StyMuteA) · rows add up". */

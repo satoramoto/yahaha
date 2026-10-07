@@ -1,14 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
-import type { ComponentProps } from 'svelte'
+import { createRawSnippet, type ComponentProps } from 'svelte'
 import { expect, fn } from 'storybook/test'
 import FaderCell from './FaderCell.svelte'
 import KnobCell from './KnobCell.svelte'
 
 /**
  * The band's controls as Golden trees, each at the size the Stage gives one cell. A knob: a box in
- * the knob's shape, a square off its top for the dial, then the value and the name in steps. A
- * fader: a box in the fader's shape cut in steps, the track, the value and the strip's name. The
- * overlay draws the cuts and reports what doesn't fit; the Tuning toolbar switches the shapes.
+ * the knob's shape, a square off its top for the dial, then the name in a label-height band at the
+ * foot and the value above it. A fader: a box in the fader's shape cut in steps, the track, the
+ * value and the strip's name; as a whole Stage strip it also takes the part's sound in a band off
+ * its top and its lamp in a band off its foot. The overlay draws the cuts and reports what doesn't
+ * fit; the Tuning toolbar switches the shapes.
  */
 const meta = {
   title: 'Golden/Controls',
@@ -51,8 +53,8 @@ export const Knob: Story = {
     await expect(box?.querySelector('[data-golden-fit][data-shape="knob"]')).not.toBeNull()
     const split = box?.querySelector('[data-golden-slots="cut"][data-take="square"]')
     await expect(split).not.toBeNull()
-    const steps = split?.querySelector('[data-golden-slots="steps"]')
-    await expect(steps?.children.length).toBe(2)
+    const band = split?.querySelector('[data-golden-slots="cut"][data-band="label-height"]')
+    await expect(band?.children.length).toBe(2)
     await expect(canvasElement.querySelector('[data-golden="overlay"]')).not.toBeNull()
   },
 }
@@ -99,5 +101,50 @@ export const Fader: StoryObj<typeof FaderCell> = {
     const steps = box?.querySelector('[data-golden-slots="steps"]')
     await expect(steps?.children.length).toBe(3)
     await expect(canvasElement.querySelector('[data-golden="overlay"]')).not.toBeNull()
+  },
+}
+
+/**
+ * A whole Stage strip, as the golden Stage draws it (Option C): the part's sound in a tab-block
+ * band off the top (it opens the part's sound list), the track, the value and the name button
+ * (it opens Channel) in steps, and the strip's lamp in a control-height band off the foot.
+ */
+export const Strip: StoryObj<typeof FaderCell> = {
+  // The lamp is content (a snippet), not an arg: a plain lamp button stands in for the LampButton.
+  render: (args) => {
+    const { onpress: _press, onstep: _step, ...props } = args as Record<string, unknown>
+    const lamp = createRawSnippet(() => ({ render: () => '<button type="button" aria-pressed="true">On</button>' }))
+    return { Component: FaderCell, props: { ...props, lamp } as ComponentProps<typeof FaderCell> }
+  },
+  args: {
+    ...Fader.args,
+    label: 'Right 1',
+    sound: 'Stage Grand',
+    soundName: 'Right 1 sound: Stage Grand. Opens the quick sound list',
+    soundTip: 'launchkey.fader_sound',
+    openName: 'Right 1, Stage Grand: open Channel',
+    openTip: 'mixer.strip.select',
+    edited: true,
+    onsound: fn(),
+    onopen: fn(),
+  },
+  argTypes: {
+    ...Fader.argTypes,
+    sound: { control: 'text' },
+    soundName: { control: 'text' },
+    soundTip: { control: 'text' },
+    openName: { control: 'text' },
+    openTip: { control: 'text' },
+    edited: { control: 'boolean' },
+  },
+  play: async ({ args, canvasElement }) => {
+    const box = canvasElement.querySelector('[data-golden="box"]')
+    await expect(box?.querySelector('[data-golden-slots="cut"][data-band="tab-block"]')).not.toBeNull()
+    await expect(box?.querySelector('[data-golden-slots="cut"][data-band="control-height"]')).not.toBeNull()
+    const sound = canvasElement.querySelector<HTMLButtonElement>('button[aria-label^="Right 1 sound"]')
+    sound?.click()
+    await expect(args.onsound).toHaveBeenCalled()
+    canvasElement.querySelector<HTMLButtonElement>('button[aria-label="Right 1, Stage Grand: open Channel"]')?.click()
+    await expect(args.onopen).toHaveBeenCalled()
   },
 }
