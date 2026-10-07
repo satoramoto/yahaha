@@ -788,7 +788,7 @@ export function pads(input: Pick<StageInput, 'state' | 'beats'>): StageProps['pa
     if (!pad || label === '') return { label: '', family: 'util', state: 'dark', tip: 'launchkey.unused', name: `Pad ${i + 1} unused` }
     const face = padFace(pad)
     const word = WORDS[face] ?? ''
-    return { label, family: padHue(pad.rgb) ?? 'util', state: face, tip: fader ? 'launchkey.unused' : FALLBACK_TIP[shown], name: `${label} (pad ${i + 1})${word}` }
+    return { label, family: padHue(pad.rgb) ?? 'util', state: face, tip: fader ? (i < 8 ? 'mixer.page' : 'mixer.layer') : FALLBACK_TIP[shown], name: `${label} (pad ${i + 1})${word}` }
   })
   return {
     pads: items,

@@ -650,6 +650,11 @@ describe('pads', () => {
     expect(p.pads.map((x) => x.label)).toEqual(['PANEL', 'STYLE', '', '', '', '', '', '', 'VOL', 'PAN', 'REV', 'CHO', 'DLY', '', '', ''])
     expect(p.pads[0].state).toBe('playing')
     expect(p.pads[1].state).toBe('idle')
+    // The picker pads are live: page and layer tips; the dark ones stay unused.
+    expect(p.pads.map((x) => x.tip)).toEqual([
+      'mixer.page', 'mixer.page', ...Array(6).fill('launchkey.unused'),
+      ...Array(5).fill('mixer.layer'), ...Array(3).fill('launchkey.unused'),
+    ])
     expect(p.banks).toEqual([])
     expect(p.bankName).toBe('Faders')
     s.surface.layer = { type: 'none' }
