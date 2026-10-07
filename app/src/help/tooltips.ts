@@ -1037,17 +1037,17 @@ const catalog = {
   // ── Mixer ───────────────────────────────────────────────────────────────
   'mixer.page': {
     title: 'Fader page: Panel / Style',
-    body: 'Switches what the Launchkey faders control: Panel is your four keyboard parts, Style is the band\'s eight parts. The button lights blue on Panel, green on Style; with Shift it steps to the next fader layer instead.',
+    body: 'Switches what the Launchkey faders control: Panel is your four keyboard parts, Style is the band\'s eight parts. On the Launchkey, a tap of the button under the master fader switches; hold it and the pads show the fader page and layer to choose from; with Shift it steps to the next fader layer instead. The button lights in the layer\'s colour on Panel, green on Style.',
     genos: 'Mixer tabs (Panel / Style)',
     keys: ['F9'],
-    launchkey: 'Button under the master fader',
+    launchkey: 'Tap the button under the master fader (hold: choose the fader page and layer on the pads)',
   },
   'mixer.layer': {
     title: 'Fader layer: VOL / PAN / REV / CHO / DLY',
     body: 'Switches what the faders move across the parts, as in a DAW\'s sends view: each part\'s volume, or its pan, reverb, chorus or delay send. A fader picks a value up before it moves it. The master fader stays the master.',
     genos: null,
     keys: [],
-    launchkey: 'Shift + button under the master fader',
+    launchkey: 'Shift + button under the master fader (hold: choose the fader page and layer on the pads)',
   },
   'mixer.panel.right1': {
     title: 'Right 1 volume',

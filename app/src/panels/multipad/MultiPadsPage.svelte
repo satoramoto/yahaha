@@ -1,38 +1,21 @@
 <!--
-  MultiPadsPage: the Multi Pads display page, in the Stage's display box (ui/Stage's `page` slot,
-  sized by --page-width × --page-height). A stub until its lane builds it
-  (docs/design/push/MultiPads-Dark.dc.html).
+  MultiPadsPage: the Multi Pads display page, in the Stage's display box (ui/Stage's `page` slot).
+  It draws the library's MultiPads (app/src/ui/MultiPads) from the app state and sends what the
+  page asks for as commands (model.ts).
+
+  State: multiPad, mixer.multiPadVolume(Waiting), transport.running, clock.beats. Commands:
+  triggerMultiPad, stopMultiPad, stopAllMultiPads, armMultiPad, setMultiPadRepeat,
+  setMultiPadChordMatch, loadMultiPad, clearMultiPad, setMultiPadVolume, setMultiPadSynchroStop.
 -->
 <script lang="ts">
+  import { app, clock } from '../../lib/store.svelte'
+  import MultiPads from '../../ui/MultiPads/MultiPads.svelte'
   import type { PageProps } from '../stage/page.svelte'
+  import { multiPadsCommand, multiPadsData } from './model'
 
   let { tipAction }: PageProps = $props()
+
+  const data = $derived(multiPadsData(app.state, clock.beats))
 </script>
 
-<section class="soon" aria-label="Multi Pads: coming soon" use:tipAction={'nav.multipad'}>
-  <h1>Coming soon</h1>
-  <p>The Multi Pads page is being rebuilt.</p>
-</section>
-
-<style>
-  .soon {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    width: var(--page-width);
-    height: var(--page-height);
-  }
-  h1 {
-    margin: 0;
-    font-size: 44px;
-    font-weight: 300;
-    letter-spacing: -1px;
-  }
-  p {
-    margin: 0;
-    color: var(--m);
-    font-size: 14px;
-  }
-</style>
+<MultiPads {data} {tipAction} onchange={(change) => app.send(multiPadsCommand(change))} />

@@ -433,6 +433,7 @@ pub fn fingered_star(mask: u16, c: Chord) -> Option<Chord> {
 // Input (CoreMIDI receive thread)
 // ---------------------------------------------------------------------------
 
+pub(crate) mod fader_hold;
 mod kbdfx;
 mod pipeline;
 pub(crate) mod sound_hold;
@@ -633,6 +634,10 @@ pub struct Input {
     held_part: Option<u8>,
     /// A knob turned during `held_part`'s hold (the release is not a tap).
     hold_turned: bool,
+    /// The master fader's button is held without Shift (`fader_hold`), and whether a
+    /// picker pad was pressed during the hold (the release is not a tap).
+    fader_held: bool,
+    fader_picked: bool,
 }
 
 impl Input {
@@ -674,6 +679,8 @@ impl Input {
             shown_switches: 0,
             held_part: None,
             hold_turned: false,
+            fader_held: false,
+            fader_picked: false,
         }
     }
 
@@ -1074,8 +1081,14 @@ impl Input {
                 self.set_shift(false);
                 let page = Page::from_u8(self.shared.page.load(Relaxed));
                 // Sound held: the pads are the Racks page, from any page (`sound_hold`).
+                // The master fader's button held: the fader picker (`fader_hold`).
                 let action = match self.shared.layer() {
                     Layer::Sound => sound_hold::pad(page, m[1]),
+                    Layer::Fader => {
+                        let a = fader_hold::pad(m[1]);
+                        self.fader_picked |= a.is_some();
+                        a
+                    }
                     layer => launchkey::pad_action(page, layer, m[1]),
                 };
                 if let Some(a) = action {
@@ -1088,8 +1101,9 @@ impl Input {
         }
     }
 
-    /// A button under fader `i` (0..8) went down, or under the master fader (8): the fader
-    /// page toggle. On the Panel page buttons 1-4 are Right 1-3 and Left: a tap turns the
+    /// A button under fader `i` (0..8) went down, or under the master fader (8): held, the
+    /// pads are the fader picker (`fader_hold`); a tap switches the fader page on release;
+    /// with Shift it steps the fader layer. On the Panel page buttons 1-4 are Right 1-3 and Left: a tap turns the
     /// part on/off (on release, `fader_button_up`), a hold with a knob turned is swap mode,
     /// and Shift + button selects the part for the voice keys. Button 5 is
     /// HARMONY/ARPEGGIO. Button 6 is Sound on both pages: held, the pads are the Racks page
@@ -1104,12 +1118,12 @@ impl Input {
             self.signal = true;
             self.ctl_signal = true;
         } else if i == 8 {
-            // Here rather than on the control side: the next fader move must already go
-            // to the new page. The engine rebinds the Style faders on its next wake
-            // (`Parts::take_rebind`).
-            parts.toggle_fader_page();
-            self.signal = true;
-            self.ctl_signal = true;
+            // The fader hold: the pads are the fader picker until release, which switches
+            // the page if no picker pad was pressed (a tap; `fader_button_up`).
+            self.fader_held = true;
+            self.fader_picked = false;
+            let l = fader_hold::press(self.shared.layer());
+            self.set_layer(l);
         } else if i == launchkey::SOUND_FADER_BTN && !shift {
             // Page-independent: the input thread reads the button, not the fader page.
             let l = sound_hold::press(self.shared.layer());
@@ -1145,6 +1159,24 @@ impl Input {
     /// A button under fader `i` (0..8) went up: the Sound hold ends, and a held part button
     /// is a tap (the part on/off) or ends swap mode. No allocation.
     fn fader_button_up(&mut self, i: u8) {
+        if i == 8 {
+            // Shift + the button stepped the layer on the press and held nothing.
+            if !std::mem::take(&mut self.fader_held) {
+                return;
+            }
+            let now = self.shared.layer();
+            self.set_layer(fader_hold::release(now));
+            if fader_hold::tap(self.fader_picked, now) {
+                // Here rather than on the control side: the next fader move must already
+                // go to the new page. The engine rebinds the Style faders on its next wake
+                // (`Parts::take_rebind`).
+                self.shared.parts.toggle_fader_page();
+                self.signal = true;
+                self.ctl_signal = true;
+                self.touch(Touch::FaderButton { index: i, shift: false });
+            }
+            return;
+        }
         if i == launchkey::SOUND_FADER_BTN {
             // Whatever Shift and the fader page are by now.
             let l = sound_hold::release(self.shared.layer());
@@ -1246,6 +1278,22 @@ impl Input {
             Action::MultiPad(c) => {
                 if self.cmd.push(Cmd::MultiPad(c)).is_ok() {
                     self.signal = true;
+                }
+            }
+            // The fader picker: here, as the page toggle, so the next fader move already
+            // goes to the new page or layer. Atomics only.
+            Action::SetFaderPage(p) => {
+                if self.shared.parts.fader_page() != p {
+                    self.shared.parts.set_fader_page(p);
+                    self.signal = true;
+                    self.ctl_signal = true;
+                }
+            }
+            Action::SetFaderLayer(l) => {
+                if self.shared.parts.fader_layer() != l {
+                    self.shared.parts.set_fader_layer(l);
+                    self.signal = true;
+                    self.ctl_signal = true;
                 }
             }
             _ => {
@@ -2602,7 +2650,9 @@ mod tests {
         assert_eq!(acts.pop(), Ok(Action::Assign(crate::controllers::Function::ChordLooperRec)));
         assert!(cmds.pop().is_err());
 
-        input.pad_msg(&[0xB0, 45, 127]); // master button: Style page
+        input.pad_msg(&[0xB0, 45, 127]); // master button tapped: Style page, on release
+        assert_eq!(parts.fader_page(), FaderPage::Panel);
+        input.pad_msg(&[0xB0, 45, 0]);
         assert_eq!(parts.fader_page(), FaderPage::Style);
         let mut hw = [crate::engine::HW_UNKNOWN; 8];
         hw[1] = 64;
@@ -2618,6 +2668,7 @@ mod tests {
         assert!(acts.pop().is_err());
         // Back on Panel, fader 2 (now at 10) must pick Right 2 up at 64 first.
         input.pad_msg(&[0xB0, 45, 127]);
+        input.pad_msg(&[0xB0, 45, 0]);
         assert_eq!(parts.fader_page(), FaderPage::Panel);
         assert!(parts.waiting(parts::RIGHT2));
         input.pad_msg(&[0xB0, 6, 12]);
@@ -2652,9 +2703,11 @@ mod tests {
         assert_eq!(engine.snapshot(0).volumes[0], 90);
         // Panel page, fader 1 down to 10 (Right 1). Fill the ring, then back to Style.
         input.pad_msg(&[0xB0, 45, 127]);
+        input.pad_msg(&[0xB0, 45, 0]);
         input.pad_msg(&[0xB0, 5, 10]);
         while input.cmd.push(Cmd::Arm).is_ok() {}
         input.pad_msg(&[0xB0, 45, 127]);
+        input.pad_msg(&[0xB0, 45, 0]);
         assert_eq!(parts.fader_page(), FaderPage::Style);
         while let Ok(c) = cmds.pop() {
             apply(&mut engine, &shared, c, 0, &mut out);
@@ -2736,8 +2789,10 @@ mod tests {
         input.pad_msg(&[0xB0, launchkey::SHIFT_CC, 127]);
         input.pad_msg(&[0xB0, master_btn, 127]);
         input.pad_msg(&[0xB0, launchkey::SHIFT_CC, 0]);
+        assert_eq!(shared.layer(), Layer::None, "Shift + the button holds nothing");
+        input.pad_msg(&[0xB0, master_btn, 0]);
         assert_eq!(parts.fader_layer(), FaderLayer::Pan);
-        assert_eq!(parts.fader_page(), FaderPage::Panel, "the page stays");
+        assert_eq!(parts.fader_page(), FaderPage::Panel, "the page stays, on the release too");
         let vol = parts.volume(0);
         // Right 1's pan is 64: a fader far away waits, then picks it up on the way.
         input.pad_msg(&[0xB0, fader1, 10]);
@@ -2761,7 +2816,74 @@ mod tests {
         }
         assert_eq!(parts.fader_layer(), FaderLayer::Volume);
         input.pad_msg(&[0xB0, master_btn, 127]);
+        input.pad_msg(&[0xB0, master_btn, 0]);
         assert_eq!(parts.fader_page(), FaderPage::Style);
+    }
+
+    /// Hold the master fader's button: the pads are the fader picker from any page; a
+    /// picker pad sets the fader page or layer at once (the next fader move already goes
+    /// there) and the release then switches nothing; the release gives the page's own pads
+    /// back. A tap with no pad still switches the page; Shift + it still steps the layer.
+    #[test]
+    fn fader_hold_picks_the_page_and_layer_on_the_pads() {
+        use crate::engine::Button;
+        let (mut input, shared, mut cmds, mut acts) = pads_rig();
+        let parts = shared.parts.clone();
+        let master_btn = *launchkey::FADER_BTN_CC.end();
+        for page in [Page::Sections, Page::Racks, Page::Setup] {
+            shared.page.store(page.to_u8(), Relaxed);
+            parts.set_fader_page(FaderPage::Panel);
+            parts.set_fader_layer(FaderLayer::Volume);
+            input.pad_msg(&[0xB0, master_btn, 127]);
+            assert_eq!(shared.layer(), Layer::Fader, "{page:?}: the hold shows the picker");
+            assert_eq!(parts.fader_page(), FaderPage::Panel, "nothing switches on the press");
+            // STYLE, then REV, then DLY: each at once, on the input thread.
+            input.pad_msg(&[0x90, 97, 100]);
+            assert_eq!(parts.fader_page(), FaderPage::Style);
+            input.pad_msg(&[0x90, 114, 100]);
+            assert_eq!(parts.fader_layer(), FaderLayer::Reverb);
+            input.pad_msg(&[0x90, 116, 100]);
+            assert_eq!(parts.fader_layer(), FaderLayer::Delay);
+            input.pad_msg(&[0x90, 119, 100]);
+            assert!(acts.pop().is_err() && cmds.pop().is_err(), "{page:?}: the picker's pads run nothing else; a dark pad nothing");
+            assert_eq!(touched(&shared), Some(Touch::Pad(116)), "the display names the pad picked");
+            input.pad_msg(&[0xB0, master_btn, 0]);
+            assert_eq!(shared.layer(), Layer::None, "{page:?}: release gives the page back");
+            assert_eq!(Page::from_u8(shared.page.load(Relaxed)), page);
+            assert_eq!((parts.fader_page(), parts.fader_layer()), (FaderPage::Style, FaderLayer::Delay), "a pick, not a tap: no switch");
+        }
+        // Released: the page's own pads again (Sections: Intro I).
+        shared.page.store(Page::Sections.to_u8(), Relaxed);
+        input.pad_msg(&[0x90, 96, 100]);
+        assert!(matches!(cmds.pop(), Ok(Cmd::Button(Button::Intro(0)))));
+        // PANEL picked while on Panel already: no rebind, and still a pick.
+        parts.set_fader_page(FaderPage::Panel);
+        let generation = parts.fader_layer_gen();
+        input.pad_msg(&[0xB0, master_btn, 127]);
+        input.pad_msg(&[0x90, 96, 100]);
+        input.pad_msg(&[0xB0, master_btn, 0]);
+        assert_eq!((parts.fader_page(), parts.fader_layer_gen()), (FaderPage::Panel, generation));
+        // A tap: the page switches on release.
+        input.pad_msg(&[0xB0, master_btn, 127]);
+        input.pad_msg(&[0xB0, master_btn, 0]);
+        assert_eq!(parts.fader_page(), FaderPage::Style);
+        assert_eq!(touched(&shared), Some(Touch::FaderButton { index: 8, shift: false }));
+        // Shift + the button: the next layer, no hold, no switch on release.
+        input.pad_msg(&[0xB0, launchkey::SHIFT_CC, 127]);
+        input.pad_msg(&[0xB0, master_btn, 127]);
+        assert_eq!((shared.layer(), parts.fader_layer()), (Layer::None, FaderLayer::Volume), "DLY wraps to VOL");
+        input.pad_msg(&[0xB0, master_btn, 0]);
+        input.pad_msg(&[0xB0, launchkey::SHIFT_CC, 0]);
+        assert_eq!(parts.fader_page(), FaderPage::Style);
+        // Sound taken during the hold: the picker gives way and the release switches nothing.
+        let sound = launchkey::FADER_BTN_CC.start() + launchkey::SOUND_FADER_BTN;
+        input.pad_msg(&[0xB0, master_btn, 127]);
+        input.pad_msg(&[0xB0, sound, 127]);
+        assert_eq!(shared.layer(), Layer::Sound);
+        input.pad_msg(&[0xB0, master_btn, 0]);
+        assert_eq!((shared.layer(), parts.fader_page()), (Layer::Sound, FaderPage::Style));
+        input.pad_msg(&[0xB0, sound, 0]);
+        assert_eq!(shared.layer(), Layer::None);
     }
 
     #[test]
@@ -3046,6 +3168,7 @@ mod tests {
             input.pad_msg(&[0x90, 96, 100]);
             assert!(matches!(cmds.pop(), Ok(Cmd::Button(Button::Intro(0)))));
             input.pad_msg(&[0xB0, master_btn, 127]);
+            input.pad_msg(&[0xB0, master_btn, 0]);
         }
     }
 

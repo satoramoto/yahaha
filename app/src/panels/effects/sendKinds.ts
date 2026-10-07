@@ -23,6 +23,3 @@ export const SEND_KINDS: { kind: SendKind; name: string }[] = [
 export const MAX_SENDS = 6
 /** Sends 0-2 are the style's buses; later ones are added. */
 export const STYLE_SENDS = 3
-
-/** A return level as the Genos shows it: 64 = 0 dB, 127 = +6 dB, 0 = off. */
-export const returnText = (v: number) => (v === 0 ? 'Off' : `${v >= 64 ? '+' : ''}${(20 * Math.log10(v / 64)).toFixed(1)} dB`)

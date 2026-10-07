@@ -217,6 +217,7 @@ fn value_of(cmd: &AppCmd, level: Level, st: &AppState) -> String {
         AppCmd::Parts(PartsCmd::SelectPart { .. } | PartsCmd::StepVoice { .. }) => selected().map_or_else(String::new, |p| p.voice_name.clone()),
         AppCmd::Mixer(MixerCmd::ToggleStylePart { part }) => st.mixer.style_parts.get(*part as usize).map_or_else(String::new, |p| on(p.on)),
         AppCmd::Mixer(MixerCmd::ToggleFaderPage | MixerCmd::SetFaderPage { .. }) => format!("{:?}", st.mixer.fader_page),
+        AppCmd::Mixer(MixerCmd::SetFaderLayer { .. } | MixerCmd::StepFaderLayer { .. }) => format!("{:?}", st.mixer.fader_layer),
         AppCmd::Pads(PadsCmd::SetPadPage { .. } | PadsCmd::CyclePadPage { .. }) => st.pads.page_name.clone(),
         AppCmd::Library(LibraryCmd::StepStyle { .. }) => st.style.name.clone(),
         AppCmd::Chord(c) => match c {

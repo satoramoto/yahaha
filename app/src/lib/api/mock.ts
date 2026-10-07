@@ -26,7 +26,7 @@ import { emptyQuickRacks } from './quick-racks'
 import type { Session } from './session'
 import {
   BREAK, CHORD_SETTLE_MAX_MS, clampEq, COMP_PRESETS, defaultStrip, eqPresetBands, MASTER_EQ_FREQ_RANGE, defaultControlMap, FLAT_EQ, OFF_INSERT, type PartInsert, ENDINGS, FADER_LAYERS, FILLS, FINGERINGS, INTROS, KEYBOARD_PART_NAMES, MAINS, PAD_PAGES, DEFAULT_PAD_PAGES, type PadPage, RETRIGGER_RATES,
-  STYLE_PART_NAMES, type AppCmd, type AppState, type EffectBlockState, type EffectsState, type FxBlock, type FxType, type LibraryEntry, type LibraryList, type OtsPart, type PartEq, type PreviewState, type RackCmd, type StopAcmpMode,
+  STYLE_PART_NAMES, type AppCmd, type AppState, type FaderLayer, type Pad, type Rgb, type EffectBlockState, type EffectsState, type FxBlock, type FxType, type LibraryEntry, type LibraryList, type OtsPart, type PartEq, type PreviewState, type RackCmd, type StopAcmpMode,
   type SoundLibraryCmd, type StyleSettingsState, type StyleState,
 } from './types'
 import { GM, NOTE_NAMES, noteName } from './constants'
@@ -342,9 +342,11 @@ function derive(st: AppState, lib: LibraryList, hw: MockHardware | null = null, 
   const order: PadPage[] = ['sections', ...st.settings.padPages]
   const pageName = (id: PadPage) => PAD_PAGES.find((p) => p.id === id)!.name
   st.pads.pages = order.map((page) => ({ page, name: pageName(page) }))
-  // The page the pads show: Racks while Sound is held (`page` stays the one on view).
+  // The page the pads show: Racks while Sound is held, the fader picker while the master
+  // fader's button is held (`page` stays the one on view).
   const sound = st.surface?.layer?.type === 'sound'
-  st.pads.pageName = pageName(sound ? 'racks' : st.pads.page)
+  const fader = st.surface?.layer?.type === 'fader'
+  st.pads.pageName = fader ? 'Faders' : pageName(sound ? 'racks' : st.pads.page)
   st.pads.pageNumber = order.indexOf(st.pads.page) + 1
   st.pads.pageCount = order.length
   // Where a fill (or the Break) queued or playing lands (#282).
@@ -354,10 +356,37 @@ function derive(st: AppState, lib: LibraryList, hw: MockHardware | null = null, 
   st.transport.lamps = padsFor(st, 'sections')
   // Hold Sound: the pads act and light as the Racks page (`Layer::pads`).
   st.pads.pads = padsFor(st, sound ? 'racks' : st.pads.page, sound)
+  if (fader) st.pads.pads = faderPickerPads(st)
   const h = hw ?? idleHardware(st)
   st.keyboardParts.forEach((p, i) => (p.fader = h.faders[i] ?? null))
   st.mixer.styleParts.forEach((p, i) => (p.fader = h.faders[i] ?? null))
   st.surface = mockSurface(st, lib, h)
+}
+
+/** Each fader layer's colour (`launchkey::layer_colour`; Dim is the same colour, dim). */
+const FADER_LAYER_RGB: Record<FaderLayer, Rgb> = {
+  volume: [0, 0, 127], pan: [127, 127, 0], reverb: [0, 100, 127], chorus: [127, 0, 70], delay: [127, 127, 127],
+}
+const FADER_LAYER_LABELS: Record<FaderLayer, string> = { volume: 'VOL', pan: 'PAN', reverb: 'REV', chorus: 'CHO', delay: 'DLY' }
+
+/** The fader picker while the master fader's button is held (`launchkey::faders_looks`):
+ * PANEL and STYLE on pads 96-97, the five layers on 112-116, the current ones bright. */
+function faderPickerPads(st: AppState): Pad[] {
+  const m = st.mixer
+  const pick = (note: number, label: string, action: AppCmd, rgb: Rgb, on: boolean): Pad =>
+    ({ note, label, key: '', rgb, level: on ? 'bright' : 'dim', anim: 'solid', action, palette: null })
+  const dark = (note: number): Pad => ({ note, label: '', key: '', rgb: [0, 0, 0], level: 'off', anim: 'solid', action: null, palette: null })
+  const top = [96, 97, 98, 99, 100, 101, 102, 103].map((note) =>
+    note === 96 ? pick(note, 'PANEL', { type: 'setFaderPage', page: 'panel' }, FADER_LAYER_RGB[m.faderLayer], m.faderPage === 'panel')
+      : note === 97 ? pick(note, 'STYLE', { type: 'setFaderPage', page: 'style' }, [0, 127, 0], m.faderPage === 'style')
+        : dark(note))
+  const bottom = [112, 113, 114, 115, 116, 117, 118, 119].map((note, i) => {
+    const layer = FADER_LAYERS[i]
+    return layer
+      ? pick(note, FADER_LAYER_LABELS[layer], { type: 'setFaderLayer', layer }, FADER_LAYER_RGB[layer], m.faderLayer === layer)
+      : dark(note)
+  })
+  return [...top, ...bottom]
 }
 
 /** How many bars a section lasts before it moves on (Intro/Ending: 2, Break/Fill: 1). */
@@ -1672,7 +1701,8 @@ export class MockSession implements Session {
         break
       }
       case 'setLayer': {
-        // The app's mirror holds or releases Sound or a part button (`surface.layer`).
+        // The app's mirror holds or releases Sound, a part button or the master fader's
+        // button (`surface.layer`); a release never switches the fader page.
         const l = cmd.layer
         if (l.type === 'swap' && !(Number.isInteger(l.part) && l.part >= 0 && l.part <= 3)) {
           this.message(`no keyboard part ${l.part}`, true)
