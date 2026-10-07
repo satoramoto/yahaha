@@ -338,6 +338,16 @@ describe('faders', () => {
     expect(take().sent).toEqual([])
   })
 
+  it('a window blur mid Sound hold ends the hold', () => {
+    const { actions, take } = fake()
+    actions.onlamplong('sound')
+    take()
+    window.dispatchEvent(new Event('blur'))
+    expect(take().sent).toEqual([{ type: 'setLayer', layer: { type: 'none' } }])
+    actions.onlamprelease('sound')
+    expect(take().sent).toEqual([])
+  })
+
   it('a tap on the page button toggles the page and holds nothing', () => {
     const { actions, take } = fake()
     actions.onpagebutton()

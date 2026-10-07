@@ -2680,6 +2680,15 @@ mod tests {
         assert_eq!(shared.layer(), Layer::Fader, "the master button is still held");
         input.pad_msg(&[0xB0, 45, 0]);
         assert_eq!((shared.layer(), parts.fader_page()), (Layer::None, page), "not a tap");
+        // Master down, Sound down, Sound up, master up: back to the fader hold, no toggle.
+        input.pad_msg(&[0xB0, 45, 127]);
+        assert_eq!(shared.layer(), Layer::Fader);
+        input.pad_msg(&[0xB0, 42, 127]);
+        assert_eq!(shared.layer(), Layer::Sound);
+        input.pad_msg(&[0xB0, 42, 0]);
+        assert_eq!((shared.layer(), parts.fader_page()), (Layer::Fader, page), "the master button is still held");
+        input.pad_msg(&[0xB0, 45, 0]);
+        assert_eq!((shared.layer(), parts.fader_page()), (Layer::None, page), "not a tap");
         input.pad_msg(&[0xB0, 43, 127]); // button 7: Left Hold
         assert_eq!(acts.pop(), Ok(Action::Assign(crate::controllers::Function::LeftHold)));
         input.pad_msg(&[0xB0, 44, 127]); // button 8: Chord Looper ON/OFF, Shift: REC/STOP
