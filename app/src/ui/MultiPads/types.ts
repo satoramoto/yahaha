@@ -57,5 +57,7 @@ export type MultiPadsChange =
   | { type: 'chordMatch'; pad: number; on: boolean }
   | { type: 'bank'; id: string }
   | { type: 'clear' }
+  /** Load…: pick a `.pad` file anywhere on disk (the app opens the system file picker). */
+  | { type: 'loadFile' }
   | { type: 'volume'; volume: number }
   | { type: 'synchroStop'; styleStop: boolean; ending: boolean }

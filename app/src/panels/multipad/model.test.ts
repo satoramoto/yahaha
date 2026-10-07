@@ -1,13 +1,16 @@
 import { cleanup, fireEvent, render, within } from '@testing-library/svelte'
 import { flushSync } from 'svelte'
 import type { Action } from 'svelte/action'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MockSession } from '../../lib/api/mock'
 import { binding } from '../../lib/keys'
 import { app } from '../../lib/store.svelte'
-import type { MultiPadsChange } from '../../ui/MultiPads/types'
-import { multiPadsCommand, multiPadsData } from './model'
+import { loadPadFile, multiPadsCommand, multiPadsData, PAD_FILE, type MultiPadsCommandChange } from './model'
 import MultiPadsPage from './MultiPadsPage.svelte'
+
+// The system file picker: each test says what it answers (a path, or null for a cancel).
+const picked = vi.hoisted(() => vi.fn<(p: unknown) => Promise<string | null>>(async () => null))
+vi.mock('../../lib/files', () => ({ pickFile: picked }))
 
 const noTip: Action<HTMLElement, string> = () => {}
 
@@ -54,7 +57,7 @@ describe('multiPadsData', () => {
 
 describe('multiPadsCommand', () => {
   it('sends each request as its command', () => {
-    const cases: [MultiPadsChange, unknown][] = [
+    const cases: [MultiPadsCommandChange, unknown][] = [
       [{ type: 'play', pad: 2 }, { type: 'triggerMultiPad', pad: 2 }],
       [{ type: 'stop', pad: 1 }, { type: 'stopMultiPad', pad: 1 }],
       [{ type: 'select', pad: 3 }, { type: 'armMultiPad', pad: 3 }],
@@ -67,6 +70,38 @@ describe('multiPadsCommand', () => {
       [{ type: 'synchroStop', styleStop: false, ending: true }, { type: 'setMultiPadSynchroStop', styleStop: false, ending: true }],
     ]
     for (const [change, cmd] of cases) expect(multiPadsCommand(change)).toEqual(cmd)
+  })
+})
+
+describe('Load…', () => {
+  it('asks the file picker for a .pad file and loads the path picked', async () => {
+    const send = vi.fn()
+    const pick = vi.fn(async () => '/Users/me/Pads/Funk.pad')
+    await loadPadFile(send, pick)
+    expect(pick).toHaveBeenCalledWith(PAD_FILE)
+    expect(PAD_FILE.filter.extensions).toEqual(['pad'])
+    expect(send).toHaveBeenCalledExactlyOnceWith({ type: 'loadMultiPadPath', path: '/Users/me/Pads/Funk.pad' })
+  })
+
+  it('sends nothing when the picker is cancelled', async () => {
+    const send = vi.fn()
+    await loadPadFile(send, async () => null)
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it('the page button opens the picker and sends loadMultiPadPath; a cancel sends nothing', async () => {
+    const s = setup()
+    const sent = vi.spyOn(s, 'send')
+    picked.mockResolvedValueOnce('/Users/me/Pads/Funk.pad')
+    await click('Load a bank file')
+    await vi.waitFor(() => expect(sent).toHaveBeenCalledWith({ type: 'loadMultiPadPath', path: '/Users/me/Pads/Funk.pad' }))
+    expect(picked).toHaveBeenCalledWith(PAD_FILE)
+    sent.mockClear()
+    picked.mockResolvedValueOnce(null)
+    await click('Load a bank file')
+    await vi.waitFor(() => expect(picked).toHaveBeenCalledTimes(2))
+    await Promise.resolve()
+    expect(sent).not.toHaveBeenCalled()
   })
 })
 

@@ -22,6 +22,10 @@ tauri-build = { version = "2.5.3", features = [] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "2.9.5", features = [] }
+# The system file picker (app/src/lib/files.ts): Load… for a file outside the library. The
+# webview may only open the picker (capabilities/default.json). On the 2.7 line, the one that
+# matches tauri 2.11 and @tauri-apps/plugin-dialog ~2.7.3.
+tauri-plugin-dialog = "2.7"
 # The engine library alone (no terminal UI): Session, AppCmd, AppState.
 yahaha = { path = "../..", default-features = false }
 
