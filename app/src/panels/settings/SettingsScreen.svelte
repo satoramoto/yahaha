@@ -89,8 +89,6 @@
     if (target === 'browser') ui.browser = true
     else if (target === 'settingsAudio') nav.page = 'system'
     else if (target === 'rack' && !ui.rack) ui.toggleDrawer('rack')
-    else if (target === 'effects' && !ui.effects) ui.toggleDrawer('effects')
-    else if (target === 'multipad' && !ui.multipad) ui.toggleDrawer('multipad')
   }
 
   const stage = stageActions({

@@ -2,14 +2,16 @@
   StageScreen: the app's wiring of the library's Stage (app/src/ui/Stage). It reads the
   stores (app.state, app.library, the clocks, ui, tips), turns them into the Stage's region
   props (model.ts), and turns the Stage's callbacks into commands and links (actions.ts).
-  The page tabs other than Stage show ComingSoon, except Settings, which opens today's Settings
-  drawer. The status line shows the hovered or focused control's tooltip (hint.svelte.ts).
+  A display page tab (Channel, Effects, Quick Racks, Multi Pads, Looper, Harm/Arp) shows the
+  Stage with that page (PAGE_COMPONENTS, each `PageProps`) in its display box; Settings opens the
+  Settings screen and Library the Library screen (App.svelte). The status line shows the hovered or focused control's tooltip (hint.svelte.ts).
 
   Scaling (Stage.md D1): the Stage is laid out at 1440 × 900; this box fills what the shell
   gives it and scales the artboard uniformly to fit, centred, on the kit's ground. The kit's
   tokens apply under `data-theme` on this box (the old shell's tokens stay on :root).
 -->
 <script lang="ts">
+  import type { Component } from 'svelte'
   import type { Action } from 'svelte/action'
   import type { Meters } from '../../lib/api/types'
   import { dropouts } from '../../lib/dropouts.svelte'
@@ -20,11 +22,16 @@
   import { openRackDrawerOnPrompt } from '../quickracks/rackPromptDrawer.svelte'
   import { nav as settingsNav } from '../settings/nav.svelte'
   import Stage from '../../ui/Stage/Stage.svelte'
+  import ChannelPage from '../channel/ChannelPage.svelte'
+  import EffectsPage from '../effects/EffectsPage.svelte'
+  import HarmArpPage from '../harmony/HarmArpPage.svelte'
+  import LooperPage from '../looper/LooperPage.svelte'
+  import MultiPadsPage from '../multipad/MultiPadsPage.svelte'
+  import QuickRacksPage from '../quickracks/QuickRacksPage.svelte'
   import { stageActions, type OpenTarget } from './actions'
-  import ComingSoon from './ComingSoon.svelte'
   import { useStatusHint } from './hint.svelte'
   import { appBar, beatOf, display, faders, holdPeak, keys, knobs, pads, sectionRow, status, stripMeters, type HoldState } from './model'
-  import { stagePage } from './page.svelte'
+  import { stagePage, type PageProps } from './page.svelte'
   import { keysActions, splitPick } from './splitPick.svelte'
 
   const WIDTH = 1440
@@ -33,6 +40,16 @@
   const METER_MS = 33
 
   const tipAction = tip as unknown as Action<HTMLElement, string>
+
+  /** The display pages, by page tab id (model.ts DISPLAY_TABS): each shows in the Stage's display box. */
+  const PAGE_COMPONENTS: Partial<Record<string, Component<PageProps>>> = {
+    channel: ChannelPage,
+    effects: EffectsPage,
+    quickRacks: QuickRacksPage,
+    multiPads: MultiPadsPage,
+    looper: LooperPage,
+    harmArp: HarmArpPage,
+  }
 
   // ── Meters and held peaks
   let meters = $state.raw<Meters | null>(null)
@@ -71,7 +88,7 @@
   const tempoHold = new TempoHold((cmd) => app.send(cmd))
   $effect(() => () => tempoHold.releaseAll())
 
-  // ── Links (Stage.md D32): pages not built yet show "Coming soon"; the rest open today's drawers.
+  // ── Links (Stage.md D32): a page tab shows its page; the rest open today's drawers and screens.
   function open(target: OpenTarget) {
     if (typeof target === 'object' && 'page' in target) {
       // Settings isn't a page of its own yet: its tab opens today's Settings drawer, the
@@ -104,8 +121,6 @@
       settingsNav.tab = 'audio'
       ui.settings = true
     } else if (target === 'rack' && !ui.rack) ui.toggleDrawer('rack')
-    else if (target === 'effects' && !ui.effects) ui.toggleDrawer('effects')
-    else if (target === 'multipad' && !ui.multipad) ui.toggleDrawer('multipad')
   }
 
   const actions = stageActions({
@@ -121,6 +136,8 @@
   const s = $derived(app.state)
   // While the Settings drawer is open, its tab is the current one.
   const page = $derived(ui.settings ? 'settings' : stagePage.page)
+  /** The display page in the Stage's display box; none on the Stage itself. */
+  const PageComponent = $derived(PAGE_COMPONENTS[stagePage.page])
   const appBarData = $derived(appBar({ state: s, meters, page, dropouts: dropouts.recent(nowMs) }))
   const sectionRowData = $derived(sectionRow({ state: s, help: tips.help }))
   const displayBase = $derived(display({ state: s, library: app.library, pos: 0 }))
@@ -161,22 +178,22 @@
 
 <div class="scaler" data-theme={ui.theme} bind:this={box}>
   <div class="artboard" style:transform={`translate(-50%, -50%) scale(${scale})`}>
-    {#if stagePage.page === 'stage'}
-      <Stage
-        appBar={appBarData}
-        sectionRow={sectionRowData}
-        display={displayData}
-        faders={faderData}
-        knobs={knobData}
-        pads={padData}
-        status={statusData}
-        keys={keyData}
-        {tipAction}
-        {...actions}
-      />
-    {:else}
-      <ComingSoon appBar={appBarData} {tipAction} onchoose={actions.onchoose} onhealth={actions.onhealth} />
-    {/if}
+    <Stage
+      appBar={appBarData}
+      sectionRow={sectionRowData}
+      display={displayData}
+      page={PageComponent ? pageSlot : undefined}
+      faders={faderData}
+      knobs={knobData}
+      pads={padData}
+      status={statusData}
+      keys={keyData}
+      {tipAction}
+      {...actions}
+    />
+    {#snippet pageSlot()}
+      {#if PageComponent}<PageComponent {tipAction} />{/if}
+    {/snippet}
   </div>
 </div>
 

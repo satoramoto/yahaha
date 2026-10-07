@@ -8,6 +8,14 @@
 // - Pad locations use `padLocation()`'s wording, and a test checks each pad's entry names
 //   the pad it's on.
 // - `npm run docs:controls` renders this catalog to `app/docs/controls.md`.
+// - Each display page's own entries live in `help/tips/<page>.ts`, spread in at the end.
+
+import { channelTips } from './tips/channel.ts'
+import { effectsTips } from './tips/effects.ts'
+import { harmArpTips } from './tips/harmArp.ts'
+import { looperTips } from './tips/looper.ts'
+import { multiPadsTips } from './tips/multiPads.ts'
+import { quickRacksTips } from './tips/quickRacks.ts'
 
 export interface Tip {
   /** The control's name, as the app labels it. */
@@ -2866,7 +2874,7 @@ const catalog = {
   },
   'nav.quick': {
     title: 'Quick Racks',
-    body: 'Shows the Quick Racks page, coming soon: your racks to load, each on its Quick Rack button. Until then Alt+R opens Library on its Racks tab.',
+    body: 'Shows the Quick Racks page: your racks on the Quick Rack buttons in banks A to H, Store, and One Touch 1 to 4 with Link. Alt+R opens Library on its Racks tab.',
     genos: 'REGISTRATION MEMORY',
     keys: [],
     app_keys: ['alt+r'],
@@ -2882,7 +2890,7 @@ const catalog = {
   },
   'nav.multipad': {
     title: 'Multi Pads',
-    body: 'Shows the Multi Pads page, coming soon. Until then Alt+P, or the Multi Pad strip\'s name on the Stage, opens the Multi Pads drawer.',
+    body: 'Shows the Multi Pads page: the bank\'s four pads with Select, Stop, Repeat and Chord Match, Synchro Stop and the Multi Pad volume. Alt+P, or the Multi Pad strip\'s name on the Stage, shows it.',
     genos: 'MULTI PAD CONTROL',
     keys: [],
     app_keys: ['alt+p'],
@@ -2890,7 +2898,7 @@ const catalog = {
   },
   'nav.effects': {
     title: 'Effects',
-    body: 'Shows the Effects page, coming soon: the Reverb, Chorus and Delay (type, settings, return and sends) and the style\'s inserts. Until then Alt+E, the band sends or the Master strip\'s name on the Stage open the Effects drawer.',
+    body: 'Shows the Effects page: the send list and the open bus\'s editor (Reverb, Chorus, Delay), with the style\'s inserts and the Master Compressor and EQ. Alt+E, or the Master strip\'s name on the Stage, shows it.',
     genos: 'Mixer (Effect)',
     keys: [],
     app_keys: ['alt+e'],
@@ -2898,7 +2906,7 @@ const catalog = {
   },
   'nav.channel': {
     title: 'Channel',
-    body: 'Shows the Channel page for the selected part, coming soon: its sound, mix and inserts. A part\'s name on the Stage selects that part and shows this page.',
+    body: 'Shows the Channel page: one part\'s sound, level, tone, sends, EQ, compressor, inserts and play settings. A part\'s strip name on the Stage selects that part and shows this page.',
     genos: null,
     keys: [],
     launchkey: null,
@@ -2913,7 +2921,7 @@ const catalog = {
   },
   'nav.looper': {
     title: 'Chord Looper',
-    body: 'Shows the Chord Looper page, coming soon. Until then Alt+L opens the Chord Looper drawer.',
+    body: 'Shows the Chord Looper page: Rec / Stop and On / Off, the loop\'s state, its chords bar by bar and the memories. Alt+L shows it.',
     genos: 'Menu › Chord Looper',
     keys: [],
     app_keys: ['alt+l'],
@@ -2929,7 +2937,7 @@ const catalog = {
   },
   'nav.harmony': {
     title: 'Harmony/Arp',
-    body: 'Shows the Harmony/Arp page, coming soon. Until then Alt+H opens the Keyboard Harmony and Arpeggio drawer.',
+    body: 'Shows the Harm/Arp page: the Keyboard Harmony / Arpeggio switch, the type, and that type\'s settings. Alt+H shows it.',
     genos: 'HARMONY/ARPEGGIO',
     keys: [],
     app_keys: ['alt+h'],
@@ -4203,6 +4211,14 @@ const catalog = {
     launchkey: null,
   },
   // --- end Settings screen ---
+  // The display pages' own tooltips (help/tips/<page>.ts, one file per page lane), last so a page
+  // may replace an entry above.
+  ...channelTips,
+  ...effectsTips,
+  ...quickRacksTips,
+  ...multiPadsTips,
+  ...looperTips,
+  ...harmArpTips,
 } satisfies Record<string, Tip>
 
 export type TipKey = keyof typeof catalog

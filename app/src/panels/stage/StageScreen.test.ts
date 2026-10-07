@@ -182,15 +182,18 @@ describe('StageScreen', () => {
     expect(missing).toEqual([])
   })
 
-  it('a page tab shows Coming soon, and the Stage tab comes back', async () => {
+  it('each display page tab shows its page in the display box, the band stays; the Stage tab comes back', async () => {
     setup()
-    const pages = screen.getByRole('navigation', { name: 'Pages' })
-    await fireEvent.click(within(pages).getByRole('button', { name: 'Effects' }))
-    expect(screen.getByRole('heading', { name: 'Coming soon' })).toBeTruthy()
-    expect(screen.getByRole('main', { name: 'Effects: coming soon' })).toBeTruthy()
-    expect(screen.queryByRole('region', { name: 'Faders' })).toBeNull()
-    await fireEvent.click(within(screen.getByRole('navigation', { name: 'Pages' })).getByRole('button', { name: 'Stage' }))
-    expect(screen.queryByRole('heading', { name: 'Coming soon' })).toBeNull()
+    const slot = () => document.querySelector<HTMLElement>('[data-slot="page"]')
+    const tabButton = (label: string) => within(screen.getByRole('navigation', { name: 'Pages' })).getByRole('button', { name: label })
+    for (const label of ['Channel', 'Effects', 'Quick Racks', 'Multi Pads', 'Looper', 'Harm/Arp']) {
+      await fireEvent.click(tabButton(label))
+      expect(slot(), label).toBeTruthy()
+      expect(slot()!.childElementCount, `${label}: the page rendered nothing`).toBeGreaterThan(0)
+      expect(region('Faders')).toBeTruthy()
+    }
+    await fireEvent.click(tabButton('Stage'))
+    expect(slot()).toBeNull()
     expect(region('Faders')).toBeTruthy()
   })
 
