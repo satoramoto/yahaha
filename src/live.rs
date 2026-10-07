@@ -638,6 +638,9 @@ pub struct Input {
     /// picker pad was pressed during the hold (the release is not a tap).
     fader_held: bool,
     fader_picked: bool,
+    /// The Sound button (fader button 6) is held without Shift (`sound_hold`): releasing
+    /// the master fader's button returns to Sound rather than to no layer.
+    sound_held: bool,
 }
 
 impl Input {
@@ -681,6 +684,7 @@ impl Input {
             hold_turned: false,
             fader_held: false,
             fader_picked: false,
+            sound_held: false,
         }
     }
 
@@ -1128,12 +1132,18 @@ impl Input {
             // display would flash the fader page the hold may be about to change; the tap
             // touches on release.
             self.fader_held = true;
-            self.fader_picked = false;
+            // With Sound held the release is never a tap: it goes back to Sound.
+            self.fader_picked = self.sound_held;
             let l = fader_hold::press(self.shared.layer());
             self.set_layer(l);
             return;
         } else if i == launchkey::SOUND_FADER_BTN && !shift {
             // Page-independent: the input thread reads the button, not the fader page.
+            self.sound_held = true;
+            // A Sound hold inside a master hold: that release is no longer a tap.
+            if self.fader_held {
+                self.fader_picked = true;
+            }
             let l = sound_hold::press(self.shared.layer());
             self.set_layer(l);
         } else {
@@ -1173,8 +1183,13 @@ impl Input {
                 return;
             }
             let now = self.shared.layer();
-            self.set_layer(fader_hold::release(now));
-            if fader_hold::tap(self.fader_picked, now) {
+            // Releasing one hold returns to the other while it is still down.
+            let next = match fader_hold::release(now) {
+                Layer::None if self.sound_held => Layer::Sound,
+                l => l,
+            };
+            self.set_layer(next);
+            if !self.sound_held && fader_hold::tap(self.fader_picked, now) {
                 // Here rather than on the control side: the next fader move must already
                 // go to the new page. The engine rebinds the Style faders on its next wake
                 // (`Parts::take_rebind`).
@@ -1187,7 +1202,11 @@ impl Input {
         }
         if i == launchkey::SOUND_FADER_BTN {
             // Whatever Shift and the fader page are by now.
-            let l = sound_hold::release(self.shared.layer());
+            self.sound_held = false;
+            let l = match sound_hold::release(self.shared.layer()) {
+                Layer::None if self.fader_held => Layer::Fader,
+                l => l,
+            };
             self.set_layer(l);
             return;
         }
@@ -2648,6 +2667,19 @@ mod tests {
         input.pad_msg(&[0xB0, 42, 0]);
         assert_eq!(shared.layer(), Layer::None);
         assert!(acts.pop().is_err());
+        // Hold Sound, then press and release the master button: back to Sound, no page
+        // switch; and the other way round, back to the fader hold.
+        let page = parts.fader_page();
+        input.pad_msg(&[0xB0, 42, 127]);
+        input.pad_msg(&[0xB0, 45, 127]);
+        assert_eq!(shared.layer(), Layer::Fader);
+        input.pad_msg(&[0xB0, 45, 0]);
+        assert_eq!((shared.layer(), parts.fader_page()), (Layer::Sound, page), "Sound is still held");
+        input.pad_msg(&[0xB0, 45, 127]);
+        input.pad_msg(&[0xB0, 42, 0]);
+        assert_eq!(shared.layer(), Layer::Fader, "the master button is still held");
+        input.pad_msg(&[0xB0, 45, 0]);
+        assert_eq!((shared.layer(), parts.fader_page()), (Layer::None, page), "not a tap");
         input.pad_msg(&[0xB0, 43, 127]); // button 7: Left Hold
         assert_eq!(acts.pop(), Ok(Action::Assign(crate::controllers::Function::LeftHold)));
         input.pad_msg(&[0xB0, 44, 127]); // button 8: Chord Looper ON/OFF, Shift: REC/STOP

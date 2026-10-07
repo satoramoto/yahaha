@@ -114,7 +114,13 @@ export function stageActions(d: StageDeps): StageActions {
     if (!faderHeld) return
     faderHeld = false
     if (typeof window !== 'undefined') window.removeEventListener('blur', releaseFader)
-    const back = layerBeforeHold.type === 'fader' ? { type: 'none' as const } : layerBeforeHold
+    // Releasing one hold returns to the other while it is still down: a Sound lamp held
+    // now wins over whatever was active when the master hold began.
+    const back = soundHeld
+      ? { type: 'sound' as const }
+      : layerBeforeHold.type === 'fader'
+        ? { type: 'none' as const }
+        : layerBeforeHold
     send({ type: 'setLayer', layer: back })
   }
 
@@ -195,7 +201,9 @@ export function stageActions(d: StageDeps): StageActions {
     onlamprelease: (id) => {
       if (id === 'sound' && soundHeld) {
         soundHeld = false
-        send({ type: 'setLayer', layer: { type: 'none' } })
+        // The master hold still down: back to the fader picker, and its release to none.
+        if (faderHeld) layerBeforeHold = { type: 'none' }
+        send({ type: 'setLayer', layer: faderHeld ? { type: 'fader' } : { type: 'none' } })
       }
     },
     // The master fader's button (#558): a tap (on release) toggles the page, Shift steps the
