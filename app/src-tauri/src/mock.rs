@@ -3919,11 +3919,11 @@ mod tests {
         assert_eq!(pads.len(), 16);
         assert_eq!((pads[1].rgb, pads[0].level), ([127, 0, 0], Level::Off));
         let labels: Vec<&str> = pads[8..].iter().map(|p| p.label.as_str()).collect();
-        assert_eq!((pads[0].label.as_str(), labels), ("QUICK 1", vec!["OTS 1", "OTS 2", "OTS 3", "OTS 4", "BANK -", "BANK +", "STORE", ""]));
+        assert_eq!((pads[0].label.as_str(), labels), ("QUICK 1", vec!["OTS 1", "OTS 2", "OTS 3", "OTS 4", "BANK -", "BANK +", "STORE", "UNDO"]));
         assert_eq!(pads[1].action, Some(AppCmd::QuickRacks(QuickRackCmd::PressQuickRack { slot: 1, discard: false })));
         assert_eq!(pads[8].action, Some(AppCmd::Ots(OtsCmd::RecallOts { index: 0 })));
         assert_eq!(pads[14].action, Some(AppCmd::QuickRacks(QuickRackCmd::ToggleQuickRackStore)));
-        assert_eq!(pads[15].action, None, "the spare pad");
+        assert_eq!(pads[15].action, Some(AppCmd::QuickRacks(QuickRackCmd::UndoQuickRackStore)), "Undo");
         let n = m.state.ots.settings.len();
         assert!(pads[8..12].iter().enumerate().all(|(i, p)| (p.level == Level::Off) == (i >= n)), "OTS past the style's count are dark");
         m.send(QuickRackCmd::StepQuickRackBank { delta: 1 });
