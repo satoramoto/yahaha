@@ -46,6 +46,8 @@ const CALLBACKS: Record<string, string[]> = {
     'onlamplong',
     'onlamprelease',
     'onpagebutton',
+    'onpagelong',
+    'onpagerelease',
   ],
   KnobBank: ['onknobpage', 'onknobpress', 'onstep'],
   PadBank: ['onpadbank', 'onpadpress'],

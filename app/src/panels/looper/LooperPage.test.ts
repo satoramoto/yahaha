@@ -3,12 +3,16 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte'
 import { flushSync } from 'svelte'
 import type { Action } from 'svelte/action'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { isTipKey } from '../../help/tooltips'
 import { MockSession } from '../../lib/api/mock'
 import { app } from '../../lib/store.svelte'
 import { tip } from '../../lib/tooltip/tip.svelte'
 import LooperPage from './LooperPage.svelte'
+
+// The system file picker: each test says what it answers (a path, or null for a cancel).
+const picked = vi.hoisted(() => vi.fn<(p: unknown) => Promise<string | null>>(async () => null))
+vi.mock('../../lib/files', async (actual) => ({ ...(await actual<typeof import('../../lib/files')>()), pickFile: picked }))
 
 function setup() {
   const session = new MockSession({ manual: true, demo: true })
@@ -21,6 +25,7 @@ function setup() {
 afterEach(() => {
   cleanup()
   app.detach()
+  picked.mockClear()
 })
 
 const button = (name: string | RegExp) => screen.getByRole('button', { name })
@@ -95,6 +100,26 @@ describe('Looper page', () => {
     expect(screen.queryByRole('menu')).toBeNull()
   })
 
+  it('Load › From a file… closes the list and sends loadLooperBank with the picked file; a cancel sends nothing', async () => {
+    const s = setup()
+    const sent = vi.spyOn(s, 'send')
+    const fromFile = async () => {
+      await fireEvent.click(button('Load a bank'))
+      flushSync()
+      await fireEvent.click(within(screen.getByRole('menu', { name: 'Bank files' })).getByRole('menuitem', { name: 'From a file…' }))
+      flushSync()
+      expect(screen.queryByRole('menu')).toBeNull()
+    }
+    picked.mockResolvedValueOnce(null)
+    await fromFile()
+    await vi.waitFor(() => expect(picked).toHaveBeenCalledOnce())
+    await Promise.resolve()
+    expect(sent).not.toHaveBeenCalled()
+    picked.mockResolvedValueOnce('/Users/me/Banks/Gig.looper.json')
+    await fromFile()
+    await vi.waitFor(() => expect(sent).toHaveBeenCalledExactlyOnceWith({ type: 'loadLooperBank', path: '/Users/me/Banks/Gig.looper.json' }))
+  })
+
   it('a stopped 12-bar loop pages to bars 9–16; while looping the lane follows the playing bar', async () => {
     const s = setup()
     await recordLoop(s, 12)
@@ -111,10 +136,14 @@ describe('Looper page', () => {
     expect(firstBar()).toMatch(/^Bar 9:/)
     expect(within(lane()).getByRole('listitem', { current: true }).getAttribute('aria-label')).toMatch(/^Bar 10:/)
 
-    // Stopped: back to bars 1–8, paged by hand.
+    // Stopped: the lane stays on the window that was playing (bars 9–16), then pages by hand.
     await fireEvent.click(button('On / Off'))
     flushSync()
     expect(s.state.looper.mode).toBe('off')
+    expect(firstBar()).toMatch(/^Bar 9:/)
+    expect(button('Later bars').getAttribute('aria-disabled')).toBe('true')
+    await fireEvent.click(button('Earlier bars'))
+    flushSync()
     expect(firstBar()).toMatch(/^Bar 1:/)
     expect(button('Earlier bars').getAttribute('aria-disabled')).toBe('true')
     await fireEvent.click(button('Later bars'))

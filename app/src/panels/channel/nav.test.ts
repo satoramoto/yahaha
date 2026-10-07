@@ -3,11 +3,11 @@
 // selected any other way doesn't.
 
 import { flushSync } from 'svelte'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MockSession } from '../../lib/api/mock'
 import { app, ui } from '../../lib/store.svelte'
 import { stagePage } from '../stage/page.svelte'
-import { channelNav } from './nav.svelte'
+import { channelNav, watchPartSelects } from './nav.svelte'
 
 afterEach(() => {
   app.detach()
@@ -153,6 +153,47 @@ describe('a Launchkey part select (surface.partSelectSeq)', () => {
     flushSync()
     expect(stagePage.page).toBe('stage')
     expect(s.state.surface.partSelectSeq).toBe(0)
+  })
+
+  it('a counter that goes down (the engine restarted, no new attach) is a new baseline, not a select', () => {
+    const s = attach()
+    s.hardwareSelectPart(1)
+    s.hardwareSelectPart(2)
+    flushSync()
+    stagePage.page = 'stage'
+    ui.selectedPart = 0
+    // The restarted engine counts from 0 again; its first state carries a part selected by the app.
+    s.state.surface.partSelectSeq = 0
+    s.send({ type: 'selectPart', part: 3 })
+    s.advance(16)
+    flushSync()
+    expect([stagePage.page, ui.selectedPart]).toEqual(['stage', 0])
+    // Its next hardware select (1, still below the old counter) opens it.
+    s.hardwareSelectPart(1)
+    flushSync()
+    expect(s.state.surface.partSelectSeq).toBe(1)
+    expect([stagePage.page, ui.selectedPart]).toEqual(['channel', 1])
+  })
+
+  it('starting the watcher again (a module reload) neither wraps attach twice nor leaves a second watcher', () => {
+    const store = Object.getPrototypeOf(app) as typeof app
+    const base = vi.spyOn(store, 'attach')
+    const show = vi.spyOn(stagePage, 'show')
+    try {
+      watchPartSelects()
+      watchPartSelects()
+      const s = attach()
+      expect(base).toHaveBeenCalledTimes(1)
+      // A new attach is still a baseline.
+      expect(stagePage.page).toBe('stage')
+      s.hardwareSelectPart(2)
+      flushSync()
+      expect(show).toHaveBeenCalledTimes(1)
+      expect([stagePage.page, ui.selectedPart]).toEqual(['channel', 2])
+    } finally {
+      base.mockRestore()
+      show.mockRestore()
+    }
   })
 
   it('after attaching a new session, its first state is a baseline again', () => {

@@ -3,6 +3,7 @@
 // (app/src/ui/Looper), and the page's changes to commands. docs/chord-looper.md.
 
 import type { AppCmd, AppState, LooperState } from '../../lib/api/types'
+import { pickFailure, pickFile, type FilePick } from '../../lib/files'
 import { sameFile } from '../../lib/format'
 import type { LoopBarItem, LooperChange, LooperPageData } from '../../ui/Looper/types'
 
@@ -19,6 +20,29 @@ export interface LooperLocal {
 }
 
 export const LOCAL_CLOSED: LooperLocal = { pick: null, loadOpen: false, saveAs: null, laneFirst: 1 }
+
+/**
+ * What Load › From a file… asks the system file picker for: a bank file (`*.looper.json`, the
+ * engine's `BANK_EXT`). The dialog filters by the last extension only, so it shows `.json` files;
+ * the engine refuses one that isn't a bank.
+ */
+export const BANK_FILE: FilePick = { title: 'Load a Chord Looper bank', filter: { name: 'Chord Looper banks (.looper.json)', extensions: ['json'] } }
+
+/**
+ * Load › From a file…: opens the system file picker and loads the bank picked (`loadLooperBank`);
+ * a cancel sends nothing. The page has no error line, so a picker failure goes to the console
+ * rather than becoming an unhandled rejection.
+ */
+export async function loadBankFile(send: (cmd: AppCmd) => void, pick: (p: FilePick) => Promise<string | null> = pickFile): Promise<void> {
+  let path: string | null
+  try {
+    path = await pick(BANK_FILE)
+  } catch (e) {
+    console.warn(pickFailure(e))
+    return
+  }
+  if (path) send({ type: 'loadLooperBank', path })
+}
 
 /** The sequence as bars 1…bars, each with its chord changes (empty: the chord holds). */
 export function barsOf(lp: Pick<LooperState, 'bars' | 'chords'>): LoopBarItem[] {
@@ -97,6 +121,9 @@ export function looperChange(
       return { cmds: [], local: { ...local, loadOpen: change.open, saveAs: change.open ? null : local.saveAs } }
     case 'load':
       return { cmds: [{ type: 'loadLooperBank', path: change.path }], local: { ...local, loadOpen: false } }
+    case 'loadFile':
+      // The page opens the file picker (`loadBankFile`); here the list just closes.
+      return { cmds: [], local: { ...local, loadOpen: false } }
     case 'saveAsOpen':
       return { cmds: [], local: { ...local, saveAs: change.open ? '' : null, loadOpen: false } }
     case 'saveAsName':

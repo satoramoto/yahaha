@@ -23,6 +23,7 @@
   import { nav as settingsNav } from '../settings/nav.svelte'
   import Blooms from '../../ui/Blooms/Blooms.svelte'
   import { levelOf } from '../../ui/Blooms/blooms'
+  import MetronomePopover from '../../ui/MetronomePopover/MetronomePopover.svelte'
   import Stage from '../../ui/Stage/Stage.svelte'
   import ChannelPage from '../channel/ChannelPage.svelte'
   import EffectsPage from '../effects/EffectsPage.svelte'
@@ -30,7 +31,7 @@
   import LooperPage from '../looper/LooperPage.svelte'
   import MultiPadsPage from '../multipad/MultiPadsPage.svelte'
   import QuickRacksPage from '../quickracks/QuickRacksPage.svelte'
-  import { stageActions, type OpenTarget } from './actions'
+  import { metronomeActions, stageActions, type OpenTarget } from './actions'
   import { useStatusHint } from './hint.svelte'
   import { appBar, beatOf, display, faders, holdPeak, keys, knobs, pads, sectionRow, status, stripMeters, type HoldState } from './model'
   import { stagePage, type PageProps } from './page.svelte'
@@ -125,6 +126,25 @@
     } else if (target === 'rack' && !ui.rack) ui.toggleDrawer('rack')
   }
 
+  // ── The metronome's settings popover (the section row's Metronome ▾), anchored under the caret.
+  const METRONOME_POPOVER = 'metronome-settings'
+  let metronomeOpen = $state(false)
+  let metronomeAt = $state({ top: 0, right: 0 })
+  let artboard: HTMLDivElement
+  const metronome = metronomeActions((cmd) => app.send(cmd))
+  /** Places the popover under the caret, its right edge on the caret's, in the artboard's unscaled pixels. */
+  function placeMetronome() {
+    const caret = artboard?.querySelector<HTMLElement>(`[aria-controls="${METRONOME_POPOVER}"]`)
+    if (!caret) return
+    const board = artboard.getBoundingClientRect()
+    const r = caret.getBoundingClientRect()
+    metronomeAt = { top: (r.bottom - board.top) / scale + 6, right: (board.right - r.right) / scale }
+  }
+  function toggleMetronomeSettings() {
+    if (!metronomeOpen) placeMetronome()
+    metronomeOpen = !metronomeOpen
+  }
+
   const actions = stageActions({
     state: () => app.state,
     shift: () => ui.shift,
@@ -132,6 +152,7 @@
     open,
     toggleHelp: () => tips.toggleHelp(),
     tempo: (dir, down) => tempoHold.set(dir, down),
+    metronomeSettings: toggleMetronomeSettings,
   })
 
   // ── The regions, each derived from only what it reads (the clocks tick every frame).
@@ -141,7 +162,11 @@
   /** The display page in the Stage's display box; none on the Stage itself. */
   const PageComponent = $derived(PAGE_COMPONENTS[stagePage.page])
   const appBarData = $derived(appBar({ state: s, meters, page, dropouts: dropouts.recent(nowMs) }))
-  const sectionRowData = $derived(sectionRow({ state: s, help: tips.help }))
+  const sectionRowData = $derived({
+    ...sectionRow({ state: s, help: tips.help }),
+    metronomeOpen,
+    metronomeControls: METRONOME_POPOVER,
+  })
   const displayBase = $derived(display({ state: s, library: app.library, pos: 0 }))
   const displayData = $derived({ ...displayBase, nowPlaying: { ...displayBase.nowPlaying, ...beatOf(s, clock.pos) } })
   const faderData = $derived(faders({ state: s, meters, holds }))
@@ -179,7 +204,7 @@
 </script>
 
 <div class="scaler" data-theme={ui.theme} bind:this={box}>
-  <div class="artboard" style:transform={`translate(-50%, -50%) scale(${scale})`}>
+  <div class="artboard" style:transform={`translate(-50%, -50%) scale(${scale})`} bind:this={artboard}>
     <Blooms
       playing={s.transport.running}
       bpm={s.transport.tempo}
@@ -201,6 +226,20 @@
       {tipAction}
       {...actions}
     />
+    {#if metronomeOpen}
+      <div class="metronome" style:top={`${metronomeAt.top}px`} style:right={`${metronomeAt.right}px`}>
+        <MetronomePopover
+          id={METRONOME_POPOVER}
+          on={s.metronome.on}
+          volume={s.metronome.volume}
+          bell={s.metronome.bell}
+          audible={s.metronome.audible}
+          {tipAction}
+          {...metronome}
+          onclose={() => (metronomeOpen = false)}
+        />
+      </div>
+    {/if}
     {#snippet pageSlot()}
       {#if PageComponent}<PageComponent {tipAction} />{/if}
     {/snippet}
@@ -228,5 +267,10 @@
     transform-origin: center;
     /* The blooms behind the screen show through its ground. */
     --backdrop-ground: transparent;
+  }
+  /* The metronome popover, over the Stage under the section row's caret (placed by placeMetronome). */
+  .metronome {
+    position: absolute;
+    z-index: 1;
   }
 </style>

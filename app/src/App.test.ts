@@ -203,6 +203,36 @@ describe('page tabs', () => {
   })
 })
 
+describe('the metronome popover and the global keys', () => {
+  const popover = () => document.getElementById('metronome-settings')
+  const openPopover = async () => {
+    await fireEvent.click(document.querySelector<HTMLElement>('[aria-controls="metronome-settings"]')!)
+    flushSync()
+    expect(popover()).toBeTruthy()
+  }
+
+  it('Esc in the popover closes only the popover, not the open page', async () => {
+    setup()
+    await fireEvent.click(tab('Looper'))
+    await openPopover()
+    await fireEvent.keyDown(window, { key: 'Escape' })
+    flushSync()
+    expect(popover()).toBeNull()
+    expect(stagePage.page).toBe('looper')
+  })
+
+  it('the volume slider\'s keys stay in the popover', async () => {
+    const session = setup()
+    await openPopover()
+    const send = vi.spyOn(session, 'send')
+    const slider = popover()!.querySelector<HTMLElement>('[role="slider"]')!
+    for (const key of ['ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown']) await fireEvent.keyDown(slider, { key })
+    const types = send.mock.calls.map(([c]) => c.type)
+    expect(types).not.toContain('stepStyle')
+    expect(types).not.toContain('cyclePadPage')
+  })
+})
+
 describe('tooltips in the status line', () => {
   const line = () => document.querySelector<HTMLElement>('.scaler p[role="status"]')!
   const hintText = () => line().querySelector('.hint')?.textContent ?? ''

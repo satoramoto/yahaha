@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
 import { expect, fn, userEvent, within } from 'storybook/test'
-import { multiPadsBoard, multiPadsEmpty, multiPadsLoading, multiPadsNoBanks } from './MultiPads.fixtures'
+import { multiPadsBoard, multiPadsEmpty, multiPadsLoadFailed, multiPadsLoading, multiPadsNoBanks } from './MultiPads.fixtures'
 import MultiPads from './MultiPads.svelte'
 import MultiPadsOnStage from './MultiPadsOnStage.svelte'
 import MultiPadsPlayground from './MultiPadsPlayground.svelte'
@@ -69,6 +69,16 @@ export const NoBank: Story = {
     await expect(args.onchange).toHaveBeenCalledWith({ type: 'bank', id: '8' })
     await userEvent.click(canvas.getByRole('button', { name: 'Load a bank file' }))
     await expect(args.onchange).toHaveBeenCalledWith({ type: 'loadFile' })
+  },
+}
+
+/** Load… failed: the file picker didn't open, and the line under the bank tools says why. */
+export const LoadFailed: Story = {
+  name: 'Load failed',
+  args: { data: multiPadsLoadFailed },
+  play: async ({ canvasElement }) => {
+    const canvas = page(canvasElement)
+    await expect(canvas.getByRole('alert')).toHaveTextContent("The file picker didn't open: dialog.open not allowed")
   },
 }
 

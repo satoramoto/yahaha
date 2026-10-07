@@ -197,6 +197,61 @@ describe('StageScreen', () => {
     expect(region('Faders')).toBeTruthy()
   })
 
+  it('the Metronome ▾ caret opens its settings; the controls change the metronome; the caret closes it', async () => {
+    const s = setup()
+    const caret = button(/^Metronome settings/, toolbar())
+    expect(screen.queryByRole('dialog', { name: 'Metronome settings' })).toBeNull()
+    await fireEvent.click(caret)
+    const dialog = screen.getByRole('dialog', { name: 'Metronome settings' })
+    expect(caret.getAttribute('aria-expanded')).toBe('true')
+    expect(caret.getAttribute('aria-controls')).toBe(dialog.id)
+    const on = s.state.metronome.on
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Metronome on/off' }))
+    expect(s.state.metronome.on).toBe(!on)
+    const bell = s.state.metronome.bell
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Bell on beat 1' }))
+    expect(s.state.metronome.bell).toBe(!bell)
+    await fireEvent.keyDown(within(dialog).getByRole('slider', { name: 'Metronome volume' }), { key: 'End' })
+    expect(s.state.metronome.volume).toBe(127)
+    for (const [name, key] of [['Metronome on/off', 'metronome.on'], ['Bell on beat 1', 'metronome.bell']]) {
+      expect(within(dialog).getByRole('button', { name }).getAttribute('data-tip')).toBe(key)
+    }
+    expect(within(dialog).getByRole('slider').getAttribute('data-tip')).toBe('metronome.volume')
+    // A press on the caret is the caret's own: it closes (not closes and reopens).
+    await fireEvent.pointerDown(caret)
+    await fireEvent.click(caret)
+    expect(screen.queryByRole('dialog', { name: 'Metronome settings' })).toBeNull()
+    expect(caret.getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('Esc and a press outside close the metronome settings', async () => {
+    setup()
+    const caret = button(/^Metronome settings/, toolbar())
+    await fireEvent.click(caret)
+    expect(screen.getByRole('dialog', { name: 'Metronome settings' })).toBeTruthy()
+    await fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Metronome settings' })).toBeNull()
+    await fireEvent.click(caret)
+    const dialog = screen.getByRole('dialog', { name: 'Metronome settings' })
+    // A press inside keeps it open; one outside closes it.
+    await fireEvent.pointerDown(within(dialog).getByRole('slider'))
+    expect(screen.getByRole('dialog', { name: 'Metronome settings' })).toBeTruthy()
+    await fireEvent.pointerDown(region('Faders'))
+    expect(screen.queryByRole('dialog', { name: 'Metronome settings' })).toBeNull()
+  })
+
+  it('holding the master fader\'s page button shows the fader picker on the pads; its release lets go', async () => {
+    const s = setup()
+    const page = s.state.mixer.faderPage
+    const pageButton = button(/^Fader page is /, region('Faders'))
+    // A right-click is a hold (the longpress action): press, then release once the button is up.
+    await fireEvent.contextMenu(pageButton, { buttons: 2 })
+    expect(s.state.surface.layer.type).toBe('fader')
+    await fireEvent.pointerUp(window, { button: 2 })
+    expect(s.state.surface.layer.type).toBe('none')
+    expect(s.state.mixer.faderPage).toBe(page)
+  })
+
   it('the scaler carries the theme', () => {
     setup()
     const scaler = document.querySelector('.scaler')!

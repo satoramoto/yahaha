@@ -65,12 +65,19 @@ export function lastWindow(bars: number): number {
 
 /**
  * The first bar of the lane's window: the window holding the playing bar while looping or
- * recording; otherwise the paged-to window (`paged`, default 1), snapped to a window of eight and
- * kept within the loop.
+ * recording; otherwise the window that was last playing (`held`, until the lane is paged by
+ * hand), else the paged-to window (`paged`, default 1), snapped to a window of eight and kept
+ * within the loop.
  */
-export function laneStart(mode: LoopMode, bar: number | null, bars: number, paged: number | undefined): number {
+export function laneStart(
+  mode: LoopMode,
+  bar: number | null,
+  bars: number,
+  paged: number | undefined,
+  held: number | null = null,
+): number {
   if (laneFollows(mode)) return windowStart(bar)
-  return Math.min(windowStart(paged ?? 1), lastWindow(bars))
+  return Math.min(windowStart(held ?? paged ?? 1), lastWindow(bars))
 }
 
 /** A bar's face in the lane: the current bar takes the state's face, past bars are grey, coming

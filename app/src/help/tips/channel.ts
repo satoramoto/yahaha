@@ -27,6 +27,13 @@ export const channelTips = {
     keys: [],
     launchkey: null,
   },
+  'mixer.cpu': {
+    title: 'Part CPU',
+    body: 'How much of each audio buffer this part takes to render, on average over the last second (its SoundFont voices, filter and insert effect, or its plugin), where 100% is the whole buffer. "—": no reading yet, or the part has no synth. A larger audio buffer (Settings) gives a heavy plugin more room.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
   'mixer.channel.add_send': {
     title: 'Add a send',
     body: 'Adds a send effect (sends 4–6) of the kind you pick: a reverb, a modulation, a delay or the phaser. Every part can then send to it; the rack keeps it, and the Effects page removes it.',

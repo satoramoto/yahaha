@@ -20,6 +20,7 @@
   import type { TabItem } from '../ChosenTabs/types'
   import GroupHeader from '../GroupHeader/GroupHeader.svelte'
   import { sectionHue } from '../Settings/hues'
+  import { cpuPercent } from './cpu'
   import type { ChannelChange, ChannelData, ChannelTab } from './types'
 
   type Props = {
@@ -49,7 +50,13 @@
   ]
 
   const hueStyle = $derived(data.hue ? sectionHue(data.hue) : undefined)
-  const cpu = $derived(data.cpu === null ? null : String(Math.round(data.cpu * 100)))
+  const cpu = $derived(data.cpu === null ? null : cpuPercent(data.cpu))
+
+  /** The tooltip on the CPU readout, when the wiring passes the app's action. */
+  function tipOn(node: HTMLElement, key: string) {
+    if (!tipAction) return
+    return tipAction(node, key)
+  }
 </script>
 
 <section class="channel" aria-label="Channel: {data.partName}">
@@ -69,7 +76,7 @@
             onchoose={(id) => ontab?.(id as ChannelTab)}
           />
           {#snippet end()}
-            <span class="cpu"
+            <span class="cpu" data-tip="mixer.cpu" use:tipOn={'mixer.cpu'}
               ><span class="caption">CPU</span> {#if cpu === null}<span class="none" data-hue="d">—</span
                 >{:else}<span class="value">{cpu}</span><span class="caption">%</span>{/if}</span
             >

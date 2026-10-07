@@ -27,6 +27,7 @@
 // favourites set and the recents list are replaced whole when they change).
 
 import type { AppCmd, AppState, LibraryEntry, LibraryList } from '../../lib/api/types'
+import { pickFailure, pickFile, type FilePick } from '../../lib/files'
 import type { FolderItem } from '../../ui/FolderList/types'
 import type { StyleLoad, StyleView, StyleViewTab } from '../../ui/LibraryStyles/types'
 import type { ListRow } from '../../ui/ListTable/types'
@@ -74,7 +75,7 @@ export interface StylesData {
   canOpenFile: boolean
 }
 
-/** LibraryStyles' callbacks the model provides (Cancel and Open file… are drawn absent: no command yet). */
+/** LibraryStyles' callbacks the model provides (Cancel is drawn absent: no command yet). */
 export interface StylesActions {
   onview: (view: StyleView) => void
   onfolder: (id: string) => void
@@ -84,6 +85,14 @@ export interface StylesActions {
   onpreview: (id: string) => void
   onstar: (id: string, on: boolean) => void
   onautopreview: (on: boolean) => void
+  /** Open file…: the system file picker, then `loadStylePath` (resolves once that is done). */
+  onopenfile: () => Promise<void>
+}
+
+/** What Open file… asks the system file picker for: the style files the library reads (library.rs `EXTENSIONS`). */
+export const STYLE_FILE: FilePick = {
+  title: 'Open a style file',
+  filter: { name: 'Styles', extensions: ['sty', 'prs', 'sst', 'bcs', 'pcs', 'pst', 'fps'] },
 }
 
 export interface StylesDeps {
@@ -98,6 +107,8 @@ export interface StylesDeps {
   isOpen?: () => boolean
   /** Preview on select's dwell in ms (default 600). */
   previewDelay?: number
+  /** The system file picker (default `pickFile`). */
+  pick?: (p: FilePick) => Promise<string | null>
 }
 
 /** How long the cursor must rest on a row before Preview on select plays it. */
@@ -407,7 +418,7 @@ export function stylesProps(state: AppState, library: LibraryList, styles: Style
     queued: running && queuedId !== null,
     canCancel: false,
     load: loadOf(cursorEntry, state),
-    canOpenFile: false,
+    canOpenFile: true,
   }
 }
 
@@ -487,5 +498,21 @@ export function stylesActions(deps: StylesDeps): StylesActions {
       if (e && prefs.favourites.has(e.path) !== on) prefs.toggleFavourite(e.path)
     },
     onautopreview: (on) => prefs.setAutoPreview(on),
+    // The picked file is added to the library and loaded (`loadStylePath`); stopped, the page then
+    // goes back to the Stage as a load does. A cancel sends nothing. The Library has no error line,
+    // so a picker failure goes to the console rather than becoming an unhandled rejection.
+    onopenfile: async () => {
+      let path: string | null
+      try {
+        path = await (deps.pick ?? pickFile)(STYLE_FILE)
+      } catch (e) {
+        console.warn(pickFailure(e))
+        return
+      }
+      if (!path) return
+      cancelDwell()
+      send({ type: 'loadStylePath', path })
+      if (!deps.state().transport.running) deps.close?.()
+    },
   }
 }

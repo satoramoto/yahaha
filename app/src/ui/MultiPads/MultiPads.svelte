@@ -2,7 +2,7 @@
   MultiPads: the Multi Pads display page, in the Stage's display box (`--page-width` ×
   `--page-height`, 1392 × 288). Three columns, each a group header over its controls:
   - Banks: the bank pager (◀ ▶, the bank's place in the list), Load… (a `.pad` file anywhere, in
-    the system file picker) and Clear bank, over the list of every bank (a FolderList: the name, its folder at the right; the loaded one chosen).
+    the system file picker) and Clear bank, then why Load… failed (`data.error`, when it did), over the list of every bank (a FolderList: the name, its folder at the right; the loaded one chosen).
   - Multi Pads: the bank's name in the accent block, then the four pads as columns. Each has a
     caption (Pad n, its channel, its lamp word in the lamp's hue), the pad itself in the band's pad
     language (ready: the Fill hue's outline; playing: solid Ending red; queued: Intro gold's waiting
@@ -86,6 +86,9 @@
         <Button label="Clear bank" hue="ending" disabled={data.bank === null} tip="multipad.clear_bank" {tipAction} onpress={() => send({ type: 'clear' })} />
       </span>
     </div>
+    {#if data.error}
+      <p class="error" role="alert">{data.error}</p>
+    {/if}
     <div class="list">
       {#if items.length === 0}
         <p class="note">No .pad files in the style folders. Put Multi Pad banks there and rescan in Settings › System.</p>
@@ -228,6 +231,10 @@
   .files {
     display: flex;
     gap: var(--space-6);
+  }
+  .error {
+    margin: var(--space-8) 0 0;
+    color: var(--warn);
   }
   .list {
     flex: 1;
