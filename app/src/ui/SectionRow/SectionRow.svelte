@@ -45,6 +45,21 @@
     bpm?: number
     /** Cells: a fill is queued, up or down: that Fill key is armed (outlined, pulsing on the beat). */
     fillQueued?: 'up' | 'down'
+    /**
+     * Cells: a queued Fill keeps the plain off face (the outline), its queue told only in its
+     * spoken name (a fill is never latched, so there is no on state to show; the golden Stage,
+     * designer pass). Off (the default): the queued Fill is armed.
+     */
+    plainQueue?: boolean
+    /**
+     * Cells: the six keys after Start / Stop (Sync Start, Accomp, Fill Up, Fill Down, Fade, Reset)
+     * one width, a fib-8 between each (no wider gaps between groups, no gutter before Reset), laid
+     * over the cells after Start / Stop, which keeps its key; every glyph a 21px square standing on
+     * the band's foot. The parent says how many units Reset's cell is (`--reset-units`, 1 unless
+     * set; every other cell after Start / Stop is one unit). Off (the default): each key in its own
+     * cell less the groups' gaps.
+     */
+    evenKeys?: boolean
     /** Cells: how far the fade has gone, 0 to 1, while `fading` and running: Fade's wedge drains by as much. */
     fadeProgress?: number
     /** Cells: the fade under way (or waiting for Start) is a fade-in: Fade shows ◢ while fading even as the band plays. */
@@ -102,6 +117,8 @@
     beat = 0,
     bpm = 120,
     fillQueued,
+    plainQueue = false,
+    evenKeys = false,
     fadeProgress,
     fadeIn = false,
     running = false,
@@ -147,6 +164,12 @@
   /** Restarts the pulse on every beat (two identical animations, alternating); free-running while stopped. */
   const pulse = $derived(beat > 0 ? (beat % 2 ? 'a' : 'b') : 'free')
   const syncFace: Face = $derived(syncStart ? 'armed' : 'off')
+  /** A Fill's face: armed while its fill is queued, unless `plainQueue`. */
+  const fillFace = (dir: 'up' | 'down'): Face => (fillQueued === dir && !plainQueue ? 'armed' : 'off')
+  /** With `evenKeys`: a glyph wider than its 21px square fits it, standing on its foot. */
+  const fit = $derived(evenKeys ? 'xMidYMax meet' : undefined)
+  /** With `evenKeys`: each key's place after Start / Stop (0 … 5). */
+  const SLOTS: Record<string, number> = { sync: 0, accomp: 1, 'fill-up': 2, 'fill-down': 3, fade: 4, reset: 5 }
   /** Fade: armed while a fade-in waits for Start, solid while fading. */
   const fadeFace: Face = $derived(fading ? (running ? 'on' : 'armed') : 'off')
   /** Fade's direction: out (◣) while playing, in (◢) while stopped or while a fade-in runs. */
@@ -286,7 +309,7 @@
   {:else if shape === 'stop'}
     <svg class="mark" viewBox="0 0 21 21" aria-hidden="true"><path d="M0 0H21V21H0Z" /></svg>
   {:else if shape === 'sync'}
-    <svg class="mark" viewBox="0 0 23 21" aria-hidden="true"><path d="M0 0H4V21H0Z" /><path d="M7 0 23 10.5 7 21Z" /></svg>
+    <svg class="mark" viewBox="0 0 23 21" preserveAspectRatio={fit} aria-hidden="true"><path d="M0 0H4V21H0Z" /><path d="M7 0 23 10.5 7 21Z" /></svg>
   {:else if shape === 'chord'}
     <!-- Three noteheads stacked on one stem: a chord. -->
     <svg class="mark" viewBox="0 0 14 21" aria-hidden="true"
@@ -295,9 +318,9 @@
       /></svg
     >
   {:else if shape === 'up'}
-    <svg class="mark" viewBox="0 0 24 21" aria-hidden="true"><path d="M12 0 24 21H0Z" /></svg>
+    <svg class="mark" viewBox="0 0 24 21" preserveAspectRatio={fit} aria-hidden="true"><path d="M12 0 24 21H0Z" /></svg>
   {:else if shape === 'down'}
-    <svg class="mark" viewBox="0 0 24 21" aria-hidden="true"><path d="M0 0H24L12 21Z" /></svg>
+    <svg class="mark" viewBox="0 0 24 21" preserveAspectRatio={fit} aria-hidden="true"><path d="M0 0H24L12 21Z" /></svg>
   {:else if shape === 'fade-in' || shape === 'fade-out'}
     {@const out = shape === 'fade-out'}
     <svg class="mark" viewBox="0 0 21 21" aria-hidden="true" data-drain={fadeLeft < 1 ? fadeLeft.toFixed(2) : undefined}
@@ -325,9 +348,13 @@
 )}
   <!-- A transport key: its glyph over its word, on the row's one baseline, in the hue of time, in
        the state language; armed pulses once a beat. -->
+  {@const slot = evenKeys ? SLOTS[kind] : undefined}
   <button
     type="button"
     class="face key {kind}"
+    class:even={slot !== undefined}
+    class:boxed={evenKeys}
+    style:--slot={slot}
     data-face={face}
     data-pulse={face === 'armed' ? pulse : undefined}
     style:--hue="var(--transport)"
@@ -378,7 +405,7 @@
     {@render key(
       'Fill Up',
       'up',
-      fillQueued === 'up' ? 'armed' : 'off',
+      fillFace('up'),
       undefined,
       'transport.fill_up',
       () => onfillup?.(),
@@ -389,7 +416,7 @@
     {@render key(
       'Fill Down',
       'down',
-      fillQueued === 'down' ? 'armed' : 'off',
+      fillFace('down'),
       undefined,
       'transport.fill_down',
       () => onfilldown?.(),
@@ -768,5 +795,24 @@
   .face.reset {
     width: calc(100% - var(--reset-gap, var(--fib-13)));
     margin-left: var(--reset-gap, var(--fib-13));
+  }
+  /* `evenKeys`: the six keys after Start / Stop one width (--w), a fib-8 apart, spread over the
+     cells after Start / Stop (--span: five one-unit cells and Reset's --reset-units), the first a
+     fib-8 after Start / Stop's key (which stops half a fib-8 short of its cell). Each key is placed
+     from its own cell (--u, one unit: its cell's width over its units) by its place (--slot). */
+  .face.key.even {
+    --u: calc(100% / var(--cell-units, 1));
+    --span: calc(var(--u) * (5 + var(--reset-units, 1)));
+    --w: calc((var(--span) - var(--fib-8) / 2 - 5 * var(--fib-8)) / 6);
+    width: var(--w);
+    margin-left: calc(var(--fib-8) / 2 + var(--slot) * (var(--w) + var(--fib-8) - var(--u)));
+  }
+  .face.key.even.reset {
+    --cell-units: var(--reset-units, 1);
+  }
+  /* Every glyph a 21px square (--glyph-key), Start / Stop's too, the shape fitted in it and
+     standing on its foot (`fit`), so every glyph shares one box and one baseline. */
+  .boxed .mark {
+    width: var(--glyph-key);
   }
 </style>

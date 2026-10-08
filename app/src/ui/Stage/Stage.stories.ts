@@ -175,10 +175,10 @@ export const PageSlot: Story = {
  * - **Hero** (1398 × 282), two tiers. The controls tier is a phi³ step off its bottom (67): its
  *   major part the transport, seven glyph keys in the hue of time (cyan, shared with the tempo's
  *   + −, the metronome and the Sections bank's utility pads), each a glyph over its word, the glyph
- *   showing the state, every word on one baseline, grouped by job (a fib-8 inside a group, a fib-13
- *   between) and sized by use and consequence together (Start / Stop phi² units, ▶ outlined or ■
- *   solid; Sync Start, Accomp, Fill Up, Fill Down and Fade 1 each, armed keys pulsing on the beat;
- *   ⟲ Reset 1 at the far end behind a quarter-unit gutter, about a fib-21), the rest One Touch in
+ *   showing the state, every word on one baseline, every glyph a 21px square on one foot (Start /
+ *   Stop phi² units, ▶ outlined or ■ solid; then Sync Start, Accomp, Fill Up, Fill Down, Fade and
+ *   ⟲ Reset one width each, a fib-8 apart, armed keys pulsing on the beat; a queued Fill stays
+ *   plain off, its queue in its name), the rest One Touch in
  *   the style's violet (its caption a narrow label cell, then 1–4). The reading tier above (215) reads style → chord → section → next: the style line (‹
  *   name › as 32px squares, then category · metre right after ›) in a control-height band, a fib-8
  *   over the chord, a quarter off its left, then the section and the tempo (halves). Chord, Main B
@@ -282,9 +282,7 @@ export const GoldenOverlay: Story = {
       await expect(fader.querySelector('.meter-bg')).toBeNull()
     }
     // Real layout only (jsdom has none): Tempo + and − each at least 48px on their short side; the
-    // next section a fib-8 under Main B, flush with its left edge; the transport grouped by job, a
-    // fib-8 between the keys of a group and a fib-13 between groups; Reset a unit behind a gutter
-    // wider than a fib-13.
+    // next section a fib-8 under Main B, flush with its left edge; the transport's keys.
     const plus = canvasElement.querySelector('[aria-label="Tempo up (Scene Launch)"]')?.getBoundingClientRect()
     if (plus && plus.height > 0) {
       await expect(Math.min(plus.width, plus.height)).toBeGreaterThanOrEqual(48)
@@ -310,11 +308,23 @@ export const GoldenOverlay: Story = {
       const [start, sync, accomp, up, down, fade, reset] = [...(transport?.children ?? [])].map((c) =>
         c.getBoundingClientRect(),
       )
-      const gaps = [sync.left - start.right, accomp.left - sync.right, up.left - accomp.right, down.left - up.right, fade.left - down.right]
-      await expect(gaps.map(Math.round)).toEqual([8, 13, 13, 8, 8])
-      // Start / Stop phi² of a unit: compare the cells (each key less half of each gap).
-      await expect((start.width + 4) / (sync.width + 10.5)).toBeCloseTo(2.618, 1)
-      await expect(reset.left - fade.right).toBeGreaterThanOrEqual(20)
+      // The six keys after Start / Stop one width, a fib-8 apart (designer pass); Reset ends on
+      // the row's end.
+      const six = [sync, accomp, up, down, fade, reset]
+      const all = [start, ...six]
+      const gaps = six.map((k, i) => k.left - all[i].right)
+      await expect(gaps.map(Math.round)).toEqual([8, 8, 8, 8, 8, 8])
+      for (const k of six) await expect(Math.abs(k.width - sync.width)).toBeLessThan(0.5)
+      const row = transport?.getBoundingClientRect()
+      await expect(Math.abs(reset.right - (row?.right ?? 0))).toBeLessThan(0.5)
+      // Start / Stop keeps its key: its cell phi² of a unit, the cells after it 6¼ units.
+      await expect((start.width + 4) / (((row?.width ?? 0) - start.width - 4) / 6.25)).toBeCloseTo(2.618, 1)
+      // Every glyph a 21px square, on one foot.
+      const marks = [...(transport?.querySelectorAll('.mark') ?? [])].map((m) => m.getBoundingClientRect())
+      for (const m of marks) {
+        await expect([Math.round(m.width), Math.round(m.height)]).toEqual([21, 21])
+        await expect(Math.abs(m.bottom - marks[0].bottom)).toBeLessThan(0.5)
+      }
       // No dead band over the heroes: they start a fib-8 under the style line.
       const styleBand = reading?.firstElementChild?.getBoundingClientRect()
       await expect(Math.round((section?.top ?? 0) - (styleBand?.bottom ?? 0))).toBe(8)
@@ -333,7 +343,8 @@ export const GoldenOverlay: Story = {
     }
     // The transport's keys are glyph keys in the hue of time, one glyph on every key (the state in
     // the glyph: ■ while playing), each Fill its own key and word; on the board Main C lands after
-    // a fill, so Fill Up is armed.
+    // a fill, so Fill Up is queued: said in its name, its face plain off (designer pass: no third
+    // state).
     const glyphs = [...(transport?.querySelectorAll('.band') ?? [])].map((b) => b.querySelectorAll('svg').length)
     await expect(glyphs).toEqual([1, 1, 1, 1, 1, 1, 1])
     const keys = [...(transport?.children ?? [])]
@@ -346,14 +357,8 @@ export const GoldenOverlay: Story = {
       'Fade',
       'Reset',
     ])
-    await expect(keys[3]).toHaveAttribute('data-face', 'armed')
-    // The queued Fill is armed as Sync Start is: its ring, glyph and word in the hue, nothing
-    // white, over a faint fill of the hue that never drops to nothing between beats (real layout).
-    if (keys[3].getBoundingClientRect().height > 0) {
-      const word = keys[3].querySelector('.key-word') as HTMLElement
-      await expect(getComputedStyle(word).color).toBe(getComputedStyle(keys[3]).color)
-      await waitFor(() => expect(Number(getComputedStyle(keys[3], '::before').opacity)).toBeGreaterThan(0.1))
-    }
+    await expect(keys[3]).toHaveAttribute('data-face', 'off')
+    await expect(keys[3]).toHaveAccessibleName(/^Fill Up, queued/)
     for (const key of keys) await expect((key as HTMLElement).style.getPropertyValue('--hue')).toBe('var(--transport)')
     // One hue a meaning, shared with the pads: the Sections bank's utility pads (the transport's
     // twins) in the hue of time, Start / Stop too; One Touch in the style's violet; the function
@@ -413,7 +418,7 @@ export const GoldenSyncStart: Story = {
 
 /**
  * The golden layout fading out: Fade solid, its ◣ wedge 40% drained (`fadeProgress`), the board's
- * Fill Up armed for Main C.
+ * Fill Up queued for Main C (plain off, its queue in its name).
  */
 export const GoldenFading: Story = {
   name: 'Golden › fading',
@@ -539,8 +544,8 @@ export const GoldenCrowdedLong: Story = {
  * Transport, tempo, One Touch, the part rows, faders, knobs and pads respond as in the Playground;
  * while running, a story-only ticker moves the beat bar. `overlay` draws the cuts over it. The
  * transport's states: Start / Stop (▶ outlined, ■ solid), Sync Start (armed, pulsing; pad 4 the
- * same switch), Fill ▲ / ▼ while running (queues the next Main up or down: that Fill armed, pulsing
- * on the beat), Fade (running: solid, its wedge draining over four bars, then the band stops;
+ * same switch), Fill ▲ / ▼ while running (queues the next Main up or down: the Fill stays plain
+ * off, the queue on the "then" line and in its name), Fade (running: solid, its wedge draining over four bars, then the band stops;
  * stopped: armed, a fade-in for Start).
  */
 export const GoldenPlayground: Story = {

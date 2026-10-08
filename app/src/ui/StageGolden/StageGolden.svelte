@@ -12,11 +12,11 @@
     block: on what comes next.
   - Hero (1398 × 282), two tiers: a phi³ step off its bottom is the controls tier (67): its major
     part off the left the transport (seven glyph keys in the hue of time, a glyph over each word,
-    the glyph showing the state, every word on one baseline, grouped by job with a fib-8 inside a
-    group and a fib-13 between groups, sized by use and consequence together: Start / Stop phi²
-    units (▶ outlined stopped, ■ solid playing); Sync Start, Accomp, Fill Up, Fill Down and Fade 1
-    each (armed keys outlined and pulsing on the beat, Fade's wedge draining as it fades); ⟲
-    Reset's cell a major third at the far end, its fifth a gutter, so Reset is 1; the tier's groups
+    the glyph showing the state, every word on one baseline, every glyph a 21px square on one
+    foot: Start / Stop's cell phi² units (▶ outlined stopped, ■ solid playing); then the cells of
+    Sync Start, Accomp, Fill Up, Fill Down and Fade 1 each and ⟲ Reset's a major third, with the
+    six keys over them one width, a fib-8 apart (designer pass; armed keys outlined and pulsing on
+    the beat, a queued Fill plain off, Fade's wedge draining as it fades); the tier's groups
     a fib-8 in from its top and foot), the rest One Touch in the style's violet (its caption a
     narrow label cell, then 1–4, each phi² against the caption's octave). The
     reading tier (215) above it, one group, reads style → chord → section → next: a control-height
@@ -182,14 +182,17 @@
    * steps over one unit (phi² units), so it reads as the lead at a glance; Sync Start, Accomp, each
    * Fill and Fade 1 each; Reset's cell a major third (5/4) at the far end, its fifth a gutter
    * before it (a slip onto it is heard): Reset is 1 unit behind a quarter unit, about a fib-21
-   * (24 px at 1440, 21 at 1280). The keys leave a fib-8 between them inside a group and a fib-13
-   * between groups (SectionRow draws each key inside its cell less half of each gap).
+   * (24 px at 1440, 21 at 1280). The cuts stay; the keys over them do not (designer pass,
+   * SectionRow `evenKeys`): Start / Stop keeps its key, and the six after it are one width, a
+   * fib-8 apart, spread over the cells after it (Reset's gutter folded in), every glyph a 21px
+   * square on one foot.
    */
   const TRANSPORT: Interval[] = ['phi2', 'unison', 'unison', 'unison', 'unison', 'unison', 'major-third']
   /**
    * A queued fill: what comes next lands after a fill ("fill after bar 4"), from one Main to
-   * another, so Fill Up (to a later Main) or Fill Down is armed. The section row's own
-   * `fillQueued` wins.
+   * another, so Fill Up (to a later Main) or Fill Down is queued: said in its spoken name, its face
+   * plain off (SectionRow `plainQueue`, designer pass: a fill is never latched, and the armed face
+   * read as a third state). The section row's own `fillQueued` wins.
    */
   const fillQueued = $derived.by((): 'up' | 'down' | undefined => {
     if (p.sectionRow.fillQueued) return p.sectionRow.fillQueued
@@ -283,6 +286,8 @@
                   beat={p.sectionRow.beat ?? beat}
                   bpm={p.sectionRow.bpm ?? now.bpm}
                   {fillQueued}
+                  plainQueue
+                  evenKeys
                   tipAction={p.tipAction}
                   onstartstop={p.onstartstop}
                   onaccomp={p.onaccomp}
@@ -574,6 +579,8 @@
   /* Reset's gutter: its cell's fifth (the cell is a major third, 5/4 units, so Reset keeps 1). */
   .transport {
     --reset-gap: calc(100% - 100% / var(--interval-major-third));
+    /* Reset's cell in units, for SectionRow `evenKeys`. */
+    --reset-units: var(--interval-major-third);
   }
 
   /* The app bar fills its phi⁴ step, edge to edge across the frame. */

@@ -11,7 +11,9 @@ import { sectionRowBoard } from './SectionRow.fixtures'
  */
 function inGrid(args: ComponentProps<typeof SectionRow>) {
   return createRawSnippet(() => ({
-    render: () => '<div role="toolbar" aria-label="Transport" style="display: contents"></div>',
+    // Reset's cell is a major third (for `evenKeys`, as the golden Stage sets it).
+    render: () =>
+      '<div role="toolbar" aria-label="Transport" style="display: contents; --reset-units: var(--interval-major-third)"></div>',
     setup: (root: Element) => {
       const row = mount(SectionRow, { target: root, props: args })
       return () => {
@@ -62,6 +64,8 @@ const meta = {
     beat: { control: { type: 'number', min: 0, max: 4, step: 1 }, table: { category: 'Cells' } },
     bpm: { control: { type: 'number', min: 40, max: 280, step: 1 }, table: { category: 'Cells' } },
     fillQueued: { control: { type: 'inline-radio' }, options: [undefined, 'up', 'down'], table: { category: 'Cells' } },
+    plainQueue: { control: 'boolean', table: { category: 'Cells' } },
+    evenKeys: { control: 'boolean', table: { category: 'Cells' } },
     fadeProgress: { control: { type: 'range', min: 0, max: 1, step: 0.05 }, table: { category: 'Cells' } },
     fadeIn: { control: 'boolean', table: { category: 'Cells' } },
   },
@@ -209,6 +213,47 @@ export const CellsQueued: Story = {
     await expect(controls[4]).toHaveAttribute('data-face', 'off')
     await expect(controls[5]).toHaveAttribute('data-face', 'on')
     await expect(controls[5].querySelector('svg')).toHaveAttribute('data-drain', '0.60')
+  },
+}
+
+/**
+ * As the golden Stage draws it (designer pass): Fill Up queued but plain off (`plainQueue`: a fill
+ * is never latched, so the queue is said in its name, not shown as a third face), and the six keys
+ * after Start / Stop one width a fib-8 apart, every glyph a 21px square on one foot (`evenKeys`).
+ */
+export const CellsEven: Story = {
+  args: {
+    running: true,
+    accomp: true,
+    fillQueued: 'up',
+    plainQueue: true,
+    evenKeys: true,
+    beat: 3,
+    bpm: 104,
+    groups: 'transport',
+    cells: true,
+  },
+  parameters: { sample: { width: 700, height: 55 } },
+  render: (args) => transportGrid(args),
+  play: async ({ canvasElement }) => {
+    const controls = [...within(canvasElement).getByRole('toolbar', { name: 'Transport' }).children]
+    await expect(controls[3]).toHaveAttribute('data-face', 'off')
+    await expect(controls[3]).not.toHaveAttribute('data-pulse')
+    await expect(controls[3]).toHaveAccessibleName(/^Fill Up, queued/)
+    for (const key of controls.slice(1)) await expect(key.classList.contains('even')).toBe(true)
+    await expect(controls[0].classList.contains('even')).toBe(false)
+    // Real layout only (jsdom has none): one width, a fib-8 apart, 21px glyphs on one foot.
+    const boxes = controls.map((c) => c.getBoundingClientRect())
+    if (boxes[0].width === 0) return
+    for (let i = 1; i < boxes.length; i++) {
+      await expect(Math.round(boxes[i].left - boxes[i - 1].right)).toBe(8)
+      await expect(Math.abs(boxes[i].width - boxes[1].width)).toBeLessThan(0.5)
+    }
+    const marks = controls.map((c) => c.querySelector('.mark')?.getBoundingClientRect())
+    for (const m of marks) {
+      await expect([Math.round(m?.width ?? 0), Math.round(m?.height ?? 0)]).toEqual([21, 21])
+      await expect(Math.abs((m?.bottom ?? 0) - (marks[0]?.bottom ?? 0))).toBeLessThan(0.5)
+    }
   },
 }
 
