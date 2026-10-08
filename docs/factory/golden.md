@@ -48,7 +48,35 @@ A golden spiral cuts squares off a phi box in turn, and converges on its pole, a
 
 To put the eye on the focus, pick the orientation whose pole is nearest it, then cut so the focus sits under the pole (`spiralPole(box, from, turn)` in `golden.ts` gives the point). Set the same orientation on every cut that draws a spiral in the same box (the Stage's page box and its `halves` split), so they agree. The overlay rings the pole of every spiral turned this way.
 
-## The Stage (round 8)
+## The Stage (the owner's wireframe)
+
+The hill-climb (rounds 1–8 and the designer pass, below) drifted from the owner's wireframe; the Stage is rebuilt on the wireframe's geometry, and the component learnings stay. Where anything else in this file disagrees with this section, this section holds. The tree, at 1440 × 900 (1280 × 800 in brackets where it differs):
+
+```
+screen: fib-21 side margins and foot, the app bar on the top edge; frame 1398 × 879 (1238 × 779)
+GoldenBand bar-height, top, gap fib-8 ("page")             → app bar 36
+└ GoldenBand control-height × phi, top, gap fib-13          → controls row 52
+  └ GoldenBand keys-height, bottom                          → keys 56 (black keys 56 / phi)
+    └ GoldenBand label-height, bottom, gap fib-5            → status line 16
+      └ GoldenSplit phi × 3 boxes, top, gap fib-21          → display 288 (255)
+        │ └ GoldenSplit phi³ step, bottom                   → beat bar's step 68 (60) | thirds 220 (195)
+        │   └ GoldenGrid 3 columns                          → style line + chord | section | tempo, 466 (413) each
+        └ GoldenSplit octave step, left ("band")            → band 384 (317), halves 688 | 689, fib-21 gutter
+          ├ faders: GoldenBand group-header-height → GoldenGrid 9 strips (FaderCell)
+          └ GoldenSplit minor-third × 4 boxes, bottom       → pads 2 × 8 at 6:5 (86 × 72 cells; 76 × 63)
+            └ GoldenBand group-header-height, bottom (pads header)
+              └ GoldenBand group-header-height, top (knobs header) → knob row (169; 118)
+```
+
+- **Controls row.** The wireframe's row is 32 tall (136 · 84 · 52 = 32 × φ³, φ², φ); Start / Stop needs more mid-song, so the row is a control-height band one golden step deeper (`GoldenBand times="phi"`, 52), and its widths are phi steps of 52. The transport, flush left, is a box `phi3 + 2·phi2 + 3·phi + octave` heights wide (845) with its columns weighted the same: Start / Stop phi³ (220 cell), Sync Start and Accomp phi² (136), Fill Up, Fill Down and Fade phi (84), Reset's cell an octave (104), its part past phi plus a fib-8 the gutter that sets it apart (`--reset-gap`). Every key a fib-8 from the next (`SectionRow evenGaps`), so the keys in phi cells are one width (76) and Reset stands 32px off Fade. One Touch, flush right, is a box `phi + 4` heights wide (291): its caption a phi cell, then 1–4 as squares (44 × 52 each, a fib-8 apart), in the style's violet.
+- **Display.** Three phi boxes across the frame (`GoldenSplit take="phi" boxes={3}`), so each third is a phi box (466 × 288). A phi³ step off its foot holds the beat bar (fib-13 bars across the display, a fib-21 in at each side), standing under the line 1 − 1/φ³ down (220), the wireframe's lower line. The thirds, each inset a fib-21: (1) the style line (a control-height band; ‹ › the glyph alone in the style's hue, outlined only on hover and keyboard focus: the owner's exception to "an outline means clickable", since a boxed arrow read apart from its line), a fib-8, then the chord at half the display's height (144; 127.5) and its notes a fib-8 under its baseline; (2) Main B a phi step down (89; 79), with "then ▬ Main C · fill after bar 4" a fib-8 under it; (3) the tempo at the same size, "BPM" at 32px a fib-13 after it, + over − a fib-21 after that, one column the numeral's cap height. The three values top their capitals on one line (61 under the display's top); the chord leads by a phi step. A long name steps down within its third ("Ending III" to 71px at 1280, its top held), and the chord steps down its hero sizes when it outgrows its third (ChordReadout). The hero sizes come from the frame's width (`--golden-hero-chord` = width / 6φ, `--golden-hero-value` = width / 6φ²), so they scale with the display.
+- **Band.** The rest under the display: 384 at 1440, the wireframe's 4:3 to the display (317 at 1280, where the fixed bands take a larger share). Two equal halves (`take="octave" of="length"`), each a half fib-21 in from the cut. The faders: a header band over nine strips with their feet (FaderCell, as below). The right half: the pads off its foot (`GoldenSplit take="minor-third" boxes={4}`: two rows of eight 6:5 cells), their header band over them, the knobs' header band at the top and the knob row between (eight cells of one width, the dial the cell over phi).
+- **Status line** in a label-height band a fib-5 under the band (StatusLine's 20px line held to the band), the keys under it.
+- **Departures from the wireframe.** (1) The app bar sits on the screen's top edge, not 21px down: the controls row is 20px taller than the wireframe's (52, not 32), and taking that from the top margin keeps every block below on the wireframe's lines (display 109–397, band 418–802, keys 823–879). (2) One Touch is a caption and four squares, not the wireframe's four descending boxes, which have no counterpart in the brief. (3) The beat bar hangs under the display's lower line (220–233) rather than standing on it (216–221), so the step it heads is its cell. (4) Tempo + and − are the numeral's cap height, 27px squares at 1440 (the wireframe draws 26): smaller than the earlier rule of 44px for a control the audience hears. (5) At 1280 the 70px pads wrap "Sync Start" and "Start / Stop" to two lines. (6) No display panel or block colours: the wireframe's fills and outlines are its legend.
+
+## The Stage before the wireframe (round 8, superseded)
+
+The geometry below was replaced by the wireframe (above); its component learnings carry over.
 
 At 1440 × 900 the page frame is 1398 × 864. Its first cut, `minor` from the top, gives the top half (330) and the bottom half (534). The halves' phi⁴ steps give the app bar 48 and the keys 78, so the stack is app bar 48 · hero 282 · band 456 · keys 78.
 
@@ -83,12 +111,12 @@ The primitives' props take only interval names, shape names and fib steps, never
 | Primitive | What it does |
 |---|---|
 | `GoldenBox` | A box in one shape, fitted (contain) into its parent and centred. `spiralFrom`/`spiralTurn` orient its spiral. |
-| `GoldenSplit` | One cut. `take` is `square`, `major`, `minor` or an interval; `from` is `top`, `right`, `bottom` or `left`; an interval divides the cross size (a strip), or with `of="length"` the length (a step: `take="phi4" of="length"` is the bars' phi⁴ step). Two children: the part taken, then the rest. `spiralFrom`/`spiralTurn` orient its spiral (and give any split one). |
+| `GoldenSplit` | One cut. `take` is `square`, `major`, `minor` or an interval; `from` is `top`, `right`, `bottom` or `left`; an interval divides the cross size (a strip), or with `of="length"` the length (a step: `take="phi4" of="length"` is the bars' phi⁴ step). `boxes` makes a cross strip as deep as that many boxes of the interval side by side (`take="phi" boxes={3}`: three phi boxes across); `gap` a fib step before the rest. Two children: the part taken, then the rest. `spiralFrom`/`spiralTurn` orient its spiral (and give any split one). |
 | `GoldenSteps` | Repeated cuts off the same side, each smaller by the step interval (phi: 61.8 / 23.6 / 14.6 %). Up to eight children, biggest first. |
 | `GoldenSpiral` | Repeated square cuts, turning, in a phi box. The last child gets the remainder. |
 | `GoldenRow` / `GoldenColumn` | Each child has an interval relative to the row's cross size (`cells`, with `1:phi` for the inverse). The intervals must add up to the box: square, square, 2 × 1:phi, square = phi³. |
 | `GoldenGrid` | Equal cells, each child optionally fitted to a shape (`cell`); or, with `weights` (one interval a column), columns weighted by use (`cell` is then ignored). |
-| `GoldenBand` | The only way out of the ratios: a band as deep as an existing token (`label-height`, `tab-block`, `group-header-height`, `control-height`, …). |
+| `GoldenBand` | The only way out of the ratios: a band as deep as an existing token (`label-height`, `tab-block`, `group-header-height`, `control-height`, …), or that token times an interval (`times="phi"`). |
 | `GoldenOverlay` | Draws the tree, every depth in its own shade, and checks it. |
 
 Direct children fill the slots in order. A child that is not a Golden primitive is a leaf and gets the inset. Each primitive also takes `shape` (to fit itself), `inset`, `name` (for the report), `over` (content drawn over all its slots, like the Stage's beat bar) and `overlay`/`report`/`onreport`.
