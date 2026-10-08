@@ -56,8 +56,9 @@ export const Queued: Story = { args: { ...styleLineQueued } }
 export const LongName: Story = { args: { ...styleLineLong } }
 
 /**
- * In cells (`cells`): the line fills a 420 × 32 band of the grid Stage; ‹ and › are outlined
- * squares as tall as the line, the name and the metre between them as before.
+ * In cells (`cells`): the line fills a 420 × 32 band of the golden Stage; ‹ and › are squares as
+ * tall as the line, the glyph alone in the style's hue, outlined only on hover and keyboard focus;
+ * the name and the metre between them as before.
  */
 export const Cells: Story = {
   args: { ...styleLineBoard, cells: true },
@@ -79,6 +80,8 @@ export const Cells: Story = {
       if (box.height > 0) {
         await expect(Math.abs(box.width - box.height)).toBeLessThan(1)
         await expect(Math.abs(box.height - line.getBoundingClientRect().height)).toBeLessThan(1)
+        // The glyph alone: no box until hover or keyboard focus (the owner's exception).
+        await expect(getComputedStyle(glyph).boxShadow).toBe('none')
       }
     }
     await fireEvent.click(next)

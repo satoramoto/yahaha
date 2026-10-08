@@ -7,7 +7,8 @@
   category and metre keep their width up to half the line.
 
   `cells` (the grid Stage): the line fills its container (width and height 100%; give it a size,
-  about a control-height band), ‹ › become outlined neutral squares as tall as the line, and the
+  about a control-height band), ‹ › become squares as tall as the line (the golden Stage: the
+  glyph alone in the style's hue, the square outlined only on hover and keyboard focus), and the
   category and metre (or the waiting style) follow › on the same line, so the style and what
   qualifies it read as one phrase.
 -->
@@ -31,7 +32,7 @@
     onnext?: () => void
     /** Called when the style's name is pressed (opens Library › Styles). */
     onbrowse?: () => void
-    /** Fill the container (the grid Stage's band), ‹ › as outlined squares as tall as the line. */
+    /** Fill the container (the golden Stage's band), ‹ › as squares as tall as the line, outlined only on hover and focus. */
     cells?: boolean
   }
 
@@ -160,7 +161,9 @@
     color: var(--m);
   }
 
-  /* Cells: the whole container; ‹ › outlined neutral squares as tall as the line, glyph centred. */
+  /* Cells: the whole container; ‹ › squares as tall as the line, the glyph alone in the style's
+     hue (--a, as the name), the square's outline drawn only on hover and keyboard focus (the
+     owner's exception to "every clickable outlined": a boxed arrow read apart from its line). */
   .line.cells {
     width: 100%;
     max-width: none;
@@ -174,8 +177,12 @@
     place-items: center;
     aspect-ratio: 1;
     padding: 0;
-    box-shadow: inset 0 0 0 var(--outline-width) var(--neutral);
-    color: var(--neutral);
+    color: var(--a);
+  }
+  .cells .glyph:hover,
+  .cells .glyph:focus-visible {
+    box-shadow: inset 0 0 0 var(--outline-width) var(--a);
+    color: var(--a);
   }
   .cells .glyph:first-child {
     margin-left: 0;
