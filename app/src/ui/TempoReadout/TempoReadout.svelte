@@ -10,8 +10,9 @@
 
   `cells` (the golden Stage): it fills its container, which must be a size container
   (`container-type: size`). The number and its unit sit flush left on the container's foot, and
-  + over − are one square right beside them (a fib-8 gap), standing on the same baseline, its side
-  the number's cap height, cut in half across: two outlined neutral targets.
+  + over − are one column right beside them (a fib-8 gap), standing on the same baseline, exactly
+  the number's cap height: two outlined neutral squares with a hard fib-8 gap between them (not a
+  shared border), the + and − drawn large at the numeral's stroke weight.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -161,7 +162,7 @@
   <span class="steps" role="group" aria-label="Tempo">
     <button
       type="button"
-      class="step"
+      class="step plus"
       aria-label="Tempo up (Scene Launch)"
       data-tip="tempo.up"
       use:tipOn={'tempo.up'}
@@ -173,7 +174,7 @@
     >
     <button
       type="button"
-      class="step"
+      class="step minus"
       aria-label="Tempo down (Function)"
       data-tip="tempo.down"
       use:tipOn={'tempo.down'}
@@ -272,28 +273,50 @@
     text-box: trim-end cap alphabetic;
     overflow: clip;
   }
-  /* + over −: one square right beside the reading, standing on its baseline, its side the number's
-     cap height (1cap in the number's own face), cut in half across: + the top half, − the bottom
-     (each as wide as the capitals are tall, half as deep), so both are big enough to hit between
-     phrases. The second overlaps the first by the outline's width, so the cut is one line. */
+  /* + over −: one column right beside the reading, standing on its baseline, exactly the number's
+     cap height (1cap in the number's own face), so number and control share one top line and one
+     foot. + the top half, − the bottom, a hard fib-8 gap between them (not a shared border), so a
+     tap near the middle lands on neither rather than on the wrong one; each half a square, its
+     side half the cap less the gap. */
   .cells .steps {
+    --half: calc((1cap - var(--fib-8)) / 2);
     flex: none;
-    width: 1cap;
+    gap: var(--fib-8);
+    width: var(--half);
     height: 1cap;
     font: var(--type-poster);
   }
-  .cells .step + .step {
-    margin-top: calc(-1 * var(--outline-width));
-  }
   .cells .step {
+    position: relative;
     flex: 1 1 0;
     width: 100%;
     height: auto;
     min-width: 0;
     min-height: 0;
-    font: var(--type-text);
-    letter-spacing: var(--tracking-text);
+    font: inherit;
     box-shadow: inset 0 0 0 var(--outline-width) var(--neutral);
     color: var(--neutral);
+  }
+  /* The + and − drawn large, at the numeral's stroke weight (the light face's stem, 0.075 of its
+     size, measured on "1"): bars a golden major of the half long, in the face's own ink, so the
+     halves read as keys, not empty panels. */
+  .cells .step > span {
+    display: none;
+  }
+  .cells .step::before,
+  .cells .step::after {
+    position: absolute;
+    top: calc(50% - 0.0375em);
+    left: calc(50% - var(--half) / var(--interval-phi) / 2);
+    width: calc(var(--half) / var(--interval-phi));
+    height: 0.075em;
+    background: currentColor;
+    content: '';
+  }
+  .cells .step.plus::after {
+    transform: rotate(90deg);
+  }
+  .cells .step.minus::after {
+    display: none;
   }
 </style>

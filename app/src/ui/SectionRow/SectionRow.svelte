@@ -23,8 +23,11 @@
     /**
      * Cells: no wrapper, and the faces are the state language (square, off a 1px outline and the
      * word in the hue, on solid in the hue with --on-ink; no dots). Each control is one top-level
-     * element, in order: the transport's Start / Stop (green; its legend the action, "Start /
-     * Stop", as on the pads, and the solid fill the playing state), Accomp, Sync Start, Fill (one group, Fill ▲ and Fill ▼ its halves), Fade, Reset
+     * element, in order: the transport's keys, all in the transport hue (`--transport`, amber:
+     * time, not a section), each a glyph band over its word on one shared baseline (▶ ■ Start /
+     * Stop, its legend the action, as on the pads, and the solid fill the playing state; Accomp and
+     * Sync Start with an empty band; Fill one key split in two, ▲ and ▼ its halves, one "Fill" under
+     * both; ◢ Fade; ⟲ Reset), Start / Stop, Accomp, Sync Start, Fill, Fade, Reset
      * (set apart from Fade by a gutter at its cell's left: `--reset-gap`, a fib-13 unless the
      * parent sets it), each filling its parent's cell; the helpers'
      * Metronome with its ▾ (one group, two halves), Unison, ?, then Panic in the warning hue, set
@@ -32,7 +35,7 @@
      * `groups` still picks which; `orientation` is unused. The parent supplies the toolbar role and its name.
      */
     cells?: boolean
-    /** The style is running: Start / Stop is solid green and aria-pressed. */
+    /** The style is running: Start / Stop is solid (green; in `cells`, the transport hue) and aria-pressed. */
     running?: boolean
     /** Accompaniment (ACMP) on. */
     accomp?: boolean
@@ -110,6 +113,9 @@
     if (!tipAction) return
     return tipAction(node, key)
   }
+
+  /** A transport key's glyph: ▶ ■ (Start / Stop), ▲ ▼ (the Fills), ◢ (Fade), ⟲ (Reset). */
+  type Shape = 'play' | 'stop' | 'up' | 'down' | 'fade' | 'reset'
 
   const transport = $derived(groups !== 'helpers')
   const helpers = $derived(groups !== 'transport')
@@ -227,62 +233,99 @@
   >
 {/snippet}
 
+{#snippet mark(shape: Shape)}
+  <!-- One transport glyph, drawn (not a font's character) so every glyph has the one height of the
+       glyph band and one stroke: ▶ ■ ▲ ▼ ◢ fill their band's height; ⟲'s ring is a fib-3 stroke. -->
+  {#if shape === 'play'}
+    <svg class="mark" viewBox="0 0 18 21" aria-hidden="true"><path d="M0 0 18 10.5 0 21Z" /></svg>
+  {:else if shape === 'stop'}
+    <svg class="mark" viewBox="0 0 21 21" aria-hidden="true"><path d="M0 0H21V21H0Z" /></svg>
+  {:else if shape === 'up'}
+    <svg class="mark" viewBox="0 0 24 21" aria-hidden="true"><path d="M12 0 24 21H0Z" /></svg>
+  {:else if shape === 'down'}
+    <svg class="mark" viewBox="0 0 24 21" aria-hidden="true"><path d="M0 0H24L12 21Z" /></svg>
+  {:else if shape === 'fade'}
+    <svg class="mark" viewBox="0 0 21 21" aria-hidden="true"><path d="M21 0V21H0Z" /></svg>
+  {:else if shape === 'reset'}
+    <svg class="mark" viewBox="0 0 21 21" aria-hidden="true"
+      ><path class="ring" d="M10.5 4.5A7.5 7.5 0 1 1 4 8.25" /><path d="M4.5 4.5 11 0V9Z" /></svg
+    >
+  {/if}
+{/snippet}
+
+{#snippet key(
+  label: string,
+  shapes: Shape[],
+  on: boolean | undefined,
+  tip: string,
+  press: () => void,
+  name: string | undefined,
+  kind: string,
+)}
+  <!-- A transport key: the glyph band (empty where a key has no standard glyph) over the word, on
+       the row's one baseline; the transport's hue, in the state language. -->
+  <button
+    type="button"
+    class="face key {kind}"
+    data-face={on ? 'on' : 'off'}
+    style:--hue="var(--transport)"
+    aria-pressed={on}
+    aria-label={name}
+    data-tip={tip}
+    use:tipOn={tip}
+    onclick={press}
+    ><span class="stack"
+      ><span class="band">{#each shapes as shape (shape)}{@render mark(shape)}{/each}</span
+      >{#if label}<span class="key-word">{label}</span>{/if}</span
+    ></button
+  >
+{/snippet}
+
 {#if cells}
   <!-- Cells: each control a top-level element, one a cell; the parent is the toolbar. -->
   {#if transport}
     <!-- The legend names the action, as on the pads; the solid fill shows it is playing. -->
-    {@render face(
+    {@render key(
       'Start / Stop',
-      '',
+      ['play', 'stop'],
       running,
       'transport.start_stop',
       () => onstartstop?.(),
       `${running ? 'Playing' : 'Stopped'}: Start / Stop (Play). The same control as pad 16`,
-      'ok',
       'fill',
     )}
-    {@render face('Accomp', '', accomp, 'transport.acmp', () => onaccomp?.(!accomp), 'Accomp (ACMP)', 'neutral', 'fill')}
-    {@render face(
-      'Sync Start',
-      '',
-      syncStart,
-      'transport.sync_start',
-      () => onsyncstart?.(!syncStart),
-      undefined,
-      'neutral',
-      'fill',
-    )}
-    <span class="halves" role="group" aria-label="Fill">
-      {@render face(
-        'Fill',
-        '▲',
+    {@render key('Accomp', [], accomp, 'transport.acmp', () => onaccomp?.(!accomp), 'Accomp (ACMP)', 'fill')}
+    {@render key('Sync Start', [], syncStart, 'transport.sync_start', () => onsyncstart?.(!syncStart), undefined, 'fill')}
+    <!-- Fill: one key split in two, ▲ and ▼ its halves, one "Fill" under both on the baseline. -->
+    <span class="halves fills" role="group" aria-label="Fill">
+      {@render key(
+        '',
+        ['up'],
         undefined,
         'transport.fill_up',
         () => onfillup?.(),
         'Fill Up: a fill, then the next Main up (at Main D, its own fill)',
-        'neutral',
         'half',
       )}
-      {@render face(
-        'Fill',
-        '▼',
+      {@render key(
+        '',
+        ['down'],
         undefined,
         'transport.fill_down',
         () => onfilldown?.(),
         'Fill Down: a fill, then the next Main down (at Main A, its own fill)',
-        'neutral',
         'half',
       )}
+      <span class="shared stack" aria-hidden="true"><span class="band"></span><span class="key-word">Fill</span></span>
     </span>
-    {@render face('Fade', '', fading, 'transport.fade', () => onfade?.(), 'Fade in/out', 'neutral', 'fill')}
-    {@render face(
+    {@render key('Fade', ['fade'], fading, 'transport.fade', () => onfade?.(), 'Fade in/out', 'fill')}
+    {@render key(
       'Reset',
-      '',
+      ['reset'],
       undefined,
       'transport.section_reset',
       () => onreset?.(),
       'Section reset: restart the section from its first bar',
-      'neutral',
       'fill reset',
     )}
   {/if}
@@ -495,6 +538,91 @@
   .halves > .face + .face {
     width: calc(100% + var(--outline-width));
     margin-left: calc(-1 * var(--outline-width));
+  }
+  /* A transport key: its glyph band (--glyph-key, φ × the text) a fib-5 over its word, the pair
+     centred in the key as one block. Every key is the row's height, so every word stands on one
+     baseline across the row and every glyph in one band above it; a key with no glyph (Accomp,
+     Sync Start) leaves its band empty and its word stays on the baseline. The word's box is
+     trimmed to its capitals (a descender may hang into the key's padding). */
+  .key {
+    padding: 0 var(--fib-5);
+  }
+  /* Each key is drawn a fib-3 gutter narrower than its cell, half each side (the cuts stay on the
+     cell lines), so two lit keys side by side (Start / Stop playing, Accomp on) read as two keys,
+     not one bar. Reset keeps its own gutter to the left as well. */
+  .face.key:not(.half),
+  .fills {
+    width: calc(100% - var(--fib-3));
+    margin-inline: calc(var(--fib-3) / 2);
+  }
+  .face.key.reset {
+    width: calc(100% - var(--reset-gap, var(--fib-13)) - var(--fib-3));
+    margin-left: calc(var(--reset-gap, var(--fib-13)) + var(--fib-3) / 2);
+  }
+  .stack {
+    display: grid;
+    grid-template-rows: var(--glyph-key) 1cap;
+    row-gap: var(--fib-5);
+    justify-items: center;
+    align-items: end;
+    min-width: 0;
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
+  }
+  .band {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--fib-5);
+    height: var(--glyph-key);
+  }
+  .mark {
+    display: block;
+    width: auto;
+    height: var(--glyph-key);
+    fill: currentColor;
+  }
+  .mark .ring {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: var(--fib-3);
+  }
+  .key-word {
+    display: block;
+    text-box: trim-both cap alphabetic;
+    white-space: nowrap;
+  }
+  /* Fill: one key split in two. The pair draws one outline round both halves; the split between
+     them runs down through the glyph band only, so the one "Fill" word under both stands whole on
+     the baseline (drawn over the halves, not a target of its own: a press lands on the half under
+     it). */
+  .fills {
+    position: relative;
+    box-shadow: inset 0 0 0 var(--outline-width) var(--transport);
+  }
+  .fills > .key {
+    box-shadow: none;
+  }
+  .fills > .key + .key {
+    width: 100%;
+    margin-left: 0;
+  }
+  .fills::after {
+    position: absolute;
+    top: 0;
+    left: calc(50% - var(--outline-width) / 2);
+    width: var(--outline-width);
+    height: calc((100% - var(--glyph-key) - var(--fib-5) - 1cap) / 2 + var(--glyph-key) + var(--fib-3));
+    font: var(--type-text);
+    background: var(--transport);
+    content: '';
+    pointer-events: none;
+  }
+  .shared {
+    position: absolute;
+    inset: 0;
+    align-content: center;
+    color: var(--transport);
+    pointer-events: none;
   }
   /* The helpers size to their words and fill the parent's height (a max-content track's width). */
   .helper {

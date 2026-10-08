@@ -11,9 +11,11 @@
     The page's spiral is turned cw from the right, so its pole (388, 238) lands on the section
     block: on what comes next.
   - Hero (1398 × 282), two tiers: a phi³ step off its bottom is the controls tier (67): its major
-    part off the left the transport (six outlined cells sized by use and consequence together:
-    Start / Stop phi² units; Accomp and Sync Start 1; the Fill ▲ ▼ pair 2, so each Fill is 1; Fade
-    1; Reset's cell a major third at the far end, its fifth a gutter, so Reset is 1), the rest One
+    part off the left the transport (six glyph keys in the transport hue, a glyph band over each
+    word, every word on one baseline, sized by use and consequence together: ▶ ■ Start / Stop phi²
+    units; Accomp and Sync Start 1, their bands empty; the Fill key 2, ▲ | ▼ its halves, so each is
+    1, one "Fill" under both; ◢ Fade 1; ⟲ Reset's cell a major third at the far end, its fifth a
+    gutter, so Reset is 1; the tier's groups a fib-8 in from its top and foot), the rest One
     Touch (its caption a narrow label cell, then 1–4, each phi² against the caption's octave). The
     reading tier (215) above it, one group, reads style → chord → section → next: a control-height
     band off its top is the style line (the category and metre right after ›), a fib-8 over the
@@ -24,8 +26,8 @@
     under it, one small line across: the chord's notes; what comes next, Main B's subtitle ("then
     ▬ Main C · fill after bar 4", the bar and Main C in its hue; a display, not a control); the
     beat bar (fib-13 bars, faded, the current beat the full hue, the downbeat taller and glowing
-    when current). + and − are one square beside the tempo, its side the cap height, cut in half
-    across (116 × 58 each at 1440).
+    when current). + over − are one column beside the tempo, exactly its cap height, two squares
+    with a hard fib-8 gap between them (54 each at 1440), + and − at the numeral's stroke weight.
   - Band (1398 × 456): its major part off the left is the faders (864): a header band over nine
     strips, each with its own foot (the part lamps under the part strips, then a sub-cut and the
     functions and the page button), so every lamp sits on its fader's column. The rest (534) is
@@ -161,7 +163,8 @@
    */
   const knobWeights: Interval[] = $derived(p.knobs.knobs.map((k) => (k.unused ? 'unison' : 'phi2')))
   /**
-   * The transport graded by use AND consequence together: Start / Stop (a slip starts or stops the
+   * The transport (glyph keys in the transport hue: SectionRow `cells`) graded by use AND
+   * consequence together: Start / Stop (a slip starts or stops the
    * band) two golden steps over one unit (phi² units), so it reads as the lead at a glance; Accomp
    * and Sync Start 1 each; the Fill ▲ ▼ pair (pressed most, mid-song) 2, so each Fill is 1 unit,
    * as wide as Accomp, the two side by side; Fade 1; Reset's cell a major third (5/4) at the far
@@ -238,7 +241,7 @@
         </div>
         <GoldenSplit take="phi3" of="length" from="bottom" name="hero">
           <GoldenSplit take="major" from="left" name="controls">
-            <div class="group transport" role="toolbar" aria-label="Transport">
+            <div class="group tier transport" role="toolbar" aria-label="Transport">
               <GoldenGrid weights={TRANSPORT} name="transport">
                 <SectionRow
                   {...p.sectionRow}
@@ -258,7 +261,7 @@
               </GoldenGrid>
             </div>
             <div
-              class="group"
+              class="group tier"
               role="group"
               aria-label="One Touch Setting (OTS). Click to apply; on the Launchkey, Shift + pads 9 to 12"
             >
@@ -517,6 +520,15 @@
     padding: var(--fib-13);
     container-type: size;
     --golden-inset: 0px;
+  }
+
+  /* The controls tier's groups (transport, One Touch) sit a fib-8 in from the tier's top and foot
+     (fib-13 at the sides, as every group): a transport key holds a glyph band (--glyph-key, 21)
+     a fib-5 over its word's capitals (9), 35 px, and the tier's phi³ step leaves a key 41 px at
+     1440 and 33 at 1280 with fib-13 insets, too short at 1280; with fib-8 the key is 51 and 43.
+     The reading tier's fib-13 foot and this fib-8 make a fib-21 gutter between the tiers. */
+  .screen .tier {
+    padding-block: var(--fib-8);
   }
 
   /* Reset's gutter: its cell's fifth (the cell is a major third, 5/4 units, so Reset keeps 1). */

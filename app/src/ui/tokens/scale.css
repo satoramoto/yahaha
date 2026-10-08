@@ -39,6 +39,9 @@
   /* Glyphs, not text: ▲ ▼ ▾ beside or as a label, and ◀ ▶ alone. */
   --glyph-sm: 10px;
   --glyph-md: 12px;
+  /* A transport key's glyph band (▶ ■ ▲ ▼ ◢ ⟲ over the key's word, golden Stage): φ × the 13px
+     text (21.03), so the shape reads first and the word confirms it. */
+  --glyph-key: 21px;
 
   /* Spacing */
   --space-2: 2px;

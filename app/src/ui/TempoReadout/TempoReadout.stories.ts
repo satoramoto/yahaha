@@ -68,8 +68,8 @@ export const AtMax: Story = {
 
 /**
  * In cells (`cells`): it fills a 360 × 80 size container of the grid Stage; "104 BPM" flush left
- * on its foot, + over − as one outlined square right beside it, on its baseline, its side the
- * number's cap height, cut in half across.
+ * on its foot, + over − as one column right beside it, on its baseline, exactly the number's cap
+ * height: two outlined squares with a hard fib-8 gap between them, + and − at the numeral's weight.
  */
 export const Cells: Story = {
   args: { bpm: 104, unit: 'BPM', min: 5, max: 500, cells: true },
@@ -86,18 +86,19 @@ export const Cells: Story = {
     const plus = c.getByRole('button', { name: 'Tempo up (Scene Launch)' })
     const minus = c.getByRole('button', { name: 'Tempo down (Function)' })
     const whole = tempo.getBoundingClientRect()
-    // Real layout only (jsdom has none): one square right beside the reading, standing on the
-    // container's foot (the number's baseline), cut in half across: each half twice as wide as deep.
+    // Real layout only (jsdom has none): one column right beside the reading, standing on the
+    // container's foot (the number's baseline): + over −, each a square, a hard fib-8 gap between.
     if (whole.height > 0) {
       const reading = (tempo.querySelector('.reading') as HTMLElement).getBoundingClientRect()
       for (const step of [plus, minus]) {
         const box = step.getBoundingClientRect()
-        await expect(Math.abs(box.width - 2 * box.height)).toBeLessThan(2)
+        await expect(Math.abs(box.width - box.height)).toBeLessThan(1.5)
         await expect(box.left - reading.right).toBeLessThan(14)
         await expect(box.height).toBeLessThan(whole.height / 2)
       }
       await expect(Math.abs(minus.getBoundingClientRect().bottom - whole.bottom)).toBeLessThan(1)
-      await expect(plus.getBoundingClientRect().bottom).toBeLessThanOrEqual(minus.getBoundingClientRect().top + 1)
+      const gap = minus.getBoundingClientRect().top - plus.getBoundingClientRect().bottom
+      await expect(Math.round(gap)).toBe(8)
     }
     await fireEvent.pointerDown(plus, { button: 0 })
     await fireEvent.pointerUp(plus)

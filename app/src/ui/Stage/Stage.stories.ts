@@ -173,10 +173,11 @@ export const PageSlot: Story = {
  *   phi⁴ step off its outer edge: the app bar (48: the page tabs, the helpers Metronome ▾, Unison,
  *   Panic, ?, the Launchkey and audio health) and the keys (78).
  * - **Hero** (1398 × 282), two tiers. The controls tier is a phi³ step off its bottom (67): its
- *   major part the transport, six outlined cells sized by use and consequence together (Start /
- *   Stop phi² units, its legend the action, the solid fill the state; Accomp and Sync Start 1; the
- *   Fill ▲ ▼ pair 2, so each Fill is 1, side by side; Fade 1; Reset 1 at the far end behind a
- *   quarter-unit gutter, about a fib-21), the rest One Touch (its caption a narrow label cell, then
+ *   major part the transport, six glyph keys in the transport hue (amber), each a glyph band over
+ *   its word, every word on one baseline, sized by use and consequence together (▶ ■ Start / Stop
+ *   phi² units, its legend the action, the solid fill the state; Accomp and Sync Start 1, their
+ *   bands empty; the Fill key 2, ▲ | ▼ its halves, so each is 1, one "Fill" under both; ◢ Fade 1;
+ *   ⟲ Reset 1 at the far end behind a quarter-unit gutter, about a fib-21), the rest One Touch (its caption a narrow label cell, then
  *   1–4). The reading tier above (215) reads style → chord → section → next: the style line (‹
  *   name › as 32px squares, then category · metre right after ›) in a control-height band, a fib-8
  *   over the chord, a quarter off its left, then the section and the tempo (halves). Chord, Main B
@@ -184,8 +185,8 @@ export const PageSlot: Story = {
  *   on one shared line, flush left. A fib-8 under it, one small line across: the chord's notes;
  *   what comes next as Main B's subtitle ("then ▬ Main C · fill after bar 4", the bar and "Main C"
  *   in its hue: a display, not a control); the beat bar (fib-13 bars, faded, the current beat the
- *   full hue, the downbeat taller and glowing when current). + and − are one square beside the
- *   tempo, its side the cap height, cut in half across. No parts block: each part's sound is on top of its own fader strip
+ *   full hue, the downbeat taller and glowing when current). + over − are one column beside the
+ *   tempo, exactly its cap height, two squares with a hard fib-8 gap between. No parts block: each part's sound is on top of its own fader strip
  *   (Option C), in the part's hue, cut short with an ellipsis at its strip.
  * - **Band** (1398 × 456): its major part the faders (a header band, the status line at its right
  *   end; nine strips, each with its own foot: the part lamps under strips 1–4, then a sub-cut and
@@ -289,7 +290,8 @@ export const GoldenOverlay: Story = {
       const [start, accomp, , fills, fade, reset] = [...(transport?.children ?? [])].map((c) => c.getBoundingClientRect())
       const fill = fills.width / 2
       await expect(fill).toBeGreaterThanOrEqual(accomp.width - 1)
-      await expect(start.width / accomp.width).toBeCloseTo(2.618, 1)
+      // Each key is drawn a fib-3 gutter inside its cell: compare the cells.
+      await expect((start.width + 3) / (accomp.width + 3)).toBeCloseTo(2.618, 1)
       await expect(Math.abs(reset.width - accomp.width)).toBeLessThanOrEqual(1)
       await expect(reset.left - fade.right).toBeGreaterThanOrEqual(20)
       // No dead band over the heroes: they start a fib-8 under the style line.
@@ -297,6 +299,27 @@ export const GoldenOverlay: Story = {
       await expect(Math.round((section?.top ?? 0) - (styleBand?.bottom ?? 0))).toBe(8)
       // The beat bar reads from across the room: each bar a fib-13 deep.
       await expect(canvasElement.querySelector('.beat:not(.now)')?.getBoundingClientRect().height).toBe(13)
+      // One shared baseline: every transport word (the Fill pair's one "Fill" too) has the same
+      // foot, and every glyph band the same top; the + / − column has a hard fib-8 gap, each half
+      // at least a transport key's height.
+      const words = [...(transport?.querySelectorAll('.key-word') ?? [])].map((w) => w.getBoundingClientRect())
+      await expect(words).toHaveLength(6)
+      for (const w of words) await expect(Math.abs(w.bottom - words[0].bottom)).toBeLessThan(0.5)
+      const bands = [...(transport?.querySelectorAll('.band') ?? [])].map((b) => b.getBoundingClientRect())
+      for (const b of bands) await expect(Math.abs(b.top - bands[0].top)).toBeLessThan(0.5)
+      const minus = canvasElement.querySelector('[aria-label="Tempo down (Function)"]')?.getBoundingClientRect()
+      await expect(Math.round((minus?.top ?? 0) - plus.bottom)).toBe(8)
+      await expect(plus.height).toBeGreaterThanOrEqual(accomp.height)
+    }
+    // The transport's keys are glyph keys in the transport hue: ▶ ■ over Start / Stop, ▲ | ▼ the
+    // Fill key's halves under one "Fill", ◢ Fade, ⟲ Reset; Accomp and Sync Start keep an empty band.
+    const glyphs = [...(transport?.querySelectorAll('.band') ?? [])].map((b) => b.querySelectorAll('svg').length)
+    await expect(glyphs).toEqual([2, 0, 0, 1, 1, 0, 1, 1])
+    const fillKey = transport?.querySelector('[role="group"][aria-label="Fill"]')
+    await expect(fillKey?.querySelectorAll('.key-word').length).toBe(1)
+    await expect(fillKey?.querySelector('.key-word')?.textContent).toBe('Fill')
+    for (const key of transport?.querySelectorAll('button') ?? []) {
+      await expect((key as HTMLElement).style.getPropertyValue('--hue')).toBe('var(--transport)')
     }
   },
 }

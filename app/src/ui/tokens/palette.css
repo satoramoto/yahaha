@@ -55,6 +55,13 @@
   --teal-700: #007360; /* C6; the canvas's #008f78 */
   --gold-400: #bfb24e;
   --gold-700: #6e651a; /* C6; the canvas's #857a1f */
+  /* Amber, the transport's own hue (golden Stage, iteration 6): between orange (Panic, Right 3) and
+     gold (Intro) in hue, as far from both as the gamut allows. OKLCH, dark: 0.854 0.171 87°
+     against orange-400 0.775 0.164 62° and gold-400 0.755 0.122 102° (OKLab ΔE 0.108 and 0.117);
+     light: 0.512 0.108 75° against orange-700 52° and gold-700 102° (ΔE 0.055 and 0.051, the most
+     a deep amber can keep while it passes AA on the light ground and button face). */
+  --amber-400: #ffc61a;
+  --amber-700: #8a5c00;
   --rose-400: #c66060; /* C6; the canvas's #c45a5a */
   --rose-700: #a84444;
   --plum-400: #986faf; /* C6; the canvas's #8f62a8 */
