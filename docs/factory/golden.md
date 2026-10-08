@@ -63,6 +63,7 @@ At 1440 × 900 the page frame is 1398 × 864. Its first cut, `minor` from the to
 A professional review's six changes, nothing else moved (round 8's split kept). Where a line here disagrees with the round 8 text above, this one holds.
 
 - **"BPM".** 32px (the `large` role) in the numeral's white, on its baseline, a fib-13 after the numeral and a fib-21 before the + − column (`TempoReadout unitLarge`). The tempo's cell narrows by 32px at 1440, which the section takes.
+- **Chord to section.** Half the heroes' row between the chord's block and the section's (58px at 1440, 50 at 1280), the chord's fib-13 gutter plus an inset on the section's cell, so "Am7" and "Main B" read as two words; Main B and its "then …" line move right together. No type size changed.
 
 ## Vocabulary
 

@@ -292,6 +292,10 @@ export const GoldenOverlay: Story = {
       const line = next?.getBoundingClientRect()
       await expect(Math.round((line?.top ?? 0) - (section?.bottom ?? 0))).toBe(8)
       await expect(Math.round((line?.left ?? 0) - (section?.left ?? 0))).toBe(0)
+      // The chord and the section read as two words: at least a fib-55 between "Am7" and Main B.
+      const chordText = document.createRange()
+      chordText.selectNodeContents(canvasElement.querySelector('.leaf.chord .chord') as Node)
+      await expect((section?.left ?? 0) - chordText.getBoundingClientRect().right).toBeGreaterThanOrEqual(55)
       const [start, sync, accomp, up, down, fade, reset] = [...(transport?.children ?? [])].map((c) =>
         c.getBoundingClientRect(),
       )

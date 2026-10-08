@@ -657,6 +657,12 @@
   .split > .tempo {
     container-type: normal;
   }
+  /* The chord and the section read as two words, not one (designer pass): a gap of half the
+     heroes' row between the chord's block and the section's (58 at 1440, scaling with the cut),
+     the chord's fib-13 gutter plus this inset; the section and its "then …" line move together. */
+  .split > .section {
+    padding-left: calc(var(--golden-hero-row) / 2 - var(--fib-13));
+  }
   .chord {
     display: block;
     --stage-row-width: calc(3 * 100cqw);
