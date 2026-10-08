@@ -11,12 +11,14 @@
     The page's spiral is turned cw from the right, so its pole (388, 238) lands on the section
     block: on what comes next.
   - Hero (1398 × 282), two tiers: a phi³ step off its bottom is the controls tier (67): its major
-    part off the left the transport (six glyph keys in the transport hue, a glyph band over each
-    word, every word on one baseline, sized by use and consequence together: ▶ ■ Start / Stop phi²
-    units; Accomp and Sync Start 1, their bands empty; the Fill key 2, ▲ | ▼ its halves, so each is
-    1, one "Fill" under both; ◢ Fade 1; ⟲ Reset's cell a major third at the far end, its fifth a
-    gutter, so Reset is 1; the tier's groups a fib-8 in from its top and foot), the rest One
-    Touch (its caption a narrow label cell, then 1–4, each phi² against the caption's octave). The
+    part off the left the transport (seven glyph keys in the hue of time, a glyph over each word,
+    the glyph showing the state, every word on one baseline, grouped by job with a fib-8 inside a
+    group and a fib-13 between groups, sized by use and consequence together: Start / Stop phi²
+    units (▶ outlined stopped, ■ solid playing); Sync Start, Accomp, Fill Up, Fill Down and Fade 1
+    each (armed keys outlined and pulsing on the beat, Fade's wedge draining as it fades); ⟲
+    Reset's cell a major third at the far end, its fifth a gutter, so Reset is 1; the tier's groups
+    a fib-8 in from its top and foot), the rest One Touch in the style's violet (its caption a
+    narrow label cell, then 1–4, each phi² against the caption's octave). The
     reading tier (215) above it, one group, reads style → chord → section → next: a control-height
     band off its top is the style line (the category and metre right after ›), a fib-8 over the
     rest; under it, a quarter (a double-octave step) off the left is the chord (343), the rest
@@ -27,13 +29,16 @@
     ▬ Main C · fill after bar 4", the bar and Main C in its hue; a display, not a control); the
     beat bar (fib-13 bars, faded, the current beat the full hue, the downbeat taller and glowing
     when current). + over − are one column beside the tempo, exactly its cap height, two squares
-    with a hard fib-8 gap between them (54 each at 1440), + and − at the numeral's stroke weight.
+    with a hard fib-8 gap between them (54 each at 1440), + and − at the numeral's stroke weight,
+    in the hue of time. The function lamps and the page button light in the lamp's lime; the
+    Sections bank's utility pads (the transport's twins) in the hue of time.
   - Band (1398 × 456): its major part off the left is the faders (864): a header band over nine
     strips, each with its own foot (the part lamps under the part strips, then a sub-cut and the
     functions and the page button), so every lamp sits on its fader's column. The rest (534) is
-    cut minor off the top into knobs (a header band over eight knob cells, an unused knob phi²
-    below a live one, each value under its dial and the name on one line under that: its first
-    word where the whole name doesn't fit, never a code) over pads (a header band over a 4 × 4
+    cut minor off the top into knobs (a header band over eight knob cells of one width, assigned
+    or not, each dial the cell over phi, each value under its dial and the name on one line under
+    that: its first word, or as much of it as fits with a full stop, where the whole name doesn't
+    fit, never a code) over pads (a header band over a 4 × 4
     grid; the queued pad's NEXT a corner tag, so the pad stays one line). Each part's sound sits
     on its strip in the part's hue, cut short at the strip; a parked strip is a dotted ghost in
     the faded hue (no track, no rails: absent things look absent).
@@ -41,7 +46,8 @@
   sit edge to edge. The status line sits at the faders header's right end.
   Each leaf is a size container: the components' size tokens are set from its content box (cq
   units). It changes no component's default: it uses their additive props (SectionRow,
-  OneTouchPicker, StyleLine and TempoReadout `cells`, AppBar `end`, FaderCell `sound` and `lamp`). With
+  OneTouchPicker, StyleLine and TempoReadout `cells`, OneTouchPicker `hue`, Pad `tagCorner` and
+  `transport`, AppBar `end`, FaderCell `sound` and `lamp`). With
   `overlay`, the whole tree is drawn and checked by a GoldenOverlay.
 -->
 <script lang="ts">
@@ -158,20 +164,39 @@
   const foot: Foot[] = $derived([...faders.partLamps, ...faders.functionLamps, 'page'])
   const footCut = $derived(faders.partLamps.length)
   /**
-   * Size follows use: an unused knob is two golden steps below a live one (phi², so a live knob's
-   * name has room for one line).
+   * Every knob cell one width, assigned or not (round 7: the row only worked while one knob was
+   * unassigned and shrunk; with all eight assigned, the usual case, dials and names collided). The
+   * dial is the cell over phi, so the gutter between dials falls out of the ratio, and a name that
+   * doesn't fit its line shows its short name (KnobCell `dial="phi"`, `shorten="word"`).
    */
-  const knobWeights: Interval[] = $derived(p.knobs.knobs.map((k) => (k.unused ? 'unison' : 'phi2')))
+  const knobWeights: Interval[] = $derived(p.knobs.knobs.map(() => 'unison'))
   /**
-   * The transport (glyph keys in the transport hue: SectionRow `cells`) graded by use AND
-   * consequence together: Start / Stop (a slip starts or stops the
-   * band) two golden steps over one unit (phi² units), so it reads as the lead at a glance; Accomp
-   * and Sync Start 1 each; the Fill ▲ ▼ pair (pressed most, mid-song) 2, so each Fill is 1 unit,
-   * as wide as Accomp, the two side by side; Fade 1; Reset's cell a major third (5/4) at the far
-   * end, its fifth a gutter before it (a slip onto it is heard): Reset is 1 unit behind a quarter
-   * unit, about a fib-21 (24 px at 1440, 21 at 1280).
+   * The transport (glyph keys in the hue of time: SectionRow `cells`) graded by use AND
+   * consequence together, in the order of its groups, [Start / Stop · Sync Start] [Accomp]
+   * [Fill Up · Fill Down · Fade] [Reset]: Start / Stop (a slip starts or stops the band) two golden
+   * steps over one unit (phi² units), so it reads as the lead at a glance; Sync Start, Accomp, each
+   * Fill and Fade 1 each; Reset's cell a major third (5/4) at the far end, its fifth a gutter
+   * before it (a slip onto it is heard): Reset is 1 unit behind a quarter unit, about a fib-21
+   * (24 px at 1440, 21 at 1280). The keys leave a fib-8 between them inside a group and a fib-13
+   * between groups (SectionRow draws each key inside its cell less half of each gap).
    */
-  const TRANSPORT: Interval[] = ['phi2', 'unison', 'unison', 'octave', 'unison', 'major-third']
+  const TRANSPORT: Interval[] = ['phi2', 'unison', 'unison', 'unison', 'unison', 'unison', 'major-third']
+  /**
+   * A queued fill: what comes next lands after a fill ("fill after bar 4"), from one Main to
+   * another, so Fill Up (to a later Main) or Fill Down is armed. The section row's own
+   * `fillQueued` wins.
+   */
+  const fillQueued = $derived.by((): 'up' | 'down' | undefined => {
+    if (p.sectionRow.fillQueued) return p.sectionRow.fillQueued
+    const from = /^main\s+([a-d])$/i.exec((now.playing ?? '').trim())?.[1]?.toUpperCase()
+    const to = /^main\s+([a-d])$/i.exec(next)?.[1]?.toUpperCase()
+    if (!now.running || !from || !to || from === to || !/fill/i.test(now.fill ?? '')) return undefined
+    return to > from ? 'up' : 'down'
+  })
+  /** The pads on the Sections bank: its utility pads are the transport's twins (Start / Stop, Sync Start, Sync Stop, Tap, Auto Fill). */
+  const sectionsBank = $derived(
+    ((p.pads.banks?.length ? p.pads.banks[p.pads.bank ?? 0] : p.pads.bankName) ?? 'Sections') === 'Sections',
+  )
   /**
    * One Touch: its caption a narrow cell (a label, not a button-sized ghost), an octave against
    * each of 1–4's phi² (81 px caption, 107 px buttons at 1440; 72 and 94 at 1280, where "One Touch"
@@ -196,11 +221,12 @@
   )
 </script>
 
-{#snippet lamp(item: BankLamp)}
+{#snippet lamp(item: BankLamp, fn: boolean)}
+  <!-- A function lamp with no hue of its own lights in the lamp's lime, never white. -->
   <LampButton
     label={item.label}
     on={item.on}
-    hue={item.hue}
+    hue={fn && (item.hue === undefined || item.hue === 't' || item.hue === 'm') ? 'lamp' : item.hue}
     rec={item.rec}
     waiting={item.waiting}
     size="cell"
@@ -249,6 +275,9 @@
                   cells
                   running={p.running}
                   fading={p.fading}
+                  beat={p.sectionRow.beat ?? beat}
+                  bpm={p.sectionRow.bpm ?? now.bpm}
+                  {fillQueued}
                   tipAction={p.tipAction}
                   onstartstop={p.onstartstop}
                   onaccomp={p.onaccomp}
@@ -268,6 +297,7 @@
               <GoldenGrid weights={ONE_TOUCH} name="one touch">
                 <OneTouchPicker
                   cells
+                  hue="a"
                   applied={display.styleLine.oneTouch ?? 0}
                   count={display.styleLine.oneTouchCount ?? 4}
                   tipAction={p.tipAction}
@@ -283,7 +313,7 @@
               </div>
               <GoldenSplit take="double-octave" of="length" from="left" name="now">
                 <div class="leaf reading chord"><ChordReadout {...now.chord} /></div>
-                <GoldenGrid columns={2} name="section and tempo">
+                <div class="split" data-golden-name="section and tempo">
                   <div class="leaf reading section">
                     <div class="stand" style:--chars={sectionChars}>
                       <SectionName label={now.playing} hue={now.hue} idle={!now.running} />
@@ -323,7 +353,7 @@
                       {/each}
                     </div>
                   </div>
-                </GoldenGrid>
+                </div>
               </GoldenSplit>
             </GoldenBand>
           </div>
@@ -373,6 +403,7 @@
                           <Button
                             label={pageLabel}
                             size="cell"
+                            hue="lamp"
                             name={`Fader page is ${pageLabel}: click for ${otherLabel}`}
                             tip="mixer.page"
                             tipAction={p.tipAction}
@@ -381,7 +412,7 @@
                             onlongrelease={p.onpagerelease}
                           />
                         {:else if item}
-                          {@render lamp(item)}
+                          {@render lamp(item, i >= footCut)}
                         {/if}
                       </span>
                     {/snippet}
@@ -442,6 +473,7 @@
                       fraction={knob.fraction}
                       unused={knob.unused}
                       shorten="word"
+                      dial="phi"
                       tip="knobs.knob"
                       tipAction={p.tipAction}
                       onpress={() => p.onknobpress?.(i)}
@@ -478,6 +510,7 @@
                         state={pad.state}
                         lit={p.pads.lit ?? true}
                         tagCorner
+                        transport={sectionsBank}
                         name={pad.name}
                         tip={pad.tip}
                         tipAction={p.tipAction}
@@ -592,12 +625,33 @@
   .section {
     padding-right: var(--fib-13);
   }
-  /* The chord's room measured from the section's and the tempo's cells (each cell's 100cqw is its
-     own width; the chord's column, a quarter of the row, is theirs over a fifth), less a fib-13
-     gutter before Main B. */
-  .section,
-  .tempo {
-    --chord-room: calc(100cqw / var(--interval-fifth) - var(--fib-13));
+  /* The section and the tempo (round 7): the tempo's cell is as wide as what it holds (the numeral,
+     its unit and the + − column, a max-content column), ending on the frame's right edge, and the
+     section takes the rest, so no cell holds a void and Main B and what comes next have the room.
+     `.split` measures the row it sits in (the reading row less the chord's quarter): the chord's
+     room is its column (a quarter of that row) less a fib-13 gutter, and the heroes' row
+     (--golden-hero-row) follows from it as in every reading cell; it is computed here (a
+     registered length, so the row's units resolve here) and inherited, since the tempo's cell is
+     not a size container (it sizes to its content). */
+  @property --golden-hero-row {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 0px;
+  }
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    container-type: size;
+    --golden-hero-row: min(
+      calc(100cqh - var(--label-height) - var(--fib-8)),
+      calc((100cqw / 4 - var(--fib-13)) * 0.35)
+    );
+  }
+  .split > .reading {
+    --row: var(--golden-hero-row);
+  }
+  .split > .tempo {
+    container-type: normal;
   }
   .chord {
     display: block;

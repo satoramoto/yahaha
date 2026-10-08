@@ -58,9 +58,18 @@
     /**
      * What stands in for a name that doesn't fit: `code` (the default), the knob's Genos code
      * ("RtgRate"); `word`, a human short name, the name's first word ("Retrig rate" → "Retrig"),
-     * so no cryptic code is shown (the golden Stage). The full name is in the title either way.
+     * and where that doesn't fit either, as much of it as fits with a full stop ("Dynamics" →
+     * "Dynam."), so no cryptic code is shown (the golden Stage). The full name is in the title
+     * either way.
      */
     shorten?: 'code' | 'word'
+    /**
+     * The dial's size. `fill` (the default): as big as the cell allows, less a fib-3 gutter. `phi`:
+     * the cell's width over phi (or its height, if less), so the gutter between two dials falls out
+     * of the ratio, and the name and value lines keep a fib-5 between neighbours (the golden
+     * Stage: every knob cell one width, assigned or not).
+     */
+    dial?: 'fill' | 'phi'
     /** Draw the cell's cuts and check them (GoldenOverlay). */
     overlay?: boolean
   }
@@ -79,6 +88,7 @@
     lines = 1,
     valueInside = false,
     shorten = 'code',
+    dial = 'fill',
     overlay = false,
   }: Props = $props()
 
@@ -97,6 +107,20 @@
   let measure = $state<HTMLElement>()
   /** The full name is wider than its band: show the short code. False where nothing is laid out (jsdom). */
   let short = $state(false)
+  /** What stands in for the name when it is short: `brief`, or (`word`, one line) what fits of it. */
+  let stand = $state('')
+
+  /** The widths of `texts` set as `el` is (a copy of it beside it, out of sight, removed after). */
+  function widths(el: HTMLElement, texts: string[]): number[] {
+    const copy = el.cloneNode() as HTMLElement
+    el.after(copy)
+    const out = texts.map((t) => {
+      copy.textContent = t
+      return copy.getBoundingClientRect().width
+    })
+    copy.remove()
+    return out
+  }
 
   $effect(() => {
     const band = box
@@ -106,8 +130,11 @@
     void label
     const alt = brief
     const two = lines === 2
+    const word = shorten === 'word' && !two
     const fit = () => {
-      if (alt === '' || band.clientWidth <= 0) {
+      const style = getComputedStyle(band)
+      const room = band.getBoundingClientRect().width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+      if ((alt === '' && !word) || room <= 0) {
         short = false
         return
       }
@@ -115,7 +142,14 @@
       // words is wider than it. One line: the name is wider than the band.
       short = two
         ? full.offsetHeight > band.clientHeight + 1 || full.scrollWidth > band.clientWidth + 1
-        : full.offsetWidth > band.clientWidth
+        : full.getBoundingClientRect().width > room
+      stand = alt
+      if (!short || !word) return
+      // `word`: the first word, then as much of it as fits with a full stop (at least three letters).
+      const first = label.trim().split(/\s+/)[0] ?? ''
+      const tries = [...(alt ? [alt] : []), ...Array.from({ length: Math.max(0, first.length - 3) }, (_, i) => `${first.slice(0, first.length - 1 - i)}.`)]
+      const sizes = widths(full, tries)
+      stand = tries.find((_, i) => sizes[i] <= room - 0.5) ?? tries.at(-1) ?? alt
     }
     const observer = new ResizeObserver(fit)
     observer.observe(band)
@@ -129,7 +163,7 @@
   })
 </script>
 
-<div class="cell" lang="en">
+<div class="cell" class:phi={dial === 'phi'} lang="en">
   <GoldenBand size={lines === 2 ? 'label-lines-2' : 'label-height'} from="bottom" name="knob" {overlay}>
     <div
       class="text name"
@@ -139,7 +173,7 @@
       title={short ? label : undefined}
       aria-hidden="true"
     >
-      <span>{short ? brief : label}</span>
+      <span>{short ? stand : label}</span>
       <span class="probe"><span class="measure" bind:this={measure}>{label}</span></span>
     </div>
     {#if valueInside}
@@ -200,6 +234,16 @@
     --knob-value-height: 0px;
     --knob-text-max: 0px;
     --knob-text-overflow: hidden;
+  }
+
+  /* `phi`: the dial is the cell's width over phi (its height if less), so two dials side by side
+     keep a gutter of the cell's golden minor; the name and value lines stop a fib-5 short of their
+     neighbours (half each side). */
+  .phi .dial {
+    --knob-ring: max(0px, min(100cqh, 100cqw / var(--interval-phi)));
+  }
+  .phi .text {
+    padding-inline: calc(var(--fib-5) / 2);
   }
 
   /* The value inside the ring: one grid cell with the Knob, as big as the ring, standing on the

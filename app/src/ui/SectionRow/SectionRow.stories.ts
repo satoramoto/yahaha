@@ -59,6 +59,11 @@ const meta = {
     groups: { control: { type: 'inline-radio' }, options: ['all', 'transport', 'helpers'] },
     orientation: { control: { type: 'inline-radio' }, options: ['horizontal', 'vertical'] },
     cells: { control: 'boolean' },
+    beat: { control: { type: 'number', min: 0, max: 4, step: 1 }, table: { category: 'Cells' } },
+    bpm: { control: { type: 'number', min: 40, max: 280, step: 1 }, table: { category: 'Cells' } },
+    fillQueued: { control: { type: 'inline-radio' }, options: [undefined, 'up', 'down'], table: { category: 'Cells' } },
+    fadeProgress: { control: { type: 'range', min: 0, max: 1, step: 0.05 }, table: { category: 'Cells' } },
+    fadeIn: { control: 'boolean', table: { category: 'Cells' } },
   },
 } satisfies Meta<typeof SectionRow>
 
@@ -100,40 +105,110 @@ export const Helpers: Story = {
   },
 }
 
+/** The transport's seven cells, weighted as on the golden Stage (Start / Stop phi², Reset's cell a major third). */
+function transportGrid(args: ComponentProps<typeof SectionRow>) {
+  return {
+    // GoldenGrid hosts the story; Storybook types `Component` and `props` as SectionRow's.
+    Component: GoldenGrid as unknown as typeof SectionRow,
+    props: {
+      weights: ['phi2', 'unison', 'unison', 'unison', 'unison', 'unison', 'major-third'],
+      overlay: true,
+      name: 'Transport',
+      children: inGrid(args),
+    } as unknown as typeof args,
+  }
+}
+
+/** How many glyphs each transport key draws. */
+const glyphCount = (toolbar: Element) => [...toolbar.querySelectorAll('.band')].map((b) => b.querySelectorAll('svg').length)
+
 /**
- * The transport in cells (`cells`, `groups` transport) in a 6-cell GoldenGrid, its cuts drawn: no
- * wrapper, each control one key filling its cell, in the transport hue (amber), a glyph band over
- * its word, every word on one baseline: ▶ ■ Start / Stop solid while running (outlined when not),
- * its legend always "Start / Stop", Accomp solid (on) and Sync Start with an empty band, Fill one
- * key split in two (▲ | ▼, one "Fill" under both), ◢ Fade, then ⟲ Reset at the far end, set apart
- * by a fib-13 gap. The grid's toolbar element supplies the role.
+ * The transport in cells (`cells`, `groups` transport) in a 7-cell GoldenGrid, its cuts drawn: no
+ * wrapper, each control one key filling its cell, in the hue of time (cyan), a glyph over its
+ * word, every word on one baseline, grouped by job: [Start / Stop · Sync Start] [Accomp] [Fill Up
+ * · Fill Down · Fade] [Reset], a fib-8 inside a group, a fib-13 between groups. Running: Start /
+ * Stop solid with ■ (its legend always "Start / Stop"), Sync Start outlined (a bar before ▶),
+ * Accomp solid (a chord stack), Fill Up ▲ and Fill Down ▼ each its own key and word, Fade ◣ (a
+ * press fades out), then ⟲ Reset at the far end behind its gutter. The grid's toolbar element
+ * supplies the role.
  */
 export const Cells: Story = {
   args: { running: true, accomp: true, groups: 'transport', cells: true },
-  parameters: { sample: { width: 610, height: 55 } },
-  render: (args) => ({
-    // GoldenGrid hosts the story; Storybook types `Component` and `props` as SectionRow's.
-    Component: GoldenGrid as unknown as typeof SectionRow,
-    props: { columns: 6, overlay: true, name: 'Transport', children: inGrid(args) } as unknown as typeof args,
-  }),
+  parameters: { sample: { width: 700, height: 55 } },
+  render: (args) => transportGrid(args),
   play: async ({ canvasElement }) => {
     const toolbar = within(canvasElement).getByRole('toolbar', { name: 'Transport' })
     const controls = [...toolbar.children]
-    await expect(controls).toHaveLength(6)
+    await expect(controls).toHaveLength(7)
     await expect(toolbar.parentElement).toHaveAttribute('data-golden-slots', 'grid')
-    // Start / Stop's legend is the action; the solid fill (and the spoken name) is the state.
-    await expect(controls[0]).toHaveTextContent('Start / Stop')
+    // Start / Stop's legend is the action; the glyph, the solid fill and the spoken name the state.
     await expect(controls[0]).toHaveAccessibleName(/^Playing: Start \/ Stop/)
     await expect(controls[0]).toHaveAttribute('aria-pressed', 'true')
-    await expect(controls[0]).toHaveAttribute('data-face', 'on')
-    await expect(controls[1]).toHaveAttribute('data-face', 'on')
-    await expect(controls[2]).toHaveAttribute('data-face', 'off')
-    const fill = within(toolbar).getByRole('group', { name: 'Fill' })
-    await expect(controls[3]).toBe(fill)
-    await expect(within(fill).getAllByRole('button')).toHaveLength(2)
-    await expect(controls[4]).toHaveAccessibleName('Fade in/out')
-    await expect(controls[5]).toHaveAccessibleName('Section reset: restart the section from its first bar')
+    await expect(controls.map((c) => c.textContent?.trim())).toEqual([
+      'Start / Stop',
+      'Sync Start',
+      'Accomp',
+      'Fill Up',
+      'Fill Down',
+      'Fade',
+      'Reset',
+    ])
+    await expect(controls.map((c) => c.getAttribute('data-face'))).toEqual(['on', 'off', 'on', 'off', 'off', 'off', 'off'])
+    // A glyph on every key, one each.
+    await expect(glyphCount(toolbar)).toEqual([1, 1, 1, 1, 1, 1, 1])
+    await expect(controls[5]).toHaveAccessibleName('Fade out')
+    await expect(controls[6]).toHaveAccessibleName('Section reset: restart the section from its first bar')
     await expect(canvasElement.querySelector('.group, .pair, .start-word, .row, .dot')).toBeNull()
+  },
+}
+
+/**
+ * Stopped: Start / Stop outlined with ▶ (one glyph: what a press does), Sync Start armed (a 2px
+ * ring, pulsing at the tempo while no beat comes), Fade armed with ◢ (a fade-in waiting for Start).
+ */
+export const CellsStopped: Story = {
+  args: { running: false, syncStart: true, fading: true, bpm: 104, groups: 'transport', cells: true },
+  parameters: { sample: { width: 700, height: 55 } },
+  render: (args) => transportGrid(args),
+  play: async ({ canvasElement }) => {
+    const controls = [...within(canvasElement).getByRole('toolbar', { name: 'Transport' }).children]
+    await expect(controls[0]).toHaveAttribute('data-face', 'off')
+    await expect(controls[0]).toHaveAttribute('aria-pressed', 'false')
+    await expect(controls[1]).toHaveAttribute('data-face', 'armed')
+    await expect(controls[1]).toHaveAttribute('data-pulse', 'free')
+    await expect(controls[1]).toHaveAccessibleName(/^Sync Start, armed/)
+    await expect(controls[5]).toHaveAttribute('data-face', 'armed')
+    await expect(controls[5]).toHaveAccessibleName('Fade in, waiting for Start')
+  },
+}
+
+/**
+ * Running, mid-phrase: Fill Up queued (armed, its ring pulsing once on each beat, in step with the
+ * beat bar: the pulse restarts as `beat` changes) and a fade-out under way, Fade solid with its
+ * wedge drained by `fadeProgress` (40% gone).
+ */
+export const CellsQueued: Story = {
+  args: {
+    running: true,
+    accomp: true,
+    fillQueued: 'up',
+    fading: true,
+    fadeProgress: 0.4,
+    beat: 3,
+    bpm: 104,
+    groups: 'transport',
+    cells: true,
+  },
+  parameters: { sample: { width: 700, height: 55 } },
+  render: (args) => transportGrid(args),
+  play: async ({ canvasElement }) => {
+    const controls = [...within(canvasElement).getByRole('toolbar', { name: 'Transport' }).children]
+    await expect(controls[3]).toHaveAttribute('data-face', 'armed')
+    await expect(controls[3]).toHaveAttribute('data-pulse', 'a')
+    await expect(controls[3]).toHaveAccessibleName(/^Fill Up, queued/)
+    await expect(controls[4]).toHaveAttribute('data-face', 'off')
+    await expect(controls[5]).toHaveAttribute('data-face', 'on')
+    await expect(controls[5].querySelector('svg')).toHaveAttribute('data-drain', '0.60')
   },
 }
 
@@ -153,7 +228,8 @@ function inColumns(args: ComponentProps<typeof SectionRow>) {
 
 /**
  * The helpers in cells (`cells`, `groups` helpers) in max-content columns: Metronome with its ▾ as
- * two halves of one outlined cell (lit: on), Unison, ?, then Panic in the warning hue, set apart.
+ * two halves of one outlined cell in the hue of time (lit: on), Unison and ? in the lamp's lime,
+ * then Panic in the warning hue, set apart. No white outlines.
  */
 export const HelperCells: Story = {
   args: { metronome: true, groups: 'helpers', cells: true },
@@ -172,7 +248,9 @@ export const HelperCells: Story = {
     const halves = within(metronome).getAllByRole('button')
     await expect(halves).toHaveLength(2)
     await expect(halves[0]).toHaveAttribute('data-face', 'on')
+    await expect(halves[0]).toHaveAttribute('data-hue', 'transport')
     await expect(controls[1]).toHaveTextContent('Unison')
+    await expect(controls[1]).toHaveAttribute('data-hue', 'lamp')
     await expect(controls[2]).toHaveTextContent('?')
     await expect(controls[3]).toHaveAccessibleName('Panic: all notes off')
   },

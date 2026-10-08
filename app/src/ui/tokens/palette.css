@@ -55,13 +55,18 @@
   --teal-700: #007360; /* C6; the canvas's #008f78 */
   --gold-400: #bfb24e;
   --gold-700: #6e651a; /* C6; the canvas's #857a1f */
-  /* Amber, the transport's own hue (golden Stage, iteration 6): between orange (Panic, Right 3) and
-     gold (Intro) in hue, as far from both as the gamut allows. OKLCH, dark: 0.854 0.171 87°
-     against orange-400 0.775 0.164 62° and gold-400 0.755 0.122 102° (OKLab ΔE 0.108 and 0.117);
-     light: 0.512 0.108 75° against orange-700 52° and gold-700 102° (ΔE 0.055 and 0.051, the most
-     a deep amber can keep while it passes AA on the light ground and button face). */
-  --amber-400: #ffc61a;
-  --amber-700: #8a5c00;
+  /* Cyan, the hue of time (golden Stage, iteration 7): the transport, the tempo's + and −, the
+     metronome and their pad twins. The one free hue: no section, no part and not the warning uses
+     it (iteration 6's amber sat 0.051 from Intro's gold in light and read as Intro). Each is the
+     candidate, in its theme, farthest (OKLab) from every section, part, warning, accent, lamp and
+     neutral hue while passing AA as text on the ground and the button face and under --on-ink.
+     Dark: OKLCH 0.885 0.139 201°, nearest teal-400 (Left) ΔE 0.156, white 0.180, green-400 (Main)
+     0.189, slate-400 (Fill) 0.232, gold-400 (Intro) 0.238, orange-400 (Right 3, the warning)
+     0.305. Light: 0.396 0.088 238°, nearest slate-600 (Fill) 0.119, teal-700 (Left) 0.138,
+     blue-700 (Right 1) 0.167, plum-600 (Break) 0.167, green-700 (Main) 0.175, gold-700 (Intro)
+     0.198, orange-700 0.253. */
+  --cyan-400: #3ff4ff;
+  --cyan-800: #004c70;
   --rose-400: #c66060; /* C6; the canvas's #c45a5a */
   --rose-700: #a84444;
   --plum-400: #986faf; /* C6; the canvas's #8f62a8 */

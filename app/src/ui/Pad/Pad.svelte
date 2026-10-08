@@ -45,6 +45,12 @@
      * not a line over the label, so the pad stays one line ("Main C"). Off by default (the golden Stage sets it).
      */
     tagCorner?: boolean
+    /**
+     * A transport pad (Start / Stop, Sync Start, Sync Stop, Tap, Auto Fill on the Sections bank):
+     * a `util` or `start` pad draws in the hue of time (`--transport`), as its twin on the screen's
+     * transport, solid while running. Off by default (the golden Stage sets it on the Sections bank).
+     */
+    transport?: boolean
   }
 
   let {
@@ -58,12 +64,16 @@
     tipAction,
     onpress,
     tagCorner = false,
+    transport = false,
   }: Props = $props()
 
   let util = $derived(family === 'util' || family === 'start')
-  /** The hue token: the family's (`neutral` for utilities, `ok` for a running Start / Stop); a dark
-      pad takes the same hue's absent token (`absent-intro`, `absent-neutral`). */
-  let base = $derived(family === 'start' && state === 'running' ? 'ok' : util ? 'neutral' : family)
+  /** The hue token: the family's (`neutral` for utilities, `ok` for a running Start / Stop; with
+      `transport`, `transport` for both); a dark pad takes the same hue's absent token
+      (`absent-intro`, `absent-neutral`). */
+  let base = $derived(
+    util && transport ? 'transport' : family === 'start' && state === 'running' ? 'ok' : util ? 'neutral' : family,
+  )
   let hue = $derived(state === 'dark' ? `absent-${base}` : base)
   /** The glow token's hue: the neutral glow is the white one. */
   let glow = $derived(base === 'neutral' ? 't' : base)

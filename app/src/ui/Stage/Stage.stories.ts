@@ -173,12 +173,13 @@ export const PageSlot: Story = {
  *   phi⁴ step off its outer edge: the app bar (48: the page tabs, the helpers Metronome ▾, Unison,
  *   Panic, ?, the Launchkey and audio health) and the keys (78).
  * - **Hero** (1398 × 282), two tiers. The controls tier is a phi³ step off its bottom (67): its
- *   major part the transport, six glyph keys in the transport hue (amber), each a glyph band over
- *   its word, every word on one baseline, sized by use and consequence together (▶ ■ Start / Stop
- *   phi² units, its legend the action, the solid fill the state; Accomp and Sync Start 1, their
- *   bands empty; the Fill key 2, ▲ | ▼ its halves, so each is 1, one "Fill" under both; ◢ Fade 1;
- *   ⟲ Reset 1 at the far end behind a quarter-unit gutter, about a fib-21), the rest One Touch (its caption a narrow label cell, then
- *   1–4). The reading tier above (215) reads style → chord → section → next: the style line (‹
+ *   major part the transport, seven glyph keys in the hue of time (cyan, shared with the tempo's
+ *   + −, the metronome and the Sections bank's utility pads), each a glyph over its word, the glyph
+ *   showing the state, every word on one baseline, grouped by job (a fib-8 inside a group, a fib-13
+ *   between) and sized by use and consequence together (Start / Stop phi² units, ▶ outlined or ■
+ *   solid; Sync Start, Accomp, Fill Up, Fill Down and Fade 1 each, armed keys pulsing on the beat;
+ *   ⟲ Reset 1 at the far end behind a quarter-unit gutter, about a fib-21), the rest One Touch in
+ *   the style's violet (its caption a narrow label cell, then 1–4). The reading tier above (215) reads style → chord → section → next: the style line (‹
  *   name › as 32px squares, then category · metre right after ›) in a control-height band, a fib-8
  *   over the chord, a quarter off its left, then the section and the tempo (halves). Chord, Main B
  *   and the tempo are one size, their capitals filling the row (capped so "Am7" fits its column),
@@ -192,9 +193,10 @@ export const PageSlot: Story = {
  *   end; nine strips, each with its own foot: the part lamps under strips 1–4, then a sub-cut and
  *   the functions and the page button under strips 5–9; a parked strip is full width, so its
  *   button's word fits, drawn as a dotted ghost in the faded hue: absent, not live at zero); the rest
- *   knobs (its minor part, on top: a header band over eight knob cells, an unused knob phi² below
- *   a live one, each dial as big as its cell allows, its value under it, its name on one line
- *   under that: where the name doesn't fit, its first word, never a code) over pads (a header
+ *   knobs (its minor part, on top: a header band over eight knob cells of one width, assigned or
+ *   not, each dial the cell over phi, its value under it, its name on one line under that: where
+ *   the name doesn't fit, its first word, or as much of it as fits with a full stop, never a
+ *   code) over pads (a header
  *   band over a 4 × 4 grid; the queued pad's NEXT a corner tag, so the pad reads one line).
  * - **Groups**: each group is inset fib-13 from its block's cuts; inside it the cuts sit edge to
  *   edge. Size tokens come from each leaf's box (container query units). Every cell has a job; the
@@ -226,12 +228,12 @@ export const GoldenOverlay: Story = {
     await expect(canvasElement.querySelector('[data-golden-name="hero"] [aria-label$="Opens the quick sound list"]')).toBeNull()
     const strips = canvasElement.querySelector('[data-golden-name="strips"]')
     await expect(strips?.querySelectorAll('[aria-label$="Opens the quick sound list"]').length).toBe(4)
-    // The transport is six cells graded by use and consequence: Start / Stop phi² units (its legend
-    // the action), the Fill pair 2 (each Fill a unit, as wide as Accomp), Reset last behind a
-    // quarter-unit gutter (its cell a major third).
+    // The transport is seven cells graded by use and consequence: Start / Stop phi² units (its
+    // legend the action), Sync Start, Accomp, Fill Up, Fill Down and Fade a unit each, Reset last
+    // behind a quarter-unit gutter (its cell a major third).
     const transport = canvasElement.querySelector('[data-golden-name="transport"] [data-golden-slots="grid"]')
-    await expect(transport?.children.length).toBe(6)
-    await expect(transport?.getAttribute('data-weights')).toBe('phi2 unison unison octave unison major-third')
+    await expect(transport?.children.length).toBe(7)
+    await expect(transport?.getAttribute('data-weights')).toBe('phi2 unison unison unison unison unison major-third')
     // One Touch's caption is a narrow label cell, not a button-sized one: 1–4 take the width.
     const oneTouch = canvasElement.querySelector('[data-golden-name="one touch"] [data-golden-slots="grid"]')
     await expect(oneTouch?.getAttribute('data-weights')).toBe('octave phi2 phi2 phi2 phi2')
@@ -261,10 +263,10 @@ export const GoldenOverlay: Story = {
     // The style's category and metre follow its name on the style line.
     const styleLine = reading?.firstElementChild
     await expect(styleLine?.querySelector('.name + .glyph + .meta')?.textContent).toBe('Pop & Rock · 4/4')
-    // The knobs: an unused knob phi² below a live one; each value under its dial (not in the ring)
-    // and the name on one line under it.
+    // The knobs: every cell one width, assigned or not; each value under its dial (not in the
+    // ring) and the name on one line under it.
     const knobRow = canvasElement.querySelector('[data-golden-name="knob row"] [data-golden-slots="grid"]')
-    await expect(knobRow?.getAttribute('data-weights')).toBe('phi2 phi2 phi2 phi2 phi2 phi2 unison phi2')
+    await expect(knobRow?.getAttribute('data-weights')).toBe('unison unison unison unison unison unison unison unison')
     for (const knob of knobRow?.children ?? []) {
       await expect(knob.querySelector('[data-band="label-lines-2"]')).toBeNull()
       await expect(knob.querySelector('.ring-value')).toBeNull()
@@ -277,33 +279,34 @@ export const GoldenOverlay: Story = {
       await expect(fader.classList.contains('empty')).toBe(true)
       await expect(fader.querySelector('.meter-bg')).toBeNull()
     }
-    // Real layout only (jsdom has none): Tempo + and − each at least 44px on their short side; the
-    // next section a fib-8 under Main B, flush with its left edge; each Fill as wide as Accomp;
-    // Start / Stop phi of it; Reset a unit, behind a gutter wider than a fib-13.
+    // Real layout only (jsdom has none): Tempo + and − each at least 48px on their short side; the
+    // next section a fib-8 under Main B, flush with its left edge; the transport grouped by job, a
+    // fib-8 between the keys of a group and a fib-13 between groups; Reset a unit behind a gutter
+    // wider than a fib-13.
     const plus = canvasElement.querySelector('[aria-label="Tempo up (Scene Launch)"]')?.getBoundingClientRect()
     if (plus && plus.height > 0) {
-      await expect(Math.min(plus.width, plus.height)).toBeGreaterThanOrEqual(44)
+      await expect(Math.min(plus.width, plus.height)).toBeGreaterThanOrEqual(48)
       const section = canvasElement.querySelector('.section .stand')?.getBoundingClientRect()
       const line = next?.getBoundingClientRect()
       await expect(Math.round((line?.top ?? 0) - (section?.bottom ?? 0))).toBe(8)
       await expect(Math.round((line?.left ?? 0) - (section?.left ?? 0))).toBe(0)
-      const [start, accomp, , fills, fade, reset] = [...(transport?.children ?? [])].map((c) => c.getBoundingClientRect())
-      const fill = fills.width / 2
-      await expect(fill).toBeGreaterThanOrEqual(accomp.width - 1)
-      // Each key is drawn a fib-3 gutter inside its cell: compare the cells.
-      await expect((start.width + 3) / (accomp.width + 3)).toBeCloseTo(2.618, 1)
-      await expect(Math.abs(reset.width - accomp.width)).toBeLessThanOrEqual(1)
+      const [start, sync, accomp, up, down, fade, reset] = [...(transport?.children ?? [])].map((c) =>
+        c.getBoundingClientRect(),
+      )
+      const gaps = [sync.left - start.right, accomp.left - sync.right, up.left - accomp.right, down.left - up.right, fade.left - down.right]
+      await expect(gaps.map(Math.round)).toEqual([8, 13, 13, 8, 8])
+      // Start / Stop phi² of a unit: compare the cells (each key less half of each gap).
+      await expect((start.width + 4) / (sync.width + 10.5)).toBeCloseTo(2.618, 1)
       await expect(reset.left - fade.right).toBeGreaterThanOrEqual(20)
       // No dead band over the heroes: they start a fib-8 under the style line.
       const styleBand = reading?.firstElementChild?.getBoundingClientRect()
       await expect(Math.round((section?.top ?? 0) - (styleBand?.bottom ?? 0))).toBe(8)
       // The beat bar reads from across the room: each bar a fib-13 deep.
       await expect(canvasElement.querySelector('.beat:not(.now)')?.getBoundingClientRect().height).toBe(13)
-      // One shared baseline: every transport word (the Fill pair's one "Fill" too) has the same
-      // foot, and every glyph band the same top; the + / − column has a hard fib-8 gap, each half
-      // at least a transport key's height.
+      // One shared baseline: every transport word has the same foot, and every glyph band the same
+      // top; the + / − column has a hard fib-8 gap, each half at least a transport key's height.
       const words = [...(transport?.querySelectorAll('.key-word') ?? [])].map((w) => w.getBoundingClientRect())
-      await expect(words).toHaveLength(6)
+      await expect(words).toHaveLength(7)
       for (const w of words) await expect(Math.abs(w.bottom - words[0].bottom)).toBeLessThan(0.5)
       const bands = [...(transport?.querySelectorAll('.band') ?? [])].map((b) => b.getBoundingClientRect())
       for (const b of bands) await expect(Math.abs(b.top - bands[0].top)).toBeLessThan(0.5)
@@ -311,16 +314,37 @@ export const GoldenOverlay: Story = {
       await expect(Math.round((minus?.top ?? 0) - plus.bottom)).toBe(8)
       await expect(plus.height).toBeGreaterThanOrEqual(accomp.height)
     }
-    // The transport's keys are glyph keys in the transport hue: ▶ ■ over Start / Stop, ▲ | ▼ the
-    // Fill key's halves under one "Fill", ◢ Fade, ⟲ Reset; Accomp and Sync Start keep an empty band.
+    // The transport's keys are glyph keys in the hue of time, one glyph on every key (the state in
+    // the glyph: ■ while playing), each Fill its own key and word; on the board Main C lands after
+    // a fill, so Fill Up is armed.
     const glyphs = [...(transport?.querySelectorAll('.band') ?? [])].map((b) => b.querySelectorAll('svg').length)
-    await expect(glyphs).toEqual([2, 0, 0, 1, 1, 0, 1, 1])
-    const fillKey = transport?.querySelector('[role="group"][aria-label="Fill"]')
-    await expect(fillKey?.querySelectorAll('.key-word').length).toBe(1)
-    await expect(fillKey?.querySelector('.key-word')?.textContent).toBe('Fill')
-    for (const key of transport?.querySelectorAll('button') ?? []) {
-      await expect((key as HTMLElement).style.getPropertyValue('--hue')).toBe('var(--transport)')
-    }
+    await expect(glyphs).toEqual([1, 1, 1, 1, 1, 1, 1])
+    const keys = [...(transport?.children ?? [])]
+    await expect(keys.map((k) => k.querySelector('.key-word')?.textContent)).toEqual([
+      'Start / Stop',
+      'Sync Start',
+      'Accomp',
+      'Fill Up',
+      'Fill Down',
+      'Fade',
+      'Reset',
+    ])
+    await expect(keys[3]).toHaveAttribute('data-face', 'armed')
+    for (const key of keys) await expect((key as HTMLElement).style.getPropertyValue('--hue')).toBe('var(--transport)')
+    // One hue a meaning, shared with the pads: the Sections bank's utility pads (the transport's
+    // twins) in the hue of time, Start / Stop too; One Touch in the style's violet; the function
+    // lamps and the page button in the lamp's lime; nothing clickable outlined white.
+    const padGrid = canvasElement.querySelector('[data-golden-name="pad grid"]')
+    const twins = [...(padGrid?.querySelectorAll('button') ?? [])].filter((b) =>
+      ['Sync Start', 'Auto Fill', 'Tap', 'Sync Stop'].includes(b.textContent?.trim() ?? ''),
+    )
+    await expect(twins).toHaveLength(4)
+    for (const pad of twins) await expect(pad).toHaveAttribute('data-hue', 'transport')
+    await expect(padGrid?.querySelector('[aria-label^="Start / Stop"]')).toHaveAttribute('data-hue', 'transport')
+    for (const n of oneTouch?.querySelectorAll('button') ?? []) await expect(n).toHaveAttribute('data-hue', 'a')
+    const feet = [...(stripGrid?.querySelectorAll('.foot button') ?? [])].slice(4)
+    await expect(feet.length).toBe(5)
+    for (const f of feet) await expect(f).toHaveAttribute('data-hue', 'lamp')
   },
 }
 
@@ -335,9 +359,120 @@ export const GoldenSmall: Story = {
 }
 
 /**
+ * The golden layout stopped, Sync Start armed: Start / Stop outlined with ▶, Sync Start's ring
+ * pulsing at the tempo (no beat comes while stopped), its pad twin armed in the same hue; the
+ * reading tier says "Sync Start armed".
+ */
+export const GoldenSyncStart: Story = {
+  name: 'Golden › Sync Start armed',
+  args: {
+    ...stageStopped,
+    layout: 'golden',
+    overlay: false,
+    sectionRow: { ...stageStopped.sectionRow, syncStart: true },
+    display: { ...stageStopped.display, nowPlaying: { ...stageStopped.display.nowPlaying, syncStart: true } },
+    pads: {
+      ...stageStopped.pads,
+      pads: stageStopped.pads.pads.map((pad) =>
+        pad.label === 'Sync Start' ? { ...pad, state: 'armed' as const, name: 'Sync Start, armed' } : pad,
+      ),
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const transport = canvasElement.querySelector('[data-golden-name="transport"] [data-golden-slots="grid"]')
+    const keys = [...(transport?.children ?? [])]
+    await expect(keys[0]).toHaveAttribute('data-face', 'off')
+    await expect(keys[1]).toHaveAttribute('data-face', 'armed')
+    await expect(keys[1]).toHaveAttribute('data-pulse', 'free')
+  },
+}
+
+/**
+ * The golden layout fading out: Fade solid, its ◣ wedge 40% drained (`fadeProgress`), the board's
+ * Fill Up armed for Main C.
+ */
+export const GoldenFading: Story = {
+  name: 'Golden › fading',
+  args: {
+    layout: 'golden',
+    overlay: false,
+    sectionRow: { ...stageBoard.sectionRow, fading: true, fadeProgress: 0.4 },
+  },
+  play: async ({ canvasElement }) => {
+    const fade = canvasElement.querySelector('[data-golden-name="transport"] [data-golden-slots="grid"]')?.children[5]
+    await expect(fade).toHaveAttribute('data-face', 'on')
+    await expect(fade?.querySelector('svg')).toHaveAttribute('data-drain', '0.60')
+  },
+}
+
+/** All eight knobs assigned, with the longest names the app gives them (panels/stage/model.ts). */
+const fullKnobs = [
+  { label: 'Dynamics', code: 'DynCtrl', value: '127', fraction: 1 },
+  { label: 'Retrig rate', code: 'RtgRate', value: '1/16', fraction: 0.6 },
+  { label: 'Retrigger', code: 'RtgOnOff', value: 'Off', fraction: 0 },
+  { label: 'Harm level', code: 'HarmVol', value: '100', fraction: 0.79 },
+  { label: 'Click level', code: 'MetVol', value: '64', fraction: 0.5 },
+  { label: 'Harm/Arp', code: 'HarmArp', value: 'On', fraction: 1 },
+  { label: 'Mute B', code: 'StyMuteB', value: 'Off', fraction: 0 },
+  { label: 'Tempo', code: 'Tempo', value: '288', fraction: 1 },
+]
+
+/** The worst case for the reading tier and the knobs: Ending III at 288 BPM, eight knobs assigned. */
+const crowded = {
+  layout: 'golden' as const,
+  overlay: true,
+  knobs: { ...stageBoard.knobs, knobs: fullKnobs },
+  display: {
+    ...stageBoard.display,
+    nowPlaying: { ...stageBoard.display.nowPlaying, playing: 'Ending III', hue: 'ending' as const, next: '', fill: '', bpm: 288 },
+  },
+}
+
+/** Checks the crowded board in real layout: nothing overflows, no two knob names or dials touch. */
+async function crowdedPlay({ canvasElement }: { canvasElement: HTMLElement }) {
+  const overlay = canvasElement.querySelector('[data-golden="overlay"]')
+  await waitFor(() => expect(overlay?.getAttribute('data-rows-off')).toBe('0'))
+  const row = canvasElement.querySelector('[data-golden-name="knob row"] [data-golden-slots="grid"]')
+  await expect(row?.getAttribute('data-weights')).toBe('unison unison unison unison unison unison unison unison')
+  const names = [...(row?.querySelectorAll('.text.name > span:first-child') ?? [])].map((s) => s.getBoundingClientRect())
+  if (!names.length || names[0].width === 0) return
+  await waitFor(() => expect(overlay?.getAttribute('data-overflow')).toBe('0'))
+  for (let i = 1; i < names.length; i++) await expect(names[i].left - names[i - 1].right).toBeGreaterThanOrEqual(5)
+  const dials = [...(row?.querySelectorAll('.dial button') ?? [])].map((d) => d.getBoundingClientRect())
+  for (let i = 1; i < dials.length; i++) await expect(dials[i].left - dials[i - 1].right).toBeGreaterThan(5)
+  // The tempo's cell holds what it shows and ends on the frame's right edge: no void beside it.
+  const tempo = canvasElement.querySelector('.reading.tempo')?.getBoundingClientRect()
+  const minus = canvasElement.querySelector('[aria-label="Tempo down (Function)"]')?.getBoundingClientRect()
+  await expect(Math.abs((tempo?.right ?? 0) - (minus?.right ?? 0))).toBeLessThanOrEqual(1)
+}
+
+/**
+ * The golden layout crowded, at 1440 × 900: all eight knobs assigned with the app's longest names
+ * (every cell one width, the dial the cell over phi, a name that doesn't fit its short name), Ending
+ * III playing at 288 BPM. The overlay must find nothing overflowing and no two names touching.
+ */
+export const GoldenCrowded: Story = {
+  name: 'Golden › crowded',
+  args: crowded,
+  play: crowdedPlay,
+}
+
+/** The crowded board at 1280 × 800. */
+export const GoldenCrowdedSmall: Story = {
+  name: 'Golden › crowded, 1280 × 800',
+  args: crowded,
+  parameters: { screen: { width: 1280, height: 800 } },
+  play: crowdedPlay,
+}
+
+/**
  * The golden layout, interactive: the Playground's wrapper (StagePlayground) in `layout="golden"`.
  * Transport, tempo, One Touch, the part rows, faders, knobs and pads respond as in the Playground;
- * while running, a story-only ticker moves the beat bar. `overlay` draws the cuts over it.
+ * while running, a story-only ticker moves the beat bar. `overlay` draws the cuts over it. The
+ * transport's states: Start / Stop (▶ outlined, ■ solid), Sync Start (armed, pulsing; pad 4 the
+ * same switch), Fill ▲ / ▼ while running (queues the next Main up or down: that Fill armed, pulsing
+ * on the beat), Fade (running: solid, its wedge draining over four bars, then the band stops;
+ * stopped: armed, a fade-in for Start).
  */
 export const GoldenPlayground: Story = {
   args: { layout: 'golden', overlay: false },

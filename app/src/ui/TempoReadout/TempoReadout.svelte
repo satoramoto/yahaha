@@ -11,8 +11,9 @@
   `cells` (the golden Stage): it fills its container, which must be a size container
   (`container-type: size`). The number and its unit sit flush left on the container's foot, and
   + over − are one column right beside them (a fib-8 gap), standing on the same baseline, exactly
-  the number's cap height: two outlined neutral squares with a hard fib-8 gap between them (not a
-  shared border), the + and − drawn large at the numeral's stroke weight.
+  the number's cap height: two squares outlined in the hue of time (`--transport`, as the
+  transport and the metronome) with a hard fib-8 gap between them (not a shared border), the + and
+  − drawn large at the numeral's stroke weight, in the same hue.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -294,8 +295,8 @@
     min-width: 0;
     min-height: 0;
     font: inherit;
-    box-shadow: inset 0 0 0 var(--outline-width) var(--neutral);
-    color: var(--neutral);
+    box-shadow: inset 0 0 0 var(--outline-width) var(--transport);
+    color: var(--transport);
   }
   /* The + and − drawn large, at the numeral's stroke weight (the light face's stem, 0.075 of its
      size, measured on "1"): bars a golden major of the half long, in the face's own ink, so the

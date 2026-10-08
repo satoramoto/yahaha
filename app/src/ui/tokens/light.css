@@ -28,7 +28,7 @@
   --rec: var(--red-700);
   --warn: var(--orange-700);
   --ok: var(--green-700);
-  --transport: var(--amber-700);
+  --transport: var(--cyan-800);
 
   /* The state language: as dark. Light hues are dark, so the ink on a fill is white. */
   --neutral: var(--t);

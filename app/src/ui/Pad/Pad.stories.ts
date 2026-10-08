@@ -30,6 +30,7 @@ const meta = {
     state: { control: 'select', options: ['idle', 'dark', 'playing', 'next', 'armed', 'running'] },
     lit: { control: 'boolean' },
     tagCorner: { control: 'boolean' },
+    transport: { control: 'boolean' },
     name: { control: 'text' },
     tip: { control: 'text' },
   },
@@ -123,6 +124,32 @@ export const Running: Story = {
   args: { label: 'Start / Stop', index: '16', family: 'start', state: 'running', name: 'Start / Stop, running (pad 16)' },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('button')).toHaveAttribute('data-hue', 'ok')
+  },
+}
+
+/**
+ * A transport pad (`transport`, the golden Stage's Sections bank): Start / Stop running in the hue
+ * of time, as its twin on the screen's transport, not green.
+ */
+export const TransportRunning: Story = {
+  args: {
+    label: 'Start / Stop',
+    index: '16',
+    family: 'start',
+    state: 'running',
+    transport: true,
+    name: 'Start / Stop, running (pad 16)',
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button')).toHaveAttribute('data-hue', 'transport')
+  },
+}
+
+/** Sync Start armed on a transport pad: the hue of time's 2px ring and faint fill, ARMED. */
+export const TransportArmed: Story = {
+  args: { label: 'Sync Start', index: '4', family: 'util', state: 'armed', transport: true, name: 'Sync Start, armed' },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button')).toHaveAttribute('data-hue', 'transport')
   },
 }
 

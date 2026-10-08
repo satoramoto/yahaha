@@ -22,6 +22,7 @@
   --absent-ending: color-mix(in srgb, var(--ending) var(--absent-mix), var(--g));
   --absent-brk: color-mix(in srgb, var(--brk) var(--absent-mix), var(--g));
   --absent-fill: color-mix(in srgb, var(--fill) var(--absent-mix), var(--g));
+  --absent-transport: color-mix(in srgb, var(--transport) var(--absent-mix), var(--g));
   /* A control with no hue of its own (a disabled tab, a neutral button). */
   --absent: var(--absent-neutral);
 }

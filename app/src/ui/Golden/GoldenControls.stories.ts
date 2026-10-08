@@ -73,6 +73,30 @@ export const Knob: Story = {
 }
 
 /**
+ * One knob cell as the golden Stage draws it (round 7: `dial="phi"`, `shorten="word"`): the dial
+ * the cell's width over phi, the name and value lines a fib-5 short of the neighbours; a name that
+ * doesn't fit shows its first word, or as much of it as fits with a full stop ("Dynamics" →
+ * "Dynam."), the full name in its title, never the code.
+ */
+export const KnobPhi: Story = {
+  name: 'Knob › phi dial, short name',
+  args: { ...Knob.args, label: 'Dynamics', code: 'DynCtrl', value: '127', fraction: 1, dial: 'phi', shorten: 'word' },
+  argTypes: {
+    ...Knob.argTypes,
+    dial: { control: 'inline-radio', options: ['fill', 'phi'] },
+    shorten: { control: 'inline-radio', options: ['code', 'word'] },
+  },
+  play: async ({ canvasElement }) => {
+    const [outer] = canvasElement.querySelectorAll('[data-golden-slots="cut"][data-band="label-height"][data-from="bottom"]')
+    const name = outer?.children[0] as HTMLElement
+    const shown = name.querySelector('span')?.textContent?.trim() ?? ''
+    // Never the code: the name, or a stand-in made of its own letters.
+    await expect(shown).not.toBe('DynCtrl')
+    await expect('Dynamics'.startsWith(shown.replace(/\.$/, ''))).toBe(true)
+  },
+}
+
+/**
  * One knob cell as the golden Stage draws it (`lines={2}`, `valueInside`): the name in a band two
  * lines deep, wrapping onto the second line rather than shortening to its code, and the value in
  * the ring's hollow, so the dial grows into the value's band.

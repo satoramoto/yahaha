@@ -37,6 +37,7 @@ const meta = {
     label: { control: 'text' },
     orientation: { control: { type: 'inline-radio' }, options: ['horizontal', 'vertical'] },
     cells: { control: 'boolean' },
+    hue: { control: { type: 'inline-radio' }, options: ['neutral', 'a'] },
     name: { control: 'text' },
   },
 } satisfies Meta<typeof OneTouchPicker>
@@ -93,6 +94,25 @@ export const Cells: Story = {
     await expect(numbers[1]).toHaveAttribute('aria-pressed', 'true')
     await expect(numbers[3]).toBeDisabled()
     await expect(canvasElement.querySelector('.ots')).toBeNull()
+  },
+}
+
+/**
+ * Cells in the style's violet (`hue` a), as on the golden Stage: a One Touch is a setting of the
+ * style, so its numbers take the style's hue, outlined, the applied one solid.
+ */
+export const CellsViolet: Story = {
+  args: { applied: 2, count: 4, cells: true, hue: 'a' },
+  parameters: { sample: { width: 610, height: 55 } },
+  render: (args) => ({
+    Component: GoldenGrid,
+    // GoldenGrid hosts the story; Storybook types `props` as OneTouchPicker's.
+    props: { columns: 5, name: 'One Touch', children: inGrid(args) } as unknown as typeof args,
+  }),
+  play: async ({ canvasElement }) => {
+    const numbers = within(canvasElement).getAllByRole('button')
+    for (const n of numbers) await expect(n.style.getPropertyValue('--hue')).toBe('var(--a)')
+    await expect(numbers[1]).toHaveAttribute('data-face', 'on')
   },
 }
 

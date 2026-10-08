@@ -28,6 +28,8 @@
      * in the absent strength. `orientation` and `name` are unused: the parent supplies the group role and name.
      */
     cells?: boolean
+    /** Cells: the numbers' hue, `neutral` or `a` (the style's violet: a One Touch is a setting of the style; the golden Stage). */
+    hue?: 'neutral' | 'a'
     /** The group's accessible name. Default: says which is applied and the Launchkey's Shift + pads 9 to 12. */
     name?: string
     /** The app's tooltip action (`use:tip`), applied to each number with its key `ots.<n>`. */
@@ -43,6 +45,7 @@
     label = 'One Touch',
     orientation = 'horizontal',
     cells = false,
+    hue = 'neutral',
     name,
     tipAction,
     onapply,
@@ -72,6 +75,9 @@
       aria-pressed={n === applied}
       aria-label={n === applied ? `One Touch ${n}, applied (Shift + pad ${n + 8})` : `Apply One Touch ${n} (Shift + pad ${n + 8})`}
       data-face={cells ? (n > count ? 'disabled' : n === applied ? 'on' : 'off') : n === applied ? 'chosen' : 'off'}
+      data-hue={cells ? hue : undefined}
+      style:--hue={cells ? `var(--${hue})` : undefined}
+      style:--hue-absent={cells ? `var(--absent-${hue})` : undefined}
       data-tip="ots.{n}"
       use:tipOn={`ots.${n}`}
       onclick={() => onapply?.(n)}>{n}</button
@@ -159,8 +165,8 @@
     letter-spacing: var(--tracking-text);
   }
   /* Cells: the label a plain caption flush left; each number a face in the state language (square,
-     off a 1px inset --neutral outline and digit, on solid --neutral with --on-ink, disabled the
-     absent strength). */
+     off a 1px inset outline and digit in the hue (--hue: `hue`, --neutral by default), on solid in
+     it with --on-ink, disabled its absent strength). */
   .label.cell {
     justify-content: flex-start;
     color: var(--caption-ink);
@@ -169,17 +175,17 @@
     padding: 0;
     border-radius: 0;
     background: transparent;
-    box-shadow: inset 0 0 0 var(--outline-width) var(--neutral);
-    color: var(--neutral);
+    box-shadow: inset 0 0 0 var(--outline-width) var(--hue);
+    color: var(--hue);
     text-decoration: none;
   }
   .number.cell[data-face='on'] {
-    background: var(--neutral);
+    background: var(--hue);
     color: var(--on-ink);
   }
   .number.cell:disabled {
-    box-shadow: inset 0 0 0 var(--outline-width) var(--absent-neutral);
-    color: var(--absent-neutral);
+    box-shadow: inset 0 0 0 var(--outline-width) var(--hue-absent);
+    color: var(--hue-absent);
   }
   .number:focus-visible {
     outline: var(--line-width) solid var(--focus);
