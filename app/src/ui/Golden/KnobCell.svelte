@@ -60,9 +60,11 @@
      * ("RtgRate"); `word`, a human short name, the name's first word ("Retrig rate" → "Retrig"),
      * never cut short with a full stop, so no cryptic code is shown (the golden Stage). A one-word
      * name that doesn't fit stays whole: its cell needs the room. The full name is in the title
-     * either way.
+     * either way. `ellipsis`: no stand-in; the name and the value each one line, cut short with an
+     * ellipsis a fib-8 short of the cell (half each side), the full name always in the title (the
+     * golden Stage, designer pass).
      */
-    shorten?: 'code' | 'word'
+    shorten?: 'code' | 'word' | 'ellipsis'
     /**
      * The dial's size. `fill` (the default): as big as the cell allows, less a fib-3 gutter. `phi`:
      * the cell's width over phi (or its height, if less), so the gutter between two dials falls out
@@ -98,9 +100,13 @@
   /** The name's stand-in when it doesn't fit: the code, or the name's first word. Empty: none (the name stays). */
   let brief = $derived.by(() => {
     if (shorten === 'code') return code
+    if (shorten === 'ellipsis') return ''
     const word = label.trim().split(/\s+/)[0] ?? ''
     return word === label.trim() ? '' : word
   })
+
+  /** `shorten="ellipsis"`: the name and value cut short with an ellipsis, the full name in the title. */
+  let clamp = $derived(shorten === 'ellipsis')
 
   /** Knob's own spoken name: the value is shown in its own band, so the dial carries none. */
   let spoken = $derived(unused ? 'unused' : `${label}${code ? ` (${code})` : ''} ${value}${unit}`)
@@ -150,17 +156,17 @@
   })
 </script>
 
-<div class="cell" class:phi={dial === 'phi'} class:fib={dial === 'fib'} lang="en">
+<div class="cell" class:phi={dial === 'phi'} class:fib={dial === 'fib'} class:clamp={clamp} lang="en">
   <GoldenBand size={lines === 2 ? 'label-lines-2' : 'label-height'} from="bottom" name="knob" {overlay}>
     <div
       class="text name"
       class:unused
       class:two={lines === 2}
       bind:this={box}
-      title={short ? label : undefined}
+      title={short || clamp ? label : undefined}
       aria-hidden="true"
     >
-      <span>{short ? stand : label}</span>
+      <span data-golden-ellipsis={clamp || undefined}>{short ? stand : label}</span>
       <span class="probe"><span class="measure" bind:this={measure}>{label}</span></span>
     </div>
     {#if valueInside}
@@ -172,7 +178,7 @@
     {:else}
       <GoldenBand size="label-height" from="bottom">
         <div class="text value" class:unused aria-hidden="true">
-          <span>{unused ? '' : value}{unused ? '' : unit}</span>
+          <span data-golden-ellipsis={clamp || undefined}>{unused ? '' : value}{unused ? '' : unit}</span>
         </div>
         <div class="dial">
           <Knob {label} {code} value="" unit="" {fraction} {unused} name={spoken} {tip} {tipAction} {onpress} {onstep} />
@@ -236,6 +242,10 @@
   .phi .text,
   .fib .text {
     padding-inline: calc(var(--fib-5) / 2);
+  }
+  /* `shorten="ellipsis"`: the name and value lines a fib-8 short of the cell (half each side). */
+  .clamp .text {
+    padding-inline: calc(var(--fib-8) / 2);
   }
 
   /* The value inside the ring: one grid cell with the Knob, as big as the ring, standing on the

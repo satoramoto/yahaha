@@ -65,6 +65,7 @@ A professional review's six changes, nothing else moved (round 8's split kept). 
 - **"BPM".** 32px (the `large` role) in the numeral's white, on its baseline, a fib-13 after the numeral and a fib-21 before the + − column (`TempoReadout unitLarge`). The tempo's cell narrows by 32px at 1440, which the section takes.
 - **Chord to section.** Half the heroes' row between the chord's block and the section's (58px at 1440, 50 at 1280), the chord's fib-13 gutter plus an inset on the section's cell, so "Am7" and "Main B" read as two words; Main B and its "then …" line move right together. No type size changed.
 - **Fader sound names.** Each centred over its own strip, at most the strip less 6px (69px at 1440), wrapping to two 13px lines in a two-line band (`FaderCell soundLines={2}`, 32px, 8px over the old tab-block taken from the track), cut short with an ellipsis only after the second line. "Stage Grand" and "Brass Section" now read whole.
+- **Knobs.** Each dial the cell over phi (`KnobCell dial="phi"`): 52px at 1440 (84/φ), 46 at 1280, on the same 84 / 74 slot pitch, so 32px and 28 lie between two dials (round 8's 71px dials left 13). The value and the name are one line each, at most the cell less a fib-8 (76px at 1440), cut short with an ellipsis, the full name always in the title (`shorten="ellipsis"`). The crowded stories check it, and "Golden › crowded, 14-character names" has eight names of about 14 characters, each cut short.
 
 ## Vocabulary
 

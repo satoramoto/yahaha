@@ -38,9 +38,9 @@
     each with its own foot (the part lamps under the part strips, then a sub-cut and the functions
     and the page button), so every lamp sits on its fader's column. The right half (699) is cut
     minor off the top into knobs (a header band over eight knob cells of one width, 84 px at 1440
-    and 74 at 1280, assigned or not, each dial as big as the cell allows less a fib-13 gutter, 71
-    px and 60, each value under its dial and the whole name on one line under that; where a name
-    still doesn't fit, its first word, never a full stop or a code) over pads (a header band over a 4 × 4
+    and 74 at 1280, assigned or not, each dial the cell over phi, 52 px and 46 (designer pass),
+    each value under its dial and the name on one line under that, each cut short with an ellipsis
+    a fib-8 short of the cell, the full name in the title) over pads (a header band over a 4 × 4
     grid; the queued pad's NEXT a corner tag, so the pad stays one line). Each part's sound sits
     on its strip in the part's hue, centred, the strip less 6px wide, wrapping to two lines before
     an ellipsis (FaderCell `soundLines`, designer pass); a parked strip is a dotted ghost in
@@ -169,9 +169,10 @@
   /**
    * Every knob cell one width, assigned or not (round 7: the row only worked while one knob was
    * unassigned and shrunk; with all eight assigned, the usual case, dials and names collided). The
-   * dial is as big as the cell allows less a fib-13 gutter (round 8: the cell over phi left it
-   * small), and a name that doesn't fit its line shows its first word (KnobCell `dial="fib"`,
-   * `shorten="word"`).
+   * dial is the cell over phi (52 px at 1440, designer pass: the round 8 dials left 4–14 px
+   * between knobs), and the value and the name are one line each, cut short with an ellipsis a
+   * fib-8 short of the cell, the full name in the title (KnobCell `dial="phi"`,
+   * `shorten="ellipsis"`).
    */
   const knobWeights: Interval[] = $derived(p.knobs.knobs.map(() => 'unison'))
   /**
@@ -478,8 +479,8 @@
                       unit={knob.unit}
                       fraction={knob.fraction}
                       unused={knob.unused}
-                      shorten="word"
-                      dial="fib"
+                      shorten="ellipsis"
+                      dial="phi"
                       tip="knobs.knob"
                       tipAction={p.tipAction}
                       onpress={() => p.onknobpress?.(i)}

@@ -453,23 +453,32 @@ const crowded = {
 }
 
 /** Checks the crowded board in real layout: nothing overflows, no two knob names or dials touch. */
-async function crowdedPlay({ canvasElement }: { canvasElement: HTMLElement }) {
+async function crowdedPlay({ canvasElement, args }: { canvasElement: HTMLElement; args: { knobs?: { knobs: { label: string }[] } } }) {
   const overlay = canvasElement.querySelector('[data-golden="overlay"]')
   await waitFor(() => expect(overlay?.getAttribute('data-rows-off')).toBe('0'))
   const row = canvasElement.querySelector('[data-golden-name="knob row"] [data-golden-slots="grid"]')
   await expect(row?.getAttribute('data-weights')).toBe('unison unison unison unison unison unison unison unison')
-  const names = [...(row?.querySelectorAll('.text.name > span:first-child') ?? [])].map((s) => s.getBoundingClientRect())
+  // Each name and value one line, its full name in the title (designer pass).
+  const labels = (args.knobs?.knobs ?? []).map((k) => k.label)
+  const nameLines = [...(row?.querySelectorAll<HTMLElement>('.text.name > span:first-child') ?? [])]
+  await expect(nameLines.map((s) => s.textContent?.trim())).toEqual(labels)
+  await expect(nameLines.map((s) => s.parentElement?.title)).toEqual(labels)
+  const names = nameLines.map((s) => s.getBoundingClientRect())
   if (!names.length || names[0].width === 0) return
   await waitFor(() => expect(overlay?.getAttribute('data-overflow')).toBe('0'))
-  for (let i = 1; i < names.length; i++) await expect(names[i].left - names[i - 1].right).toBeGreaterThanOrEqual(5)
-  // Every name whole on one line at both sizes (round 8: the knobs have half the band), never a
-  // word cut short with a full stop.
-  const shown = [...(row?.querySelectorAll('.text.name > span:first-child') ?? [])].map((s) => s.textContent?.trim())
-  await expect(shown).toEqual(fullKnobs.map((k) => k.label))
-  // The dials big again: as wide as the cell allows less a fib-13 gutter, at least 56 px.
+  // Every name and value within its cell less a fib-8, cut short with an ellipsis where it doesn't
+  // fit, so two never touch.
+  const cells = [...(row?.children ?? [])].map((c) => c.getBoundingClientRect())
+  const values = [...(row?.querySelectorAll('.text.value > span') ?? [])].map((s) => s.getBoundingClientRect())
+  for (const [i, c] of cells.entries()) {
+    await expect(names[i].width).toBeLessThanOrEqual(c.width - 8 + 0.5)
+    await expect(values[i].width).toBeLessThanOrEqual(c.width - 8 + 0.5)
+  }
+  for (let i = 1; i < names.length; i++) await expect(names[i].left - names[i - 1].right).toBeGreaterThanOrEqual(7.5)
+  for (const s of nameLines) await expect(s.scrollHeight).toBeLessThanOrEqual(s.clientHeight + 1)
+  // The dials the cell over phi (52 px at 1440), the slot pitch kept.
   const dials = [...(row?.querySelectorAll('.dial button') ?? [])].map((d) => d.getBoundingClientRect())
-  for (const d of dials) await expect(d.width).toBeGreaterThanOrEqual(56)
-  for (let i = 1; i < dials.length; i++) await expect(dials[i].left - dials[i - 1].right).toBeGreaterThanOrEqual(12.5)
+  for (const [i, d] of dials.entries()) await expect(d.width).toBeCloseTo(cells[i].width / 1.618, 0)
   // The tempo's cell holds what it shows and ends on the frame's right edge: no void beside it.
   const tempo = canvasElement.querySelector('.reading.tempo')?.getBoundingClientRect()
   const minus = canvasElement.querySelector('[aria-label="Tempo down (Function)"]')?.getBoundingClientRect()
@@ -488,9 +497,9 @@ async function crowdedPlay({ canvasElement }: { canvasElement: HTMLElement }) {
 
 /**
  * The golden layout crowded, at 1440 × 900: all eight knobs assigned with the app's longest names
- * (every cell one width, the dial as big as the cell allows less a fib-13 gutter, every name whole),
- * Ending III playing at 288 BPM. The overlay must find nothing overflowing and no two names
- * touching.
+ * (every cell one width, the dial the cell over phi, each name and value one line, cut short with
+ * an ellipsis where it doesn't fit), Ending III playing at 288 BPM. The overlay must find nothing
+ * overflowing and no two names touching.
  */
 export const GoldenCrowded: Story = {
   name: 'Golden › crowded',
@@ -503,6 +512,25 @@ export const GoldenCrowdedSmall: Story = {
   name: 'Golden › crowded, 1280 × 800',
   args: crowded,
   parameters: { screen: { width: 1280, height: 800 } },
+  play: crowdedPlay,
+}
+
+/** Eight knob names of about 14 characters: each cut short with an ellipsis, its full name in the title. */
+const longKnobs = [
+  'Retrigger rate',
+  'Harmony volume',
+  'Metronome vol.',
+  'Arpeggio speed',
+  'Style mute B+C',
+  'Accomp. volume',
+  'Filter cut-off',
+  'Reverb send A1',
+].map((label, i) => ({ ...fullKnobs[i], label }))
+
+/** The crowded board with eight names of about 14 characters (the designer pass's test). */
+export const GoldenCrowdedLong: Story = {
+  name: 'Golden › crowded, 14-character names',
+  args: { ...crowded, knobs: { ...stageBoard.knobs, knobs: longKnobs } },
   play: crowdedPlay,
 }
 
