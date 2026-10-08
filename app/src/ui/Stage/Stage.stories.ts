@@ -190,7 +190,7 @@ export const PageSlot: Story = {
  *   in the numeral's white, on its baseline, a fib-13 after it and a fib-21 before + −. +
  *   over − are one column beside the tempo, exactly its cap height, two squares with a hard fib-8
  *   gap between. No parts block: each part's sound is on top of its own fader strip
- *   (Option C), in the part's hue, cut short with an ellipsis at its strip.
+ *   (Option C), in the part's hue, centred, wrapping to two lines before an ellipsis.
  * - **Band** (1398 × 456), halved (round 8): its left half the faders (a header band, the status
  *   line at its right end; nine strips, each with its own foot: the part lamps under strips 1–4,
  *   then a sub-cut and the functions and the page button under strips 5–9; a parked strip is full
@@ -296,6 +296,17 @@ export const GoldenOverlay: Story = {
       const chordText = document.createRange()
       chordText.selectNodeContents(canvasElement.querySelector('.leaf.chord .chord') as Node)
       await expect((section?.left ?? 0) - chordText.getBoundingClientRect().right).toBeGreaterThanOrEqual(55)
+      // Each part's sound centred over its own strip, at most the strip less 6px, wrapping to two
+      // 13px lines ("Brass Section" whole on two) before any ellipsis.
+      for (const strip of [...(stripGrid?.children ?? [])].slice(0, 4)) {
+        const s = strip.getBoundingClientRect()
+        const text = strip.querySelector('.sound .lines') as HTMLElement
+        const t = text.getBoundingClientRect()
+        await expect(t.width).toBeLessThanOrEqual(s.width - 6 + 0.5)
+        await expect(Math.abs((t.left + t.right) / 2 - (s.left + s.right) / 2)).toBeLessThan(1)
+        await expect(getComputedStyle(text).fontSize).toBe('13px')
+        await expect(text.scrollHeight).toBeLessThanOrEqual(text.clientHeight + 1)
+      }
       const [start, sync, accomp, up, down, fade, reset] = [...(transport?.children ?? [])].map((c) =>
         c.getBoundingClientRect(),
       )

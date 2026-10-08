@@ -61,6 +61,12 @@
     soundTip?: string
     /** Called when the sound is pressed (opens the part's sound list); without it the sound is plain text. */
     onsound?: () => void
+    /**
+     * The sound's lines: 1 (the default) cuts it short with an ellipsis on one line in a tab-block
+     * band; 2 wraps it to two lines of the small text in a two-line band, cut short only after the
+     * second (the golden Stage, designer pass).
+     */
+    soundLines?: 1 | 2
     /** Called when the strip's name is pressed (opens Channel); without it the name is plain text. */
     onopen?: () => void
     /** The name button's accessible name ("Right 1, Stage Grand: open Channel"). */
@@ -101,6 +107,7 @@
     soundName,
     soundTip,
     onsound,
+    soundLines = 1,
     onopen,
     openName,
     openTip,
@@ -182,8 +189,8 @@
 
 <div class="cell" class:parked>
   {#if sound !== undefined}
-    <GoldenBand size="tab-block" from="top" name="sound" {overlay}>
-      <div class="text sound" style:--hue={nameInk}>
+    <GoldenBand size={soundLines === 2 ? 'label-lines-2' : 'tab-block'} from="top" name="sound" {overlay}>
+      <div class="text sound" class:wrap={soundLines === 2} style:--hue={nameInk}>
         {#if parked}
           <span></span>
         {:else if onsound}
@@ -195,7 +202,8 @@
             aria-label={soundName ?? sound}
             data-tip={soundTip}
             use:tipped={soundTip}
-            onclick={() => onsound?.()}>{sound}</button
+            onclick={() => onsound?.()}
+            >{#if soundLines === 2}<span class="lines">{sound}</span>{:else}{sound}{/if}</button
           >
         {:else}
           <span title={sound} data-golden-ellipsis>{sound}</span>
@@ -307,6 +315,33 @@
     border: 0;
     background: none;
     cursor: pointer;
+  }
+  /* `soundLines={2}`: the name wraps to two lines, centred over the strip (still a fib-3 in from
+     each side), standing on the band's foot, and ends in an ellipsis only after the second line. */
+  .sound.wrap {
+    align-items: flex-end;
+  }
+  .sound.wrap > span,
+  .sound.wrap .sound-button {
+    max-width: calc(100% - 2 * var(--fib-3));
+  }
+  .sound.wrap .sound-button {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .sound.wrap > span,
+  .sound.wrap .lines {
+    display: -webkit-box;
+    min-width: 0;
+    max-height: 100%;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: break-word;
+    text-align: center;
   }
   .sound-button:hover {
     color: var(--t);

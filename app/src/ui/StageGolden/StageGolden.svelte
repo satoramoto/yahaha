@@ -42,7 +42,8 @@
     px and 60, each value under its dial and the whole name on one line under that; where a name
     still doesn't fit, its first word, never a full stop or a code) over pads (a header band over a 4 × 4
     grid; the queued pad's NEXT a corner tag, so the pad stays one line). Each part's sound sits
-    on its strip in the part's hue, cut short at the strip; a parked strip is a dotted ghost in
+    on its strip in the part's hue, centred, the strip less 6px wide, wrapping to two lines before
+    an ellipsis (FaderCell `soundLines`, designer pass); a parked strip is a dotted ghost in
     the faded hue (no track, no rails: absent things look absent).
   Each group sits in a `group` wrapper inset fib-13 from its block's cuts; inside a group the cuts
   sit edge to edge. The status line sits at the faders header's right end.
@@ -436,6 +437,7 @@
                       empty
                       tip={strip.tip}
                       sound={part?.sound ?? ''}
+                      soundLines={2}
                       soundName={part ? `${part.partName} sound: ${part.sound}. Opens the quick sound list` : undefined}
                       soundTip={part ? 'launchkey.fader_sound' : undefined}
                       onsound={part ? () => p.onsound?.(part.id) : undefined}
