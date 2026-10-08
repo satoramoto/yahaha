@@ -66,6 +66,12 @@
      * the action, "Start / Stop".
      */
     stateLegend?: boolean
+    /**
+     * Cells: a fib-8 between every two transport keys (no wider gap between groups), Fade's right
+     * side included, so keys in equal cells are one width; Reset keeps its `--reset-gap` (the
+     * golden Stage on the owner's wireframe). Off (the default): a fib-13 between groups.
+     */
+    evenGaps?: boolean
     /** Cells: how far the fade has gone, 0 to 1, while `fading` and running: Fade's wedge drains by as much. */
     fadeProgress?: number
     /** Cells: the fade under way (or waiting for Start) is a fade-in: Fade shows ◢ while fading even as the band plays. */
@@ -126,6 +132,7 @@
     plainQueue = false,
     evenKeys = false,
     stateLegend = false,
+    evenGaps = false,
     fadeProgress,
     fadeIn = false,
     running = false,
@@ -167,7 +174,7 @@
   /** The gap a key leaves to its neighbour: none (the row's end), in a group (fib-8), between groups (fib-13). */
   type Gap = 0 | 'in' | 'between'
 
-  const gapOf = (gap: Gap) => (gap === 0 ? '0px' : `calc(var(--fib-${gap === 'in' ? 8 : 13}) / 2)`)
+  const gapOf = (gap: Gap) => (gap === 0 ? '0px' : `calc(var(--fib-${gap === 'in' || evenGaps ? 8 : 13}) / 2)`)
   /** Restarts the pulse on every beat (two identical animations, alternating); free-running while stopped. */
   const pulse = $derived(beat > 0 ? (beat % 2 ? 'a' : 'b') : 'free')
   const syncFace: Face = $derived(syncStart ? 'armed' : 'off')
@@ -440,7 +447,7 @@
       () => onfade?.(),
       `Fade ${fadeOut ? 'out' : 'in'}${fading ? (running ? ', fading' : ', waiting for Start') : ''}`,
       'fade',
-      ['in', 0],
+      ['in', evenGaps ? 'in' : 0],
     )}
     {@render key(
       'Reset',

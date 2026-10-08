@@ -46,7 +46,11 @@
     spiralTurn?: Turn
     /** GoldenBand: the token the band is sized by. */
     size?: BandSize
-    /** GoldenBand: the fib step between the band and the rest. */
+    /** GoldenBand: the token scaled by this interval. */
+    times?: Interval
+    /** GoldenSplit: the strip holds this many boxes of its interval side by side. */
+    boxes?: number
+    /** GoldenBand, GoldenSplit: the fib step between the part taken and the rest. */
     gap?: Fib
     /** The leaves' inset, from the fib scale. */
     inset?: Fib
@@ -70,6 +74,8 @@
     spiralFrom,
     spiralTurn,
     size ='group-header-height',
+    times,
+    boxes,
     gap,
     inset,
     onreport,
@@ -99,7 +105,7 @@
   {#if primitive === 'box'}
     <GoldenBox shape={shape ?? 'phi'} {orient} {inset} {spiralFrom} {spiralTurn} name="box">{@render fill()}</GoldenBox>
   {:else if primitive === 'split'}
-    <GoldenSplit {take} {from} {shape} {orient} {inset} {spiralFrom} {spiralTurn} name="split">{@render fill()}</GoldenSplit>
+    <GoldenSplit {take} {from} {boxes} {gap} {shape} {orient} {inset} {spiralFrom} {spiralTurn} name="split">{@render fill()}</GoldenSplit>
   {:else if primitive === 'steps'}
     <GoldenSteps {step} {from} {shape} {orient} {inset} name="steps">{@render fill()}</GoldenSteps>
   {:else if primitive === 'spiral'}
@@ -111,7 +117,7 @@
   {:else if primitive === 'grid'}
     <GoldenGrid {columns} {rows} {cell} {weights} {shape} {orient} {inset} name="grid">{@render fill()}</GoldenGrid>
   {:else}
-    <GoldenBand {size} {from} {gap} {inset} name="band">{@render fill()}</GoldenBand>
+    <GoldenBand {size} {from} {times} {gap} {inset} name="band">{@render fill()}</GoldenBand>
   {/if}
 </GoldenOverlay>
 

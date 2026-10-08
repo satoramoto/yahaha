@@ -46,6 +46,8 @@ const meta = {
       control: 'select',
       options: ['bar-height', 'group-header-height', 'control-height', 'control-height-compact', 'tab-block', 'keys-height', 'chip-height-display'],
     },
+    times: { control: 'select', options: INTERVALS },
+    boxes: { control: { type: 'range', min: 1, max: 6, step: 1 } },
     gap: { control: 'select', options: FIBS },
     inset: { control: 'select', options: FIBS },
     weights: { control: 'object' },
@@ -171,5 +173,32 @@ export const Band: Story = {
   args: { primitive: 'band', size: 'group-header-height', from: 'top', gap: 'fib-8' },
   play: async ({ canvasElement }) => {
     await expect(slotsOf(canvasElement)?.dataset.band).toBe('group-header-height')
+  },
+}
+
+/** GoldenBand with `times`: a control-height band one golden step deeper (32 × phi = 52), the golden Stage's controls row. */
+export const BandTimes: Story = {
+  name: 'Band a golden step deeper',
+  args: { primitive: 'band', size: 'control-height', times: 'phi', from: 'top' },
+  play: async ({ canvasElement }) => {
+    const slots = slotsOf(canvasElement)
+    await expect(slots?.dataset.times).toBe('phi')
+    const band = slots?.firstElementChild?.getBoundingClientRect()
+    if (band && band.height > 0) await expect(band.height).toBeCloseTo(32 * 1.618034, 0)
+  },
+}
+
+/** GoldenSplit with `boxes`: a strip as deep as three phi boxes side by side across it (the golden Stage's display), a fib-21 before the rest. */
+export const SplitBoxes: Story = {
+  name: 'Split of three phi boxes',
+  args: { primitive: 'split', take: 'phi', boxes: 3, from: 'top', gap: 'fib-21' },
+  play: async ({ canvasElement }) => {
+    const slots = slotsOf(canvasElement)
+    await expect(slots?.dataset.boxes).toBe('3')
+    const [part, rest] = [...(slots?.children ?? [])].map((c) => c.getBoundingClientRect())
+    if (part && part.height > 0) {
+      await expect(part.width / part.height).toBeCloseTo(3 * 1.618034, 1)
+      await expect(Math.round(rest.top - part.bottom)).toBe(21)
+    }
   },
 }

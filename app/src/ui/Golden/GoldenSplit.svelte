@@ -8,11 +8,15 @@
   on the page's focus): a `major`/`minor` split's spiral otherwise starts from `from` and turns ccw,
   and with `spiralFrom` set any split gets a spiral, whatever it takes. They change nothing in the
   layout.
+  `boxes` (with an interval `take` of the cross size) makes the strip as deep as that many boxes of
+  the interval laid side by side across it: the golden Stage's display is three phi boxes across
+  the frame (`take="phi" boxes={3}`), its pads two rows of eight 6:5 pads (`take="minor-third"
+  boxes={4}`). `gap` keeps a fib step between the part taken and the rest (as GoldenBand's).
 -->
 <script lang="ts">
   import type { Snippet } from 'svelte'
   import GoldenFrame from './GoldenFrame.svelte'
-  import { ratioVar, type Fib, type GoldenReport, type Orient, type Ratio, type Side, type Take, type Turn } from './golden'
+  import { fibVar, ratioVar, type Fib, type GoldenReport, type Orient, type Ratio, type Side, type Take, type Turn } from './golden'
 
   type Props = {
     /** What is taken: `square`, `major`, `minor`, or an interval or shape (a strip that deep: the box's width over it). */
@@ -26,6 +30,13 @@
      * `square`, `major` and `minor` ignore it.
      */
     of?: 'cross' | 'length'
+    /**
+     * With an interval `take` of the cross size: the strip holds this many boxes of the interval
+     * side by side (its depth the cross size over the interval times `boxes`). 1 when absent.
+     */
+    boxes?: number
+    /** A fib step between the part taken and the rest. */
+    gap?: Fib
     /** Fit the split itself into its slot in this interval (contain); by default it fills the slot. */
     shape?: Ratio
     /** With `shape`: `wide` or `tall`. */
@@ -54,6 +65,8 @@
     take = 'square',
     from = 'top',
     of = 'cross',
+    boxes,
+    gap,
     shape,
     orient,
     inset,
@@ -76,7 +89,11 @@
         ? 'calc(100% / var(--interval-phi))'
         : take === 'minor'
           ? 'calc(100% / var(--interval-phi2))'
-          : `calc(${of === 'length' ? '100%' : cross} / ${ratioVar(take)})`,
+          : of === 'length'
+            ? `calc(100% / ${ratioVar(take)})`
+            : boxes !== undefined && boxes !== 1
+              ? `calc(${cross} / (${ratioVar(take)} * ${boxes}))`
+              : `calc(${cross} / ${ratioVar(take)})`,
   )
 </script>
 
@@ -93,6 +110,6 @@
   {onreport}
   {over}
   {children}
-  slotStyle={`--golden-take: ${size}`}
-  attrs={{ 'data-from': from, 'data-take': take, 'data-of': of }}
+  slotStyle={`--golden-take: ${size}${gap ? `; gap: ${fibVar(gap)}` : ''}`}
+  attrs={{ 'data-from': from, 'data-take': take, 'data-of': of, 'data-boxes': boxes !== undefined ? String(boxes) : undefined }}
 />
