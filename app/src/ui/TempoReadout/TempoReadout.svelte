@@ -39,6 +39,13 @@
     onreset?: () => void
     /** Fill the size container it sits in: the number on its foot, + over − as one square beside it, cut in half across. */
     cells?: boolean
+    /**
+     * With `cells`: the unit set large, a phi² step under the numeral (its size over phi², in the
+     * numeral's light face), on the numeral's baseline, a fib-13 after it, so the number, its unit
+     * and + − fill the tempo's cell (the golden Stage, round 8, at the owner's request). Off (the
+     * default): the unit in the small text.
+     */
+    unitLarge?: boolean
   }
 
   let {
@@ -52,6 +59,7 @@
     onminus,
     onreset,
     cells = false,
+    unitLarge = false,
   }: Props = $props()
 
   /** Pixels of drag per BPM. */
@@ -138,7 +146,7 @@
 </script>
 
 <div class="tempo" class:cells data-cells={cells || undefined}>
-  <span class="reading">
+  <span class="reading" class:large={cells && unitLarge}>
     <span
       class="bpm"
       bind:this={number}
@@ -267,6 +275,16 @@
     flex: none;
     gap: var(--fib-8);
     min-width: 0;
+  }
+  /* `unitLarge`: the unit a phi² step under the numeral (1em is the numeral's size here), in its
+     light face, a fib-13 after it, on the same baseline. */
+  .cells .reading.large {
+    gap: var(--fib-13);
+    font: var(--type-poster);
+  }
+  .cells .large .unit {
+    font: var(--weight-light) calc(1em / var(--interval-phi2)) / 1 var(--font-sans);
+    letter-spacing: var(--tracking-poster, normal);
   }
   /* The trimmed-off descent (no ink for digits or capitals) clipped, so it doesn't spill below. */
   .cells .bpm,

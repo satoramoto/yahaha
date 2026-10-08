@@ -28,17 +28,19 @@
     under it, one small line across: the chord's notes; what comes next, Main B's subtitle ("then
     ▬ Main C · fill after bar 4", the bar and Main C in its hue; a display, not a control); the
     beat bar (fib-13 bars, faded, the current beat the full hue, the downbeat taller and glowing
-    when current). + over − are one column beside the tempo, exactly its cap height, two squares
+    when current). "BPM" a phi² step under the numeral, on its baseline (round 8, the owner's
+    exception to "only hero values are large"). + over − are one column beside the tempo, exactly its cap height, two squares
     with a hard fib-8 gap between them (54 each at 1440), + and − at the numeral's stroke weight,
     in the hue of time. The function lamps and the page button light in the lamp's lime; the
     Sections bank's utility pads (the transport's twins) in the hue of time.
-  - Band (1398 × 456): its major part off the left is the faders (864): a header band over nine
-    strips, each with its own foot (the part lamps under the part strips, then a sub-cut and the
-    functions and the page button), so every lamp sits on its fader's column. The rest (534) is
-    cut minor off the top into knobs (a header band over eight knob cells of one width, assigned
-    or not, each dial the cell over phi, each value under its dial and the name on one line under
-    that: its first word, or as much of it as fits with a full stop, where the whole name doesn't
-    fit, never a code) over pads (a header band over a 4 × 4
+  - Band (1398 × 456), halved (round 8: eight whole knob names need 68 px a cell at 1280, and only
+    half the band gives it): its left half is the faders (699): a header band over nine strips,
+    each with its own foot (the part lamps under the part strips, then a sub-cut and the functions
+    and the page button), so every lamp sits on its fader's column. The right half (699) is cut
+    minor off the top into knobs (a header band over eight knob cells of one width, 84 px at 1440
+    and 74 at 1280, assigned or not, each dial as big as the cell allows less a fib-13 gutter, 71
+    px and 60, each value under its dial and the whole name on one line under that; where a name
+    still doesn't fit, its first word, never a full stop or a code) over pads (a header band over a 4 × 4
     grid; the queued pad's NEXT a corner tag, so the pad stays one line). Each part's sound sits
     on its strip in the part's hue, cut short at the strip; a parked strip is a dotted ghost in
     the faded hue (no track, no rails: absent things look absent).
@@ -166,8 +168,9 @@
   /**
    * Every knob cell one width, assigned or not (round 7: the row only worked while one knob was
    * unassigned and shrunk; with all eight assigned, the usual case, dials and names collided). The
-   * dial is the cell over phi, so the gutter between dials falls out of the ratio, and a name that
-   * doesn't fit its line shows its short name (KnobCell `dial="phi"`, `shorten="word"`).
+   * dial is as big as the cell allows less a fib-13 gutter (round 8: the cell over phi left it
+   * small), and a name that doesn't fit its line shows its first word (KnobCell `dial="fib"`,
+   * `shorten="word"`).
    */
   const knobWeights: Interval[] = $derived(p.knobs.knobs.map(() => 'unison'))
   /**
@@ -332,6 +335,7 @@
                     <div class="stand">
                       <TempoReadout
                         cells
+                        unitLarge
                         bpm={now.bpm}
                         tipAction={p.tipAction}
                         ontempo={p.ontempo}
@@ -363,7 +367,7 @@
         <div class="leaf keys" {@attach measureKeys}>
           <Keys {...p.keys} width={keysWidth} />
         </div>
-        <GoldenSplit take="major" from="left" name="band">
+        <GoldenSplit take="octave" of="length" from="left" name="band">
           <section class="group" aria-label="Faders">
             <GoldenBand size="group-header-height" from="top" name="faders">
               <div class="leaf header">
@@ -398,7 +402,7 @@
                     {@const part = parts.get(strip.id)}
                     {@const item = foot[i]}
                     {#snippet footOf()}
-                      <span class="foot" class:cut={i === footCut}>
+                      <span class="foot" class:cut={i === footCut - 1}>
                         {#if item === 'page'}
                           <Button
                             label={pageLabel}
@@ -473,7 +477,7 @@
                       fraction={knob.fraction}
                       unused={knob.unused}
                       shorten="word"
-                      dial="phi"
+                      dial="fib"
                       tip="knobs.knob"
                       tipAction={p.tipAction}
                       onpress={() => p.onknobpress?.(i)}
@@ -774,8 +778,10 @@
     overflow: hidden;
   }
 
-  /* A strip's foot: its lamp (or the page button) filling the strip's lamp band; the first
-     function starts a fib-13 sub-cut in, so a function never reads as a part's state. */
+  /* A strip's foot: its lamp (or the page button) filling the strip's lamp band; the last part
+     lamp stops a fib-13 sub-cut short, so a function never reads as a part's state. The sub-cut
+     comes off the part lamp ("On", "Off"), not the first function, whose word ("Harm/Arp") needs
+     the strip's whole width at 1280 (round 8: the band is halved). */
   .foot {
     display: grid;
     height: 100%;
@@ -786,7 +792,6 @@
   }
   .foot.cut {
     width: calc(100% - var(--fib-13));
-    margin-left: var(--fib-13);
   }
 
   /* A pad fills its cell, less the pads' gap. */

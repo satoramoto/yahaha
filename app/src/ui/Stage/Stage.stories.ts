@@ -186,17 +186,19 @@ export const PageSlot: Story = {
  *   on one shared line, flush left. A fib-8 under it, one small line across: the chord's notes;
  *   what comes next as Main B's subtitle ("then ▬ Main C · fill after bar 4", the bar and "Main C"
  *   in its hue: a display, not a control); the beat bar (fib-13 bars, faded, the current beat the
- *   full hue, the downbeat taller and glowing when current). + over − are one column beside the
- *   tempo, exactly its cap height, two squares with a hard fib-8 gap between. No parts block: each part's sound is on top of its own fader strip
+ *   full hue, the downbeat taller and glowing when current). "BPM" is a phi² step under the
+ *   numeral, on its baseline (round 8, the owner's exception to "only hero values are large"). +
+ *   over − are one column beside the tempo, exactly its cap height, two squares with a hard fib-8
+ *   gap between. No parts block: each part's sound is on top of its own fader strip
  *   (Option C), in the part's hue, cut short with an ellipsis at its strip.
- * - **Band** (1398 × 456): its major part the faders (a header band, the status line at its right
- *   end; nine strips, each with its own foot: the part lamps under strips 1–4, then a sub-cut and
- *   the functions and the page button under strips 5–9; a parked strip is full width, so its
- *   button's word fits, drawn as a dotted ghost in the faded hue: absent, not live at zero); the rest
- *   knobs (its minor part, on top: a header band over eight knob cells of one width, assigned or
- *   not, each dial the cell over phi, its value under it, its name on one line under that: where
- *   the name doesn't fit, its first word, or as much of it as fits with a full stop, never a
- *   code) over pads (a header
+ * - **Band** (1398 × 456), halved (round 8): its left half the faders (a header band, the status
+ *   line at its right end; nine strips, each with its own foot: the part lamps under strips 1–4,
+ *   then a sub-cut and the functions and the page button under strips 5–9; a parked strip is full
+ *   width, so its button's word fits, drawn as a dotted ghost in the faded hue: absent, not live at
+ *   zero); the right half knobs (its minor part, on top: a header band over eight knob cells of one
+ *   width, assigned or not, each dial as big as the cell allows less a fib-13 gutter, its value
+ *   under it, its whole name on one line under that, at 1440 and at 1280; where a name still
+ *   doesn't fit, its first word, never a full stop or a code) over pads (a header
  *   band over a 4 × 4 grid; the queued pad's NEXT a corner tag, so the pad reads one line).
  * - **Groups**: each group is inset fib-13 from its block's cuts; inside it the cuts sit edge to
  *   edge. Size tokens come from each leaf's box (container query units). Every cell has a job; the
@@ -330,6 +332,13 @@ export const GoldenOverlay: Story = {
       'Reset',
     ])
     await expect(keys[3]).toHaveAttribute('data-face', 'armed')
+    // The queued Fill is armed as Sync Start is: its ring, glyph and word in the hue, nothing
+    // white, over a faint fill of the hue that never drops to nothing between beats (real layout).
+    if (keys[3].getBoundingClientRect().height > 0) {
+      const word = keys[3].querySelector('.key-word') as HTMLElement
+      await expect(getComputedStyle(word).color).toBe(getComputedStyle(keys[3]).color)
+      await waitFor(() => expect(Number(getComputedStyle(keys[3], '::before').opacity)).toBeGreaterThan(0.1))
+    }
     for (const key of keys) await expect((key as HTMLElement).style.getPropertyValue('--hue')).toBe('var(--transport)')
     // One hue a meaning, shared with the pads: the Sections bank's utility pads (the transport's
     // twins) in the hue of time, Start / Stop too; One Touch in the style's violet; the function
@@ -438,18 +447,30 @@ async function crowdedPlay({ canvasElement }: { canvasElement: HTMLElement }) {
   if (!names.length || names[0].width === 0) return
   await waitFor(() => expect(overlay?.getAttribute('data-overflow')).toBe('0'))
   for (let i = 1; i < names.length; i++) await expect(names[i].left - names[i - 1].right).toBeGreaterThanOrEqual(5)
+  // Every name whole on one line at both sizes (round 8: the knobs have half the band), never a
+  // word cut short with a full stop.
+  const shown = [...(row?.querySelectorAll('.text.name > span:first-child') ?? [])].map((s) => s.textContent?.trim())
+  await expect(shown).toEqual(fullKnobs.map((k) => k.label))
+  // The dials big again: as wide as the cell allows less a fib-13 gutter, at least 56 px.
   const dials = [...(row?.querySelectorAll('.dial button') ?? [])].map((d) => d.getBoundingClientRect())
-  for (let i = 1; i < dials.length; i++) await expect(dials[i].left - dials[i - 1].right).toBeGreaterThan(5)
+  for (const d of dials) await expect(d.width).toBeGreaterThanOrEqual(56)
+  for (let i = 1; i < dials.length; i++) await expect(dials[i].left - dials[i - 1].right).toBeGreaterThanOrEqual(12.5)
   // The tempo's cell holds what it shows and ends on the frame's right edge: no void beside it.
   const tempo = canvasElement.querySelector('.reading.tempo')?.getBoundingClientRect()
   const minus = canvasElement.querySelector('[aria-label="Tempo down (Function)"]')?.getBoundingClientRect()
   await expect(Math.abs((tempo?.right ?? 0) - (minus?.right ?? 0))).toBeLessThanOrEqual(1)
+  // "BPM" a phi² step under the numeral, standing on its baseline.
+  const numeral = canvasElement.querySelector('.reading.tempo .bpm') as HTMLElement
+  const unit = canvasElement.querySelector('.reading.tempo .unit') as HTMLElement
+  await expect(parseFloat(getComputedStyle(unit).fontSize) * 2.618).toBeCloseTo(parseFloat(getComputedStyle(numeral).fontSize), 0)
+  await expect(Math.abs(unit.getBoundingClientRect().bottom - numeral.getBoundingClientRect().bottom)).toBeLessThan(1)
 }
 
 /**
  * The golden layout crowded, at 1440 × 900: all eight knobs assigned with the app's longest names
- * (every cell one width, the dial the cell over phi, a name that doesn't fit its short name), Ending
- * III playing at 288 BPM. The overlay must find nothing overflowing and no two names touching.
+ * (every cell one width, the dial as big as the cell allows less a fib-13 gutter, every name whole),
+ * Ending III playing at 288 BPM. The overlay must find nothing overflowing and no two names
+ * touching.
  */
 export const GoldenCrowded: Story = {
   name: 'Golden › crowded',

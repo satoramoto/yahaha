@@ -2,8 +2,9 @@
   GoldenCompare: the band's knob group and fader group under each tuning, side by side, at the size
   the Stage gives them at the screen size (the screen tokens): the page frame is the screen's width
   less its fib-21 margins (1398 at 1440); the band is the frame's minor part less the keys' phi⁴
-  step (456); the faders block is the frame's major part across and the band deep (864 × 456),
-  the knobs block the frame's minor part across and the band's minor part deep (534 × 174); each
+  step (456); the band is halved (round 8): the faders block is half the frame across and the band
+  deep (699 × 456), the knobs block half the frame across and the band's minor part deep (699 ×
+  174); each
   is inset fib-13. Each group is a Golden tree (a header band
   over a grid of cells fitted to the control's shape) under a GoldenOverlay, with its report line
   under the block: the cell's size, its spare, what overflows and whether the rows add up.
@@ -134,11 +135,11 @@
     outline: var(--line-width) solid var(--line);
   }
   .knobs {
-    width: calc(var(--compare-frame) / var(--interval-phi2));
+    width: calc(var(--compare-frame) / var(--interval-octave));
     height: calc(var(--compare-band) / var(--interval-phi2));
   }
   .faders {
-    width: calc(var(--compare-frame) / var(--interval-phi));
+    width: calc(var(--compare-frame) / var(--interval-octave));
     height: var(--compare-band);
   }
   .header {

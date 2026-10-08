@@ -73,26 +73,26 @@ export const Knob: Story = {
 }
 
 /**
- * One knob cell as the golden Stage draws it (round 7: `dial="phi"`, `shorten="word"`): the dial
- * the cell's width over phi, the name and value lines a fib-5 short of the neighbours; a name that
- * doesn't fit shows its first word, or as much of it as fits with a full stop ("Dynamics" →
- * "Dynam."), the full name in its title, never the code.
+ * One knob cell as the golden Stage draws it (round 8: `dial="fib"`, `shorten="word"`): the dial as
+ * big as the cell allows less a fib-13 gutter, the name and value lines a fib-5 short of the
+ * neighbours; a name that doesn't fit shows its first word ("Retrig rate" → "Retrig"), the full
+ * name in its title, never the code and never a word cut short with a full stop.
  */
-export const KnobPhi: Story = {
-  name: 'Knob › phi dial, short name',
-  args: { ...Knob.args, label: 'Dynamics', code: 'DynCtrl', value: '127', fraction: 1, dial: 'phi', shorten: 'word' },
+export const KnobStage: Story = {
+  name: 'Knob › Stage dial, short name',
+  args: { ...Knob.args, label: 'Retrig rate', code: 'RtgRate', value: '1/16', fraction: 0.6, dial: 'fib', shorten: 'word' },
   argTypes: {
     ...Knob.argTypes,
-    dial: { control: 'inline-radio', options: ['fill', 'phi'] },
+    dial: { control: 'inline-radio', options: ['fill', 'phi', 'fib'] },
     shorten: { control: 'inline-radio', options: ['code', 'word'] },
   },
   play: async ({ canvasElement }) => {
     const [outer] = canvasElement.querySelectorAll('[data-golden-slots="cut"][data-band="label-height"][data-from="bottom"]')
     const name = outer?.children[0] as HTMLElement
     const shown = name.querySelector('span')?.textContent?.trim() ?? ''
-    // Never the code: the name, or a stand-in made of its own letters.
-    await expect(shown).not.toBe('DynCtrl')
-    await expect('Dynamics'.startsWith(shown.replace(/\.$/, ''))).toBe(true)
+    // Never the code, never a full stop: the name, or its first word.
+    await expect(['Retrig rate', 'Retrig']).toContain(shown)
+    if (shown === 'Retrig') await expect(name).toHaveAttribute('title', 'Retrig rate')
   },
 }
 

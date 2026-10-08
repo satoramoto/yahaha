@@ -650,16 +650,14 @@
     width: calc(100% - var(--reset-gap, var(--fib-13)));
     margin-left: var(--reset-gap, var(--fib-13));
   }
-  /* Armed (Sync Start on, a queued Fill, a fade-in waiting for Start): a 2px ring in the hue,
-     the word in --t (as the pads' waiting face), and a faint fill of the hue that pulses once a
-     beat: it flashes on the beat and fades within it, restarted by each new beat (two identical
-     animations, alternating with the beat's parity); while stopped, with no beat, it runs at the
-     tempo. Without motion, the faint fill stands still. Running is solid. */
+  /* Armed (Sync Start on, a queued Fill, a fade-in waiting for Start): a 2px ring in the hue, the
+     glyph and the word in the hue (nothing white: round 8, a white word inside the heavier ring
+     read as a third state), and a faint fill of the hue that flashes brighter once a beat and
+     settles back to faint within it, restarted by each new beat (two identical animations,
+     alternating with the beat's parity); while stopped, with no beat, it runs at the tempo.
+     Without motion, the faint fill stands still. Running is solid. */
   .key[data-face='armed'] {
     box-shadow: inset 0 0 0 var(--outline-width-wait) var(--hue);
-  }
-  .key[data-face='armed'] .key-word {
-    color: var(--t);
   }
   .key::before {
     position: absolute;
@@ -691,7 +689,7 @@
       opacity: calc(var(--wait-fill-opacity) * 3);
     }
     to {
-      opacity: 0;
+      opacity: var(--wait-fill-opacity);
     }
   }
   @keyframes pulse-b {
@@ -699,7 +697,7 @@
       opacity: calc(var(--wait-fill-opacity) * 3);
     }
     to {
-      opacity: 0;
+      opacity: var(--wait-fill-opacity);
     }
   }
   .stack {

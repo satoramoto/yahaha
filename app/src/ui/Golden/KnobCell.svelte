@@ -58,8 +58,8 @@
     /**
      * What stands in for a name that doesn't fit: `code` (the default), the knob's Genos code
      * ("RtgRate"); `word`, a human short name, the name's first word ("Retrig rate" → "Retrig"),
-     * and where that doesn't fit either, as much of it as fits with a full stop ("Dynamics" →
-     * "Dynam."), so no cryptic code is shown (the golden Stage). The full name is in the title
+     * never cut short with a full stop, so no cryptic code is shown (the golden Stage). A one-word
+     * name that doesn't fit stays whole: its cell needs the room. The full name is in the title
      * either way.
      */
     shorten?: 'code' | 'word'
@@ -67,9 +67,12 @@
      * The dial's size. `fill` (the default): as big as the cell allows, less a fib-3 gutter. `phi`:
      * the cell's width over phi (or its height, if less), so the gutter between two dials falls out
      * of the ratio, and the name and value lines keep a fib-5 between neighbours (the golden
-     * Stage: every knob cell one width, assigned or not).
+     * Stage: every knob cell one width, assigned or not). `fib`: as big as the cell allows less a
+     * fib-13 gutter (its height, or its width less the fib-13, whichever is smaller), the name and
+     * value lines a fib-5 short of their neighbours (the golden Stage, round 8: the cell over phi
+     * left the dials small).
      */
-    dial?: 'fill' | 'phi'
+    dial?: 'fill' | 'phi' | 'fib'
     /** Draw the cell's cuts and check them (GoldenOverlay). */
     overlay?: boolean
   }
@@ -107,20 +110,8 @@
   let measure = $state<HTMLElement>()
   /** The full name is wider than its band: show the short code. False where nothing is laid out (jsdom). */
   let short = $state(false)
-  /** What stands in for the name when it is short: `brief`, or (`word`, one line) what fits of it. */
+  /** What stands in for the name when it is short: `brief`. */
   let stand = $state('')
-
-  /** The widths of `texts` set as `el` is (a copy of it beside it, out of sight, removed after). */
-  function widths(el: HTMLElement, texts: string[]): number[] {
-    const copy = el.cloneNode() as HTMLElement
-    el.after(copy)
-    const out = texts.map((t) => {
-      copy.textContent = t
-      return copy.getBoundingClientRect().width
-    })
-    copy.remove()
-    return out
-  }
 
   $effect(() => {
     const band = box
@@ -130,11 +121,13 @@
     void label
     const alt = brief
     const two = lines === 2
-    const word = shorten === 'word' && !two
     const fit = () => {
       const style = getComputedStyle(band)
       const room = band.getBoundingClientRect().width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
-      if ((alt === '' && !word) || room <= 0) {
+      // No stand-in (a one-word name under `word`): the name stays whole, never cut short with a
+      // full stop (round 8: "Dynamic." read as a failure), so a name that doesn't fit shows as
+      // overflow and its cell gets the room instead.
+      if (alt === '' || room <= 0) {
         short = false
         return
       }
@@ -144,12 +137,6 @@
         ? full.offsetHeight > band.clientHeight + 1 || full.scrollWidth > band.clientWidth + 1
         : full.getBoundingClientRect().width > room
       stand = alt
-      if (!short || !word) return
-      // `word`: the first word, then as much of it as fits with a full stop (at least three letters).
-      const first = label.trim().split(/\s+/)[0] ?? ''
-      const tries = [...(alt ? [alt] : []), ...Array.from({ length: Math.max(0, first.length - 3) }, (_, i) => `${first.slice(0, first.length - 1 - i)}.`)]
-      const sizes = widths(full, tries)
-      stand = tries.find((_, i) => sizes[i] <= room - 0.5) ?? tries.at(-1) ?? alt
     }
     const observer = new ResizeObserver(fit)
     observer.observe(band)
@@ -163,7 +150,7 @@
   })
 </script>
 
-<div class="cell" class:phi={dial === 'phi'} lang="en">
+<div class="cell" class:phi={dial === 'phi'} class:fib={dial === 'fib'} lang="en">
   <GoldenBand size={lines === 2 ? 'label-lines-2' : 'label-height'} from="bottom" name="knob" {overlay}>
     <div
       class="text name"
@@ -197,7 +184,7 @@
 
 <style>
   .cell {
-    /* The Stage's knobs block (the page frame's minor part across, the band's minor part deep,
+    /* The Stage's knobs block (half the page frame across, round 8; the band's minor part deep,
        inset fib-13, under its header), cut in eight: one knob cell, for a cell on its own. The
        page frame is the screen less its fib-21 margins; the band is the frame's minor part less
        the keys' phi⁴ step. A cell inside a Golden tree has no inset of its own. */
@@ -216,7 +203,7 @@
   }
   /* On its own: the size of one knob cell on the Stage. */
   :global(:not([data-golden-slots])) > .cell {
-    width: calc((var(--cell-frame) / var(--interval-phi2) - 2 * var(--fib-13)) / 8);
+    width: calc((var(--cell-frame) / var(--interval-octave) - 2 * var(--fib-13)) / 8);
     height: calc(var(--cell-band) / var(--interval-phi2) - 2 * var(--fib-13) - var(--group-header-height));
   }
 
@@ -242,7 +229,12 @@
   .phi .dial {
     --knob-ring: max(0px, min(100cqh, 100cqw / var(--interval-phi)));
   }
-  .phi .text {
+  /* `fib`: as big as the cell allows, a fib-13 gutter between two dials. */
+  .fib .dial {
+    --knob-ring: max(0px, min(100cqh, 100cqw - var(--fib-13)));
+  }
+  .phi .text,
+  .fib .text {
     padding-inline: calc(var(--fib-5) / 2);
   }
 
