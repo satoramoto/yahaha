@@ -6,7 +6,8 @@
   reduced strength, `--absent-<family>`, no fill: an absent Intro reads as a faded yellow pad),
   playing and running (a solid fill of the hue, the label in `--on-ink`), next and armed (waiting: a
   2px ring and a faint fill of the hue, the label in `--t`, and a small "NEXT" or "ARMED" tag at the
-  top, placed absolutely so the label stays centred). Next and armed flash: the parent passes the
+  top, placed absolutely so the label stays centred; with `tagCorner`, a solid tag in the top-right
+  corner instead). Next and armed flash: the parent passes the
   phase in `lit`; unlit drops the fill and falls back to the 1px outline. Utility pads are neutral
   (`--neutral`, solid when on); Start / Stop goes solid `--ok` when running. Outlines are inset
   box-shadows, so the size never changes.
@@ -39,6 +40,11 @@
     tipAction?: Action<HTMLElement, string>
     /** Called on a click, Space or Enter. */
     onpress?: () => void
+    /**
+     * Draw the NEXT / ARMED tag as a small tag in the pad's top-right corner (solid hue, `--on-ink`),
+     * not a line over the label, so the pad stays one line ("Main C"). Off by default (the golden Stage sets it).
+     */
+    tagCorner?: boolean
   }
 
   let {
@@ -51,6 +57,7 @@
     tip,
     tipAction,
     onpress,
+    tagCorner = false,
   }: Props = $props()
 
   let util = $derived(family === 'util' || family === 'start')
@@ -93,7 +100,7 @@
   onclick={() => onpress?.()}
   use:tipped={tip}
 >
-  {#if tag}<span class="tag" aria-hidden="true">{tag}</span>{/if}
+  {#if tag}<span class="tag" class:corner={tagCorner} aria-hidden="true">{tag}</span>{/if}
   <span class="label">{label}</span>
 </button>
 
@@ -136,6 +143,17 @@
     font: var(--type-text);
     letter-spacing: var(--tracking-text);
     text-align: center;
+  }
+  /* `tagCorner`: the tag in the top-right corner, a solid block of the hue with --on-ink, out of the
+     label's line, so the label reads on its own. */
+  .tag.corner {
+    top: 0;
+    left: auto;
+    padding: 0 var(--space-4);
+    background: var(--hue);
+    color: var(--on-ink);
+    /* As deep as the words themselves, so it clears the centred label in a short pad. */
+    line-height: 1;
   }
 
   .solid {

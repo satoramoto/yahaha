@@ -12,8 +12,8 @@
   centred and cut short with an ellipsis at the strip (the golden Stage's faders, Option C); `lamp` puts the strip's lamp at the foot. With `onopen`, the strip's name is
   the name button (opens Channel, with its marks).
   `kind="parked"`: an unused fader, narrow enough for half a live strip: no value, no sound text,
-  the name "—" in the dim ink, and the Fader's parked look (with `empty`, an empty track in the
-  faded hue: the golden Stage, so the live strips and the parked ones read as one row of strips).
+  the name "—" in the dim ink, and the Fader's parked look (with `empty`, a dotted ghost in the
+  faded hue, no track: the golden Stage, so an absent fader looks absent, not live at zero).
   The cell fills the slot it is given, at any width (the Stage gives live strips twice a parked
   one's width). On its own (outside any Golden slot) it takes the size the Stage gives one fader.
 -->
@@ -49,7 +49,7 @@
     hue?: Hue
     /** The non-Vol layer look (Pan, Reverb, Chorus, Delay): meters hidden, bracket and value white. */
     layered?: boolean
-    /** With `kind="parked"`: an empty track in the faded hue (the Fader's `empty`), not the dashed groove. Off by default. */
+    /** With `kind="parked"`: a dotted ghost in the faded hue, no track (the Fader's `empty`), not the grey dashed groove. Off by default. */
     empty?: boolean
     /** The tooltip key, rendered as `data-tip`. */
     tip?: string

@@ -29,6 +29,7 @@ const meta = {
     family: { control: 'select', options: ['intro', 'main', 'ending', 'brk', 'fill', 'util', 'start', 'r1', 'r2', 'r3', 'l'] },
     state: { control: 'select', options: ['idle', 'dark', 'playing', 'next', 'armed', 'running'] },
     lit: { control: 'boolean' },
+    tagCorner: { control: 'boolean' },
     name: { control: 'text' },
     tip: { control: 'text' },
   },
@@ -78,6 +79,18 @@ export const Next: Story = {
     const canvas = within(canvasElement)
     await expect(canvas.getByText('NEXT')).toBeInTheDocument()
     await expect(canvas.queryByText('11')).toBeNull()
+  },
+}
+
+/**
+ * Queued with `tagCorner` (the golden Stage): NEXT is a small solid tag in the pad's top-right
+ * corner, so the pad reads one line, "Main C", not NEXT stacked over it.
+ */
+export const NextCorner: Story = {
+  args: { label: 'Main C', index: '11', state: 'next', tagCorner: true, name: 'Main C, queued after bar 4 (flashing)' },
+  play: async ({ canvasElement }) => {
+    const tag = within(canvasElement).getByText('NEXT')
+    await expect(tag).toHaveClass('corner')
   },
 }
 

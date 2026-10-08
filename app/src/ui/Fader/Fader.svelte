@@ -4,8 +4,8 @@
   tick shows the set level and outranks the meter. When the hardware fader is away from the set
   level, a dashed ghost line marks where it is and ↕ says "move it through". Kinds: `part`,
   `group` and `master` are live; `off` dims the bracket and drops the meter; `parked` (an unused
-  fader) draws a dashed groove only, or with `empty` an empty track (the meters' backgrounds and
-  a solid groove in the strip's faded hue, nothing filled). `layered` is the non-Vol layer look: no meters, a white
+  fader) draws a dashed groove only, or with `empty` a dotted ghost (a dotted groove in the
+  strip's faded hue, no track, no meter rails: nothing that reads as a live fader at zero). `layered` is the non-Vol layer look: no meters, a white
   bracket, the value carrying the layer word. Fully controlled: a drag, a key (↑ ↓ → ← ±1, Page
   Up / Down ±10, Home, End) or the wheel (±2 a notch) asks for a level through `onlevel`; it moves
   nothing itself. Steps in quick succession count from the level last asked for until `level`
@@ -39,7 +39,7 @@
     layered?: boolean
     /** A fixed width in px. Default: fills its container. */
     width?: number
-    /** With `kind="parked"`: an empty track (the meters' backgrounds and a solid groove in the faded hue) instead of the dashed groove. Off by default. */
+    /** With `kind="parked"`: a dotted ghost (a dotted groove in the strip's faded hue, no track or meter rails) instead of the dashed grey groove. Off by default. */
     empty?: boolean
     /** The tooltip key, rendered as `data-tip`. */
     tip?: string
@@ -74,7 +74,7 @@
   let off = $derived(kind === 'off')
   let live = $derived(!parked && !off)
   let showMeters = $derived(!parked && !layered)
-  /** A parked strip drawn as an empty track (`empty`): the meters' backgrounds, a solid faded groove. */
+  /** A parked strip drawn as a dotted ghost (`empty`): a dotted groove in the faded hue, nothing else. */
   let emptyTrack = $derived(parked && empty)
   let ink = $derived(layered ? 't' : hue)
   let frac = $derived(clamp(level, 0, MAX) / MAX)
@@ -217,9 +217,6 @@
         <span class="meter m2" style:--m={clamp(meter2, 0, 1)}></span>
       {/if}
       <span class="peak" style:--p={clamp(peak, 0, 1)}></span>
-    {:else if emptyTrack}
-      <span class="meter-bg m1"></span>
-      <span class="meter-bg m2"></span>
     {/if}
     <span class="groove"></span>
     {#if !parked}
@@ -326,9 +323,14 @@
       transparent var(--fader-parked-dash) var(--fader-parked-gap)
     );
   }
-  /* An empty track: a live strip's shape with nothing in it, its groove the faded hue. */
+  /* A dotted ghost: the groove alone, dotted in the strip's faded hue; no track, no meter rails,
+     so an absent fader looks absent, not like a live one at zero. */
   .parked.empty .groove {
-    background: var(--faded);
+    background: repeating-linear-gradient(
+      to bottom,
+      var(--faded) 0 var(--fader-parked-dash),
+      transparent var(--fader-parked-dash) var(--fader-parked-gap)
+    );
   }
   .fill {
     height: calc(var(--level) * 100%);
