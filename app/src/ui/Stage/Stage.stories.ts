@@ -186,8 +186,8 @@ export const PageSlot: Story = {
  *   on one shared line, flush left. A fib-8 under it, one small line across: the chord's notes;
  *   what comes next as Main B's subtitle ("then ▬ Main C · fill after bar 4", the bar and "Main C"
  *   in its hue: a display, not a control); the beat bar (fib-13 bars, faded, the current beat the
- *   full hue, the downbeat taller and glowing when current). "BPM" is a phi² step under the
- *   numeral, on its baseline (round 8, the owner's exception to "only hero values are large"). +
+ *   full hue, the downbeat taller and glowing when current). "BPM" is 32px (the large role)
+ *   in the numeral's white, on its baseline, a fib-13 after it and a fib-21 before + −. +
  *   over − are one column beside the tempo, exactly its cap height, two squares with a hard fib-8
  *   gap between. No parts block: each part's sound is on top of its own fader strip
  *   (Option C), in the part's hue, cut short with an ellipsis at its strip.
@@ -459,11 +459,16 @@ async function crowdedPlay({ canvasElement }: { canvasElement: HTMLElement }) {
   const tempo = canvasElement.querySelector('.reading.tempo')?.getBoundingClientRect()
   const minus = canvasElement.querySelector('[aria-label="Tempo down (Function)"]')?.getBoundingClientRect()
   await expect(Math.abs((tempo?.right ?? 0) - (minus?.right ?? 0))).toBeLessThanOrEqual(1)
-  // "BPM" a phi² step under the numeral, standing on its baseline.
+  // "BPM" at the large role (32px), the numeral's ink, standing on its baseline, a fib-13 after
+  // it and a fib-21 before + −.
   const numeral = canvasElement.querySelector('.reading.tempo .bpm') as HTMLElement
   const unit = canvasElement.querySelector('.reading.tempo .unit') as HTMLElement
-  await expect(parseFloat(getComputedStyle(unit).fontSize) * 2.618).toBeCloseTo(parseFloat(getComputedStyle(numeral).fontSize), 0)
+  const steps = canvasElement.querySelector('.reading.tempo .steps') as HTMLElement
+  await expect(getComputedStyle(unit).fontSize).toBe('32px')
+  await expect(getComputedStyle(unit).color).toBe(getComputedStyle(numeral).color)
   await expect(Math.abs(unit.getBoundingClientRect().bottom - numeral.getBoundingClientRect().bottom)).toBeLessThan(1)
+  await expect(Math.round(unit.getBoundingClientRect().left - numeral.getBoundingClientRect().right)).toBe(13)
+  await expect(steps.getBoundingClientRect().left - unit.getBoundingClientRect().right).toBeGreaterThanOrEqual(21)
 }
 
 /**

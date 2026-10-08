@@ -28,8 +28,8 @@
     under it, one small line across: the chord's notes; what comes next, Main B's subtitle ("then
     ▬ Main C · fill after bar 4", the bar and Main C in its hue; a display, not a control); the
     beat bar (fib-13 bars, faded, the current beat the full hue, the downbeat taller and glowing
-    when current). "BPM" a phi² step under the numeral, on its baseline (round 8, the owner's
-    exception to "only hero values are large"). + over − are one column beside the tempo, exactly its cap height, two squares
+    when current). "BPM" at the large role (32px) in the numeral's white, on its baseline, a
+    fib-13 after it and a fib-21 before + − (designer pass). + over − are one column beside the tempo, exactly its cap height, two squares
     with a hard fib-8 gap between them (54 each at 1440), + and − at the numeral's stroke weight,
     in the hue of time. The function lamps and the page button light in the lamp's lime; the
     Sections bank's utility pads (the transport's twins) in the hue of time.

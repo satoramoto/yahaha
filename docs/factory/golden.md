@@ -58,6 +58,12 @@ At 1440 × 900 the page frame is 1398 × 864. Its first cut, `minor` from the to
 - **Option C: parts join the faders.** Each part's sound name sits on top of its own fader strip, centred, in the part's hue, cut short with an ellipsis at the strip less a fib-3 each side (its full name in the tooltip), and opens the part's sound list.
 - **Band.** Halved (round 8; the faders had its major part, 864, until eight whole knob names needed more than the minor part's 534): its left half (699) is the faders: a header band (the status line at its right end) over nine equal strips (75px at 1440, 66 at 1280), each with its own foot (`FaderCell lamp`, a control-height band, gap fib-8): the part lamps under strips 1–4, the last of them a fib-13 short (the sub-cut comes off "On", not off "Harm/Arp", which needs a whole strip at 1280), then the function buttons and the page button under strips 5–9, so each lamp sits on its fader's column and a function never reads as a part's state. The narrower strips cut more sound names short (by design, the full name in the tooltip). A parked strip is full width again (half a strip can't hold "L Hold" or "Looper"), drawn as a dotted ghost in the faded hue (no track, no rails), so it reads as absent, not as a live fader at zero. The right half is cut `minor` from the top into knobs (eight knob cells of one width, assigned or not, 84px at 1440 and 74 at 1280; each dial as big as the cell allows less a fib-13 gutter, `KnobCell dial="fib"`: 71px at 1440 (width-bound; 9px of the 80 left over it) and 60 at 1280 (height-bound), where round 7's cell over phi gave 39 and 35; its value under it, the whole name on one line under that, each line a fib-5 short of its neighbours, its first word only where a name still doesn't fit; an unassigned knob a faded ring at the same width) over pads (the queued pad's NEXT a corner tag, `Pad tagCorner`, so the pad reads one line).
 
+### Designer pass (after round 8)
+
+A professional review's six changes, nothing else moved (round 8's split kept). Where a line here disagrees with the round 8 text above, this one holds.
+
+- **"BPM".** 32px (the `large` role) in the numeral's white, on its baseline, a fib-13 after the numeral and a fib-21 before the + − column (`TempoReadout unitLarge`). The tempo's cell narrows by 32px at 1440, which the section takes.
+
 ## Vocabulary
 
 - **phi** is the golden ratio itself, 1.618…. **Golden** is the name of the system, never of the ratio.
