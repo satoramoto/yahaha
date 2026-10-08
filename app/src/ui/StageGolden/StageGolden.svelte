@@ -13,7 +13,8 @@
   - Hero (1398 × 282), two tiers: a phi³ step off its bottom is the controls tier (67): its major
     part off the left the transport (seven glyph keys in the hue of time, a glyph over each word,
     the glyph showing the state, every word on one baseline, every glyph a 21px square on one
-    foot: Start / Stop's cell phi² units (▶ outlined stopped, ■ solid playing); then the cells of
+    foot: Start / Stop's cell phi² units (▶ outlined and "Stopped" stopped, ■ solid and "Playing"
+    playing, SectionRow `stateLegend`); then the cells of
     Sync Start, Accomp, Fill Up, Fill Down and Fade 1 each and ⟲ Reset's a major third, with the
     six keys over them one width, a fib-8 apart (designer pass; armed keys outlined and pulsing on
     the beat, a queued Fill plain off, Fade's wedge draining as it fades); the tier's groups
@@ -288,6 +289,7 @@
                   {fillQueued}
                   plainQueue
                   evenKeys
+                  stateLegend
                   tipAction={p.tipAction}
                   onstartstop={p.onstartstop}
                   onaccomp={p.onaccomp}

@@ -176,7 +176,7 @@ export const PageSlot: Story = {
  *   major part the transport, seven glyph keys in the hue of time (cyan, shared with the tempo's
  *   + −, the metronome and the Sections bank's utility pads), each a glyph over its word, the glyph
  *   showing the state, every word on one baseline, every glyph a 21px square on one foot (Start /
- *   Stop phi² units, ▶ outlined or ■ solid; then Sync Start, Accomp, Fill Up, Fill Down, Fade and
+ *   Stop phi² units, ▶ outlined or ■ solid, its legend "Stopped" or "Playing"; then Sync Start, Accomp, Fill Up, Fill Down, Fade and
  *   ⟲ Reset one width each, a fib-8 apart, armed keys pulsing on the beat; a queued Fill stays
  *   plain off, its queue in its name), the rest One Touch in
  *   the style's violet (its caption a narrow label cell, then 1–4). The reading tier above (215) reads style → chord → section → next: the style line (‹
@@ -231,8 +231,8 @@ export const GoldenOverlay: Story = {
     const strips = canvasElement.querySelector('[data-golden-name="strips"]')
     await expect(strips?.querySelectorAll('[aria-label$="Opens the quick sound list"]').length).toBe(4)
     // The transport is seven cells graded by use and consequence: Start / Stop phi² units (its
-    // legend the action), Sync Start, Accomp, Fill Up, Fill Down and Fade a unit each, Reset last
-    // behind a quarter-unit gutter (its cell a major third).
+    // legend what the band is doing: "Playing"), Sync Start, Accomp, Fill Up, Fill Down and Fade a
+    // unit each, Reset's cell a major third.
     const transport = canvasElement.querySelector('[data-golden-name="transport"] [data-golden-slots="grid"]')
     await expect(transport?.children.length).toBe(7)
     await expect(transport?.getAttribute('data-weights')).toBe('phi2 unison unison unison unison unison major-third')
@@ -240,7 +240,8 @@ export const GoldenOverlay: Story = {
     const oneTouch = canvasElement.querySelector('[data-golden-name="one touch"] [data-golden-slots="grid"]')
     await expect(oneTouch?.getAttribute('data-weights')).toBe('octave phi2 phi2 phi2 phi2')
     await expect(oneTouch?.firstElementChild?.tagName).toBe('SPAN')
-    await expect(transport?.firstElementChild?.textContent?.trim()).toBe('Start / Stop')
+    await expect(transport?.firstElementChild?.textContent?.trim()).toBe('Playing')
+    await expect(transport?.firstElementChild).toHaveAccessibleName(/^Playing: Start \/ Stop/)
     await expect(transport?.lastElementChild?.getAttribute('aria-label')).toMatch(/^Section reset/)
     // The page's spiral is turned to put its pole on the section block.
     const page = canvasElement.querySelector('[data-golden-name="page"] [data-golden-slots]')
@@ -349,7 +350,7 @@ export const GoldenOverlay: Story = {
     await expect(glyphs).toEqual([1, 1, 1, 1, 1, 1, 1])
     const keys = [...(transport?.children ?? [])]
     await expect(keys.map((k) => k.querySelector('.key-word')?.textContent)).toEqual([
-      'Start / Stop',
+      'Playing',
       'Sync Start',
       'Accomp',
       'Fill Up',
@@ -388,7 +389,7 @@ export const GoldenSmall: Story = {
 }
 
 /**
- * The golden layout stopped, Sync Start armed: Start / Stop outlined with ▶, Sync Start's ring
+ * The golden layout stopped, Sync Start armed: Start / Stop outlined with ▶ and "Stopped", Sync Start's ring
  * pulsing at the tempo (no beat comes while stopped), its pad twin armed in the same hue; the
  * reading tier says "Sync Start armed".
  */
@@ -411,6 +412,9 @@ export const GoldenSyncStart: Story = {
     const transport = canvasElement.querySelector('[data-golden-name="transport"] [data-golden-slots="grid"]')
     const keys = [...(transport?.children ?? [])]
     await expect(keys[0]).toHaveAttribute('data-face', 'off')
+    // Start / Stop says what the band is doing.
+    await expect(keys[0].querySelector('.key-word')?.textContent).toBe('Stopped')
+    await expect(keys[0]).toHaveAccessibleName(/^Stopped: Start \/ Stop/)
     await expect(keys[1]).toHaveAttribute('data-face', 'armed')
     await expect(keys[1]).toHaveAttribute('data-pulse', 'free')
   },

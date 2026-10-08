@@ -66,6 +66,7 @@ const meta = {
     fillQueued: { control: { type: 'inline-radio' }, options: [undefined, 'up', 'down'], table: { category: 'Cells' } },
     plainQueue: { control: 'boolean', table: { category: 'Cells' } },
     evenKeys: { control: 'boolean', table: { category: 'Cells' } },
+    stateLegend: { control: 'boolean', table: { category: 'Cells' } },
     fadeProgress: { control: { type: 'range', min: 0, max: 1, step: 0.05 }, table: { category: 'Cells' } },
     fadeIn: { control: 'boolean', table: { category: 'Cells' } },
   },
@@ -254,6 +255,22 @@ export const CellsEven: Story = {
       await expect([Math.round(m?.width ?? 0), Math.round(m?.height ?? 0)]).toEqual([21, 21])
       await expect(Math.abs((m?.bottom ?? 0) - (marks[0]?.bottom ?? 0))).toBeLessThan(0.5)
     }
+  },
+}
+
+/**
+ * Start / Stop says what the band is doing (`stateLegend`): "Stopped" here, outlined with ▶;
+ * "Playing" while running, solid with ■. Its spoken name still names the control.
+ */
+export const CellsStateLegend: Story = {
+  args: { running: false, stateLegend: true, evenKeys: true, groups: 'transport', cells: true },
+  parameters: { sample: { width: 700, height: 55 } },
+  render: (args) => transportGrid(args),
+  play: async ({ canvasElement }) => {
+    const start = within(canvasElement).getByRole('toolbar', { name: 'Transport' }).children[0]
+    await expect(start.querySelector('.key-word')?.textContent).toBe('Stopped')
+    await expect(start).toHaveAttribute('data-face', 'off')
+    await expect(start).toHaveAccessibleName(/^Stopped: Start \/ Stop/)
   },
 }
 

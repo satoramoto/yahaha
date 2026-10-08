@@ -60,6 +60,12 @@
      * cell less the groups' gaps.
      */
     evenKeys?: boolean
+    /**
+     * Cells: Start / Stop's legend says what the band is doing, "Playing" or "Stopped" (its glyph,
+     * fill and size unchanged; the golden Stage, designer pass). Off (the default): the legend is
+     * the action, "Start / Stop".
+     */
+    stateLegend?: boolean
     /** Cells: how far the fade has gone, 0 to 1, while `fading` and running: Fade's wedge drains by as much. */
     fadeProgress?: number
     /** Cells: the fade under way (or waiting for Start) is a fade-in: Fade shows ◢ while fading even as the band plays. */
@@ -119,6 +125,7 @@
     fillQueued,
     plainQueue = false,
     evenKeys = false,
+    stateLegend = false,
     fadeProgress,
     fadeIn = false,
     running = false,
@@ -377,7 +384,7 @@
     <!-- Grouped by job: [Start / Stop · Sync Start] [Accomp] [Fill Up · Fill Down · Fade] [Reset].
          The legend names the action, as on the pads; the glyph and the fill show the state. -->
     {@render key(
-      'Start / Stop',
+      stateLegend ? (running ? 'Playing' : 'Stopped') : 'Start / Stop',
       running ? 'stop' : 'play',
       running ? 'on' : 'off',
       running,
