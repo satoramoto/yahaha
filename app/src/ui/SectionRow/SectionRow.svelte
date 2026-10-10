@@ -72,6 +72,14 @@
      * golden Stage on the owner's wireframe). Off (the default): a fib-13 between groups.
      */
     evenGaps?: boolean
+    /**
+     * Cells: each transport key one line of words, sized to them (the golden Stage, the owner's
+     * mockup): "▶ Playing" (or "▶ Stopped"), Sync Start, Accomp, "Fill ▲", "Fill ▼", Fade, then a
+     * hairline divider and Reset. The faces, names and pulses are the cells' own; the parent lays
+     * the keys out (a flex row) and sets the words' role through `--type-text`. A fade's drain is a
+     * bar along the foot of Fade. Off (the default): a glyph over each word, in the parent's cells.
+     */
+    textKeys?: boolean
     /** Cells: how far the fade has gone, 0 to 1, while `fading` and running: Fade's wedge drains by as much. */
     fadeProgress?: number
     /** Cells: the fade under way (or waiting for Start) is a fade-in: Fade shows ◢ while fading even as the band plays. */
@@ -133,6 +141,7 @@
     evenKeys = false,
     stateLegend = false,
     evenGaps = false,
+    textKeys = false,
     fadeProgress,
     fadeIn = false,
     running = false,
@@ -362,12 +371,17 @@
 )}
   <!-- A transport key: its glyph over its word, on the row's one baseline, in the hue of time, in
        the state language; armed pulses once a beat. -->
-  {@const slot = evenKeys ? SLOTS[kind] : undefined}
+  {@const slot = evenKeys && !textKeys ? SLOTS[kind] : undefined}
+  {@const drain = textKeys && kind === 'fade' && fadeLeft < 1 ? fadeLeft.toFixed(2) : undefined}
+  {#if textKeys && kind === 'reset'}<span class="divider" aria-hidden="true"></span>{/if}
   <button
     type="button"
     class="face key {kind}"
+    class:text={textKeys}
     class:even={slot !== undefined}
-    class:boxed={evenKeys}
+    class:boxed={evenKeys && !textKeys}
+    data-drain={drain}
+    style:--drain={drain}
     style:--slot={slot}
     data-face={face}
     data-pulse={face === 'armed' ? pulse : undefined}
@@ -380,8 +394,12 @@
     data-tip={tip}
     use:tipOn={tip}
     onclick={press}
-    ><span class="stack"><span class="band">{@render mark(shape)}</span><span class="key-word">{label}</span></span
-    ></button
+    >{#if textKeys}<span class="line"
+        >{#if kind === 'start'}{@render mark('play')}{/if}<span class="key-word"
+          >{kind === 'fill-up' || kind === 'fill-down' ? 'Fill' : label}</span
+        >{#if kind === 'fill-up' || kind === 'fill-down'}{@render mark(shape)}{/if}</span
+      >{:else}<span class="stack"><span class="band">{@render mark(shape)}</span><span class="key-word">{label}</span></span
+      >{/if}</button
   >
 {/snippet}
 
@@ -828,5 +846,47 @@
      standing on its foot (`fit`), so every glyph shares one box and one baseline. */
   .boxed .mark {
     width: var(--glyph-key);
+  }
+
+  /* `textKeys`: each key its one line of words and its side padding, the row's height; the glyph
+     a capital high, a fib-8 from its word. No cell gaps: the parent's row spaces the keys. */
+  .face.key.text,
+  .face.key.text.reset {
+    flex: none;
+    width: auto;
+    margin-left: 0;
+    padding: 0 var(--golden-key-pad);
+  }
+  .line {
+    position: relative;
+    display: flex;
+    align-items: baseline;
+    gap: var(--fib-8);
+    font: var(--type-text);
+    letter-spacing: var(--tracking-text);
+  }
+  .line .mark {
+    align-self: center;
+    width: auto;
+    height: 1cap;
+  }
+  /* Before Reset: a hairline, centred in a fib-34 (the parent's row gap on each side taken off). */
+  .divider {
+    flex: none;
+    align-self: stretch;
+    width: var(--line-width);
+    margin: 0 calc((var(--fib-34) - var(--line-width)) / 2 - var(--fib-8));
+    background: var(--golden-rule);
+  }
+  /* A fade's drain: a fib-3 bar along Fade's foot in --on-ink, as long as the part of the fade
+     that has run. */
+  .face.key.text[data-drain]::after {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: calc((1 - var(--drain)) * 100%);
+    height: var(--fib-3);
+    background: var(--on-ink);
+    content: '';
   }
 </style>
