@@ -44,6 +44,15 @@ describe('statusHint (tooltips in the status line)', () => {
     expect(statusHint({ key: 'app.theme', help: false, message: null, since: 0 })!.launchkey).toBeNull()
   })
 
+  it('free text leads as the title, the entry follows as "Title: body", keys kept', () => {
+    const t = TIPS['fingering.select']
+    const h = statusHint({ key: 'fingering.select', text: 'AI Full Keyboard · played Gm7', help: false, message: null, since: 0 })!
+    expect(h.title).toBe('AI Full Keyboard · played Gm7')
+    expect(h.body).toBe(`${t.title}: ${t.body}`)
+    expect(h.keys).toBe('F')
+    expect(statusHint({ key: 'fingering.select', text: null, help: false, message: null, since: 0 })!.title).toBe(t.title)
+  })
+
   it('nothing hovered: no hint, or how help mode works in help mode', () => {
     expect(statusHint({ key: null, help: false, message: null, since: 0 })).toBeNull()
     expect(statusHint({ key: null, help: true, message: null, since: 0 })).toBe(HELP_IDLE)

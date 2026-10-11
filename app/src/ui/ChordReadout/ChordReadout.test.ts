@@ -20,6 +20,17 @@ describe('ChordReadout fingering', () => {
     expect(tipAction).toHaveBeenCalledWith(fingering, 'fingering.select')
   })
 
+  it('gives the tip the whole fingering as free text and updates it with the chord', async () => {
+    const update = vi.fn()
+    const tipAction = vi.fn(() => ({ update }))
+    const { container, rerender } = render(ChordReadout, { chord: 'Gm', extension: '7', fingering: LONG, tip: 'fingering.select', tipAction })
+    const fingering = container.querySelector('.fingering') as HTMLElement
+    expect(fingering.dataset.tipText).toBe(LONG)
+    await rerender({ chord: 'C', extension: '', fingering: 'Fingered', tip: 'fingering.select', tipAction })
+    expect(fingering.dataset.tipText).toBe('Fingered')
+    expect(update).toHaveBeenCalledWith('fingering.select')
+  })
+
   it('says the whole fingering in its accessible name', () => {
     render(ChordReadout, { chord: 'Gm', extension: '7', fingering: LONG })
     expect(screen.queryByRole('img', { name: `Chord Gm7, ${LONG}` })).not.toBeNull()

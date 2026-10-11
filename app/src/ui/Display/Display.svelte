@@ -115,7 +115,7 @@
   <div class="thirds">
     <div class="third harmony">
       <StyleLine {...style} {tipAction} {onprev} {onnext} {onbrowse} />
-      <div class="chord"><ChordReadout {...nowPlaying.chord} /></div>
+      <div class="chord"><ChordReadout {...nowPlaying.chord} tip="fingering.select" {tipAction} /></div>
     </div>
     <div class="third song">
       <NowPlaying {...song} {tipAction} {ontempoup} {ontempodown} {onstyletempo} {ontempo} />

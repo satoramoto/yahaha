@@ -2,6 +2,11 @@
 // `data-tip` (the coverage test looks for it) and, on hover or keyboard focus, shows the
 // catalog entry in the status line above the keys (panels/stage/hint.svelte.ts turns
 // `tips.shown` into the line's hint). Nothing floats over the instrument.
+//
+// Free text: an element can also carry `data-tip-text`, data to show with its entry (the
+// whole of a value cut off with an ellipsis, say). The tip shows that text as its first line,
+// above the entry, so the element still has its catalog key. Whoever changes the text calls
+// the action's `update` afterwards, so a tip already showing follows it.
 
 import { keyLabel, isTipKey, type Tip, type TipKey } from '../../help/tooltips'
 
@@ -18,6 +23,10 @@ class TipState {
   /** The control with keyboard focus: the screen-reader description (`aria-describedby`)
    * follows it, whatever the pointer is over. */
   focused = $state<TipKey | null>(null)
+  /** The hovered or focused element's free text (`data-tip-text`), shown above its entry. */
+  text = $state<string | null>(null)
+  /** Help mode: the pinned entry's free text. */
+  pinnedText = $state<string | null>(null)
 
   private clearTimer: ReturnType<typeof setTimeout> | null = null
   private owner: HTMLElement | null = null
@@ -28,12 +37,27 @@ class TipState {
     return this.key ?? (this.help ? this.pinned : null)
   }
 
-  /** Show `key` for `el` at once. (`_now` is left from the pop-up tips, which waited.) */
+  /** The free text shown with `shown`, if its element has one. */
+  get shownText(): string | null {
+    return this.key ? this.text : this.help ? this.pinnedText : null
+  }
+
+  /** Show `key` for `el` at once, with `el`'s `data-tip-text`. (`_now` is left from the
+   * pop-up tips, which waited.) */
   show(el: HTMLElement, key: TipKey, _now?: boolean) {
     this.cancel()
     this.owner = el
     this.key = key
-    if (this.help) this.pinned = key
+    this.text = el.dataset.tipText || null
+    if (this.help) {
+      this.pinned = key
+      this.pinnedText = this.text
+    }
+  }
+
+  /** `el`'s key or free text changed: if its tip is showing, show the new one. */
+  changed(el: HTMLElement, key: TipKey) {
+    if (this.owner === el && this.key) this.show(el, key)
   }
 
   /** The pointer left `el` (or it lost focus): clear after `CLEAR_MS`, unless another
@@ -54,7 +78,10 @@ class TipState {
 
   toggleHelp() {
     this.help = !this.help
-    if (!this.help) this.pinned = null
+    if (!this.help) {
+      this.pinned = null
+      this.pinnedText = null
+    }
   }
 
   /** Tests only: forget every hovered, focused and pinned control, so state left by an
@@ -63,12 +90,14 @@ class TipState {
     this.clear()
     this.help = false
     this.pinned = null
+    this.pinnedText = null
     this.focused = null
   }
 
   private clear() {
     this.cancel()
     this.key = null
+    this.text = null
     this.owner = null
   }
 
@@ -140,6 +169,7 @@ export function tip(node: HTMLElement, key: TipKey) {
     update(next: TipKey) {
       k = next
       set()
+      tips.changed(node, k)
     },
     destroy() {
       tips.hide(node)
