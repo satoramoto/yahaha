@@ -30,6 +30,7 @@
   --rec: var(--red-400); /* record red */
   --warn: var(--orange-400); /* missing, warning */
   --ok: var(--green-400); /* connected, running */
+  --transport: var(--cyan-400); /* time (golden Stage): the transport, the tempo's + −, the metronome, their pad twins */
 
   /* The state language, one treatment per state for every control (LampButton, Button,
      ChosenTabs, OneTouchPicker, Pad):

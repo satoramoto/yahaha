@@ -29,6 +29,8 @@ const meta = {
     family: { control: 'select', options: ['intro', 'main', 'ending', 'brk', 'fill', 'util', 'start', 'r1', 'r2', 'r3', 'l'] },
     state: { control: 'select', options: ['idle', 'dark', 'playing', 'next', 'armed', 'running'] },
     lit: { control: 'boolean' },
+    tagCorner: { control: 'boolean' },
+    transport: { control: 'boolean' },
     name: { control: 'text' },
     tip: { control: 'text' },
   },
@@ -81,6 +83,18 @@ export const Next: Story = {
   },
 }
 
+/**
+ * Queued with `tagCorner` (the golden Stage): NEXT is a small solid tag in the pad's top-right
+ * corner, so the pad reads one line, "Main C", not NEXT stacked over it.
+ */
+export const NextCorner: Story = {
+  args: { label: 'Main C', index: '11', state: 'next', tagCorner: true, name: 'Main C, queued after bar 4 (flashing)' },
+  play: async ({ canvasElement }) => {
+    const tag = within(canvasElement).getByText('NEXT')
+    await expect(tag).toHaveClass('corner')
+  },
+}
+
 /** Queued, the flash's off phase: the fill gone, the 1px outline; the words stay. */
 export const NextUnlit: Story = {
   args: { label: 'Main C', index: '11', state: 'next', lit: false, name: 'Main C, queued after bar 4 (flashing)' },
@@ -110,6 +124,32 @@ export const Running: Story = {
   args: { label: 'Start / Stop', index: '16', family: 'start', state: 'running', name: 'Start / Stop, running (pad 16)' },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('button')).toHaveAttribute('data-hue', 'ok')
+  },
+}
+
+/**
+ * A transport pad (`transport`, the golden Stage's Sections bank): Start / Stop running in the hue
+ * of time, as its twin on the screen's transport, not green.
+ */
+export const TransportRunning: Story = {
+  args: {
+    label: 'Start / Stop',
+    index: '16',
+    family: 'start',
+    state: 'running',
+    transport: true,
+    name: 'Start / Stop, running (pad 16)',
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button')).toHaveAttribute('data-hue', 'transport')
+  },
+}
+
+/** Sync Start armed on a transport pad: the hue of time's 2px ring and faint fill, ARMED. */
+export const TransportArmed: Story = {
+  args: { label: 'Sync Start', index: '4', family: 'util', state: 'armed', transport: true, name: 'Sync Start, armed' },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button')).toHaveAttribute('data-hue', 'transport')
   },
 }
 

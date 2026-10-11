@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
-import { fn } from 'storybook/test'
+import { expect, fn, within } from 'storybook/test'
 import NowPlaying from './NowPlaying.svelte'
 import {
   nowPlayingBoard,
@@ -38,6 +38,7 @@ const meta = {
     bpm: { control: { type: 'number', min: 5, max: 500, step: 1 }, table: { category: 'TempoReadout' } },
     running: { control: 'boolean' },
     syncStart: { control: 'boolean' },
+    show: { control: { type: 'inline-radio' }, options: ['all', 'section', 'next', 'tempo'] },
   },
 } satisfies Meta<typeof NowPlaying>
 
@@ -58,3 +59,19 @@ export const Looping: Story = { args: { ...nowPlayingLooping } }
 
 /** A fill with Ending II waiting. */
 export const FillToEnding: Story = { args: { ...nowPlayingFill } }
+
+/**
+ * One part alone (`show` section; `next` and `tempo` likewise), for a Golden layout that gives the
+ * section, the small line and the tempo each a cell: its container's width, no top margin, named
+ * for what it shows.
+ */
+export const SectionAlone: Story = {
+  args: { show: 'section' },
+  play: async ({ canvasElement }) => {
+    const block = within(canvasElement).getByRole('group', { name: 'Section' })
+    await expect(block).toHaveClass('alone')
+    await expect(block.children).toHaveLength(1)
+    await expect(within(block).queryByRole('button')).toBeNull()
+    await expect(block.querySelector('.line')).toBeNull()
+  },
+}

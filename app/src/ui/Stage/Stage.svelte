@@ -11,7 +11,8 @@
   bar 6, gap 2, section row 4, gap 2, display 48, gap 4, band 62, status line 4, keys 10, margin 4
   (150 units, 900px). The display's thirds sit on columns 1-5, 6-10 and 11-15 with a shared top
   line; the band splits 3/5 (faders, one strip per column) to 2/5 (knobs over pads). `overlay`
-  draws the columns and the rhythm over it.
+  draws the columns and the rhythm over it. `layout="golden"` renders StageGolden instead (the
+  same props, laid out by the Golden primitives); there `overlay` draws the Golden cuts.
 
   `page`: a display page (Channel, Effects, …) in the display's box, in place of the Display. The
   app bar, section row, band, status line and keys stay as they are; the box never grows or
@@ -48,9 +49,9 @@
   type On<C extends Any, K extends keyof ComponentProps<C>> = Pick<ComponentProps<C>, K>
 
   type Props = {
-    /** `grid`: the 15-column grid (this file). `golden`: the golden-section proposal (StageGolden, tokens/stage-golden.css), a Storybook-only mock for now. */
+    /** `grid`: the 15-column grid (this file). `golden`: the golden-section proposal (StageGolden, a tree of the Golden layout primitives), a Storybook-only mock for now. */
     layout?: 'grid' | 'golden'
-    /** Draws the 15 columns and the rhythm lines over the screen, to check the alignment. A design aid (the grid layout only). */
+    /** A design aid. In the grid layout, draws the 15 columns and the rhythm lines over the screen, to check the alignment; in the golden layout, wraps the screen in a GoldenOverlay that draws its cuts, insets and spiral and checks them. */
     overlay?: boolean
     /** The app bar: pages, Launchkey, audio health. */
     appBar: Data<typeof AppBar>
@@ -110,6 +111,8 @@
       | 'onstyletempo'
       | 'ontempo'
     > & {
+      /** Tap pressed (the golden Stage's hero Tap key: tap tempo). The grid Stage has no Tap key. */
+      ontaptempo?: () => void
       /** Deprecated: the band sends left the display (Effects has them); accepted, unused. */
       onsends?: () => void
       /** Deprecated: the rack left the display (Library › Racks, the fader layers); accepted, unused. */

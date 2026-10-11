@@ -73,6 +73,32 @@
   --bar-row-gap: 10px; /* from the section line down to the bar row */
   --tempo-gap: 14px; /* from the bar segments down to the tempo row */
 
+  /* The golden Stage's transport row and hero panel, from the owner's mockup (its sizes and
+     weights, our face). The row's sizes are fixed; the panel's places are fractions of its own
+     box (its width for the columns, its height for the rows and its type), so it scales with the
+     screen. At 1440 × 900 the panel is 1398 × 288 and its lines 24px; its type roles resolve
+     against the panel (a size container). */
+  --type-golden-row: var(--weight-regular) 20px / 24px var(--font-sans); /* the controls row's words: the style line, One Touch */
+  --type-golden-unit: var(--weight-bold) 26px / 1 var(--font-sans); /* BPM */
+  --type-golden-sub: var(--weight-regular) calc(100cqh * 0.0833) / 1.2 var(--font-sans); /* the line under each hero value, − Tap + */
+  --tracking-golden-hero: -0.03em; /* the hero values' tight set */
+  --golden-key-width: 62px; /* a transport key (an icon alone), its row's height tall (the golden Stage sets it from the Pads header) */
+  --golden-key-icon: 16px; /* its icon's height */
+  --golden-row-height: calc(var(--control-height-compact) + 2 * var(--fib-3) + 2 * var(--line-width)); /* the controls row's box: 36 */
+  --golden-hero-col-1: 0.329; /* the chord's column's right edge */
+  --golden-hero-col-2: 0.683; /* the section's; the tempo's the rest */
+  --golden-hero-value-top: 0.126; /* the hero values' capital tops */
+  --golden-hero-value-size: 0.549; /* the hero values' size: capitals 0.38 of the panel's height */
+  --golden-hero-sub-foot: 0.763; /* the lines under them: their baseline */
+  --golden-hero-step-mid: 0.699; /* − Tap +: their middle, and across the tempo's column */
+  --golden-hero-step-minus: 0.2;
+  --golden-hero-step-tap: 0.51;
+  --golden-hero-step-plus: 0.81;
+  --golden-hero-step-glyph: 0.14; /* + and −: their size */
+  --golden-hero-rule-foot: 0.854; /* the columns' hairlines end */
+  --golden-hero-beat-top: 0.886; /* the beat bar */
+  --golden-hero-beat-depth: 0.064;
+
   /* Sound row */
   --sound-row-height: 44px;
   --sound-row-gap: 20px; /* above the sound row */
@@ -127,6 +153,10 @@
   --chord: var(--a);
   --chord-glow: var(--ba2);
   --chord-held: var(--m);
+
+  /* The golden Stage's transport row and hero panel: their outlines, the columns' hairlines and
+     the divider before Reset (the mockup's mid grey). */
+  --golden-rule: var(--grey-23);
 }
 
 [data-theme='light'] {
@@ -169,4 +199,6 @@
   --chord: var(--a);
   --chord-glow: none;
   --chord-held: var(--m);
+
+  --golden-rule: var(--stone-76);
 }

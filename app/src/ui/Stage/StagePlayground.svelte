@@ -4,7 +4,10 @@
   a prop changes in the Controls panel), and renders Stage with that state. Every handler calls the
   prop's callback too, so each press still shows in the Actions panel. One timer, story-only: while
   the band runs, a ticker steps the beat at the tempo so the display's beat bar moves (the
-  components take the beat as a prop and hold no timers). Every other change happens on a press.
+  components take the beat as a prop and hold no timers). Every other change happens on a press,
+  except the fade: while fading and running it counts the ticker's beats for four bars (its
+  progress drains Fade's wedge in the golden layout), then the band stops. Fill ▲ / ▼ while running
+  queue the next Main up or down after a fill (its pad NEXT, the transport's Fill key armed).
 
   Pads, deterministic: stopped, a Main (or Break) becomes the playing section at once, and an Intro
   or Ending arms (press again to disarm). Running, a section pad is queued (`next`); press the queued
@@ -178,6 +181,39 @@
     return () => clearInterval(t)
   })
 
+  // ---- The fade: while fading and running, it runs for FADE_BARS bars of the ticker's beats (its
+  // progress drains Fade's wedge in the golden layout); a fade-out stops the band when it ends, a
+  // fade-in (Fade pressed while stopped, then Start) just ends.
+  const FADE_BARS = 4
+  let fadeBeats = $state(0)
+  let fadeIn = $state(false)
+  $effect(() => {
+    void beat
+    if (!fading || !running) {
+      untrack(() => (fadeBeats = 0))
+      return
+    }
+    untrack(() => {
+      fadeBeats += 1
+      if (fadeBeats >= FADE_BARS * beatsPerBar) {
+        fadeBeats = 0
+        fading = false
+        if (!fadeIn) stop()
+      }
+    })
+  })
+  let fadeProgress = $derived(fading && running ? fadeBeats / (FADE_BARS * beatsPerBar) : undefined)
+
+  /** Queues a fill to the next Main up or down from the one playing (running only): that Main is next. */
+  function queueFill(dir: 1 | -1) {
+    if (!running) return
+    const mains = pads.map((pad, i) => [pad, i] as const).filter(([pad]) => pad.family === 'main' && pad.state !== 'dark')
+    const at = mains.findIndex(([pad]) => pad.state === 'playing')
+    const to = mains[at + dir]
+    if (at < 0 || !to) return
+    pads = only(pads, to[1], 'next')
+  }
+
   let knobsShown: KnobItem[] = $derived(
     knobs.map((knob) =>
       knob.code === 'Tempo'
@@ -212,6 +248,8 @@
 
   function stop() {
     running = false
+    // Stopping ends a fade under way.
+    fading = false
     pads = pads.map((pad) => (pad.state === 'next' || pad.state === 'armed' ? { ...pad, state: 'idle' } : pad))
   }
 
@@ -263,7 +301,8 @@
   let padsShown: PadItem[] = $derived(
     padBank !== 0 ? (otherPads[padBank] ?? []) : pads.map((pad) => {
       if (pad.family === 'util' && plain(pad.label) === 'Sync Start') {
-        return { ...pad, state: section.syncStart ? 'playing' : 'idle' }
+        // Armed (pulsing) while on, as the app's pads.
+        return { ...pad, state: section.syncStart ? 'armed' : 'idle' }
       }
       if (pad.family === 'start') {
         const word = running ? 'running' : 'stopped'
@@ -316,7 +355,7 @@
 <Stage
   {...p}
   appBar={{ ...p.appBar, chosen }}
-  sectionRow={{ ...section, running, fading }}
+  sectionRow={{ ...section, running, fading, fadeProgress, fadeIn: fading && fadeIn }}
   {display}
   faders={{ ...p.faders, page, layer, strips, partLamps, functionLamps }}
   knobs={{ ...p.knobs, knobs: knobsShown, page: knobPage }}
@@ -337,10 +376,12 @@
   }}
   onfillup={() => {
     p.onfillup?.()
+    queueFill(1)
     status = { ...status, text: 'Fill ▲: a fill, then the next Main up', error: false, seq: (status.seq ?? 0) + 1 }
   }}
   onfilldown={() => {
     p.onfilldown?.()
+    queueFill(-1)
     status = { ...status, text: 'Fill ▼: a fill, then the next Main down', error: false, seq: (status.seq ?? 0) + 1 }
   }}
   onknobpage={(index) => {
@@ -446,6 +487,7 @@
   onfade={() => {
     p.onfade?.()
     fading = !fading
+    if (fading) fadeIn = !running
   }}
   ontempoup={(down) => {
     p.ontempoup?.(down)

@@ -73,7 +73,7 @@
   </div>
   <p class="line" aria-hidden="true">
     {#if tones}<span class="tones">{tones}</span>{/if}
-    {#if fingering}<span class="fingering">{fingering}</span>{/if}
+    {#if fingering}<span class="fingering" title={fingering}>{fingering}</span>{/if}
     {#if held}<span class="held-word">held</span>{/if}
   </p>
 </div>

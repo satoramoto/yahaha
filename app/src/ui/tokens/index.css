@@ -12,5 +12,5 @@
 @import './blooms.css';
 /* The layout grid (a proposal, opt-in: Stage's `layout="grid"`). */
 @import './grid.css';
-/* The golden layout (a proposal, opt-in: Stage's `layout="golden"`). */
-@import './stage-golden.css';
+/* Golden: intervals, shapes and their tunings, the fib scale (app/src/ui/Golden, docs/factory/golden.md). */
+@import './golden.css';

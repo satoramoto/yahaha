@@ -14,6 +14,9 @@
   --weight-light: 300;
   --weight-regular: 400;
   --weight-medium: 500;
+  /* Bold: the golden Stage's hero panel only (the owner's mockup draws its values and their
+     strong words bold). */
+  --weight-bold: 700;
 
   /* The type scale: one text size for everything you read or press, and three large sizes for the
      display's hero values only. One line or row uses one size: a label and its value differ by
@@ -39,6 +42,9 @@
   /* Glyphs, not text: ▲ ▼ ▾ beside or as a label, and ◀ ▶ alone. */
   --glyph-sm: 10px;
   --glyph-md: 12px;
+  /* A transport key's glyph band (▶ ■ ▲ ▼ ◢ ⟲ over the key's word, golden Stage): φ × the 13px
+     text (21.03), so the shape reads first and the word confirms it. */
+  --glyph-key: 21px;
 
   /* Spacing */
   --space-2: 2px;
