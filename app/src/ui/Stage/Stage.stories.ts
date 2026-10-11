@@ -563,7 +563,8 @@ async function crowdedPlay({ canvasElement, args }: { canvasElement: HTMLElement
 /**
  * The golden layout with a long fingering ("AI Full Keyboard · played Gm7 over a long bass line")
  * and nothing queued: the chord's line stays one line, the fingering cut with an ellipsis (its full
- * text in its title), never wrapping into the beat bar; with nothing queued the section's line
+ * text in the readout's spoken name, the fingering's tooltip on hover), never wrapping into the
+ * beat bar; with nothing queued the section's line
  * says where the section is ("bar 3 of 4").
  */
 export const GoldenLongFingering: Story = {
@@ -583,7 +584,11 @@ export const GoldenLongFingering: Story = {
   },
   play: async ({ canvasElement }) => {
     const fingering = canvasElement.querySelector('.chord-col .readout .fingering') as HTMLElement
-    await expect(fingering).toHaveAttribute('title', 'AI Full Keyboard · played Gm7 over a long bass line')
+    await expect(fingering).not.toHaveAttribute('title')
+    await expect(fingering).toHaveAttribute('data-tip', 'fingering.select')
+    await expect(fingering.closest('.readout')?.getAttribute('aria-label')).toContain(
+      'AI Full Keyboard · played Gm7 over a long bass line',
+    )
     await expect(canvasElement.querySelector('[aria-label="Next section"]')?.textContent?.trim()).toBe('bar 3 of 4')
     const line = canvasElement.querySelector('.chord-col .readout .line')!.getBoundingClientRect()
     if (line.height === 0) return

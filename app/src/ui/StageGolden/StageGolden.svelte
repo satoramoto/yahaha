@@ -307,7 +307,7 @@
                    across its foot; the controls row's box closes over it. -->
               <div class="leaf hero" data-hero>
                 <div class="col chord-col">
-                  <div class="chord"><ChordReadout {...now.chord} /></div>
+                  <div class="chord"><ChordReadout {...now.chord} tip="fingering.select" tipAction={p.tipAction} /></div>
                 </div>
                 <div class="col section-col">
                   <div class="stand" style:--fit={sectionFit} {@attach fitSection}>
