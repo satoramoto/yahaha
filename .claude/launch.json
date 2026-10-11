@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "app", "run", "storybook"],
       "port": 6006
+    },
+    {
+      "name": "storybook-golden",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "../yahaha-wt/golden-engine/app", "run", "storybook"],
+      "port": 6006
     }
   ]
 }
