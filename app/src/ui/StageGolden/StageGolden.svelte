@@ -776,7 +776,7 @@
     font-weight: var(--weight-bold);
     color: var(--t);
   }
-  /* A long fingering stays on the line: cut with an ellipsis (its full text in its title), clipped
+  /* A long fingering stays on the line: cut with an ellipsis (its full text in its tooltip), clipped
      only across, so its descenders still show. */
   .screen .chord :global(.fingering) {
     flex: 0 1 auto;

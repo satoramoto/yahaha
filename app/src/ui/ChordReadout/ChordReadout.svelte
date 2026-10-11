@@ -7,7 +7,8 @@
   after each change. Held (detection unsure, the band keeps the last chord): the chord muted,
   without its glow, and "held" on the small line. A readout, not a control. Its spoken name says
   everything drawn, the whole fingering included; with `tip` and `tipAction`, the fingering takes
-  the app's tooltip on hover (no native title).
+  the app's tooltip on hover (no native title), the whole fingering as the tip's first line
+  (`data-tip-text`) above the `tip` entry, so a fingering cut off by its container still shows whole.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -49,9 +50,23 @@
     tipAction,
   }: Props = $props()
 
-  function tipOn(node: HTMLElement, key: string | undefined) {
-    if (!tipAction || !key) return
-    return tipAction(node, key)
+  type TipOn = { key: string | undefined; text: string }
+
+  /** The tooltip action with the fingering as its free text (`data-tip-text`), set before the
+   * action is told, so a tip already showing follows the chord. */
+  function tipOn(node: HTMLElement, p: TipOn) {
+    if (!tipAction || !p.key) return
+    node.dataset.tipText = p.text
+    const handle = tipAction(node, p.key)
+    return {
+      update(next: TipOn) {
+        node.dataset.tipText = next.text
+        if (next.key) handle?.update?.(next.key)
+      },
+      destroy() {
+        handle?.destroy?.()
+      },
+    }
   }
 
   const FITS = ['full', '4', '5', '6', '8']
@@ -96,7 +111,7 @@
   <!-- The line is drawn only: the readout's spoken name (role="img") already says it whole. -->
   <p class="line" aria-hidden="true">
     {#if tones}<span class="tones">{tones}</span>{/if}
-    {#if fingering}<span class="fingering" data-tip={tip} use:tipOn={tip}>{fingering}</span>{/if}
+    {#if fingering}<span class="fingering" data-tip={tip} use:tipOn={{ key: tip, text: fingering }}>{fingering}</span>{/if}
     {#if held}<span class="held-word">held</span>{/if}
   </p>
 </div>

@@ -826,15 +826,18 @@ export const HELP_IDLE: StatusHint = {
  * nothing shown, how help mode works. `since` is the message `seq` when that control took
  * over: an error that arrives after it wins until the pointer moves to another control
  * (Decision: errors aren't hidden behind a hover). The status line's own button shows no
- * hint, since the hint would cover the message it explains.
+ * hint, since the hint would cover the message it explains. `text` is the control's free
+ * text (`tips.shownText`, its `data-tip-text`): it leads as the title and the entry follows
+ * as "Title: body".
  */
 export function statusHint(input: {
   key: TipKey | null
+  text?: string | null
   help: boolean
   message: AppState['message']
   since: number
 }): StatusHint | null {
-  const { key, help, message, since } = input
+  const { key, text, help, message, since } = input
   if (key === 'display.status') return null
   if (message?.error && message.seq > since) return null
   if (!key) return help ? HELP_IDLE : null
@@ -842,8 +845,8 @@ export function statusHint(input: {
   const keys = (t.app_keys ?? t.keys).map(keyLabel)
   const places = t.launchkey ? t.launchkey.split('; ') : []
   return {
-    title: t.title,
-    body: t.body,
+    title: text || t.title,
+    body: text ? `${t.title}: ${t.body}` : t.body,
     keys: keys.length ? keys.join(' / ') : null,
     launchkey: places.length ? places[0] + (places.length > 1 ? ` (+${places.length - 1} more)` : '') : null,
   }
