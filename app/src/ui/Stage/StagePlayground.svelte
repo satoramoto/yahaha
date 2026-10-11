@@ -14,7 +14,9 @@
   pad again and it lands (`playing`); a landed Ending plays out and the band stops. Start (pad 16 or
   the section row) turns an armed pad into the playing section and queues the Main that was
   playing. Stop clears whatever was queued or armed. Sync Start (pad 4 and the section row's lamp
-  are one switch), Auto Fill and Sync Stop toggle. The other pad banks' pads toggle.
+  are one switch), Auto Fill and Sync Stop toggle; Tap (the pad, or Tap under the tempo) sets the
+  tempo from two or more taps' interval, the last four counting (`tapTempo`). The other pad banks'
+  pads toggle.
 -->
 <script lang="ts">
   import { untrack, type ComponentProps } from 'svelte'
@@ -31,6 +33,7 @@
     stageStyles,
     stageStyleTempo,
   } from './Stage.fixtures'
+  import { tapTempo } from './tapTempo'
 
   type Props = ComponentProps<typeof Stage>
   type Hue = NonNullable<Props['display']['nowPlaying']['hue']>
@@ -161,6 +164,13 @@
   let status = $derived({ ...p.status })
   /** Each part's sound, as its row steps it through `stageSounds`. */
   let sounds = $derived(Object.fromEntries(p.display.soundRow.parts.map((part) => [part.id, part.sound])))
+  /** Tap tempo: the taps that still count; two or more set the tempo from their interval. */
+  let taps: number[] = []
+  function tap() {
+    const next = tapTempo(taps, performance.now())
+    taps = next.taps
+    if (next.bpm !== undefined) bpm = clamp(next.bpm, TEMPO_MIN, TEMPO_MAX)
+  }
 
   // ---- The beat: a story-only ticker at the tempo while running (the components take it as a prop)
   const beatsPerBar = $derived(
@@ -268,7 +278,7 @@
     if (!pad || pad.state === 'dark') return
     if (pad.family === 'start') return running ? stop() : start()
     if (pad.family === 'util') {
-      if (plain(pad.label) === 'Tap') return
+      if (plain(pad.label) === 'Tap') return tap()
       if (plain(pad.label) === 'Sync Start') {
         section = { ...section, syncStart: !section.syncStart }
         return
@@ -500,6 +510,10 @@
   onstyletempo={() => {
     p.onstyletempo?.()
     bpm = stageStyleTempo
+  }}
+  ontaptempo={() => {
+    p.ontaptempo?.()
+    tap()
   }}
   ontempo={(next) => {
     p.ontempo?.(next)

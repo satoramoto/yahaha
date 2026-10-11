@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
+import { fn } from 'storybook/test'
 import { chordBoard, chordLong, chordLongFingering, chordStopped } from '../NowPlaying/NowPlaying.fixtures'
 import ChordReadout from './ChordReadout.svelte'
 
@@ -11,6 +12,7 @@ const meta = {
   title: 'Primitives/ChordReadout',
   component: ChordReadout,
   parameters: { layout: 'centered' },
+  args: { tip: 'fingering.select', tipAction: fn() },
   argTypes: {
     chord: { control: 'text' },
     extension: { control: 'text' },
