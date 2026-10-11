@@ -30,6 +30,8 @@ class TipState {
 
   private clearTimer: ReturnType<typeof setTimeout> | null = null
   private owner: HTMLElement | null = null
+  /** Help mode: the element whose entry is pinned, so a change to its text reaches the pin. */
+  private pinnedOwner: HTMLElement | null = null
 
   /** What the status line shows: the control under the pointer or focus, else (help mode)
    * the last one. */
@@ -52,12 +54,28 @@ class TipState {
     if (this.help) {
       this.pinned = key
       this.pinnedText = this.text
+      this.pinnedOwner = el
     }
   }
 
-  /** `el`'s key or free text changed: if its tip is showing, show the new one. */
+  /** `el`'s key or free text changed: where its tip is showing (hovered, leaving, or pinned
+   * in help mode), swap in the new key and text in place. It re-shows nothing and leaves a
+   * pending clear running, so a tip that is leaving still goes. */
   changed(el: HTMLElement, key: TipKey) {
-    if (this.owner === el && this.key) this.show(el, key)
+    const text = el.dataset.tipText || null
+    if (this.owner === el && this.key) {
+      this.key = key
+      this.text = text
+    }
+    if (this.help && this.pinnedOwner === el) {
+      this.pinned = key
+      this.pinnedText = text
+    }
+  }
+
+  /** `el` is gone: stop following it (what's pinned stays as it was). */
+  forget(el: HTMLElement) {
+    if (this.pinnedOwner === el) this.pinnedOwner = null
   }
 
   /** The pointer left `el` (or it lost focus): clear after `CLEAR_MS`, unless another
@@ -81,6 +99,7 @@ class TipState {
     if (!this.help) {
       this.pinned = null
       this.pinnedText = null
+      this.pinnedOwner = null
     }
   }
 
@@ -91,6 +110,7 @@ class TipState {
     this.help = false
     this.pinned = null
     this.pinnedText = null
+    this.pinnedOwner = null
     this.focused = null
   }
 
@@ -173,6 +193,7 @@ export function tip(node: HTMLElement, key: TipKey) {
     },
     destroy() {
       tips.hide(node)
+      tips.forget(node)
       node.removeEventListener('pointerenter', enter)
       node.removeEventListener('pointerleave', leave)
       node.removeEventListener('focus', focus)

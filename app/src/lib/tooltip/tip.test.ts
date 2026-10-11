@@ -2,10 +2,10 @@
 // a change to it (then the action's `update`) reaches a tip already showing.
 
 import { cleanup, fireEvent, render } from '@testing-library/svelte'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Action } from 'svelte/action'
 import ChordReadout from '../../ui/ChordReadout/ChordReadout.svelte'
-import { tip, tips } from './tip.svelte'
+import { CLEAR_MS, tip, tips } from './tip.svelte'
 
 beforeEach(() => tips.reset())
 afterEach(() => {
@@ -53,6 +53,45 @@ describe('tip free text', () => {
     hb.destroy()
   })
 
+  it('an update while the tip is leaving changes its text but still lets it clear', () => {
+    vi.useFakeTimers()
+    try {
+      const el = document.createElement('span')
+      el.dataset.tipText = 'Fingered'
+      const handle = tip(el, 'fingering.select')
+      hover(el)
+      fireEvent.pointerLeave(el)
+      vi.advanceTimersByTime(CLEAR_MS / 2)
+      el.dataset.tipText = 'Fingered On Bass'
+      handle.update('fingering.select')
+      expect(tips.shownText).toBe('Fingered On Bass')
+      vi.advanceTimersByTime(CLEAR_MS)
+      expect(tips.shown).toBeNull()
+      expect(tips.shownText).toBeNull()
+      // After it cleared, an update shows nothing again.
+      el.dataset.tipText = 'Single Finger'
+      handle.update('fingering.select')
+      expect(tips.shown).toBeNull()
+      handle.destroy()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('help mode: an update after leaving reaches the pinned text', () => {
+    tips.toggleHelp()
+    const el = document.createElement('span')
+    el.dataset.tipText = 'Fingered'
+    const handle = tip(el, 'fingering.select')
+    hover(el)
+    tips.hide()
+    el.dataset.tipText = 'Fingered On Bass'
+    handle.update('fingering.select')
+    expect(tips.shown).toBe('fingering.select')
+    expect(tips.shownText).toBe('Fingered On Bass')
+    handle.destroy()
+  })
+
   it('help mode pins the text with its entry', () => {
     tips.toggleHelp()
     const el = document.createElement('span')
@@ -78,6 +117,17 @@ describe('ChordReadout through the tip action', () => {
     expect(tips.shownText).toBe(LONG)
     await rerender({ chord: 'C', extension: '', fingering: 'AI Full Keyboard · played C', tip: 'fingering.select', tipAction })
     expect(fingering.dataset.tipText).toBe('AI Full Keyboard · played C')
+    expect(tips.shownText).toBe('AI Full Keyboard · played C')
+  })
+
+  it('help mode: after the pointer leaves, the pinned fingering follows the chord', async () => {
+    tips.toggleHelp()
+    const { container, rerender } = render(ChordReadout, { chord: 'Gm', fingering: 'Fingered', tip: 'fingering.select', tipAction })
+    const fingering = container.querySelector('.fingering') as HTMLElement
+    await hover(fingering)
+    tips.hide()
+    await rerender({ chord: 'C', fingering: 'AI Full Keyboard · played C', tip: 'fingering.select', tipAction })
+    expect(tips.shown).toBe('fingering.select')
     expect(tips.shownText).toBe('AI Full Keyboard · played C')
   })
 })
