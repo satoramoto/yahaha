@@ -430,6 +430,13 @@ describe('display, knobs, transport, app bar', () => {
     ])
   })
 
+  it('Tap sends tap tempo, once a press', () => {
+    const { actions, take } = fake()
+    actions.ontaptempo()
+    actions.ontaptempo()
+    expect(take().sent).toEqual([{ type: 'tapTempo' }, { type: 'tapTempo' }])
+  })
+
   it('section row', () => {
     const { deps, actions, take } = fake()
     // Each switch toggles whatever state its lamp asks for.

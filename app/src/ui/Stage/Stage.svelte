@@ -111,6 +111,8 @@
       | 'onstyletempo'
       | 'ontempo'
     > & {
+      /** Tap pressed (the golden Stage's hero Tap key: tap tempo). The grid Stage has no Tap key. */
+      ontaptempo?: () => void
       /** Deprecated: the band sends left the display (Effects has them); accepted, unused. */
       onsends?: () => void
       /** Deprecated: the rack left the display (Library › Racks, the fader layers); accepted, unused. */

@@ -265,6 +265,7 @@ export function stageActions(d: StageDeps): StageActions {
     ontempoup: (down) => d.tempo(1, down),
     ontempodown: (down) => d.tempo(-1, down),
     onstyletempo: () => send({ type: 'resetTempo' }),
+    ontaptempo: () => send({ type: 'tapTempo' }),
     // A drag, scroll or arrow key on the display's tempo: that tempo, whole BPM, 5–500.
     ontempo: (bpm) => {
       if (Number.isFinite(bpm)) send({ type: 'setTempo', bpm: Math.max(5, Math.min(500, Math.round(bpm))) })

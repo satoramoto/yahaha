@@ -7,16 +7,18 @@
   fib-21 foot; the app bar on the screen's top edge):
   - App bar (36, the bar-height band), a fib-8, then the controls row: a control-height band one
     golden step deeper (32 × phi = 52), a fib-13 before the display. Inside it, the owner's mockup
-    of the transport row in our face: one outlined box a fib-8 around its keys, the transport flush
-    left as one-line keys sized to their words (▶ Playing, Sync Start, Accomp, Fill ▲, Fill ▼,
-    Fade, a hairline, Reset), One Touch flush right (its caption, then 1–4) in the style's violet.
+    of the top row in our face: one outlined box a fib-8 around its keys: the transport's icon
+    keys (▶, Sync Start, Accomp, Fill ▲, Fill ▼, Fade, Reset; their words in their names and
+    tooltips), a hairline, the style line, a hairline, One Touch (its caption, then 1–4) in the
+    style's violet. The box's sides run down through the gap, so the row and the display read as
+    one frame.
   - Display (1398 × 288): three phi boxes across the frame (`take="phi" boxes={3}`), a fib-21
-    before the band. Inside it, the mockup's hero panel: an outlined box split by hairlines into
-    the chord (the style line over it), the section and the tempo columns and the + − Tap column
-    (0.33 · 0.32 · 0.293 · the rest of its width); the three values bold at one size, their
-    capitals on one line; one line of words under each on one baseline; the beat bar across its
-    foot. Its places are the --golden-hero-* fractions of its own box (stage-display.css), so it
-    scales with the screen; a long section name steps down within its column.
+    before the band. Inside it, the mockup's hero panel: the chord, section and tempo columns split
+    by hairlines (0.329 · 0.354 · the rest of its width); the three values bold at one size,
+    centred, their capitals on one line, each measured down to fit its column; under them "A · C
+    · E · G … Fingered On Bass", "Next … Main C … fill after bar 4" and − Tap +; the beat bar
+    across its foot. Its places are the --golden-hero-* fractions of its own box
+    (stage-display.css), so it scales with the screen.
   - Band (1398 × 384), two equal halves (688 | 689) with a fib-21 gutter: the faders (a header
     band over nine strips, each with its own foot: part lamps, then the functions and the page
     button) and the knobs over the pads (a header band over eight knob cells; a header band over
@@ -63,12 +65,6 @@
     fading?: boolean
     /** Draw the Golden tree's cuts, insets and spirals over the screen, and check them (GoldenOverlay). A design aid. */
     overlay?: boolean
-    /**
-     * Tap pressed (the hero's Tap key; the API's `tapTempo`). Not a Stage prop yet: the app's Stage
-     * wiring doesn't pass it, so in the app Tap does nothing until it does (Storybook's action
-     * reaches it through Stage's props).
-     */
-    ontaptempo?: () => void
   }
 
   let p: Props = $props()
@@ -116,14 +112,62 @@
   }
   const next = $derived((now.next ?? '').trim())
   const nextHue = $derived(hueOf(next) ?? now.hue ?? 'main')
-  /** The words after the chip: when the change lands, or the bar, or the stopped state. */
+  /**
+   * The section's line after "Next" and the next section: when the change lands. With nothing
+   * queued, where the section is ("bar 3 of 4": the bar shows nowhere else since the tempo's line
+   * is − Tap +). Stopped: the stopped state.
+   */
   const when = $derived.by(() => {
     if (!now.running) return now.syncStart ? 'Sync Start armed' : 'Stopped'
     if (next) return now.fill ?? ''
     return (now.bar ?? 0) > 0 && (now.bars ?? 0) > 0 ? `bar ${now.bar} of ${now.bars}` : ''
   })
-  /** The playing section's characters: a long name ("Ending III") steps its size down to fit its third. */
-  const sectionChars = $derived(Math.max(1, (now.playing ?? '').trim().length))
+
+  /**
+   * The playing section's name at the largest size that fits its column: its size is the hero size
+   * times `sectionFit` (at most 1). Measured on the name itself, as it resizes (a new name, the web
+   * font arriving, the screen), the way ChordReadout fits the chord; width scales with the size, so
+   * one measurement gives the fit. Nothing where ResizeObserver is missing (jsdom).
+   */
+  let sectionFit = $state(1)
+  /** The tempo's numeral the same way: "288" and BPM within the tempo's column. */
+  let tempoFit = $state(1)
+
+  /**
+   * Fits one value: `value` set at the hero size times the fit, in `room` less `rest` (what else
+   * shares the line). Watches all three as they resize.
+   */
+  function fitter(get: () => number, set: (fit: number) => void, parts: (box: HTMLElement) => [HTMLElement | null, HTMLElement | null, number]) {
+    return (box: HTMLElement) => {
+      if (typeof ResizeObserver === 'undefined') return
+      const fit = () => {
+        const [room, value, rest] = parts(box)
+        const width = value?.getBoundingClientRect().width ?? 0
+        const space = (room?.clientWidth ?? 0) - rest
+        if (width <= 0 || space <= 0) return
+        const next = Math.min(1, Math.floor(((space * get()) / width) * 1000) / 1000)
+        if (Math.abs(next - get()) > 0.001) set(next)
+      }
+      const observer = new ResizeObserver(fit)
+      const [room, value] = parts(box)
+      for (const el of [box, room, value]) if (el) observer.observe(el)
+      return () => observer.disconnect()
+    }
+  }
+  const fitSection = fitter(
+    () => sectionFit,
+    (fit) => (sectionFit = fit),
+    (stand) => [stand, stand.firstElementChild as HTMLElement | null, 0],
+  )
+  const fitTempo = fitter(
+    () => tempoFit,
+    (fit) => (tempoFit = fit),
+    (area) => {
+      const unit = area.querySelector<HTMLElement>('.unit')
+      // The unit's width and a fib-8 (8px) between it and the numeral.
+      return [area.querySelector<HTMLElement>('.reading'), area.querySelector<HTMLElement>('.bpm'), (unit?.getBoundingClientRect().width ?? 0) + 8]
+    },
+  )
   const beats = $derived(Math.max(1, now.beats ?? 4))
   const beat = $derived(now.running ? (now.beat ?? 0) : 0)
 
@@ -235,7 +279,7 @@
               {...p.sectionRow}
               groups="transport"
               cells
-              textKeys
+              iconKeys
               running={p.running}
               fading={p.fading}
               beat={p.sectionRow.beat ?? beat}
@@ -253,6 +297,11 @@
               onfade={p.onfade}
             />
           </div>
+          <span class="rule" aria-hidden="true"></span>
+          <div class="style">
+            <StyleLine {...style} cells tipAction={p.tipAction} onprev={p.onprev} onnext={p.onnext} onbrowse={p.onbrowse} />
+          </div>
+          <span class="rule" aria-hidden="true"></span>
           <div
             class="one-touch"
             role="group"
@@ -277,24 +326,14 @@
               <StatusLine {...p.status} tipAction={p.tipAction} onclear={p.onclear} />
             </div>
             <GoldenSplit take="phi" boxes={3} from="top" gap="fib-21" name="display and band">
-              <!-- The hero panel: the mockup's three value columns and the + − Tap column, split by
-                   hairlines, the beat bar across its foot. -->
+              <!-- The hero panel: the mockup's three value columns split by hairlines, the beat bar
+                   across its foot; the controls row's box closes over it. -->
               <div class="leaf hero" data-hero>
                 <div class="col chord-col">
-                  <div class="style">
-                    <StyleLine
-                      {...style}
-                      cells
-                      tipAction={p.tipAction}
-                      onprev={p.onprev}
-                      onnext={p.onnext}
-                      onbrowse={p.onbrowse}
-                    />
-                  </div>
                   <div class="chord"><ChordReadout {...now.chord} /></div>
                 </div>
                 <div class="col section-col">
-                  <div class="stand" style:--chars={sectionChars}>
+                  <div class="stand" style:--fit={sectionFit} {@attach fitSection}>
                     <SectionName label={now.playing} hue={now.hue} idle={!now.running} />
                   </div>
                   <div class="sub next" role="group" aria-label="Next section">
@@ -305,14 +344,7 @@
                     {#if when}<span class="when" class:sync={!now.running && now.syncStart}>{when}</span>{/if}
                   </div>
                 </div>
-                <div class="col tempo-col">
-                  <div class="sub count">
-                    {#if style.timeSignature}<span class="metre">{style.timeSignature}</span>{/if}
-                    {#if now.running && (now.bar ?? 0) > 0}<span class="strong">Bar {now.bar}</span>{/if}
-                    {#if beat > 0}<span class="strong">Beat {beat}</span>{/if}
-                  </div>
-                </div>
-                <div class="tempo-area">
+                <div class="col tempo-col" style:--tempo-fit={tempoFit} {@attach fitTempo}>
                   <TempoReadout
                     cells
                     bpm={now.bpm}
@@ -333,10 +365,7 @@
                 </div>
                 <div class="beats" role="img" aria-label={beat > 0 ? `Beat ${beat} of ${beats}` : `${beats} beats, stopped`}>
                   {#each { length: beats } as _, i (i)}
-                    <span class="beat" class:now={i + 1 === beat}>
-                      <span class="bar"></span>
-                      <span class="number">{i + 1}</span>
-                    </span>
+                    <span class="beat" class:now={i + 1 === beat}><span class="bar"></span></span>
                   {/each}
                 </div>
               </div>
@@ -544,14 +573,16 @@
     height: var(--control-height);
   }
 
-  /* The controls row (the mockup's transport row): one outlined box a fib-8 in from its keys, the
-     transport flush left, One Touch flush right; every key the row's height less the box, one
-     line of words in the mockup's key size. */
+  /* The controls row (the mockup's top row): one outlined box a fib-8 in from its keys: the
+     transport's icon keys, a hairline, the style line (it takes the room left), a hairline, One
+     Touch. Every key the row's height less the box. The hero panel's sides run up through the gap
+     to it (.hero::before), so the row and the panel read as one frame split by a hairline, as
+     drawn. */
   .controls {
+    position: relative;
     display: flex;
-    justify-content: space-between;
     border: var(--line-width) solid var(--golden-rule);
-    --type-text: var(--type-golden-word);
+    --type-text: var(--type-golden-row);
     --tracking-text: 0;
     /* The leaf's padding (GoldenFrame's inset): the fib-8 the box keeps around its keys. */
     --golden-inset: var(--fib-8);
@@ -562,14 +593,31 @@
     flex: none;
     gap: var(--fib-8);
   }
-  /* One Touch: its caption, a fib-21 before 1–4, each number a minor-third wide of its height. */
+  .rule {
+    flex: none;
+    width: var(--line-width);
+    margin: 0 var(--fib-13);
+    background: var(--golden-rule);
+  }
+  /* The style line between the hairlines: ‹ › the glyph alone in the style's hue (boxed on hover
+     and focus), the name bold, a fib-13 either side of it. */
+  .style {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+  }
+  .screen .style :global(.name) {
+    padding: 0 var(--fib-13);
+    font-weight: var(--weight-bold);
+  }
+  /* One Touch: its caption, a fib-21 before 1–4, each number `--golden-ots-width` wide and bold. */
   .screen .one-touch :global(.label.cell) {
     width: auto;
     margin-right: calc(var(--fib-21) - var(--fib-8));
   }
   .screen .one-touch :global(.number.cell) {
-    width: auto;
-    aspect-ratio: var(--interval-minor-third);
+    width: var(--golden-ots-width);
+    font-weight: var(--weight-bold);
   }
 
   /* The keys fill theirs; the black keys are the keys' height over phi. */
@@ -585,14 +633,31 @@
     --space-20: 100cqh;
   }
 
-  /* The hero panel (the owner's mockup): an outlined box, its places fractions of its own box
-     (100cqw × 100cqh, the --golden-hero-* tokens), so it scales with the screen. Three value
-     columns and the + − Tap column split by hairlines that stop over the beat bar; the hero
-     values bold, one size, their capitals on one line; under each, one line of words on one
-     baseline; no glows. */
+  /* The hero panel (the owner's mockup): the frame's lower part (no top line: the controls row's
+     foot is it), its places fractions of its own box (100cqw × 100cqh, the --golden-hero-*
+     tokens), so it scales with the screen. Three value columns split by hairlines that stop over
+     the beat bar; the hero values bold, one size, centred in their columns, their capitals on one
+     line; under each, one line on one baseline; no glows. */
   .hero {
     position: relative;
     border: var(--line-width) solid var(--golden-rule);
+    border-top: 0;
+    --golden-hero: calc(100cqh * var(--golden-hero-value-size));
+  }
+  /* Its sides run on up through the gap to the controls row's foot (above the box, so no slot
+     overflows). */
+  .hero::before {
+    position: absolute;
+    bottom: 100%;
+    right: calc(-1 * var(--line-width));
+    left: calc(-1 * var(--line-width));
+    height: var(--fib-13);
+    border: solid var(--golden-rule);
+    border-width: 0 var(--line-width);
+    content: '';
+    pointer-events: none;
+  }
+  .hero {
     --golden-hero: calc(100cqh * var(--golden-hero-value-size));
     --chord-glow: none;
     --section-glow-intro: none;
@@ -601,14 +666,14 @@
     --section-glow-brk: none;
     --section-glow-fill: none;
   }
-  .col,
-  .tempo-area {
+  .col {
     position: absolute;
     top: 0;
     box-sizing: border-box;
     height: calc(100cqh * var(--golden-hero-rule-foot));
   }
-  .col {
+  .chord-col,
+  .section-col {
     border-right: var(--line-width) solid var(--golden-rule);
   }
   .chord-col {
@@ -620,10 +685,6 @@
     width: calc(100cqw * (var(--golden-hero-col-2) - var(--golden-hero-col-1)));
   }
   .tempo-col {
-    left: calc(100cqw * var(--golden-hero-col-2));
-    width: calc(100cqw * (var(--golden-hero-col-3) - var(--golden-hero-col-2)));
-  }
-  .tempo-area {
     right: 0;
     left: calc(100cqw * var(--golden-hero-col-2));
   }
@@ -642,21 +703,7 @@
     left: var(--fib-21);
   }
 
-  /* The style line over the chord, centred on its line: the arrows' squares a fib-13 in, so the
-     ‹ stands on the chord's edge; the name bold. */
-  .style {
-    position: absolute;
-    top: calc(100cqh * var(--golden-hero-style-mid) - var(--control-height-compact) / 2);
-    right: var(--fib-21);
-    left: var(--fib-13);
-    height: var(--control-height-compact);
-    --type-text: var(--type-golden-line);
-  }
-  .screen .style :global(.name) {
-    font-weight: var(--weight-bold);
-  }
-
-  /* The chord: the hero size, its long names stepping down from it. */
+  /* The chord: the hero size, centred, its long names stepping down from it. */
   .chord {
     --type-hero: var(--weight-bold) var(--golden-hero) / 1 var(--font-sans);
     --tracking-hero: var(--tracking-golden-hero);
@@ -675,6 +722,7 @@
   }
   /* Trimmed to its capitals; a descender (the j of Cmaj7) hangs below, clipped only across. */
   .screen .chord :global(.chord) {
+    text-align: center;
     overflow-x: clip;
     overflow-y: visible;
     text-box: trim-both cap alphabetic;
@@ -696,30 +744,36 @@
     text-box: trim-both cap alphabetic;
   }
   .screen .chord :global(.tones) {
+    flex: none;
     font-weight: var(--weight-bold);
     color: var(--t);
   }
+  /* A long fingering stays on the line: cut with an ellipsis (its full text in its title), clipped
+     only across, so its descenders still show. */
+  .screen .chord :global(.fingering) {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow-x: clip;
+    overflow-y: visible;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-  /* Main B: a long name ("Ending III") steps down to fit its column: at most the column's inner
-     width over its characters at 0.52 em a character ("Main A", the face's bold set tight). */
+  /* Main B: the hero size times its measured fit (`sectionFit`), so a long name ("Ending III")
+     takes the largest size that fits its column. */
   .stand {
     display: flex;
+    justify-content: center;
   }
   .section-col .stand {
-    --type-poster: var(--weight-bold)
-      min(
-        var(--golden-hero),
-        (100cqw * (var(--golden-hero-col-2) - var(--golden-hero-col-1)) - 2 * var(--fib-21)) / (var(--chars) * 0.52)
-      )
-      / 1 var(--font-sans);
+    --type-poster: var(--weight-bold) calc(var(--golden-hero) * var(--fit)) / 1 var(--font-sans);
     --tracking-poster: var(--tracking-golden-hero);
   }
   .stand > :global(*) {
     text-box: trim-both cap alphabetic;
   }
 
-  /* The lines under Main B and 104: their words spread across the column, on the chord's
-     notes' baseline. */
+  /* The line under Main B: its words spread across the column, on the chord's notes' baseline. */
   .sub {
     top: calc(100cqh * var(--golden-hero-sub-foot) - 1cap);
     display: flex;
@@ -735,66 +789,78 @@
   .when.sync {
     color: var(--ok);
   }
-  .strong {
-    font-weight: var(--weight-bold);
-    color: var(--t);
-  }
 
-  /* The tempo: its reading (TempoReadout's) spread over the tempo column, 104 at the hero size in
-     the hue of time and BPM on its baseline at the column's right; + and − (its steps) and Tap
-     stacked in the last column, outlined in the hue of time. */
-  .screen .tempo-area :global(.tempo.cells) {
+  /* The tempo: its reading (TempoReadout's) centred in the column, 104 at the hero size in the hue
+     of time and BPM bold on its baseline, a fib-8 after it; under it − Tap + (− and + its steps),
+     unboxed in the hue of time, spread across the column on their own line, each in a fib-55 ×
+     control-height hit area that shows its box on hover and keyboard focus (as the style line's
+     arrows). */
+  .screen .hero .tempo-col :global(.tempo.cells),
+  .screen .hero .tempo-col :global(.tempo .steps) {
     display: contents;
   }
-  .screen .tempo-area :global(.tempo .reading) {
+  .screen .hero .tempo-col :global(.tempo .reading) {
     position: absolute;
     top: calc(100cqh * var(--golden-hero-value-top));
+    right: var(--fib-21);
     left: var(--fib-21);
-    justify-content: space-between;
-    width: calc(100cqw * (var(--golden-hero-col-3) - var(--golden-hero-col-2)) - 2 * var(--fib-21));
+    justify-content: center;
   }
-  .screen .tempo-area :global(.tempo .bpm) {
-    font: var(--weight-bold) var(--golden-hero) / 1 var(--font-sans);
+  .screen .hero .tempo-col :global(.tempo .bpm) {
+    font: var(--weight-bold) calc(var(--golden-hero) * var(--tempo-fit)) / 1 var(--font-sans);
     letter-spacing: var(--tracking-golden-hero);
     color: var(--transport);
     text-box: trim-both cap alphabetic;
     overflow: visible;
   }
-  .screen .tempo-area :global(.tempo .unit) {
-    font: var(--type-golden-word);
+  .screen .hero .tempo-col :global(.tempo .unit) {
+    font: var(--type-golden-unit);
     color: var(--transport);
   }
-  .screen .tempo-area :global(.tempo .steps),
+  .screen .hero .tempo-col :global(.tempo .step),
   .tap {
     position: absolute;
-    right: var(--fib-13);
-    width: calc(100cqw * (1 - var(--golden-hero-col-3)) - 2 * var(--fib-13));
-  }
-  .screen .tempo-area :global(.tempo .steps) {
-    top: calc(100cqh * var(--golden-hero-step-top));
-    gap: calc(100cqh * var(--golden-hero-step-gap));
-    height: calc(100cqh * (2 * var(--golden-hero-step-depth) + var(--golden-hero-step-gap)));
-    font: var(--weight-bold) calc(100cqh * var(--golden-hero-step-glyph)) / 1 var(--font-sans);
-  }
-  .screen .tempo-area :global(.tempo .step > span) {
-    display: inline;
-  }
-  .screen .tempo-area :global(.tempo .step)::before,
-  .screen .tempo-area :global(.tempo .step)::after {
-    display: none;
-  }
-  .tap {
-    top: calc(100cqh * (var(--golden-hero-step-top) + 2 * (var(--golden-hero-step-depth) + var(--golden-hero-step-gap))));
-    height: calc(100cqh * var(--golden-hero-step-depth));
+    top: calc(100cqh * var(--golden-hero-step-mid));
+    display: grid;
+    place-items: center;
+    width: var(--fib-55);
+    height: var(--control-height);
     margin: 0;
     padding: 0;
     border: 0;
     border-radius: var(--radius);
     background: none;
-    box-shadow: inset 0 0 0 var(--outline-width) var(--transport);
-    font: var(--type-golden-line);
+    box-shadow: none;
     color: var(--transport);
     cursor: pointer;
+    translate: -50% -50%;
+  }
+  .screen .hero .tempo-col :global(.tempo .step) {
+    font: var(--weight-bold) calc(100cqh * var(--golden-hero-step-glyph)) / 1 var(--font-sans);
+  }
+  .screen .hero .tempo-col :global(.tempo .step.minus) {
+    left: calc(100% * var(--golden-hero-step-minus));
+  }
+  .screen .hero .tempo-col :global(.tempo .step.plus) {
+    left: calc(100% * var(--golden-hero-step-plus));
+  }
+  .tap {
+    left: calc(100% * var(--golden-hero-step-tap));
+    font: var(--type-golden-sub);
+    font-weight: var(--weight-bold);
+  }
+  .screen .hero .tempo-col :global(.tempo .step > span) {
+    display: inline;
+  }
+  .screen .hero .tempo-col :global(.tempo .step)::before,
+  .screen .hero .tempo-col :global(.tempo .step)::after {
+    display: none;
+  }
+  .screen .hero .tempo-col :global(.tempo .step:hover),
+  .screen .hero .tempo-col :global(.tempo .step:focus-visible),
+  .tap:hover,
+  .tap:focus-visible {
+    box-shadow: inset 0 0 0 var(--outline-width) var(--transport);
   }
   .tap:focus-visible {
     outline: var(--line-width) solid var(--focus);
@@ -802,8 +868,7 @@
   }
 
   /* The beat bar across the panel's foot, a fib-13 in at each side: one bar a beat, a fib-8
-     apart, the current one the hue of time, the others its absent strength; each beat's number
-     under its bar, the current one white. */
+     apart, the current one the hue of time, the others its absent strength. */
   .beats {
     position: absolute;
     top: calc(100cqh * var(--golden-hero-beat-top));
@@ -821,17 +886,6 @@
   }
   .beat.now .bar {
     background: var(--transport);
-  }
-  .number {
-    display: block;
-    margin-top: calc(100cqh * (var(--golden-hero-beat-foot) - var(--golden-hero-beat-top) - var(--golden-hero-beat-depth)) - 1cap);
-    text-align: center;
-    text-box: trim-both cap alphabetic;
-    font: var(--type-golden-word);
-    color: var(--caption-ink);
-  }
-  .beat.now .number {
-    color: var(--t);
   }
 
   /* The band's halves: a fib-21 gutter between them, half on each side of the cut. */

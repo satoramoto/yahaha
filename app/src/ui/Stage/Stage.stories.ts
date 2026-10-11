@@ -175,17 +175,17 @@ export const PageSlot: Story = {
  *   tabs, the helpers Metronome ▾, Unison, Panic, ?, the Launchkey and audio health) on the top
  *   edge, a fib-8 under it.
  * - **Controls row** (52, a control-height band a golden step deeper), a fib-13 over the display,
- *   laid out from the owner's mockup in our face: one outlined box, the transport flush left as
- *   one-line keys in the hue of time (cyan), each its words and a fib-13 each side, a fib-8 apart:
- *   ▶ Playing (or Stopped), Sync Start, Accomp, Fill ▲, Fill ▼, Fade, a hairline, Reset; armed
- *   keys pulse on the beat, a queued Fill stays plain off, its queue in its name. One Touch flush
- *   right in the style's violet: its caption, then 1–4.
- * - **Display** (1398 × 288, three phi boxes across), the mockup's hero panel: an outlined box split
- *   by hairlines into the chord (the style line over it), the section and the tempo columns and a
- *   + − Tap column; the three values bold at one size (0.66 of the panel's height), their capitals
- *   on one line; under each one line of words across its column ("A · C · E · G … Fingered On
- *   Bass", "Next … Main C … fill after bar 4", "4/4 … Bar 3 … Beat 2"); BPM on 104's baseline;
- *   the beat bar across the panel's foot in the hue of time, each beat's number under it. No
+ *   laid out from the owner's mockup in our face: one outlined box holding the transport's icon
+ *   keys in the hue of time (cyan), a fib-8 apart: ▶ (solid while playing), Sync Start (loop
+ *   arrows), Accomp (a note), Fill ▲, Fill ▼, Fade (falling bars), Reset (⟲), their words in their
+ *   names and tooltips; armed keys pulse on the beat, a queued Fill stays plain off, its queue in
+ *   its name. Then a hairline, the style line (‹ Sunday Drive Pop › Pop & Rock · 4/4), a hairline
+ *   and One Touch in the style's violet. Its sides run down to the display: one frame.
+ * - **Display** (1398 × 288, three phi boxes across), the mockup's hero panel: the chord, section
+ *   and tempo columns split by hairlines; the three values bold at one size (0.549 of the panel's
+ *   height), centred, their capitals on one line, each measured down to fit; under them "A · C ·
+ *   E · G … Fingered On Bass", "Next … Main C … fill after bar 4" and − Tap + (unboxed, boxed on
+ *   hover); BPM on 104's baseline; the beat bar across the panel's foot in the hue of time. No
  *   parts list: each part's sound is on its strip.
  * - **Band** (1398 × 384, a fib-21 under the display), two equal halves with a fib-21 gutter: the
  *   faders (a header band over nine strips, each with its own foot: part lamps, then the functions
@@ -227,30 +227,49 @@ export const GoldenOverlay: Story = {
       'minor-third',
       '4',
     ])
-    // The hero panel: the chord, section and tempo columns and the + − Tap column.
+    // The hero panel: the chord, section and tempo columns.
     const hero = canvasElement.querySelector('[data-hero]')
     await expect(hero?.querySelectorAll(':scope > .col').length).toBe(3)
+    const controls = canvasElement.querySelector('.leaf.controls')
     // The display holds no parts list: each part's sound is on its fader strip.
     await expect(hero?.querySelector('[aria-label$="Opens the quick sound list"]')).toBeNull()
     const strips = canvasElement.querySelector('[data-golden-name="strips"]')
     await expect(strips?.querySelectorAll('[aria-label$="Opens the quick sound list"]').length).toBe(4)
-    // The transport: seven one-line keys, Start / Stop's legend what the band is doing
-    // ("Playing"), a hairline divider before Reset.
+    // The transport: seven icon keys, no words on them: each says what it is in its name (Start
+    // / Stop's what the band is doing, "Playing") and its tooltip.
     const transport = canvasElement.querySelector('[role="toolbar"][aria-label="Transport"]')
     const keys = [...(transport?.querySelectorAll('button') ?? [])]
     await expect(keys).toHaveLength(7)
-    await expect(keys[0].textContent?.trim()).toBe('Playing')
+    await expect(keys.map((key) => key.textContent?.trim())).toEqual(['', '', '', '', '', '', ''])
+    await expect(keys.map((key) => key.querySelector('svg.icon')?.getAttribute('data-icon'))).toEqual([
+      'start',
+      'sync',
+      'accomp',
+      'fill-up',
+      'fill-down',
+      'fade',
+      'reset',
+    ])
     await expect(keys[0]).toHaveAccessibleName(/^Playing: Start \/ Stop/)
+    await expect(keys[0]).toHaveAttribute('data-face', 'on')
+    for (const key of keys) await expect(key.getAttribute('data-tip')).toMatch(/^transport\./)
     await expect(transport?.lastElementChild?.getAttribute('aria-label')).toMatch(/^Section reset/)
-    await expect(transport?.lastElementChild?.previousElementSibling?.classList.contains('divider')).toBe(true)
-    // One Touch: its caption, then 1–4.
+    // Then a hairline, the style line, a hairline and One Touch (its caption, then 1–4).
+    await expect([...(controls?.children ?? [])].map((c) => c.className.split(' ')[0])).toEqual([
+      'transport',
+      'rule',
+      'style',
+      'rule',
+      'one-touch',
+    ])
+    await expect(controls?.querySelector('.style [aria-label="Previous style (Track left)"]')).not.toBeNull()
     const oneTouch = canvasElement.querySelector('.one-touch')
     await expect(oneTouch?.firstElementChild?.tagName).toBe('SPAN')
     await expect(oneTouch?.querySelectorAll('button')).toHaveLength(4)
-    // The style line heads the chord's column.
-    await expect(hero?.querySelector('.chord-col [aria-label="Previous style (Track left)"]')).not.toBeNull()
-    // Tap stands under + and − in the last column.
-    await expect(hero?.querySelector('.tempo-area button[aria-label="Tap tempo"]')).not.toBeNull()
+    // − Tap + under the tempo, in its column; the beat bar has no numbers.
+    const tempoLine = [...(hero?.querySelectorAll('.tempo-col button') ?? [])].map((b) => b.getAttribute('aria-label'))
+    await expect(tempoLine).toEqual(expect.arrayContaining(['Tempo up (Scene Launch)', 'Tempo down (Function)', 'Tap tempo']))
+    await expect(hero?.querySelector('.beat')?.textContent?.trim()).toBe('')
     // Each strip carries its own foot (one module a strip): nine strips, nine lamps or buttons.
     const stripGrid = canvasElement.querySelector('[data-golden-name="strips"] [data-golden-slots="grid"]')
     await expect(stripGrid?.children.length).toBe(9)
@@ -261,16 +280,10 @@ export const GoldenOverlay: Story = {
     await expect([...(next?.children ?? [])].map((c) => c.textContent)).toEqual(['Next', 'Main C', 'fill after bar 4'])
     await expect(next?.querySelector('[data-hue="main"]')?.textContent).toBe('Main C')
     await expect(next?.querySelector('button, [data-face]')).toBeNull()
-    // The tempo's line: the metre, the bar and the beat.
-    await expect([...(hero?.querySelector('.tempo-col .sub')?.children ?? [])].map((c) => c.textContent)).toEqual([
-      '4/4',
-      'Bar 3',
-      'Beat 2',
-    ])
     // The queued pad keeps one line: NEXT is a corner tag, not a line over "Main C".
     await expect(canvasElement.querySelector('[data-golden-name="pad grid"] .tag.corner')?.textContent).toBe('NEXT')
     // The style's category and metre follow its name on the style line.
-    await expect(hero?.querySelector('.style .name + .glyph + .meta')?.textContent).toBe('Pop & Rock · 4/4')
+    await expect(controls?.querySelector('.style .name + .glyph + .meta')?.textContent).toBe('Pop & Rock · 4/4')
     // The knobs: every cell one width, assigned or not; each value under its dial (not in the
     // ring) and the name on one line under it.
     const knobRow = canvasElement.querySelector('[data-golden-name="knob row"] [data-golden-slots="grid"]')
@@ -306,42 +319,59 @@ export const GoldenOverlay: Story = {
       // The pads 6:5, two rows of eight.
       const cell = canvasElement.querySelector('[data-golden-name="pad grid"] .pad')!.getBoundingClientRect()
       await expect(cell.width / cell.height).toBeCloseTo(1.2, 1)
-      // The mockup's columns: the chord a third of the panel, the section about as wide, the
-      // tempo a little narrower, the + − Tap column the rest; the hairlines stop over the beat bar.
+      // The mockup's columns: the chord a third of the panel, the section a little wider, the
+      // tempo the rest; the hairlines stop over the beat bar.
       const inner = display.width - 2
       const cols = ['.chord-col', '.section-col', '.tempo-col'].map((c) => box(`[data-hero] ${c}`))
-      await expect(cols[0].width / inner).toBeCloseTo(0.33, 2)
-      await expect(cols[1].width / inner).toBeCloseTo(0.32, 2)
-      await expect(cols[2].width / inner).toBeCloseTo(0.293, 2)
+      await expect(cols[0].width / inner).toBeCloseTo(0.329, 2)
+      await expect(cols[1].width / inner).toBeCloseTo(0.354, 2)
+      await expect(cols[2].width / inner).toBeCloseTo(0.317, 2)
       const bar = box('[data-hero] .beat .bar')
       await expect(bar.top).toBeGreaterThan(cols[0].bottom)
-      // The hero values bold at one size (0.656 of the panel's height), Main B at most that.
+      // The hero values bold at one size (0.549 of the panel's height), Main B and 104 at most that.
       const style = (sel: string) => getComputedStyle(canvasElement.querySelector(sel)!)
-      const heroSize = (display.height - 2) * 0.656
+      const heroSize = (display.height - 1) * 0.549
       await expect(parseFloat(style('.chord-col .readout .chord').fontSize)).toBeCloseTo(heroSize, 0)
-      await expect(parseFloat(style('.tempo-area .bpm').fontSize)).toBeCloseTo(heroSize, 0)
+      await expect(parseFloat(style('.tempo-col .bpm').fontSize)).toBeLessThanOrEqual(heroSize + 0.5)
       await expect(parseFloat(style('.section-col .stand .name').fontSize)).toBeLessThanOrEqual(heroSize + 0.5)
-      for (const sel of ['.chord-col .readout .chord', '.tempo-area .bpm', '.section-col .stand .name'])
+      for (const sel of ['.chord-col .readout .chord', '.tempo-col .bpm', '.section-col .stand .name'])
         await expect(style(sel).fontWeight).toBe('700')
-      // Their capitals on one line, and the lines under them on one baseline.
-      const tops = ['.chord-col .readout .chord', '.section-col .stand .name', '.tempo-area .bpm'].map((s) => box(s).top)
+      // Their capitals on one line, each centred in its column; the lines under the chord and the
+      // section on one baseline.
+      const tops = ['.chord-col .readout .chord', '.section-col .stand .name', '.tempo-col .bpm'].map((s) => box(s).top)
       for (const t of tops) await expect(Math.abs(t - tops[0])).toBeLessThan(1)
-      const feet = ['.chord-col .readout .line > *', '.section-col .sub > *', '.tempo-col .sub > *'].map((s) => box(s).bottom)
-      for (const f of feet) await expect(Math.abs(f - feet[0])).toBeLessThan(1)
-      // Main B fits its column; the chord and the section read as two words.
+      const centre = (r: DOMRect) => (r.left + r.right) / 2
+      const range = (sel: string) => {
+        const r = document.createRange()
+        r.selectNodeContents(canvasElement.querySelector(sel) as Node)
+        return r.getBoundingClientRect()
+      }
+      await expect(Math.abs(centre(range('.chord-col .readout .chord')) - centre(cols[0]))).toBeLessThan(2)
+      await expect(Math.abs(centre(box('.section-col .stand .name')) - centre(cols[1]))).toBeLessThan(2)
+      const feet = ['.chord-col .readout .line > *', '.section-col .sub > *'].map((s) => box(s).bottom)
+      await expect(Math.abs(feet[1] - feet[0])).toBeLessThan(1)
+      // Main B measured to the largest size that fits its column (once its fit has run); the
+      // chord and the section read as two words.
+      await waitFor(() => expect(box('.section-col .stand .name').right).toBeLessThanOrEqual(cols[1].right - 21 + 1))
       const section = box('.section-col .stand .name')
-      await expect(section.right).toBeLessThanOrEqual(cols[1].right - 21 + 1)
       const chordText = document.createRange()
       chordText.selectNodeContents(canvasElement.querySelector('.chord-col .readout .chord') as Node)
       await expect(section.left - chordText.getBoundingClientRect().right).toBeGreaterThanOrEqual(21)
-      // BPM on 104's baseline, at the tempo column's right; + − Tap one width, stacked.
-      await expect(Math.abs(box('.tempo-area .unit').bottom - box('.tempo-area .bpm').bottom)).toBeLessThan(1)
-      await expect(Math.abs(box('.tempo-area .unit').right - (cols[2].right - 21))).toBeLessThan(1)
-      const tap = box('.tempo-area .tap')
+      // BPM on 104's baseline, a fib-8 after it; − Tap + on one line under them, left to right,
+      // inside the tempo's column, each a fib-55 × control-height hit area, unboxed at rest.
+      await expect(Math.abs(box('.tempo-col .unit').bottom - box('.tempo-col .bpm').bottom)).toBeLessThan(1)
+      await expect(Math.round(box('.tempo-col .unit').left - box('.tempo-col .bpm').right)).toBe(8)
+      const tap = box('.tempo-col .tap')
       const minus = box('[aria-label="Tempo down (Function)"]')
-      for (const k of [minus, tap]) await expect(Math.abs(k.width - plus.width)).toBeLessThan(0.5)
-      await expect(plus.bottom).toBeLessThan(minus.top)
-      await expect(minus.bottom).toBeLessThan(tap.top)
+      for (const k of [minus, tap, plus]) {
+        await expect([Math.round(k.width), Math.round(k.height)]).toEqual([55, 32])
+        await expect(Math.abs(k.top - tap.top)).toBeLessThan(1)
+        await expect(k.left).toBeGreaterThanOrEqual(cols[2].left)
+        await expect(k.right).toBeLessThanOrEqual(cols[2].right)
+      }
+      await expect(minus.right).toBeLessThan(tap.left)
+      await expect(tap.right).toBeLessThan(plus.left)
+      await expect(style('.tempo-col .tap').boxShadow).toBe('none')
       // Each part's sound centred over its own strip, at most the strip less 6px, wrapping to two
       // 13px lines ("Brass Section" whole on two) before any ellipsis.
       for (const strip of [...(stripGrid?.children ?? [])].slice(0, 4)) {
@@ -353,35 +383,22 @@ export const GoldenOverlay: Story = {
         await expect(getComputedStyle(text).fontSize).toBe('13px')
         await expect(text.scrollHeight).toBeLessThanOrEqual(text.clientHeight + 1)
       }
-      // The transport row: the keys inside one box a fib-8 in, each the row's height less the box,
-      // a fib-8 apart; a fib-34 around the divider before Reset; One Touch flush right.
+      // The controls row: the keys inside one box a fib-8 in, each 62 wide and the row's height
+      // less the box, a fib-8 apart; One Touch flush right; nothing in it overflows.
       const row = box('.leaf.controls')
       const k = keys.map((key) => key.getBoundingClientRect())
-      for (const r of k) await expect(Math.round(r.height)).toBe(Math.round(row.height - 2 - 16))
+      for (const r of k) await expect([Math.round(r.width), Math.round(r.height)]).toEqual([62, Math.round(row.height - 2 - 16)])
       await expect(Math.round(k[0].left - row.left)).toBe(9)
-      await expect(k.slice(1, 6).map((r, i) => Math.round(r.left - k[i].right))).toEqual([8, 8, 8, 8, 8])
-      await expect(Math.round(k[6].left - k[5].right)).toBe(34)
+      await expect(k.slice(1).map((r, i) => Math.round(r.left - k[i].right))).toEqual([8, 8, 8, 8, 8, 8])
       const lastNumber = [...(oneTouch?.querySelectorAll('button') ?? [])].at(-1)!.getBoundingClientRect()
       await expect(Math.round(row.right - lastNumber.right)).toBe(9)
-      // Every transport word on one baseline.
-      const words = [...(transport?.querySelectorAll('.key-word') ?? [])].map((w) => w.getBoundingClientRect())
-      for (const w of words) await expect(Math.abs(w.bottom - words[0].bottom)).toBeLessThan(0.5)
-      // The beat bar: each bar the panel's 0.045 deep (13 at 1440).
-      await expect(Math.round(bar.height)).toBe(13)
+      const name = canvasElement.querySelector('.controls .style .name') as HTMLElement
+      await expect(name.scrollWidth).toBeLessThanOrEqual(name.clientWidth)
+      // The beat bar: each bar the panel's 0.064 deep (18 at 1440).
+      await expect(Math.round(bar.height)).toBe(18)
     }
-    // The transport's keys are one-line keys in the hue of time: ▶ before Start / Stop's legend,
-    // ▲ and ▼ after each Fill's word; on the board Main C lands after a fill, so Fill Up is queued:
-    // said in its name, its face plain off (designer pass: no third state).
-    await expect(keys.map((key) => key.querySelectorAll('svg').length)).toEqual([1, 0, 0, 1, 1, 0, 0])
-    await expect(keys.map((key) => key.querySelector('.key-word')?.textContent)).toEqual([
-      'Playing',
-      'Sync Start',
-      'Accomp',
-      'Fill',
-      'Fill',
-      'Fade',
-      'Reset',
-    ])
+    // On the board Main C lands after a fill, so Fill Up is queued: said in its name, its face
+    // plain off (designer pass: no third state).
     await expect(keys[3]).toHaveAttribute('data-face', 'off')
     await expect(keys[3]).toHaveAccessibleName(/^Fill Up, queued/)
     for (const key of keys) await expect((key as HTMLElement).style.getPropertyValue('--hue')).toBe('var(--transport)')
@@ -436,8 +453,7 @@ export const GoldenSyncStart: Story = {
     const transport = canvasElement.querySelector('[role="toolbar"][aria-label="Transport"]')
     const keys = [...(transport?.querySelectorAll('button') ?? [])]
     await expect(keys[0]).toHaveAttribute('data-face', 'off')
-    // Start / Stop says what the band is doing.
-    await expect(keys[0].querySelector('.key-word')?.textContent).toBe('Stopped')
+    // Start / Stop's name says what the band is doing.
     await expect(keys[0]).toHaveAccessibleName(/^Stopped: Start \/ Stop/)
     await expect(keys[1]).toHaveAttribute('data-face', 'armed')
     await expect(keys[1]).toHaveAttribute('data-pulse', 'free')
@@ -512,18 +528,62 @@ async function crowdedPlay({ canvasElement, args }: { canvasElement: HTMLElement
   // The dials the cell over phi (52 px at 1440), the slot pitch kept.
   const dials = [...(row?.querySelectorAll('.dial button') ?? [])].map((d) => d.getBoundingClientRect())
   for (const [i, d] of dials.entries()) await expect(d.width).toBeCloseTo(cells[i].width / 1.618, 0)
-  // 288 and BPM inside the tempo's column, apart, on one baseline; "Ending III" steps down
-  // within its own column.
+  // 288 and BPM inside the tempo's column, apart, on one baseline (288 measured to fit, as the
+  // section's name); "Ending III" steps down within its own column.
   const tempo = canvasElement.querySelector('[data-hero] .tempo-col')!.getBoundingClientRect()
-  const numeral = canvasElement.querySelector('.tempo-area .bpm')!.getBoundingClientRect()
-  const unit = canvasElement.querySelector('.tempo-area .unit')!.getBoundingClientRect()
-  await expect(unit.right).toBeLessThanOrEqual(tempo.right - 21 + 0.5)
-  await expect(unit.left - numeral.right).toBeGreaterThanOrEqual(8)
-  await expect(Math.abs(unit.bottom - numeral.bottom)).toBeLessThan(1)
-  const sectionText = document.createRange()
-  sectionText.selectNodeContents(canvasElement.querySelector('.section-col .stand > *') as Node)
+  await waitFor(() => {
+    const numeral = canvasElement.querySelector('.tempo-col .bpm')!.getBoundingClientRect()
+    const unit = canvasElement.querySelector('.tempo-col .unit')!.getBoundingClientRect()
+    expect(unit.right).toBeLessThanOrEqual(tempo.right - 21 + 0.5)
+    expect(unit.left - numeral.right).toBeGreaterThanOrEqual(7.5)
+    expect(Math.abs(unit.bottom - numeral.bottom)).toBeLessThan(1)
+  })
+  // "Ending III" measured to the largest size that fits: its right edge on the column's inset.
   const column = canvasElement.querySelector('[data-hero] .section-col')!.getBoundingClientRect()
-  await expect(sectionText.getBoundingClientRect().right).toBeLessThanOrEqual(column.right - 21 + 0.5)
+  await waitFor(() => {
+    const name = canvasElement.querySelector('.section-col .stand > *')!.getBoundingClientRect()
+    expect(name.right).toBeLessThanOrEqual(column.right - 21 + 0.5)
+    expect(name.right).toBeGreaterThan(column.right - 21 - 3)
+  })
+}
+
+/**
+ * The golden layout with a long fingering ("AI Full Keyboard · played Gm7 over a long bass line")
+ * and nothing queued: the chord's line stays one line, the fingering cut with an ellipsis (its full
+ * text in its title), never wrapping into the beat bar; with nothing queued the section's line
+ * says where the section is ("bar 3 of 4").
+ */
+export const GoldenLongFingering: Story = {
+  name: 'Golden › long fingering',
+  args: {
+    layout: 'golden',
+    overlay: false,
+    display: {
+      ...stageBoard.display,
+      nowPlaying: {
+        ...stageBoard.display.nowPlaying,
+        next: '',
+        fill: '',
+        chord: { ...stageBoard.display.nowPlaying.chord, fingering: 'AI Full Keyboard · played Gm7 over a long bass line' },
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const fingering = canvasElement.querySelector('.chord-col .readout .fingering') as HTMLElement
+    await expect(fingering).toHaveAttribute('title', 'AI Full Keyboard · played Gm7 over a long bass line')
+    await expect(canvasElement.querySelector('[aria-label="Next section"]')?.textContent?.trim()).toBe('bar 3 of 4')
+    const line = canvasElement.querySelector('.chord-col .readout .line')!.getBoundingClientRect()
+    if (line.height === 0) return
+    // One line: the fingering as tall as the notes, ending inside the column, over the beat bar.
+    const tones = canvasElement.querySelector('.chord-col .readout .tones')!.getBoundingClientRect()
+    const f = fingering.getBoundingClientRect()
+    await expect(Math.abs(f.bottom - tones.bottom)).toBeLessThan(1)
+    await expect(Math.abs(f.height - tones.height)).toBeLessThan(1)
+    await expect(fingering.scrollWidth).toBeGreaterThan(fingering.clientWidth)
+    const column = canvasElement.querySelector('[data-hero] .chord-col')!.getBoundingClientRect()
+    await expect(f.right).toBeLessThanOrEqual(column.right - 21 + 0.5)
+    await expect(line.bottom).toBeLessThan(canvasElement.querySelector('[data-hero] .beat .bar')!.getBoundingClientRect().top)
+  },
 }
 
 /**

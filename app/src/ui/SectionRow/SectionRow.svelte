@@ -73,13 +73,14 @@
      */
     evenGaps?: boolean
     /**
-     * Cells: each transport key one line of words, sized to them (the golden Stage, the owner's
-     * mockup): "▶ Playing" (or "▶ Stopped"), Sync Start, Accomp, "Fill ▲", "Fill ▼", Fade, then a
-     * hairline divider and Reset. The faces, names and pulses are the cells' own; the parent lays
-     * the keys out (a flex row) and sets the words' role through `--type-text`. A fade's drain is a
-     * bar along the foot of Fade. Off (the default): a glyph over each word, in the parent's cells.
+     * Cells: each transport key an icon alone, its words in its name and tooltip (the golden Stage,
+     * the owner's mockup): ▶ Start / Stop (the key solid while playing), Sync Start (loop arrows),
+     * Accomp (a beamed note), Fill ▲, Fill ▼, Fade (falling bars), Reset (⟲). The faces, names and
+     * pulses are the cells' own; the parent sizes the keys (`--golden-key-width`, its row's
+     * height) and lays them out in a row. A fade's drain is a bar along the foot of Fade. Off (the
+     * default): a glyph over each word, in the parent's cells.
      */
-    textKeys?: boolean
+    iconKeys?: boolean
     /** Cells: how far the fade has gone, 0 to 1, while `fading` and running: Fade's wedge drains by as much. */
     fadeProgress?: number
     /** Cells: the fade under way (or waiting for Start) is a fade-in: Fade shows ◢ while fading even as the band plays. */
@@ -141,7 +142,7 @@
     evenKeys = false,
     stateLegend = false,
     evenGaps = false,
-    textKeys = false,
+    iconKeys = false,
     fadeProgress,
     fadeIn = false,
     running = false,
@@ -358,6 +359,30 @@
   {/if}
 {/snippet}
 
+{#snippet icon(kind: string)}
+  <!-- `iconKeys`: one icon a key in a 24 × 24 box, in the key's ink: ▶, loop arrows, a beamed
+       note, ▲, ▼, falling bars, ⟲. -->
+  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" data-icon={kind}>
+    {#if kind === 'start'}
+      <path class="solid" d="M5 2 22 12 5 22Z" />
+    {:else if kind === 'sync'}
+      <path d="M3 11V9a3 3 0 0 1 3-3h13" /><path d="M16 2.5 19.5 6 16 9.5" /><path d="M21 13v2a3 3 0 0 1-3 3H5" /><path
+        d="M8 14.5 4.5 18 8 21.5"
+      />
+    {:else if kind === 'accomp'}
+      <path d="M8.5 18V5l12-2.5V16" /><circle class="solid" cx="5.5" cy="18" r="3" /><circle class="solid" cx="17.5" cy="16" r="3" />
+    {:else if kind === 'fill-up'}
+      <path class="solid" d="M12 3 22 20H2Z" />
+    {:else if kind === 'fill-down'}
+      <path class="solid" d="M2 4H22L12 21Z" />
+    {:else if kind === 'fade'}
+      {#each [0, 1, 2, 3, 4] as i (i)}<rect class="solid" x={1 + i * 4.6} y={3 + i * 3.6} width="2.8" height={18 - i * 3.6} />{/each}
+    {:else if kind === 'reset'}
+      <path d="M5.6 7.5A8 8 0 1 0 12 4" /><path class="solid" d="M3 2.5 9.5 3.5 4.5 9Z" />
+    {/if}
+  </svg>
+{/snippet}
+
 {#snippet key(
   label: string,
   shape: Shape,
@@ -371,15 +396,14 @@
 )}
   <!-- A transport key: its glyph over its word, on the row's one baseline, in the hue of time, in
        the state language; armed pulses once a beat. -->
-  {@const slot = evenKeys && !textKeys ? SLOTS[kind] : undefined}
-  {@const drain = textKeys && kind === 'fade' && fadeLeft < 1 ? fadeLeft.toFixed(2) : undefined}
-  {#if textKeys && kind === 'reset'}<span class="divider" aria-hidden="true"></span>{/if}
+  {@const slot = evenKeys && !iconKeys ? SLOTS[kind] : undefined}
+  {@const drain = iconKeys && kind === 'fade' && fadeLeft < 1 ? fadeLeft.toFixed(2) : undefined}
   <button
     type="button"
     class="face key {kind}"
-    class:text={textKeys}
+    class:icon={iconKeys}
     class:even={slot !== undefined}
-    class:boxed={evenKeys && !textKeys}
+    class:boxed={evenKeys && !iconKeys}
     data-drain={drain}
     style:--drain={drain}
     style:--slot={slot}
@@ -394,11 +418,7 @@
     data-tip={tip}
     use:tipOn={tip}
     onclick={press}
-    >{#if textKeys}<span class="line"
-        >{#if kind === 'start'}{@render mark('play')}{/if}<span class="key-word"
-          >{kind === 'fill-up' || kind === 'fill-down' ? 'Fill' : label}</span
-        >{#if kind === 'fill-up' || kind === 'fill-down'}{@render mark(shape)}{/if}</span
-      >{:else}<span class="stack"><span class="band">{@render mark(shape)}</span><span class="key-word">{label}</span></span
+    >{#if iconKeys}{@render icon(kind)}{:else}<span class="stack"><span class="band">{@render mark(shape)}</span><span class="key-word">{label}</span></span
       >{/if}</button
   >
 {/snippet}
@@ -848,39 +868,33 @@
     width: var(--glyph-key);
   }
 
-  /* `textKeys`: each key its one line of words and its side padding, the row's height; the glyph
-     a capital high, a fib-8 from its word. No cell gaps: the parent's row spaces the keys. */
-  .face.key.text,
-  .face.key.text.reset {
+  /* `iconKeys`: each key `--golden-key-width` wide and its row's height, its icon centred,
+     `--golden-key-icon` high: the solid parts filled, the strokes a fib-3 line of its 24 box. No cell gaps: the
+     parent's row spaces the keys. */
+  .face.key.icon,
+  .face.key.icon.reset {
     flex: none;
-    width: auto;
+    width: var(--golden-key-width);
     margin-left: 0;
-    padding: 0 var(--golden-key-pad);
+    padding: 0;
   }
-  .line {
+  svg.icon {
     position: relative;
-    display: flex;
-    align-items: baseline;
-    gap: var(--fib-8);
-    font: var(--type-text);
-    letter-spacing: var(--tracking-text);
-  }
-  .line .mark {
-    align-self: center;
+    display: block;
     width: auto;
-    height: 1cap;
+    height: var(--golden-key-icon);
+    fill: none;
+    stroke: currentColor;
+    stroke-width: var(--fib-3);
+    stroke-linecap: square;
   }
-  /* Before Reset: a hairline, centred in a fib-34 (the parent's row gap on each side taken off). */
-  .divider {
-    flex: none;
-    align-self: stretch;
-    width: var(--line-width);
-    margin: 0 calc((var(--fib-34) - var(--line-width)) / 2 - var(--fib-8));
-    background: var(--golden-rule);
+  svg.icon .solid {
+    fill: currentColor;
+    stroke: none;
   }
   /* A fade's drain: a fib-3 bar along Fade's foot in --on-ink, as long as the part of the fade
      that has run. */
-  .face.key.text[data-drain]::after {
+  .face.key.icon[data-drain]::after {
     position: absolute;
     bottom: 0;
     left: 0;

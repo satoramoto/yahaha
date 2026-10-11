@@ -74,30 +74,30 @@
   --tempo-gap: 14px; /* from the bar segments down to the tempo row */
 
   /* The golden Stage's transport row and hero panel, from the owner's mockup (its sizes and
-     weights, our face). The panel's places are fractions of its own box (its width for the
-     columns, its height for the rows and its type), so it scales with the screen; the transport
-     row's words are a fixed size. At 1440 × 900 the panel is 1398 × 288, its line 20px and its
-     sub-lines 24px. The panel's two type roles resolve against the panel (a size container). */
-  --type-golden-word: var(--weight-regular) 17px / 20px var(--font-sans); /* a transport key, One Touch, BPM, a beat's number */
-  --type-golden-line: var(--weight-regular) calc(100cqh * 0.0694) / 1.2 var(--font-sans); /* the style line, Tap */
-  --type-golden-sub: var(--weight-regular) calc(100cqh * 0.0833) / 1.2 var(--font-sans); /* the line under each hero value */
+     weights, our face). The row's sizes are fixed; the panel's places are fractions of its own
+     box (its width for the columns, its height for the rows and its type), so it scales with the
+     screen. At 1440 × 900 the panel is 1398 × 288 and its lines 24px; its type roles resolve
+     against the panel (a size container). */
+  --type-golden-row: var(--weight-regular) 20px / 24px var(--font-sans); /* the controls row's words: the style line, One Touch */
+  --type-golden-unit: var(--weight-bold) 26px / 1 var(--font-sans); /* BPM */
+  --type-golden-sub: var(--weight-regular) calc(100cqh * 0.0833) / 1.2 var(--font-sans); /* the line under each hero value, − Tap + */
   --tracking-golden-hero: -0.03em; /* the hero values' tight set */
-  --golden-key-pad: var(--fib-13); /* a transport key's side padding: the key is its words and this */
-  --golden-hero-col-1: 0.33; /* the chord's column's right edge */
-  --golden-hero-col-2: 0.65; /* the section's */
-  --golden-hero-col-3: 0.943; /* the tempo's; + − Tap the rest */
-  --golden-hero-style-mid: 0.094; /* the style line's middle */
-  --golden-hero-value-top: 0.185; /* the hero values' capital tops */
-  --golden-hero-value-size: 0.656; /* the hero values' size: capitals 0.46 of the panel's height */
-  --golden-hero-sub-foot: 0.765; /* the lines under them: their baseline */
-  --golden-hero-rule-foot: 0.827; /* the columns' hairlines end */
-  --golden-hero-beat-top: 0.858; /* the beat bar */
-  --golden-hero-beat-depth: 0.045;
-  --golden-hero-beat-foot: 0.972; /* the beats' numbers: their baseline */
-  --golden-hero-step-top: 0.052; /* + − Tap: the first key's top, each key's depth, the gap */
-  --golden-hero-step-depth: 0.202;
-  --golden-hero-step-gap: 0.035;
+  --golden-key-width: 62px; /* a transport key (an icon alone), its row's height tall */
+  --golden-key-icon: 16px; /* its icon's height */
+  --golden-ots-width: 53px; /* a One Touch number */
+  --golden-hero-col-1: 0.329; /* the chord's column's right edge */
+  --golden-hero-col-2: 0.683; /* the section's; the tempo's the rest */
+  --golden-hero-value-top: 0.126; /* the hero values' capital tops */
+  --golden-hero-value-size: 0.549; /* the hero values' size: capitals 0.38 of the panel's height */
+  --golden-hero-sub-foot: 0.763; /* the lines under them: their baseline */
+  --golden-hero-step-mid: 0.699; /* − Tap +: their middle, and across the tempo's column */
+  --golden-hero-step-minus: 0.2;
+  --golden-hero-step-tap: 0.51;
+  --golden-hero-step-plus: 0.81;
   --golden-hero-step-glyph: 0.14; /* + and −: their size */
+  --golden-hero-rule-foot: 0.854; /* the columns' hairlines end */
+  --golden-hero-beat-top: 0.886; /* the beat bar */
+  --golden-hero-beat-depth: 0.064;
 
   /* Sound row */
   --sound-row-height: 44px;
