@@ -82,9 +82,9 @@
   --type-golden-unit: var(--weight-bold) 26px / 1 var(--font-sans); /* BPM */
   --type-golden-sub: var(--weight-regular) calc(100cqh * 0.0833) / 1.2 var(--font-sans); /* the line under each hero value, − Tap + */
   --tracking-golden-hero: -0.03em; /* the hero values' tight set */
-  --golden-key-width: 62px; /* a transport key (an icon alone), its row's height tall */
+  --golden-key-width: 62px; /* a transport key (an icon alone), its row's height tall (the golden Stage sets it from the Pads header) */
   --golden-key-icon: 16px; /* its icon's height */
-  --golden-ots-width: 53px; /* a One Touch number */
+  --golden-row-height: calc(var(--control-height-compact) + 2 * var(--fib-3) + 2 * var(--line-width)); /* the controls row's box: 36 */
   --golden-hero-col-1: 0.329; /* the chord's column's right edge */
   --golden-hero-col-2: 0.683; /* the section's; the tempo's the rest */
   --golden-hero-value-top: 0.126; /* the hero values' capital tops */

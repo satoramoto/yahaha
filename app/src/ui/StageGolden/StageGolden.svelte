@@ -6,14 +6,13 @@
   the hill-climb's learnings. Numbers at 1440 × 900 (the frame 1398 wide, fib-21 side margins and a
   fib-21 foot; the app bar on the screen's top edge):
   - App bar (36, the bar-height band), a fib-8, then the controls row: a control-height band one
-    golden step deeper (32 × phi = 52), a fib-13 before the display. Inside it, the owner's mockup
-    of the top row in our face: one outlined box a fib-8 around its keys: the transport's icon
-    keys (▶, Sync Start, Accomp, Fill ▲, Fill ▼, Fade, Reset; their words in their names and
-    tooltips), a hairline, the style line, a hairline, One Touch (its caption, then 1–4) in the
-    style's violet. The box's sides run down through the gap, so the row and the display read as
-    one frame.
+    golden step deeper (32 × phi = 52), a fib-13 before the display. At its top, the owner's mockup
+    of the top row in our face: one outlined box 36 deep: the style line, a hairline, One Touch
+    (its caption, then 1–4) in the style's violet. The display's sides run up through the gap, so
+    the row and the display read as one frame.
   - Display (1398 × 288): three phi boxes across the frame (`take="phi" boxes={3}`), a fib-21
-    before the band. Inside it, the mockup's hero panel: the chord, section and tempo columns split
+    before the band, lifted into the 16 of the controls band the row leaves (304 deep). Inside
+    it, the mockup's hero panel: the chord, section and tempo columns split
     by hairlines (0.329 · 0.354 · the rest of its width); the three values bold at one size,
     centred, their capitals on one line, each measured down to fit its column; under them "A · C
     · E · G … Fingered On Bass", "Next … Main C … fill after bar 4" and − Tap +; the beat bar
@@ -22,7 +21,9 @@
   - Band (1398 × 384), two equal halves (688 | 689) with a fib-21 gutter: the faders (a header
     band over nine strips, each with its own foot: part lamps, then the functions and the page
     button) and the knobs over the pads (a header band over eight knob cells; a header band over
-    2 × 8 pads at 6:5, `take="minor-third" boxes={4}`).
+    2 × 8 pads at 6:5, `take="minor-third" boxes={4}`). The transport's seven square icon keys
+    (▶, Sync Start, Accomp, Fill ▲, Fill ▼, Fade, Reset; their words in their names and tooltips)
+    sit at the Pads header's right end, beside the pads as on the Launchkey.
   - The status line in a label-height band a fib-5 under the band; the keys (56, the keys-height
     band) under it, the black keys 56 / phi.
   Each leaf is a size container: the components' size tokens are set from its content box (cq
@@ -273,31 +274,7 @@
         </AppBar>
       </div>
       <GoldenBand size="control-height" times="phi" from="top" gap="fib-13" name="controls">
-        <div class="leaf controls">
-          <div class="transport" role="toolbar" aria-label="Transport">
-            <SectionRow
-              {...p.sectionRow}
-              groups="transport"
-              cells
-              iconKeys
-              running={p.running}
-              fading={p.fading}
-              beat={p.sectionRow.beat ?? beat}
-              bpm={p.sectionRow.bpm ?? now.bpm}
-              {fillQueued}
-              plainQueue
-              stateLegend
-              tipAction={p.tipAction}
-              onstartstop={p.onstartstop}
-              onaccomp={p.onaccomp}
-              onsyncstart={p.onsyncstart}
-              onreset={p.onreset}
-              onfillup={p.onfillup}
-              onfilldown={p.onfilldown}
-              onfade={p.onfade}
-            />
-          </div>
-          <span class="rule" aria-hidden="true"></span>
+        <div class="leaf controls"><div class="row">
           <div class="style">
             <StyleLine {...style} cells tipAction={p.tipAction} onprev={p.onprev} onnext={p.onnext} onbrowse={p.onbrowse} />
           </div>
@@ -316,7 +293,7 @@
               onapply={p.ononetouch}
             />
           </div>
-        </div>
+        </div></div>
         <GoldenBand size="keys-height" from="bottom" name="keys and the rest">
           <div class="leaf keys" {@attach measureKeys}>
             <Keys {...p.keys} width={keysWidth} />
@@ -486,6 +463,31 @@
                           />
                           {#snippet end()}
                             {#if p.pads.legend?.length}<HueLegend items={p.pads.legend} />{/if}
+                            <!-- The transport beside the pads, as on the Launchkey: seven square
+                                 icon keys at the header's right end. -->
+                            <span class="transport" role="toolbar" aria-label="Transport">
+                              <SectionRow
+                                {...p.sectionRow}
+                                groups="transport"
+                                cells
+                                iconKeys
+                                running={p.running}
+                                fading={p.fading}
+                                beat={p.sectionRow.beat ?? beat}
+                                bpm={p.sectionRow.bpm ?? now.bpm}
+                                {fillQueued}
+                                plainQueue
+                                stateLegend
+                                tipAction={p.tipAction}
+                                onstartstop={p.onstartstop}
+                                onaccomp={p.onaccomp}
+                                onsyncstart={p.onsyncstart}
+                                onreset={p.onreset}
+                                onfillup={p.onfillup}
+                                onfilldown={p.onfilldown}
+                                onfade={p.onfade}
+                              />
+                            </span>
                           {/snippet}
                         </GroupHeader>
                       </div>
@@ -573,21 +575,20 @@
     height: var(--control-height);
   }
 
-  /* The controls row (the mockup's top row): one outlined box a fib-8 in from its keys: the
-     transport's icon keys, a hairline, the style line (it takes the room left), a hairline, One
-     Touch. Every key the row's height less the box. The hero panel's sides run up through the gap
-     to it (.hero::before), so the row and the panel read as one frame split by a hairline, as
-     drawn. */
-  .controls {
-    position: relative;
+  /* The controls row (the mockup's top row, the transport gone to the Pads header): one outlined
+     box `--golden-row-height` deep at the top of its band, a fib-3 in from its contents: the
+     style line (it takes the room left), a hairline, One Touch. The rest of the band goes to the
+     display (`--hero-lift`). The hero panel's sides run up through the gap to it (.hero::before),
+     so the row and the panel read as one frame split by a hairline, as drawn. */
+  .row {
     display: flex;
+    box-sizing: border-box;
+    height: var(--golden-row-height);
+    padding: var(--fib-3) var(--fib-3) var(--fib-3) var(--fib-8);
     border: var(--line-width) solid var(--golden-rule);
     --type-text: var(--type-golden-row);
     --tracking-text: 0;
-    /* The leaf's padding (GoldenFrame's inset): the fib-8 the box keeps around its keys. */
-    --golden-inset: var(--fib-8);
   }
-  .transport,
   .one-touch {
     display: flex;
     flex: none;
@@ -610,14 +611,33 @@
     padding: 0 var(--fib-13);
     font-weight: var(--weight-bold);
   }
-  /* One Touch: its caption, a fib-21 before 1–4, each number `--golden-ots-width` wide and bold. */
+  /* One Touch: its caption, a fib-21 before 1–4, each number a minor third wide of its height, bold. */
   .screen .one-touch :global(.label.cell) {
     width: auto;
     margin-right: calc(var(--fib-21) - var(--fib-8));
   }
   .screen .one-touch :global(.number.cell) {
-    width: var(--golden-ots-width);
+    width: auto;
+    aspect-ratio: var(--interval-minor-third);
     font-weight: var(--weight-bold);
+  }
+
+  /* The transport at the Pads header's right end: seven square icon keys a fib-2 apart, each
+     `--golden-pad-key` (the header's 0.046, at most its height less the rule and a fib-2: 31.7 at
+     1440, 28 at 1280, so the keys fit beside "Pads" and the five bank tabs), centred on the
+     header's height; their icons half the key. */
+  .screen .header :global(.end) {
+    align-items: center;
+    align-self: stretch;
+  }
+  .transport {
+    display: flex;
+    flex: none;
+    gap: var(--fib-2);
+    height: var(--golden-pad-key);
+    --golden-pad-key: min(calc(100cqw * 0.046), calc(100cqh - var(--header-rule-width) - var(--fib-2)));
+    --golden-key-width: var(--golden-pad-key);
+    --golden-key-icon: calc(var(--golden-pad-key) / 2);
   }
 
   /* The keys fill theirs; the black keys are the keys' height over phi. */
@@ -643,6 +663,14 @@
     border: var(--line-width) solid var(--golden-rule);
     border-top: 0;
     --golden-hero: calc(100cqh * var(--golden-hero-value-size));
+  }
+  /* The display takes the part of the controls band the row leaves (its control-height × phi less
+     the row): it starts that much higher and is that much deeper, so the band under it keeps its
+     place and size. */
+  .screen .page .hero.leaf {
+    --hero-lift: calc(var(--control-height) * var(--interval-phi) - var(--golden-row-height));
+    flex: 0 0 calc(var(--golden-take) + var(--hero-lift));
+    margin-top: calc(-1 * var(--hero-lift));
   }
   /* Its sides run on up through the gap to the controls row's foot (above the box, so no slot
      overflows). */

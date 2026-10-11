@@ -175,13 +175,15 @@ export const PageSlot: Story = {
  *   tabs, the helpers Metronome ▾, Unison, Panic, ?, the Launchkey and audio health) on the top
  *   edge, a fib-8 under it.
  * - **Controls row** (52, a control-height band a golden step deeper), a fib-13 over the display,
- *   laid out from the owner's mockup in our face: one outlined box holding the transport's icon
- *   keys in the hue of time (cyan), a fib-8 apart: ▶ (solid while playing), Sync Start (loop
- *   arrows), Accomp (a note), Fill ▲, Fill ▼, Fade (falling bars), Reset (⟲), their words in their
- *   names and tooltips; armed keys pulse on the beat, a queued Fill stays plain off, its queue in
- *   its name. Then a hairline, the style line (‹ Sunday Drive Pop › Pop & Rock · 4/4), a hairline
- *   and One Touch in the style's violet. Its sides run down to the display: one frame.
- * - **Display** (1398 × 288, three phi boxes across), the mockup's hero panel: the chord, section
+ *   laid out from the owner's mockup in our face: one outlined box 36 deep holding the style line
+ *   (‹ Sunday Drive Pop › Pop & Rock · 4/4), a hairline and One Touch in the style's violet. The
+ *   display's sides run up to it: one frame.
+ * - **Transport** at the Pads header's right end, beside the pads as on the Launchkey: seven square
+ *   icon keys in the hue of time (cyan): ▶ (solid while playing), Sync Start (loop arrows), Accomp
+ *   (a note), Fill ▲, Fill ▼, Fade (falling bars), Reset (⟲), their words in their names and
+ *   tooltips; armed keys pulse on the beat, a queued Fill stays plain off, its queue in its name.
+ * - **Display** (1398 × 304: three phi boxes across, plus the 16 of the controls band the row
+ *   leaves), the mockup's hero panel: the chord, section
  *   and tempo columns split by hairlines; the three values bold at one size (0.549 of the panel's
  *   height), centred, their capitals on one line, each measured down to fit; under them "A · C ·
  *   E · G … Fingered On Bass", "Next … Main C … fill after bar 4" and − Tap + (unboxed, boxed on
@@ -230,14 +232,17 @@ export const GoldenOverlay: Story = {
     // The hero panel: the chord, section and tempo columns.
     const hero = canvasElement.querySelector('[data-hero]')
     await expect(hero?.querySelectorAll(':scope > .col').length).toBe(3)
-    const controls = canvasElement.querySelector('.leaf.controls')
+    const controls = canvasElement.querySelector('.leaf.controls .row')
     // The display holds no parts list: each part's sound is on its fader strip.
     await expect(hero?.querySelector('[aria-label$="Opens the quick sound list"]')).toBeNull()
     const strips = canvasElement.querySelector('[data-golden-name="strips"]')
     await expect(strips?.querySelectorAll('[aria-label$="Opens the quick sound list"]').length).toBe(4)
-    // The transport: seven icon keys, no words on them: each says what it is in its name (Start
-    // / Stop's what the band is doing, "Playing") and its tooltip.
+    // The transport, at the Pads header's right end (beside the pads, as on the Launchkey): seven
+    // icon keys, no words on them: each says what it is in its name (Start / Stop's what the band
+    // is doing, "Playing") and its tooltip.
     const transport = canvasElement.querySelector('[role="toolbar"][aria-label="Transport"]')
+    const padsHeader = canvasElement.querySelector('[data-golden-name="pads"] .header')
+    await expect(padsHeader?.contains(transport)).toBe(true)
     const keys = [...(transport?.querySelectorAll('button') ?? [])]
     await expect(keys).toHaveLength(7)
     await expect(keys.map((key) => key.textContent?.trim())).toEqual(['', '', '', '', '', '', ''])
@@ -254,14 +259,8 @@ export const GoldenOverlay: Story = {
     await expect(keys[0]).toHaveAttribute('data-face', 'on')
     for (const key of keys) await expect(key.getAttribute('data-tip')).toMatch(/^transport\./)
     await expect(transport?.lastElementChild?.getAttribute('aria-label')).toMatch(/^Section reset/)
-    // Then a hairline, the style line, a hairline and One Touch (its caption, then 1–4).
-    await expect([...(controls?.children ?? [])].map((c) => c.className.split(' ')[0])).toEqual([
-      'transport',
-      'rule',
-      'style',
-      'rule',
-      'one-touch',
-    ])
+    // The controls row: the style line, a hairline and One Touch (its caption, then 1–4).
+    await expect([...(controls?.children ?? [])].map((c) => c.className.split(' ')[0])).toEqual(['style', 'rule', 'one-touch'])
     await expect(controls?.querySelector('.style [aria-label="Previous style (Track left)"]')).not.toBeNull()
     const oneTouch = canvasElement.querySelector('.one-touch')
     await expect(oneTouch?.firstElementChild?.tagName).toBe('SPAN')
@@ -306,10 +305,14 @@ export const GoldenOverlay: Story = {
     if (plus && plus.height > 0) {
       const rect = (name: string) => canvasElement.querySelector(`[data-golden-name="${name}"]`)!.getBoundingClientRect()
       const box = (sel: string) => canvasElement.querySelector(sel)!.getBoundingClientRect()
-      // The display three phi boxes across; the band's halves equal, a fib-21 apart; the band
-      // 4:3 to the display at 1440 (it takes what the fixed rows leave).
+      // The display three phi boxes across plus the part of the controls band the row leaves (52
+      // less the row's 36), a fib-13 under the row; the band's halves equal, a fib-21 apart; the
+      // band where and as deep as before (384 at 1440: it takes what the fixed rows leave).
       const display = box('[data-hero]')
-      await expect(display.width / display.height).toBeCloseTo(3 * 1.618, 1)
+      const rowBox = box('.leaf.controls .row')
+      await expect(Math.round(rowBox.height)).toBe(36)
+      await expect(Math.round(display.top - rowBox.bottom)).toBe(13)
+      await expect(display.height - display.width / (3 * 1.618)).toBeCloseTo(32 * 1.618 - 36, 0)
       await expect(Math.round(rect('band').top - display.bottom)).toBe(21)
       const [faders, right] = [rect('faders'), rect('knobs and pads')]
       await expect(Math.abs(faders.width - right.width)).toBeLessThan(1)
@@ -383,19 +386,29 @@ export const GoldenOverlay: Story = {
         await expect(getComputedStyle(text).fontSize).toBe('13px')
         await expect(text.scrollHeight).toBeLessThanOrEqual(text.clientHeight + 1)
       }
-      // The controls row: the keys inside one box a fib-8 in, each 62 wide and the row's height
-      // less the box, a fib-8 apart; One Touch flush right; nothing in it overflows.
-      const row = box('.leaf.controls')
+      // The transport keys: square, one size (the header's 0.046 wide, at most 32), a fib-2
+      // apart, flush with the Pads header's right end, inside it above its rule, clear of the
+      // last bank tab.
+      const header = (padsHeader as HTMLElement).getBoundingClientRect()
       const k = keys.map((key) => key.getBoundingClientRect())
-      for (const r of k) await expect([Math.round(r.width), Math.round(r.height)]).toEqual([62, Math.round(row.height - 2 - 16)])
-      await expect(Math.round(k[0].left - row.left)).toBe(9)
-      await expect(k.slice(1).map((r, i) => Math.round(r.left - k[i].right))).toEqual([8, 8, 8, 8, 8, 8])
+      for (const r of k) {
+        await expect(Math.abs(r.width - r.height)).toBeLessThan(0.5)
+        await expect(Math.abs(r.width - k[0].width)).toBeLessThan(0.5)
+        await expect(r.top).toBeGreaterThanOrEqual(header.top)
+        await expect(r.bottom).toBeLessThanOrEqual(header.bottom - 2)
+      }
+      await expect(k[0].width).toBeCloseTo(Math.min(header.width * 0.046, 32), 0)
+      await expect(k.slice(1).map((r, i) => Math.round(r.left - k[i].right))).toEqual([2, 2, 2, 2, 2, 2])
+      await expect(Math.abs(k[6].right - header.right)).toBeLessThan(1)
+      const tabs = [...(padsHeader?.querySelectorAll('[role="tab"], button') ?? [])].filter((b) => !transport?.contains(b))
+      await expect(k[0].left).toBeGreaterThan(tabs.at(-1)!.getBoundingClientRect().right)
+      // The controls row: One Touch flush right a fib-3 in; the style's name whole.
       const lastNumber = [...(oneTouch?.querySelectorAll('button') ?? [])].at(-1)!.getBoundingClientRect()
-      await expect(Math.round(row.right - lastNumber.right)).toBe(9)
+      await expect(Math.round(rowBox.right - lastNumber.right)).toBe(4)
       const name = canvasElement.querySelector('.controls .style .name') as HTMLElement
       await expect(name.scrollWidth).toBeLessThanOrEqual(name.clientWidth)
-      // The beat bar: each bar the panel's 0.064 deep (18 at 1440).
-      await expect(Math.round(bar.height)).toBe(18)
+      // The beat bar: each bar the panel's 0.064 deep.
+      await expect(bar.height).toBeCloseTo((display.height - 1) * 0.064, 0)
     }
     // On the board Main C lands after a fill, so Fill Up is queued: said in its name, its face
     // plain off (designer pass: no third state).
