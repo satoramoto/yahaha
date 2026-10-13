@@ -1,12 +1,19 @@
 # AGENTS.md
 
-This file is the one place that says what must pass. CI runs these commands on every push to `develop`, after a PR has merged; nothing blocks the merge. On the PR itself CI builds nothing and its checks pass at once, so **run the checks below that cover your change locally before you merge**; if CI on `develop` then fails, fix it at once on a new branch. There is no other required process. CI skips the jobs a change can't affect: a Markdown-docs-only change runs only `api-doc`, a web-only change skips the Rust jobs, and a Rust-only change skips the web job (`.github/workflows/ci.yml`, the `changes` job, says which files count as what).
+This file is the one place that says what must pass.
+
+- **A change** runs only the build plus a compile check: `cargo check --workspace --exclude yahaha-app --all-targets --features plugins` (Linux: without `--features plugins`; or keep `bacon --headless` running, see "Feedback loop"), and `npm run check` in `app/` when anything under `app/` changed. Nothing else after each change.
+- **A test pass** (when asked, or once before a PR merges) runs the core suite and the checks below that cover the PR, each once.
+- **Tests** are written to a spec as their own step, not alongside each change.
+- **CI** runs everything. It is meant to be the final check on the PR, but `.github/workflows/ci.yml` currently skips every job on a PR and runs them on each push to `develop`, after the merge. Until it runs on PRs, a PR merges once its test pass is green; if CI on `develop` then fails, fix it at once on a new branch.
+
+There is no other required process. CI skips the jobs a change can't affect: a Markdown-docs-only change runs only `api-doc`, a web-only change skips the Rust jobs, and a Rust-only change skips the web job (`.github/workflows/ci.yml`, the `changes` job, says which files count as what).
 
 ## Checks
 
-Each command must exit 0. Locally you run the core suite and the checks that cover your change; the full suite runs only in CI, on each push to `develop`. Don't run the full suite (Rust or web) locally: with several agents at once it stalls the machine.
+Each command must exit 0. These run in a test pass, not after each change (a change runs only the compile check above). A test pass runs the core suite and the checks that cover the PR; the full suite runs only in CI. Don't run the full suite (Rust or web) locally: with several agents at once it stalls the machine.
 
-**The core suite** is THE local check. Run it after any Rust change, or keep `bacon --headless core` running (see "Feedback loop"):
+**The core suite** is the test pass's main local check, for a PR with Rust changes:
 
 - `cargo test --workspace --exclude yahaha-app --profile test-quick --features plugins --lib` on macOS, or `cargo test --workspace --exclude yahaha-app --profile test-quick --lib` on Linux.
 
@@ -14,7 +21,7 @@ Each command must exit 0. Locally you run the core suite and the checks that cov
 
 It builds and runs the libraries' unit tests, with debug assertions and overflow checks on, and leaves out the slow tests: those marked `#[cfg(feature = "slow-tests")]` (corpus sweeps, long audio renders, plugin-hosting round trips, real-time waits), which aren't even compiled. It doesn't build the binary, the integration tests or the example either. On the 10-core Mac, warm, after a one-line edit in `src/session/mixer.rs`: 4.7 s to rebuild, then about 2 s to run. To run a single test, add its name. A new test that takes more than about 0.25 s goes behind `slow-tests`.
 
-**Also run** the ones that cover your change:
+**Also run**, in the test pass, the ones that cover the PR:
 
 - `cargo test --profile test-quick --features plugins --test it` (Linux: without `--features plugins`). The integration tests, most of them the no-allocation checks of the engine, audio and MIDI threads. Run them when you change code that runs on those threads. Add a test name to run one.
 - `cargo test --profile test-quick --test api_wire`. The app API's wire format. Run it when `src/api` changed.
@@ -52,7 +59,7 @@ While editing, run [bacon](https://dystroy.org/bacon) headless in your worktree 
 Every job runs with `--workspace --exclude yahaha-app`: the facade and the layer crates, not the app shell.
 
 - `bacon --headless` runs the `check` job: `cargo check --workspace --exclude yahaha-app --all-targets --features plugins`. On Linux, use `bacon --headless check-portable`.
-- `bacon --headless core` runs the core suite on every change. On Linux, use `bacon --headless core-portable`.
+- `bacon --headless core` runs the core suite on every change. Use it for a test pass, not while making changes (`check` is the loop for that). On Linux, use `bacon --headless core-portable`.
 - `bacon --headless test -- <filter>` runs targeted tests under the `test-quick` profile, in every package. Add `--lib` before the filter for library tests only.
 - `jq '{error_code, stats}' .bacon-result.json` shows the latest result. `error_code` is null when the command exited 0; `stats` counts errors, warnings and failed tests.
 - `jq -r '.lines[] | [.content.strings[].raw] | join("")' .bacon-result.json` lists each error, warning and failed test with its location.
@@ -85,7 +92,9 @@ See "Developing on Linux" in README.md.
 
 PRs target `develop` and are squash-merged. `develop` merges into `main` only when the owner says so, with a merge commit, so `main` keeps `develop`'s commits and the next release PR shows only new work. No ruleset enforces this; keep to it by hand.
 
-There is no branch protection and no merge queue. Once your local checks pass, merge with `gh pr merge --squash`. CI then runs the full suite on the push to `develop`; if it fails, fix it on a new branch right away.
+There is no branch protection and no merge queue. Once the PR's test pass is green (see the top of this file), merge with `gh pr merge --squash`. CI then runs the full suite on the push to `develop`; if it fails, fix it on a new branch right away.
+
+Changelog entries and version bumps, where a change needs them, happen once per PR, not per change.
 
 ## Never commit
 
