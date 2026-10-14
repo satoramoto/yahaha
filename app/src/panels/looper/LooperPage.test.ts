@@ -156,7 +156,8 @@ describe('Looper page', () => {
     await fireEvent.click(button('Earlier bars'))
     flushSync()
     expect(firstBar()).toMatch(/^Bar 1:/)
-  })
+    // Stepping the clock through 12+ bars in 20 ms ticks takes ~6.5 s on a CI runner.
+  }, 20_000)
 
   it('every control has a tooltip: a paged long loop, Save as… (and Overwrite), the Load list', async () => {
     const s = setup()
