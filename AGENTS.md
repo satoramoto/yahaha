@@ -1,12 +1,19 @@
 # AGENTS.md
 
-This file is the one place that says what must pass. CI runs these commands on every push to `develop`, after a PR has merged; nothing blocks the merge. On the PR itself CI builds nothing and its checks pass at once, so **run the checks below that cover your change locally before you merge**; if CI on `develop` then fails, fix it at once on a new branch. There is no other required process. CI skips the jobs a change can't affect: a Markdown-docs-only change runs only `api-doc`, a web-only change skips the Rust jobs, and a Rust-only change skips the web job (`.github/workflows/ci.yml`, the `changes` job, says which files count as what).
+This file is the one place that says what must pass.
+
+- **A change** runs only the build plus a compile check: `cargo check --workspace --exclude yahaha-app --all-targets --features plugins` (Linux: without `--features plugins`; or keep `bacon --headless` running, see "Feedback loop"), and `npm run check` in `app/` when anything under `app/` changed. Nothing else after each change.
+- **A test pass** (when asked, or once before a PR merges) runs the core suite and the checks below that cover the PR, each once.
+- **Tests** are written to a spec as their own step, not alongside each change.
+- **CI** runs everything (`.github/workflows/ci.yml`), on every PR and again on each push to `develop`. CI on the PR is the final check; if CI on `develop` then fails, fix it at once on a new branch.
+
+There is no other required process. CI skips the jobs a change can't affect: a Markdown-docs-only change runs only `api-doc`, a web-only change skips the Rust jobs, and a Rust-only change skips the web job (`.github/workflows/ci.yml`, the `changes` job, says which files count as what).
 
 ## Checks
 
-Each command must exit 0. Locally you run the core suite and the checks that cover your change; the full suite runs only in CI, on each push to `develop`. Don't run the full suite (Rust or web) locally: with several agents at once it stalls the machine.
+Each command must exit 0. These run in a test pass, not after each change (a change runs only the compile check above). A test pass runs the core suite and the checks that cover the PR; the full suite runs only in CI. Don't run the full suite (Rust or web) locally: with several agents at once it stalls the machine.
 
-**The core suite** is THE local check. Run it after any Rust change, or keep `bacon --headless core` running (see "Feedback loop"):
+**The core suite** is the test pass's main local check, for a PR with Rust changes:
 
 - `cargo test --workspace --exclude yahaha-app --profile test-quick --features plugins --lib` on macOS, or `cargo test --workspace --exclude yahaha-app --profile test-quick --lib` on Linux.
 
@@ -14,7 +21,7 @@ Each command must exit 0. Locally you run the core suite and the checks that cov
 
 It builds and runs the libraries' unit tests, with debug assertions and overflow checks on, and leaves out the slow tests: those marked `#[cfg(feature = "slow-tests")]` (corpus sweeps, long audio renders, plugin-hosting round trips, real-time waits), which aren't even compiled. It doesn't build the binary, the integration tests or the example either. On the 10-core Mac, warm, after a one-line edit in `src/session/mixer.rs`: 4.7 s to rebuild, then about 2 s to run. To run a single test, add its name. A new test that takes more than about 0.25 s goes behind `slow-tests`.
 
-**Also run** the ones that cover your change:
+**Also run**, in the test pass, the ones that cover the PR:
 
 - `cargo test --profile test-quick --features plugins --test it` (Linux: without `--features plugins`). The integration tests, most of them the no-allocation checks of the engine, audio and MIDI threads. Run them when you change code that runs on those threads. Add a test name to run one.
 - `cargo test --profile test-quick --test api_wire`. The app API's wire format. Run it when `src/api` changed.
@@ -23,10 +30,10 @@ It builds and runs the libraries' unit tests, with debug assertions and overflow
 - In `app/`, after `npm ci` on a fresh checkout: `npm run check` and `npm run lint`, and `npx vitest run <file>...` for the web tests that cover your change. Run them when anything under `app/` changed. The whole web suite (`npm run verify`) runs in CI.
 - The UI library (`app/src/ui`, see `docs/factory/`), in `app/`. Its stories are tests: `npx vitest run src/ui` renders every story under `app/src/ui` in dark and light, runs its `play` function and checks its controls, actions and accessibility (`app/src/ui/stories.test.ts`; `npm run test` includes it); it also covers the token contrast test (`app/src/ui/tokens/contrast.test.ts`, AA 4.5:1 for each text token on its surface, since jsdom can't check contrast). `npm run lint` rejects colour literals in its components (the rule is `app/scripts/lint/no-colour-literals.js`, tested by `npx vitest run scripts/lint`) and store, API or Tauri imports. Run both when anything under `app/src/ui` or `app/.storybook` changed. `npm run storybook` serves Storybook at http://localhost:6006 for looking at it (stop it when done); `npm run build-storybook` builds it, which checks that every story and docs page compiles. `npm run shots -- <Name>` screenshots that component's stories in dark and light into `app/.shots/<Name>/` and scores each against its board crop in `app/src/ui/<Name>/crops/`, and runs axe (colour contrast included) on every story in Chrome (`report.json`; exits 1 when a shot isn't the crop's size, scores over the pass score, or has an axe violation). It builds Storybook itself and drives the system Chrome, and stops both when it ends. Run it for UI library work that changes how a component looks; CI doesn't.
 - `cargo check --no-default-features --lib`. The library with no features. Run it when you change `#[cfg(feature = ...)]` code.
-- In bash, from the repo root: ``diff <(awk '/^## AppCmd/{f=1} /^### Result/{f=0} f && /^\| `/' docs/app-api.md | cut -d'|' -f2 | grep -o '`[^`]*`' | tr -d '`' | sort -u) <(awk '/^const EVERY_CMD/,/^\];/' tests/api_wire.rs | sed -n 's/^ *r#"{"type":"\([^"]*\)".*/\1/p' | sort -u)``. This checks that `EVERY_CMD` in `tests/api_wire.rs` names exactly the commands in the AppCmd tables of `docs/app-api.md`, and prints any difference. Run it when either file changed. CI runs it on every push to `develop`, docs-only ones included (the `api-doc` job). No code or test compiles in or reads a committed file under `docs/`; keep it that way, so a docs-only change can't change what CI tests.
-- `cargo run --no-default-features --example api_doc_check -- docs/app-api.md`. This checks that every `{"type": ...}` JSON example in `docs/app-api.md`, and its example `AppState`, parses into the app API's Rust types (`AppCmd`, `Event`, `AppState`) and serializes back unchanged; it prints each mismatch and exits 1. The doc is read at run time from the path given, never compiled in. Run it when `docs/app-api.md` or the API types in `src/api` changed. CI runs it on every push to `develop`, docs-only ones included (the `api-doc` job). Its own tests run with `cargo test`.
+- In bash, from the repo root: ``diff <(awk '/^## AppCmd/{f=1} /^### Result/{f=0} f && /^\| `/' docs/app-api.md | cut -d'|' -f2 | grep -o '`[^`]*`' | tr -d '`' | sort -u) <(awk '/^const EVERY_CMD/,/^\];/' tests/api_wire.rs | sed -n 's/^ *r#"{"type":"\([^"]*\)".*/\1/p' | sort -u)``. This checks that `EVERY_CMD` in `tests/api_wire.rs` names exactly the commands in the AppCmd tables of `docs/app-api.md`, and prints any difference. Run it when either file changed. CI runs it on every PR and every push to `develop`, docs-only ones included (the `api-doc` job). No code or test compiles in or reads a committed file under `docs/`; keep it that way, so a docs-only change can't change what CI tests.
+- `cargo run --no-default-features --example api_doc_check -- docs/app-api.md`. This checks that every `{"type": ...}` JSON example in `docs/app-api.md`, and its example `AppState`, parses into the app API's Rust types (`AppCmd`, `Event`, `AppState`) and serializes back unchanged; it prints each mismatch and exits 1. The doc is read at run time from the path given, never compiled in. Run it when `docs/app-api.md` or the API types in `src/api` changed. CI runs it on every PR and every push to `develop`, docs-only ones included (the `api-doc` job). Its own tests run with `cargo test`.
 
-**CI on each push to `develop`** runs everything (`.github/workflows/ci.yml`): `cargo check --no-default-features --lib` and `cargo test --workspace --exclude yahaha-app --profile test-quick --features slow-tests` on Linux; `cargo test --workspace --exclude yahaha-app --profile test-quick --features plugins,slow-tests` on macOS (every target of the facade and the layer crates: the libraries, the binary, the integration tests and the example; slow tests included); `cargo check --all-targets` (Linux) and `cargo test --profile test-quick` (macOS) in `app/src-tauri`; `npm run verify` in `app/`; and the two API doc checks. CI has no corpus, so the corpus tests skip there.
+**CI on each PR and each push to `develop`** runs everything (`.github/workflows/ci.yml`): `cargo check --no-default-features --lib` and `cargo test --workspace --exclude yahaha-app --profile test-quick --features slow-tests` on Linux; `cargo test --workspace --exclude yahaha-app --profile test-quick --features plugins,slow-tests` on macOS (every target of the facade and the layer crates: the libraries, the binary, the integration tests and the example; slow tests included); `cargo check --all-targets` (Linux) and `cargo test --profile test-quick` (macOS) in `app/src-tauri`; `npm run verify` in `app/`; and the two API doc checks. CI has no corpus, so the corpus tests skip there.
 
 ## Builds and concurrency
 
@@ -52,7 +59,7 @@ While editing, run [bacon](https://dystroy.org/bacon) headless in your worktree 
 Every job runs with `--workspace --exclude yahaha-app`: the facade and the layer crates, not the app shell.
 
 - `bacon --headless` runs the `check` job: `cargo check --workspace --exclude yahaha-app --all-targets --features plugins`. On Linux, use `bacon --headless check-portable`.
-- `bacon --headless core` runs the core suite on every change. On Linux, use `bacon --headless core-portable`.
+- `bacon --headless core` runs the core suite on every change. Use it for a test pass, not while making changes (`check` is the loop for that). On Linux, use `bacon --headless core-portable`.
 - `bacon --headless test -- <filter>` runs targeted tests under the `test-quick` profile, in every package. Add `--lib` before the filter for library tests only.
 - `jq '{error_code, stats}' .bacon-result.json` shows the latest result. `error_code` is null when the command exited 0; `stats` counts errors, warnings and failed tests.
 - `jq -r '.lines[] | [.content.strings[].raw] | join("")' .bacon-result.json` lists each error, warning and failed test with its location.
@@ -85,7 +92,9 @@ See "Developing on Linux" in README.md.
 
 PRs target `develop` and are squash-merged. `develop` merges into `main` only when the owner says so, with a merge commit, so `main` keeps `develop`'s commits and the next release PR shows only new work. No ruleset enforces this; keep to it by hand.
 
-There is no branch protection and no merge queue. Once your local checks pass, merge with `gh pr merge --squash`. CI then runs the full suite on the push to `develop`; if it fails, fix it on a new branch right away.
+There is no branch protection and no merge queue. CI on the PR is the final check: once it passes, merge with `gh pr merge --squash`. CI runs the full suite again on the push to `develop`; if it fails, fix it on a new branch right away.
+
+Changelog entries and version bumps, where a change needs them, happen once per PR, not per change.
 
 ## Never commit
 
