@@ -80,6 +80,9 @@ export const StylePart: Story = {
     await expect(canvas.queryByRole('button', { name: /sound:/ })).toBeNull()
     await expect(canvas.getByText('Standard Kit 1')).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Rhythm 1 on' })).toHaveAttribute('data-tip', 'mixer.style.mute')
+    await expect(canvas.getByRole('slider', { name: 'Send 1, reverb' })).toHaveAttribute('data-tip', 'channel.style_send')
+    await userEvent.click(canvas.getByRole('button', { name: /^Reset sends to the style's/ }))
+    await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'resetSends' })
   },
 }
 

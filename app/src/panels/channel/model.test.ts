@@ -213,7 +213,14 @@ describe('channelData: a Style part', () => {
     expect(d.mix).toEqual({ level: 58, waiting: true, pan: null, on: false, onLabel: 'Off', canSwap: false, solo: true })
     expect(d.sound).toEqual({ number: '', name: 'Voice 1', edited: false, missing: false, failed: false, off: true, bass: false, mine: false, plugin: null })
     expect(d.sends[0].level).toBe(12)
+    expect(d.sends.map((r) => r.mark)).toEqual(['style', 'style', 'style', undefined, undefined, undefined])
+    expect(d.bandScale?.map((b) => b.yours)).toEqual([false, false, false])
+    s.mixer.styleParts[1].sendsSet = ['chorus']
+    expect(data(s, 5).sends[1].mark).toBe('yours')
+    expect(data(s, 5).bandScale?.[1].yours).toBe(true)
+    expect(data(s, 0).sends[0].mark).toBeUndefined()
     s.mixer.styleParts[1].voice = null
+    expect(data(s, 5).styleVoice).toBeNull()
     expect(data(s, 5).sound.name).toBe('')
   })
 })
@@ -266,7 +273,12 @@ describe('channelCommand', () => {
     expect(cmd(s, 6, { type: 'octave', step: 1 })).toBeNull()
     expect(cmd(s, 6, { type: 'bend', step: 1 })).toBeNull()
     // The strip commands use the strip number, 0–11.
-    expect(cmd(s, 6, { type: 'send', send: 0, value: 5 })).toEqual({ type: 'setStripSend', strip: 6, send: 0, level: 5 })
+    expect(cmd(s, 6, { type: 'send', send: 3, value: 5 })).toEqual({ type: 'setStripSend', strip: 6, send: 3, level: 5 })
+    // Sends 1–3 are the Style part's own CC 91/93/94; Reset to style hands them back.
+    expect(cmd(s, 6, { type: 'send', send: 0, value: 5 })).toEqual({ type: 'setStylePartSend', part: 2, send: 'reverb', value: 5 })
+    expect(cmd(s, 6, { type: 'send', send: 2, value: 7 })).toEqual({ type: 'setStylePartSend', part: 2, send: 'variation', value: 7 })
+    expect(cmd(s, 6, { type: 'resetSends' })).toEqual({ type: 'resetStylePartSends', part: 2 })
+    expect(cmd(s, 1, { type: 'resetSends' })).toBeNull()
     expect(cmd(s, 6, { type: 'insertOn', slot: 0 })).toEqual({ type: 'setStripInsertOn', strip: 6, slot: 0, on: true })
   })
 
