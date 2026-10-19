@@ -3608,14 +3608,14 @@ const catalog = {
   },
   'firstrun.step_styles': {
     title: 'Styles',
-    body: 'Step one: pick a style in Library › Styles.',
+    body: 'Step one: the styles found in your style folders. Lit once there is at least one; else put .sty, .prs or .sst files in the folder shown and they are found by themselves.',
     genos: null,
     keys: [],
     launchkey: null,
   },
   'firstrun.step_sounds': {
     title: 'Sounds',
-    body: 'Step two: choose the sound each keyboard part plays from the sound row.',
+    body: 'Step two: something to play the sounds. Lit once there is a SoundFont in the soundfonts folder or an instrument plugin; without either, the band only plays out of the yahaha MIDI port.',
     genos: null,
     keys: [],
     launchkey: null,
@@ -3629,7 +3629,7 @@ const catalog = {
   },
   'firstrun.ready': {
     title: 'Ready now',
-    body: 'What is set up already, so you can press Start and play.',
+    body: 'The style loaded and its tempo: you can press Start and play now. Click to close this panel.',
     genos: null,
     keys: [],
     launchkey: null,
