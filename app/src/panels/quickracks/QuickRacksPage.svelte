@@ -6,32 +6,23 @@
   setQuickRackBank, undoQuickRackStore, stepQuickRack, toggleQuickRackStore, saveRack / saveRackAs (a waiting Store),
   recallOts, setOtsRack / clearOtsRack, toggleOtsLink, setOtsLinkTiming. Library › Racks opens the
   Library on its Racks page, where the rack files are browsed. The rack prompts (unsaved changes,
-  sound names) are asked in the Rack drawer, which opens when one appears (openRackDrawerOnPrompt).
+  sound names, a waiting Store) are asked as dialogs over every page (panels/prompts/PromptHost).
 -->
 <script lang="ts">
   import { app, ui } from '../../lib/store.svelte'
   import QuickRacks from '../../ui/QuickRacks/QuickRacks.svelte'
   import type { PageProps } from '../stage/page.svelte'
-  import { bankCmd, clearCmd, otsRackCmd, quickRacksView, saveCmd, slotCmd, storeCmd, timingCmd, undoCmd } from './model'
-  import { openRackDrawerOnPrompt } from './rackPromptDrawer.svelte'
+  import { bankCmd, clearCmd, otsRackCmd, quickRacksView, slotCmd, storeCmd, timingCmd, undoCmd } from './model'
 
   let { tipAction }: PageProps = $props()
 
-  /** The name typed for a waiting Store of a never-saved rack; null: the live rack's name. */
-  let rackName = $state<string | null>(null)
-
-  const view = $derived(quickRacksView(app.state, rackName))
-
-  // A Store with nothing waiting forgets the name typed.
-  $effect(() => {
-    if (app.state.quickRacks.storeWaiting === null) rackName = null
-  })
-
-  openRackDrawerOnPrompt()
+  const view = $derived(quickRacksView(app.state, null))
 </script>
 
+<!-- A waiting Store is asked in the Store dialog (panels/prompts), not inline: `waiting` stays unfed. -->
 <QuickRacks
   {...view}
+  waiting={null}
   {tipAction}
   onbank={(to) => app.send(bankCmd(to))}
   onstep={(delta) => app.send({ type: 'stepQuickRack', delta })}
@@ -44,8 +35,5 @@
   onotsrack={(i, rack) => app.send(otsRackCmd(i, rack))}
   onlink={() => app.send({ type: 'toggleOtsLink' })}
   ontiming={(t) => app.send(timingCmd(t))}
-  onname={(name) => (rackName = name)}
-  onsave={() => app.send(saveCmd(app.state, rackName))}
-  oncancel={() => app.send({ type: 'toggleQuickRackStore' })}
   onundo={() => app.send(undoCmd)}
 />

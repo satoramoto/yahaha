@@ -1,6 +1,6 @@
 // Quick Racks on the mock session (docs/racks.md item 6): the bar's buttons load racks and
 // light like pad page 4, Store puts the live rack on a button (saving it first when it has
-// to), the unsaved-changes prompt asks in the Rack panel, banks step, Clear empties; Library › Racks, page 4's pads
+// to), the unsaved-changes prompt asks in a dialog (panels/prompts), banks step, Clear empties; Library › Racks, page 4's pads
 // and Shift + Track run the same commands.
 
 import { cleanup, fireEvent, render } from '@testing-library/svelte'
@@ -15,13 +15,18 @@ import { quickLook } from '../../lib/api/quick-racks'
 import { app, ui } from '../../lib/store.svelte'
 import { tip } from '../../lib/tooltip/tip.svelte'
 import { stagePage } from '../stage/page.svelte'
+import PromptHost from '../prompts/PromptHost.svelte'
 import QuickRacksPage from './QuickRacksPage.svelte'
 
-/** The Quick Racks page tab, alone (StageScreen puts it in the Stage's display box). */
-const renderPage = () =>
-  render(QuickRacksPage, { props: { tipAction: tip as unknown as Action<HTMLElement, string> } })
+/** The Quick Racks page tab (StageScreen puts it in the Stage's display box), with the prompt
+ * dialogs App mounts over it (a waiting Store asks there). */
+const renderPage = () => {
+  const page = render(QuickRacksPage, { props: { tipAction: tip as unknown as Action<HTMLElement, string> } })
+  render(PromptHost)
+  return page
+}
 
-/** The app on session `s` with the Quick Racks page tab chosen: the page in the Stage's display box, and the Rack drawer. */
+/** The app on session `s` with the Quick Racks page tab chosen: the page in the Stage's display box, and the prompt dialogs. */
 function renderApp(s: MockSession) {
   stagePage.page = 'quickRacks'
   render(App, { props: { session: s } })
@@ -85,7 +90,7 @@ describe('Quick Racks page', () => {
     // Nothing stored yet: the button waits for the save, and the bar asks.
     expect(s.state.quickRacks.storeWaiting).toBe(2)
     expect(s.state.quickRacks.buttons[2].rack).toBeNull()
-    expect(q('[aria-label="Save the rack to store it on A3"]').textContent).toContain('A3 waiting for Save · name the new rack')
+    expect(q('[role="dialog"]').getAttribute('aria-label')).toBe('Store to Quick Rack A3?')
     expect(q('[data-tip="quick.3"]').getAttribute('aria-label')).toBe('Quick Rack A3, empty, waiting for Save')
     const input = q<HTMLInputElement>('[data-tip="quick.save_name"]')
     expect(input.value).toBe('New rack')
@@ -113,7 +118,7 @@ describe('Quick Racks page', () => {
     await click(tipped('quick.store')[0])
     await click(tipped('quick.4')[0])
     expect(s.state.quickRacks.storeWaiting).toBe(3)
-    expect(q('[aria-label="Save the rack to store it on A4"]').textContent).toContain('A4 waiting for Save · Ballad modified')
+    expect(q('[data-prompt="store"]').textContent?.replace(/\s+/g, ' ')).toContain('Ballad has unsaved changes, so it is saved first.')
     expect(tipped('quick.save_name')).toHaveLength(0)
     await click(tipped('quick.save')[0])
     expect(s.state.liveRack).toMatchObject({ name: 'Ballad', modified: false })
@@ -132,9 +137,9 @@ describe('Quick Racks page', () => {
     expect(tipped('quick.1')).toHaveLength(1)
   })
 
-  it('a waiting Store whose save needs sound names asks them in the Rack drawer, then saves and stores', async () => {
+  it('a waiting Store whose save needs sound names asks them in a dialog, then saves and stores', async () => {
     const s = setup()
-    // The Quick Racks page tab, in the app: its Rack drawer opens over the Stage.
+    // The Quick Racks page tab, in the app: the prompt's dialog shows over the Stage.
     renderApp(s)
     s.send({ type: 'listPluginPresets', id: 'au:aumu Smp7 Fake' })
     s.send({ type: 'setPartPluginPreset', part: 0, id: 'aumu Smp7 Fake', preset: 'f:1' })
@@ -144,8 +149,9 @@ describe('Quick Racks page', () => {
     await storeAs(0, 'Grand')
     expect(s.state.liveRack.prompt).toMatchObject({ kind: 'soundNames', saveAs: 'Grand' })
     expect(s.state.quickRacks.storeWaiting).toBe(0)
-    // Asked once, in the Rack panel, which the bar opened.
-    expect(ui.rack).toBe(true)
+    // Asked once, in the Sound names dialog; the Rack drawer stays shut.
+    expect(ui.rack).toBe(false)
+    expect(q('[role="dialog"] [data-prompt="soundNames"]')).not.toBeNull()
     expect(document.querySelectorAll(`${STAGE} [data-tip^="rack."]`)).toHaveLength(0)
     const field = q<HTMLInputElement>('[data-tip="rack.sound_name"]')
     expect(field.value).toBe('Bright Grand')
@@ -156,7 +162,7 @@ describe('Quick Racks page', () => {
     expect(s.state.quickRacks.buttons[0]).toMatchObject({ name: 'Grand', loaded: true })
   })
 
-  it('a button loads its rack; with unsaved changes the Rack drawer opens and asks: Keep editing, Discard and switch, Save first', async () => {
+  it('a button loads its rack; with unsaved changes a dialog asks: Keep editing, Discard and switch, Save first', async () => {
     const s = setup()
     // The Quick Racks page tab, in the app (as above).
     renderApp(s)
@@ -177,10 +183,10 @@ describe('Quick Racks page', () => {
     flushSync()
     await click(tipped('quick.1')[0])
     expect(s.state.liveRack.prompt).toEqual({ kind: 'unsavedChanges', then: { kind: 'load', id: strings, name: 'Strings' } })
-    // The prompt is asked in one place: the Rack page (the bar's page gives way to it).
-    expect(ui.rack).toBe(true)
-    expect(document.querySelector(STAGE)).toBeNull()
-    expect(document.querySelectorAll('[role="alert"]').length).toBeGreaterThan(0)
+    // The prompt is asked in one place: the Unsaved changes dialog over the page.
+    expect(ui.rack).toBe(false)
+    expect(document.querySelectorAll(`${STAGE} [data-tip^="rack."]`)).toHaveLength(0)
+    expect(q('[role="dialog"] [data-prompt="unsavedChanges"]')).not.toBeNull()
     expect(tipped('rack.keep_editing')).toHaveLength(1)
     await click(tipped('rack.keep_editing')[0])
     expect(s.state.liveRack).toMatchObject({ id: null, modified: true, prompt: null })
@@ -201,7 +207,7 @@ describe('Quick Racks page', () => {
     expect(s.state.keyboardParts[0].program).toBe(40)
   })
 
-  it('a tap on another stored rack with unsaved changes asks first, in the Rack drawer', async () => {
+  it('a tap on another stored rack with unsaved changes asks first, in a dialog', async () => {
     const s = setup()
     renderApp(s)
     s.send({ type: 'setPartVoice', part: 0, program: 40 })
@@ -215,9 +221,9 @@ describe('Quick Racks page', () => {
     expect(s.state.liveRack).toMatchObject({ name: 'Ballad', modified: true })
     await click(tipped('quick.3')[0])
     expect(s.state.liveRack.prompt).toMatchObject({ kind: 'unsavedChanges', then: { kind: 'load', name: 'Strings' } })
-    expect(ui.rack).toBe(true)
-    const alert = document.querySelector('[role="alert"].unsaved')
-    expect(alert?.textContent).toContain('The rack has unsaved changes: save them before loading Strings?')
+    const dialog = document.querySelector('[role="dialog"]')
+    expect(dialog?.getAttribute('aria-label')).toBe('Unsaved changes in Ballad')
+    expect(dialog?.textContent?.replace(/\s+/g, ' ')).toContain('Save them before switching to Strings?')
   })
 
   it('a tap on the lit rack recalls it clean with no prompt, keeping the changes as "Recovered: <name>"', async () => {
@@ -510,8 +516,8 @@ describe('Library › Racks', () => {
     expect(rack[0].textContent).toContain('A1')
     await fireEvent.dblClick(rack[0])
     flushSync()
-    // The prompt is asked in the Rack drawer, which opens over Library.
-    expect(ui.rack).toBe(true)
+    // The prompt is asked in its dialog, over Library.
+    expect(q('[role="dialog"] [data-prompt="unsavedChanges"]')).not.toBeNull()
     expect(tipped('rack.discard_switch')).toHaveLength(1)
     await click(tipped('rack.discard_switch')[0])
     expect(s.state.liveRack).toMatchObject({ name: 'Ballad', modified: false })

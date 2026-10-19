@@ -8,7 +8,7 @@
     double-click or Enter loads it; ↑ ↓ in the search move the selection, Enter loads it.
   - the chosen rack (280): a DetailPanel whose extras are the rename field (Enter renames, Esc
     puts the name back), the parts (tag in its hue, sound, an On/Off chip), Load / Duplicate /
-    Delete, and the inline delete confirm (Cancel the chosen default, Delete in red text).
+    Delete (Delete… opens the app's delete dialog: panels/prompts/PromptHost).
   - Style racks (232): the loaded style's One Touch settings 1-4, each with a picker (Style's own,
     or one of your racks), the One Touch Link lamp and the Link timing tabs.
   Controlled: every value is a prop, every change a callback; the only own state is the rename
@@ -51,7 +51,7 @@
     emptyText?: string
     /** The rack the details column shows; null: its empty text. */
     chosen?: ChosenRack | null
-    /** The inline delete confirm is open for the chosen rack. */
+    /** Unused: the delete confirm is the app's dialog now (panels/prompts). */
     confirming?: boolean
     /** The Style racks column. */
     styleRacks: StyleRacks
@@ -85,11 +85,11 @@
     onrename?: (name: string) => void
     /** Duplicate the chosen rack. */
     onduplicate?: () => void
-    /** Delete was pressed: open the confirm. */
+    /** Delete was pressed: the app asks in its delete dialog. */
     onaskdelete?: () => void
-    /** The delete confirm was cancelled. */
+    /** Unused: the delete dialog cancels. */
     oncanceldelete?: () => void
-    /** Delete the chosen rack for good. */
+    /** Unused: the delete dialog deletes. */
     ondelete?: () => void
     /** One Touch `index` (0-3) loads rack `id`; null: the style's own. */
     onotsrack?: (index: number, id: string | null) => void
@@ -111,7 +111,6 @@
     selected = null,
     emptyText = 'No racks yet.',
     chosen = null,
-    confirming = false,
     styleRacks,
     width,
     height,
@@ -129,8 +128,6 @@
     onrename,
     onduplicate,
     onaskdelete,
-    oncanceldelete,
-    ondelete,
     onotsrack,
     onotslink,
     onotstiming,
@@ -146,7 +143,6 @@
     { id: 'immediate', label: 'Immediate', tip: 'ots.link_timing' },
     { id: 'mainChange', label: 'At Main change', tip: 'ots.link_timing' },
   ]
-  const uid = $props.id()
 
   function tipped(node: HTMLElement, key: string) {
     return tipAction?.(node, key)
@@ -308,15 +304,6 @@
             <Button label="Duplicate" size="md" name="Duplicate {chosen.name}" tip="library.rack_duplicate" {tipAction} onpress={onduplicate} />
             <Button label="Delete" size="md" hue="ending" disabled={chosen.loaded} name="Delete {chosen.name}" tip="library.rack_delete" {tipAction} onpress={onaskdelete} />
           </div>
-          {#if confirming && !chosen.loaded}
-            <div class="confirm" role="alertdialog" aria-labelledby="{uid}-confirm">
-              <p id="{uid}-confirm">Delete {chosen.name}?<br /><span class="note">{chosen.deleteNote}</span></p>
-              <div class="actions">
-                <Button label="Cancel" size="md" chosen name="Cancel: keep {chosen.name}" tip="library.rack_delete_cancel" {tipAction} onpress={oncanceldelete} />
-                <Button label="Delete" size="md" hue="ending" name="Delete {chosen.name} for good" tip="library.rack_delete_confirm" {tipAction} onpress={ondelete} />
-              </div>
-            </div>
-          {/if}
         {/if}
       </DetailPanel>
     </div>
@@ -535,18 +522,6 @@
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-8);
-  }
-  .confirm {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-10);
-    padding: var(--space-12);
-    box-shadow: inset 0 0 0 var(--line-width) var(--t2);
-    font: var(--type-text);
-    letter-spacing: var(--tracking-text);
-  }
-  .note {
-    color: var(--t2);
   }
   .style-col {
     display: flex;
