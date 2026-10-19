@@ -92,6 +92,30 @@ export interface ChannelSendRow {
   level: number
   /** The send effect exists. */
   present: boolean
+  /** A Style part's sends 1–3: "style" (the style's CC 91/93/94 as it plays) or "yours" (set by
+   * the player); absent for a keyboard part and sends 4–6. */
+  mark?: 'style' | 'yours'
+}
+
+/** A Style part's voice as the style wrote it (in place of Tone). */
+export interface ChannelStyleVoice {
+  bankMsb: number
+  bankLsb: number
+  program: number
+  /** A drum kit (true) or an instrument. */
+  kit: boolean
+  /** The MIDI channel, 9–16. */
+  channel: number
+}
+
+/** One band send scale (Effects' `bandSend`), sends 1–3 (in place of Play for a Style part). */
+export interface ChannelBandScale {
+  /** "Reverb", "Chorus", "Delay". */
+  label: string
+  /** 0–127 %, 100 = as the style wrote it. */
+  level: number
+  /** This part's send is the player's own ("yours"): the scale doesn't apply to it. */
+  yours: boolean
 }
 
 /** A send effect kind + Add send offers. */
@@ -210,6 +234,10 @@ export interface ChannelData {
   insertKinds: InsertKindItem[]
   /** The rotary speed for every part (global). */
   rotaryFast: boolean
+  /** A Style part's voice; null or absent for a keyboard part or a part with no voice. */
+  styleVoice?: ChannelStyleVoice | null
+  /** A Style part's band send scales, sends 1–3; null or absent for a keyboard part. */
+  bandScale?: ChannelBandScale[] | null
 }
 
 /** A change on the Channel page; the wiring turns each into its command. */
@@ -221,6 +249,8 @@ export type ChannelChange =
   | { type: 'solo' }
   | { type: 'send'; send: number; value: number }
   | { type: 'addSend'; kind: string }
+  /** A Style part's sends 1–3 back to the style's ("Reset to style"). */
+  | { type: 'resetSends' }
   | { type: 'eq'; field: keyof ChannelEq; value: number }
   | { type: 'tone'; control: ToneId; value: number }
   | { type: 'mono' }

@@ -8,10 +8,22 @@
 // the state lacks reads as that part of a fresh state (`emptyState()`): the page never throws.
 
 import { emptyState } from '../../lib/api/constants'
-import type { AppCmd, AppState, KeyboardPart, Meters, StripState, StylePart } from '../../lib/api/types'
+import type { AppCmd, AppState, KeyboardPart, Meters, PartSend, StripState, StylePart } from '../../lib/api/types'
 import { MAX_SENDS, SEND_KINDS } from '../effects/sendKinds'
 import { inMySounds } from '../sounds/instruments'
-import type { ChannelChange, ChannelData, ChannelInsert, ChannelSendRow, ChannelSound, ChannelTab, PartEntry, PartHue, PluginLine } from '../../ui/Channel/types'
+import type {
+  ChannelBandScale,
+  ChannelChange,
+  ChannelData,
+  ChannelInsert,
+  ChannelSendRow,
+  ChannelSound,
+  ChannelStyleVoice,
+  ChannelTab,
+  PartEntry,
+  PartHue,
+  PluginLine,
+} from '../../ui/Channel/types'
 import { INSERT_KINDS, STRIP_COUNT } from './channel'
 
 /** The keyboard parts' tags, parts 0–3. */
@@ -106,13 +118,34 @@ function styleSound(part: StylePart): ChannelSound {
   return { number: '', name: part.voice?.label ?? '', edited: false, missing: false, failed: false, off: !part.on, bass: false, mine: false, plugin: null }
 }
 
-/** The six send rows: a send is there when `effects.sends` has an entry with its `send`. */
-function sendRows(state: AppState, strip: StripState): ChannelSendRow[] {
+/** A Style part's sends 1–3, as `setStylePartSend` names them. */
+export const STYLE_SENDS: PartSend[] = ['reverb', 'chorus', 'variation']
+
+/** The six send rows: a send is there when `effects.sends` has an entry with its `send`. A Style
+ * part's sends 1–3 carry their mark: "yours" when `sendsSet` lists them, else "style". */
+function sendRows(state: AppState, strip: StripState, style: StylePart | null): ChannelSendRow[] {
   return Array.from({ length: MAX_SENDS }, (_, i) => {
     const entry = state.effects.sends.find((s) => s.send === i)
     const label = i < BUS_LABELS.length ? BUS_LABELS[i] : (entry?.name ?? `Send ${i + 1}`)
-    return { send: i, label, level: entry ? (strip.sends[i] ?? 0) : 0, present: entry !== undefined }
+    const row: ChannelSendRow = { send: i, label, level: entry ? (strip.sends[i] ?? 0) : 0, present: entry !== undefined }
+    if (style && i < STYLE_SENDS.length) row.mark = style.sendsSet.includes(STYLE_SENDS[i]) ? 'yours' : 'style'
+    return row
   })
+}
+
+/** A Style part's voice; null without one. */
+function styleVoice(part: StylePart): ChannelStyleVoice | null {
+  const v = part.voice
+  return v ? { bankMsb: v.bankMsb, bankLsb: v.bankLsb, program: v.program, kit: v.kit, channel: part.channel } : null
+}
+
+/** The band send scales (Effects' `bandSend`), sends 1–3; a block the state lacks reads 0. */
+function bandScale(state: AppState, part: StylePart): ChannelBandScale[] {
+  return STYLE_SENDS.map((block, i) => ({
+    label: BUS_LABELS[i],
+    level: state.effects.blocks.find((b) => b.block === block)?.bandSend ?? 0,
+    yours: part.sendsSet.includes(block),
+  }))
 }
 
 function inserts(strip: StripState): ChannelInsert[] {
@@ -153,7 +186,7 @@ export function channelData(input: ChannelInput): ChannelData {
     tab,
     prevTag: tagOf(state, (part + STRIP_COUNT - 1) % STRIP_COUNT),
     nextTag: tagOf(state, (part + 1) % STRIP_COUNT),
-    sends: sendRows(state, strip),
+    sends: sendRows(state, strip, sp),
     sendKinds: state.effects.sends.length < MAX_SENDS ? SEND_KINDS.map((k) => ({ kind: k.kind, name: k.name })) : [],
     eq: { lowGain: strip.eq.lowGain, lowFreq: strip.eq.lowFreq, highGain: strip.eq.highGain, highFreq: strip.eq.highFreq },
     comp: { ...strip.comp },
@@ -198,6 +231,8 @@ export function channelData(input: ChannelInput): ChannelData {
     mix: { level: s.volume, waiting: s.waiting, pan: null, on: s.on, onLabel: s.on ? 'On' : 'Off', canSwap: false, solo: state.mixer.styleSolo === p },
     tone: null,
     play: null,
+    styleVoice: styleVoice(s),
+    bandScale: bandScale(state, s),
   }
 }
 
@@ -224,8 +259,13 @@ export function channelCommand(state: AppState, part: number, change: ChannelCha
       if (keyboard) return { type: 'setPartSolo', part: state.mixer.partSolo === part ? null : part }
       return { type: 'setStyleSolo', part: state.mixer.styleSolo === p ? null : p }
     case 'send':
+      // A Style part's sends 1–3 are its own CC 91/93/94 (they hold over the style's).
+      if (!keyboard && change.send < STYLE_SENDS.length)
+        return { type: 'setStylePartSend', part: p, send: STYLE_SENDS[change.send], value: change.value }
       if (!state.effects.sends.some((s) => s.send === change.send)) return null
       return { type: 'setStripSend', strip: part, send: change.send, level: change.value }
+    case 'resetSends':
+      return keyboard ? null : { type: 'resetStylePartSends', part: p }
     case 'addSend':
       return { type: 'addSend', kind: change.kind }
     case 'eq':

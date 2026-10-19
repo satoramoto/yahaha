@@ -73,6 +73,8 @@
   const addName = $derived(full ? 'Add a send effect: all six added' : `Add a send effect (${present + 1} of 6)`)
   const left = $derived(data.sends.filter((s) => s.send < 3))
   const right = $derived(data.sends.filter((s) => s.send >= 3))
+  const voice = $derived(data.keyboard ? null : (data.styleVoice ?? null))
+  const anyYours = $derived(data.sends.some((s) => s.mark === 'yours'))
 
   function change(c: ChannelChange) {
     onchange?.(c)
@@ -109,24 +111,39 @@
 </script>
 
 {#snippet sendRow(row: ChannelSendRow)}
-  <BarReadout
-    label={row.label}
-    value={row.level}
-    min={0}
-    max={127}
-    default={0}
-    disabled={!row.present}
-    absent="not added"
-    name={row.present ? `Send ${row.send + 1}, ${row.label.toLowerCase()}` : `Send ${row.send + 1}`}
-    tip="mixer.strip.send"
-    {tipAction}
-    onchange={(value) => change({ type: 'send', send: row.send, value })}
-  />
+  {#snippet bar()}
+    <BarReadout
+      label={row.label}
+      value={row.level}
+      min={0}
+      max={127}
+      default={0}
+      disabled={!row.present}
+      absent="not added"
+      name={row.present ? `Send ${row.send + 1}, ${row.label.toLowerCase()}` : `Send ${row.send + 1}`}
+      suffix={row.mark ? `, ${row.mark === 'yours' ? 'yours' : "the style's"}` : undefined}
+      tip={row.mark ? 'channel.style_send' : 'mixer.strip.send'}
+      {tipAction}
+      onchange={(value) => change({ type: 'send', send: row.send, value })}
+    />
+  {/snippet}
+  {#if row.mark}
+    <div class="marked">
+      <div class="bar">{@render bar()}</div>
+      <span class="mark" class:yours={row.mark === 'yours'} aria-hidden="true">{row.mark}</span>
+    </div>
+  {:else}
+    {@render bar()}
+  {/if}
 {/snippet}
 
 <div class="mix" style={data.hue ? sectionHue(data.hue) : undefined}>
   <section class="group" aria-labelledby="channel-mix-sound">
-    <GroupHeader title="Sound" level={3} id="channel-mix-sound" />
+    {#if data.keyboard}
+      <GroupHeader title="Sound" level={3} id="channel-mix-sound" />
+    {:else}
+      <GroupHeader title="Style voice" detail="as the style wrote it" level={3} id="channel-mix-sound" />
+    {/if}
     <div class="body">
       {#if data.keyboard}
         <div class="row">
@@ -180,7 +197,16 @@
             <span class="name empty">—</span>
           {/if}
         </div>
-        <div class="row"><span class="caption">the style's voice</span></div>
+        {#if voice}
+          <div class="row" role="list" aria-label={`${data.partName}'s voice as the style wrote it`}>
+            <span role="listitem"><span class="caption">Bank</span> {voice.bankMsb}<span class="caption">/</span>{voice.bankLsb}</span>
+            <span role="listitem"><span class="caption">Program</span> {voice.program + 1}</span>
+          </div>
+          <div class="row" role="list" aria-label={`${data.partName}'s voice kind and channel`}>
+            <span role="listitem">{voice.kit ? 'Drum kit' : 'Instrument'}</span>
+            <span role="listitem"><span class="caption">Channel</span> {voice.channel}</span>
+          </div>
+        {/if}
       {/if}
     </div>
   </section>
@@ -243,6 +269,16 @@
       {#snippet end()}
         <span class="head-slot"
           ><span class="head-button">
+            {#if !data.keyboard && !adding}
+              <Button
+                label="Reset to style"
+                name={`Reset sends to the style's: ${data.partName}'s reverb, chorus and delay follow the style again`}
+                tip="channel.reset_to_style"
+                disabled={!anyYours}
+                {tipAction}
+                onpress={() => change({ type: 'resetSends' })}
+              />
+            {/if}
             {#if adding}
               <Button
                 label="Cancel"
@@ -283,6 +319,26 @@
         <div class="pair">
           <div class="column">
             {#each left as row (row.send)}{@render sendRow(row)}{/each}
+            {#if data.bandScale}
+              <div
+                class="row scale"
+                role="list"
+                aria-label="Band scale on the style's sends"
+                data-tip="display.band_sends"
+                use:tipped={'display.band_sends'}
+              >
+                <span class="caption">Band scale</span>
+                {#each data.bandScale as s (s.label)}
+                  <span
+                    role="listitem"
+                    class="scale-value"
+                    class:unscaled={s.yours}
+                    aria-label={`${s.label} ${s.level}%${s.yours ? ', yours: unscaled' : ''}`}
+                    >{s.level}<span class="caption">%</span></span
+                  >
+                {/each}
+              </div>
+            {/if}
           </div>
           <div class="column">
             {#each right as row (row.send)}{@render sendRow(row)}{/each}
@@ -424,7 +480,38 @@
         (var(--group-header-height) - var(--header-rule-width) - var(--control-height)) / 2 - var(--group-header-height)
     );
     display: flex;
+    gap: var(--space-8);
     height: var(--control-height);
     white-space: nowrap;
+  }
+  /* A Style part's sends 1–3: the bar, then its "style" / "yours" mark. */
+  .marked {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    min-width: 0;
+  }
+  .marked .bar {
+    flex: 1;
+    min-width: 0;
+  }
+  .mark {
+    flex: none;
+    width: 40px;
+    color: var(--caption-ink);
+    text-align: right;
+  }
+  .mark.yours {
+    color: var(--value-ink);
+  }
+  .scale {
+    font-variant-numeric: tabular-nums;
+  }
+  .scale-value {
+    color: var(--value-ink);
+  }
+  .scale-value.unscaled {
+    color: var(--absent);
+    text-decoration: line-through;
   }
 </style>

@@ -93,7 +93,17 @@ export const channelStylePart: ChannelData = {
   cpu: 0.02,
   sound: { ...channelBoard.sound, number: '', name: 'Standard Kit 1', mine: false, plugin: null },
   mix: { level: 100, waiting: false, pan: null, on: true, onLabel: 'On', canSwap: false, solo: false },
-  sends: channelBoard.sends.map((s) => ({ ...s, level: s.send === 0 ? 56 : 0 })),
+  sends: channelBoard.sends.map((s) => ({
+    ...s,
+    level: s.send === 0 ? 56 : 0,
+    ...(s.send < 3 ? { mark: s.send === 0 ? ('yours' as const) : ('style' as const) } : {}),
+  })),
+  styleVoice: { bankMsb: 127, bankLsb: 0, program: 0, kit: true, channel: 9 },
+  bandScale: [
+    { label: 'Reverb', level: 100, yours: true },
+    { label: 'Chorus', level: 0, yours: false },
+    { label: 'Delay', level: 0, yours: false },
+  ],
   eq: { lowGain: 0, lowFreq: 120, highGain: 2, highFreq: 8000 },
   tone: null,
   play: null,
