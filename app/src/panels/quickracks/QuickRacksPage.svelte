@@ -6,14 +6,13 @@
   setQuickRackBank, undoQuickRackStore, stepQuickRack, toggleQuickRackStore, saveRack / saveRackAs (a waiting Store),
   recallOts, setOtsRack / clearOtsRack, toggleOtsLink, setOtsLinkTiming. Library › Racks opens the
   Library on its Racks page, where the rack files are browsed. The rack prompts (unsaved changes,
-  sound names) are asked in the Rack drawer, which opens when one appears (openRackDrawerOnPrompt).
+  sound names, a waiting Store) are asked as dialogs over every page (panels/prompts/PromptHost).
 -->
 <script lang="ts">
   import { app, ui } from '../../lib/store.svelte'
   import QuickRacks from '../../ui/QuickRacks/QuickRacks.svelte'
   import type { PageProps } from '../stage/page.svelte'
   import { bankCmd, clearCmd, otsRackCmd, quickRacksView, saveCmd, slotCmd, storeCmd, timingCmd, undoCmd } from './model'
-  import { openRackDrawerOnPrompt } from './rackPromptDrawer.svelte'
 
   let { tipAction }: PageProps = $props()
 
@@ -26,8 +25,6 @@
   $effect(() => {
     if (app.state.quickRacks.storeWaiting === null) rackName = null
   })
-
-  openRackDrawerOnPrompt()
 </script>
 
 <QuickRacks
