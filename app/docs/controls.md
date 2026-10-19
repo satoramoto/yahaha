@@ -223,6 +223,10 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Replace…** | The plugin this part plays isn't installed, so the part is silent. Opens Library › Sounds with this part as the target: the sound you pick replaces it and the part keeps its level, pan, sends and octave. Nothing is saved until you save the rack; reinstalling the plugin brings the sound back. | — | — | — |
 | **Done** | Closes the controller map editor, keeping the changes in the live rack. | — | — | — |
 | **Default map** | Puts the faders and knobs back to what they control by default. | — | — | — |
+| **Octave** | Shifts this part up or down by whole octaves, −2 to +2. Scroll, drag or use the arrow keys; double-click puts it back to 0. | — | — | — |
+| **Insert effect** | The part’s first insert effect and its amount. Opens the part’s Channel, where you choose the effect and set it. | — | — | — |
+| **Sends 4–6** | How much of this part goes to each send effect you added. Opens the part’s Channel to set them. | — | — | — |
+| **Part** | Shows the targets of this keyboard part: its level, pan, sends and insert settings. | — | — | — |
 
 ## Stage | Library
 

@@ -3712,6 +3712,34 @@ const catalog = {
   // --- lane: firstrun ---
   // --- end lane: firstrun ---
   // --- lane: rack ---
+  'rack.octave': {
+    title: 'Octave',
+    body: 'Shifts this part up or down by whole octaves, −2 to +2. Scroll, drag or use the arrow keys; double-click puts it back to 0.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'rack.insert': {
+    title: 'Insert effect',
+    body: 'The part’s first insert effect and its amount. Opens the part’s Channel, where you choose the effect and set it.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'rack.sends': {
+    title: 'Sends 4–6',
+    body: 'How much of this part goes to each send effect you added. Opens the part’s Channel to set them.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'rack.map_part': {
+    title: 'Part',
+    body: 'Shows the targets of this keyboard part: its level, pan, sends and insert settings.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
   // --- end lane: rack ---
   // --- lane: dialogs ---
   // --- end lane: dialogs ---
