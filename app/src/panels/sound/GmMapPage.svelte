@@ -1,58 +1,41 @@
 <!--
-  The GM map page (docs/sound-browser.md, O5): the drums and all 128 GM programs, grouped
-  by the 16 families. Each family shows its rule; each program its override, the sound it
-  resolves to and the layer that decided it (override, family or auto), as a badge, so an
-  auto slot stands out. The switch picks the map the rule pickers edit: the global map, or
-  the current style's own (unset rules fall through to the global one, ↳). A rule is set by
-  picking from Sounds (PatchSelect opens the Sound Browser), and cleared with ✕.
+  The Style map's middle column (StyleMap board, docs/sound-browser.md O5): the chosen family's
+  programs (or the drum kit). The heading carries the family's rule: its sound (opens the sound
+  picker) and "Set to auto" (clears it), then the family level as a bar readout. Each program
+  row: number, GM name, From (the layer that decided it), what it plays (opens the sound picker
+  for the program's override; ✕ clears an override) and the level the deciding rule sets.
+  Choosing a row picks the program "Add and map" maps to.
 
-  "Resolves to" is what plays now, for the style playing: a style's own rule shows a
-  "style" mark even while the global map is being edited. Rows the style's parts use are
-  marked with those parts (this replaces the old "This style" tab).
+  The rule controls edit the global map, or the current style's own (nav.styleScope: unset
+  rules fall through to the global one, ↳). "Plays" is what plays now for the style playing.
 
-  State: soundLibrary (gmMap, map, styleMap, styleKey, usage, families). Commands:
-  setDrumRule, setFamilyRule, setProgramOverride, clearStyleMap.
+  State: soundLibrary (gmMap, map, styleMap, usage, families, patches). Commands: setDrumRule,
+  setFamilyRule, setProgramOverride.
 -->
 <script lang="ts">
+  import type { Action } from 'svelte/action'
   import { GM } from '../../lib/api/constants'
-  import type { GmMapRow } from '../../lib/api/types'
+  import type { GmMapRow, ProgramMap } from '../../lib/api/types'
   import { app } from '../../lib/store.svelte'
   import { tip } from '../../lib/tooltip/tip.svelte'
-  import HwButton from '../../lib/ui/HwButton.svelte'
-  import Toggle from '../../lib/ui/Toggle.svelte'
+  import LevelBar from '../../ui/StyleMap/LevelBar.svelte'
+  import ProgramTable from '../../ui/StyleMap/ProgramTable.svelte'
+  import type { ProgramItem } from '../../ui/StyleMap/types'
   import PatchSelect from './PatchSelect.svelte'
-  import { layerLabel, nav, patchName, soundName } from './nav.svelte'
+  import { chosenProgram, familyRange, nav, patchName, soundName } from './nav.svelte'
 
+  const tipAction = tip as unknown as Action<HTMLElement, string>
   const sl = $derived(app.state.soundLibrary)
   const style = $derived(nav.styleScope)
   const map = $derived(style ? sl.styleMap : sl.map)
-  // Each slice on its own, so the passes below re-run only when it changes.
-  const rows = $derived(sl.gmMap)
-  const usage = $derived(sl.usage)
-  const styleMap = $derived(sl.styleMap)
-  const drums = $derived(rows.find((r) => r.program === null))
-  /** The rows of each family, in one pass. */
-  const byFamily = $derived.by(() => {
-    const out: GmMapRow[][] = sl.families.map(() => [])
-    for (const r of rows) if (r.family !== null) out[r.family]?.push(r)
-    return out
-  })
-  const counts = $derived.by(() => {
-    let auto = 0
-    let none = 0
-    for (const r of rows) {
-      if (r.resolved.layer === 'auto') auto++
-      else if (r.resolved.layer === 'none') none++
-    }
-    return { auto, none }
-  })
-  const autoCount = $derived(counts.auto)
-  const noneCount = $derived(counts.none)
-  const styleRules = $derived(styleMap.families.filter(Boolean).length + styleMap.overrides.length + (styleMap.drums ? 1 : 0))
-  /** The style's parts on each program (or the drums, under null), in one pass. */
+  const f = $derived(nav.family)
+  const drums = $derived(f < 0)
+  const name = $derived(drums ? 'Drums' : (sl.families[f] ?? ''))
+
+  /** The style's parts on each program (or the drums), in one pass. */
   const parts = $derived.by(() => {
     const at: Record<string, string[]> = {}
-    for (const u of usage) {
+    for (const u of sl.usage) {
       const k = u.drums ? 'drums' : String(u.gmProgram)
       const list = (at[k] ??= [])
       if (!list.includes(u.part)) list.push(u.part)
@@ -60,193 +43,145 @@
     return at
   })
 
-  /** The style's parts on a program (or the drums). */
-  const usedBy = (program: number | null) => parts[program === null ? 'drums' : String(program)]?.join(', ') ?? ''
+  const rows = $derived(sl.gmMap.filter((r) => (drums ? r.program === null : r.family === f)))
+  const chosen = $derived(chosenProgram(sl.gmMap, f, nav.program))
+
+  /** The map whose rule decided a row: the style's own, or the global one. */
+  const deciding = (r: GmMapRow): ProgramMap => (r.resolved.fromStyle ? sl.styleMap : sl.map)
+
+  function level(r: GmMapRow): number | null {
+    const m = deciding(r)
+    switch (r.resolved.layer) {
+      case 'override':
+        return m.overrides.find((o) => o.program === r.program)?.volume ?? null
+      case 'family':
+        return r.family === null ? null : (m.familyVolumes?.[r.family] ?? null)
+      case 'drums':
+        return m.drumsVolume ?? null
+      default:
+        return null
+    }
+  }
+
+  function plays(r: GmMapRow): { num: number | null; name: string } {
+    const id = r.resolved.sound
+    if (id?.startsWith('saved:')) {
+      const p = sl.patches.find((x) => x.id === id.slice(6))
+      if (p) return { num: p.number, name: p.name }
+    }
+    return { num: null, name: soundName(sl, app.sounds.entries, id, r.resolved.font) }
+  }
+
+  const items = $derived(
+    rows.map((r): ProgramItem => {
+      const sound = plays(r)
+      const key = r.program === null ? 'drums' : String(r.program)
+      return {
+        program: r.program ?? -1,
+        num: r.program === null ? 'Kit' : String(r.program + 1),
+        name: r.program === null ? 'Drum kit' : GM[r.program],
+        from: r.resolved.layer,
+        fromStyle: r.resolved.fromStyle,
+        soundNum: sound.num,
+        sound: sound.name,
+        level: level(r),
+        used: parts[key]?.join(', '),
+      }
+    }),
+  )
+
+  const rule = $derived(drums ? map.drums : (map.families[f] ?? null))
+  const globalRule = $derived(drums ? sl.map.drums : (sl.map.families[f] ?? null))
+  const ruleLevel = $derived(drums ? (map.drumsVolume ?? null) : (map.familyVolumes?.[f] ?? null))
+  /** What an unset rule says: in the style's map, the global rule it falls through to. */
+  const none = $derived(style && globalRule ? `↳ ${patchName(sl, globalRule)}` : 'Auto')
+
+  function setRule(patch: string | null) {
+    if (drums) app.send({ type: 'setDrumRule', patch, style })
+    else app.send({ type: 'setFamilyRule', family: f, patch, style })
+  }
   const override = (p: number) => map.overrides.find((o) => o.program === p)?.patch ?? null
   const globalOverride = (p: number) => sl.map.overrides.find((o) => o.program === p)?.patch ?? null
-  /** What an unset rule in the style's map falls through to. */
-  const fall = (global: string | null) => (style && global ? `↳ ${patchName(sl, global)}` : '—')
-  const resolvedName = (r: GmMapRow) => soundName(sl, app.sounds.entries, r.resolved.sound, r.resolved.font)
-  const familyRows = (f: number) => byFamily[f] ?? []
 </script>
 
-{#snippet badge(r: GmMapRow)}
-  <span class="badge {r.resolved.layer}" use:tip={'sound.map_layer'} aria-label="Decided by: {layerLabel(r.resolved.layer)}{r.resolved.fromStyle ? ', this style' : ''}"
-    >{layerLabel(r.resolved.layer)}{#if r.resolved.fromStyle}<small>style</small>{/if}</span
-  >
+{#snippet playsCell(p: ProgramItem)}
+  {#if p.program < 0}
+    {#if p.soundNum !== null}<span class="snum">{p.soundNum}</span>{/if}<span class="sound">{p.sound}</span>
+  {:else}
+    <PatchSelect
+      cell
+      value={override(p.program)}
+      shown={{ num: p.soundNum, name: p.sound }}
+      label="Override for {GM[p.program]}"
+      tipKey="sound.override_patch"
+      none={style && globalOverride(p.program) ? `↳ ${patchName(sl, globalOverride(p.program))}` : 'no override'}
+      onpick={(patch) => app.send({ type: 'setProgramOverride', program: p.program, patch, style })}
+    />
+  {/if}
 {/snippet}
 
-<div class="scope" role="group" aria-label="Which map the rules edit">
-  <Toggle on={!style} tip="sound.scope" onclick={() => (nav.styleScope = false)}>Global</Toggle>
-  <Toggle on={style} tip="sound.scope" onclick={() => (nav.styleScope = true)}>This style</Toggle>
-  <span class="key engraved">{style ? sl.styleKey || 'no style' : 'every style'}</span>
-</div>
-<p class="explain">
-  {#if style}
-    Rules for {sl.styleKey || 'this style'} only. They win over the global map; what you leave blank (↳) follows it.
-  {:else}
-    Most specific first: the drum rule, a program's override, its family's rule, then auto (the best preset in your SoundFonts).
-  {/if}
-  <span class="count" class:warn={autoCount > 0}>{autoCount} auto</span>{#if noneCount}, <span class="count warn">{noneCount} unset</span>{/if}.
-</p>
-
-<div class="map">
-  {#if drums}
-    <section class="fam" aria-labelledby="gm-drums">
-      <div class="fhead">
-        <h3 id="gm-drums" class="engraved">Drums <small>Rhythm 1–2, kit banks</small></h3>
-        <span class="rule">
-          <PatchSelect value={map.drums} label="Drum rule" tipKey="sound.drums" none={fall(sl.map.drums)} onpick={(patch) => app.send({ type: 'setDrumRule', patch, style })} />
-        </span>
-      </div>
-      <div class="row" class:auto={drums.resolved.layer === 'auto'} class:none={drums.resolved.layer === 'none'}>
-        <span class="prog">Kit{#if usedBy(null)}<small class="used">{usedBy(null)}</small>{/if}</span>
-        <span class="res">{resolvedName(drums)}</span>
-        <span>{@render badge(drums)}</span>
-      </div>
-    </section>
-  {/if}
-
-  {#each sl.families as name, f (f)}
-    <section class="fam" aria-labelledby="gm-fam-{f}">
-      <div class="fhead">
-        <h3 id="gm-fam-{f}" class="engraved">{name} <small>{f * 8 + 1}–{f * 8 + 8}</small></h3>
-        <span class="rule">
-          <PatchSelect value={map.families[f]} label="{name} family" tipKey="sound.family" none={fall(sl.map.families[f])} onpick={(patch) => app.send({ type: 'setFamilyRule', family: f, patch, style })} />
-        </span>
-      </div>
-      {#each familyRows(f) as r (r.program)}
-        {@const p = r.program as number}
-        <div class="row" class:auto={r.resolved.layer === 'auto'} class:none={r.resolved.layer === 'none'}>
-          <span class="prog">{p + 1} · {GM[p]}{#if usedBy(p)}<small class="used">{usedBy(p)}</small>{/if}</span>
-          <span class="res">
-            <PatchSelect value={override(p)} label="Override for {GM[p]}" tipKey="sound.override_patch" none={fall(globalOverride(p))} onpick={(patch) => app.send({ type: 'setProgramOverride', program: p, patch, style })} />
-            <small class="plays">{resolvedName(r)}</small>
-          </span>
-          <span>{@render badge(r)}</span>
-        </div>
-      {/each}
-    </section>
-  {/each}
-</div>
-
-{#if style && styleRules > 0}
-  <div><HwButton tip="sound.clear_style_map" onclick={() => app.send({ type: 'clearStyleMap' })}>Clear this style's rules</HwButton></div>
-{/if}
+<section class="programs" aria-label="{name}, {drums ? 'the drum kit' : `programs ${f * 8 + 1} to ${f * 8 + 8}`}">
+  <div class="head">
+    <span class="title">{name}</span>
+    <span class="range">{familyRange(f)}</span>
+    <span class="caption">Rule</span>
+    <PatchSelect
+      value={rule}
+      label={drums ? 'Drum rule' : `${name} family rule`}
+      tipKey={drums ? 'sound.drums' : 'sound.family'}
+      {none}
+      clearText="Set to auto"
+      onpick={setRule}
+    />
+  </div>
+  <LevelBar label={drums ? 'Drum level' : 'Family level'} name="{name} {drums ? 'drum' : 'family'} level" value={rule ? ruleLevel : null} />
+  <ProgramTable
+    programs={items}
+    {chosen}
+    label={drums ? 'The drum kit' : `Programs ${f * 8 + 1} to ${f * 8 + 8}`}
+    tip="sound.map_program"
+    {tipAction}
+    plays={playsCell}
+    onchoose={(p) => (nav.program = p < 0 ? null : p)}
+  />
+</section>
 
 <style>
-  .scope {
+  .programs {
     display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-  .key {
-    margin-left: auto;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-  .explain {
-    margin: 0;
-    font-size: var(--fs-small);
-    color: var(--muted);
-    line-height: 1.35;
-  }
-  .count.warn {
-    color: var(--accent);
-    font-weight: 600;
-  }
-  .map {
-    display: flex;
+    flex: 1;
     flex-direction: column;
-    gap: 0.7rem;
-  }
-  .fam {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-  .fhead {
-    display: grid;
-    grid-template-columns: 9rem 1fr;
-    align-items: center;
-    gap: 0.4rem;
-  }
-  h3 {
-    margin: 0;
-    font-size: 0.8rem;
-  }
-  h3 small {
-    font-weight: 400;
-    color: var(--muted);
-  }
-  .row {
-    display: grid;
-    grid-template-columns: 9rem 1fr 4.6rem;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.15rem 0.3rem;
-    border-radius: 5px;
-    background: color-mix(in srgb, var(--well) 25%, transparent);
-  }
-  .row.auto {
-    background: color-mix(in srgb, var(--accent) 8%, transparent);
-  }
-  .prog {
-    display: flex;
-    flex-direction: column;
-    font-size: 0.85rem;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-  .used {
-    font-size: 0.7rem;
-    color: var(--accent);
-  }
-  .res {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
+    gap: var(--space-4);
     min-width: 0;
-    font-size: 0.85rem;
+    min-height: 0;
   }
-  .plays {
-    font-size: 0.72rem;
-    color: var(--muted);
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-  .badge {
-    display: inline-flex;
-    flex-direction: column;
+  .head {
+    display: flex;
     align-items: center;
-    padding: 0.1rem 0.3rem;
-    border-radius: 4px;
-    border: 1px solid var(--well-edge);
-    font-family: var(--font-display);
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--ink);
+    gap: var(--space-10);
+    height: var(--control-height);
+    white-space: nowrap;
   }
-  .badge small {
-    font-size: 0.85em;
-    font-weight: 400;
-    color: var(--accent);
+  .title {
+    color: var(--t);
+    font-size: 18px;
+    line-height: 24px;
   }
-  .badge.auto {
-    border-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 22%, transparent);
-    color: var(--accent);
+  .range,
+  .snum {
+    color: var(--m);
+    font-family: var(--font-mono);
+    font-size: 11px;
   }
-  .badge.none {
-    border-style: dashed;
-    color: var(--muted);
+  .caption {
+    margin-left: auto;
+    color: var(--m);
+    font: var(--type-text);
+    font-size: 12px;
   }
-  .badge.family {
-    color: var(--muted);
+  .sound {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 </style>

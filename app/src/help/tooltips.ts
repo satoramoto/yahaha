@@ -3718,6 +3718,34 @@ const catalog = {
   // --- lane: sounds ---
   // --- end lane: sounds ---
   // --- lane: stylemap ---
+  'sound.map_family': {
+    title: 'GM family',
+    body: 'Shows this family\'s programs and its rule. A filled dot: the family has a rule; hollow: it plays auto, the best preset in your SoundFonts.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'sound.map_program': {
+    title: 'GM program',
+    body: 'Chooses this program: Add and map maps a SoundFont preset to it. From says which rule decided what it plays: its override, its family\'s rule, or auto.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'sound.preset_pick': {
+    title: 'Choose preset',
+    body: 'Chooses this preset for Add and map.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'sound.add_map': {
+    title: 'Add and map',
+    body: 'Saves the chosen preset to My Sounds and makes it the chosen program\'s override (or the drum rule), in the map the scope names.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
   // --- end lane: stylemap ---
   // --- lane: channel ---
   // --- end lane: channel ---

@@ -574,6 +574,10 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Library file** | The path of a sound library file to import: a full library, or a list of patches. | — | — | — |
 | **Import** | Adds a bundle's (or library file's) sounds to your library, clashing ids getting new ones, and its map rules too; nothing you have is replaced. SoundFonts are found by file name in your SoundFont folder; any that are missing are listed, and their sounds are kept for when you add the files. | — | — | — |
 | **Sound number** | Each sound in the Library has a number: what swap mode dials and the Launchkey display shows (R1: 23 Rhodes Soft). The numbers stay put while the Library is unchanged. | — | — | Swap mode: knob 1 steps through them |
+| **GM family** | Shows this family's programs and its rule. A filled dot: the family has a rule; hollow: it plays auto, the best preset in your SoundFonts. | — | — | — |
+| **GM program** | Chooses this program: Add and map maps a SoundFont preset to it. From says which rule decided what it plays: its override, its family's rule, or auto. | — | — | — |
+| **Choose preset** | Chooses this preset for Add and map. | — | — | — |
+| **Add and map** | Saves the chosen preset to My Sounds and makes it the chosen program's override (or the drum rule), in the map the scope names. | — | — | — |
 
 ## Launchkey pad pages
 

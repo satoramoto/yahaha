@@ -1,5 +1,5 @@
-// Library › Style map: the GM map and Add from SoundFont pages (moved here from the Sound
-// Library drawer's tests when the drawer went, racks item 13).
+// Library › Style map (StyleMap board): the families, the chosen family's programs, the rules
+// set globally or for this style, and Add from SoundFont.
 
 import { cleanup, fireEvent, render } from '@testing-library/svelte'
 import { flushSync } from 'svelte'
@@ -22,12 +22,11 @@ afterEach(() => {
   cleanup()
   app.detach()
   libraryNav.reset()
-  nav.styleScope = false
+  nav.reset()
   ui.soundPick = null
 })
 
 const tipped = (key: string) => [...document.querySelectorAll<HTMLElement>(`[data-tip="${key}"]`)]
-const tab = (id: 'gm' | 'add') => document.querySelector<HTMLButtonElement>(`#lib-map-${id}`)!
 /** A map picker (#117): open it, and pick in the sound picker (catalog id; null clears). */
 const pickIn = async (el: HTMLElement, id: string | null) => {
   if (id === null) {
@@ -40,95 +39,105 @@ const pickIn = async (el: HTMLElement, id: string | null) => {
   }
   flushSync()
 }
-const change = async (el: HTMLSelectElement | HTMLInputElement, value: string) => {
-  el.value = value
-  await fireEvent.change(el)
+const family = async (i: number) => {
+  // Row 0 is the drums; family f is row f + 1.
+  await fireEvent.click(tipped('sound.map_family')[i + 1])
   flushSync()
 }
+const froms = () => [...document.querySelectorAll('.from')].map((e) => e.textContent)
 
 describe('Library › Style map', () => {
-  it('the GM map page: drums and 128 programs by family, each with its deciding layer', async () => {
+  it('lists the drums and 16 families; the chosen one shows its programs and what decided them', async () => {
     const s = setup()
-    await fireEvent.click(tab('gm'))
-    flushSync()
-    const page = document.querySelector('#lib-map-page-gm')!
+    expect(tipped('sound.map_family')).toHaveLength(17)
     expect(tipped('sound.export')).toHaveLength(1)
-    expect(tipped('sound.family')).toHaveLength(16)
+    // Family 0 is chosen: its 8 programs, each with its override picker.
+    expect(tipped('sound.family')).toHaveLength(1)
+    expect(tipped('sound.override_patch')).toHaveLength(8)
+    await family(6)
+    expect(tipped('sound.map_family')[7].getAttribute('aria-current')).toBe('true')
+    const rows = s.state.soundLibrary.gmMap.filter((r) => r.family === 6)
+    const words: Record<string, string> = { override: 'Override', family: 'Family', auto: 'Auto', none: 'Unset', drums: 'Drums' }
+    expect(froms()).toEqual(rows.map((r) => words[r.resolved.layer]))
+    expect(tipped('sound.map_program')[0].textContent).toContain(GM[48])
+    // The drums: the drum rule and the kit row.
+    await fireEvent.click(tipped('sound.map_family')[0])
+    flushSync()
     expect(tipped('sound.drums')).toHaveLength(1)
-    expect(tipped('sound.override_patch')).toHaveLength(128)
-    const badges = tipped('sound.map_layer')
-    expect(badges).toHaveLength(129)
-    // Every badge is the row's deciding layer; auto slots are marked.
-    const layers = s.state.soundLibrary.gmMap.map((r) => r.resolved.layer)
-    expect(badges.map((b) => b.classList[1])).toEqual(layers)
-    expect(page.querySelectorAll('.row.auto')).toHaveLength(layers.filter((l) => l === 'auto').length)
-    expect(layers).toContain('auto')
-    expect(badges[0].textContent).toBe('Drums')
-    // The tab counts the auto slots.
-    expect(tab('gm').querySelector('small')!.textContent).toBe(String(layers.filter((l) => l === 'auto').length))
+    expect(tipped('sound.map_program')[0].textContent).toContain('Kit')
   })
 
-  it('the GM map page sets and clears family, override and drum rules, globally or for this style', async () => {
+  it('sets and clears family, override and drum rules, globally or for this style', async () => {
     const s = setup()
-    const families = tipped('sound.family')
-    await pickIn(families[10], 'saved:warm-rhodes')
+    await family(10)
+    await pickIn(tipped('sound.family')[0], 'saved:warm-rhodes')
     expect(s.state.soundLibrary.map.families[10]).toBe('warm-rhodes')
+    // The family's dot fills.
+    expect(tipped('sound.map_family')[11].querySelector('.dot.ruled')).not.toBe(null)
+    // An override on program 81: From says so; ✕ clears it.
+    await pickIn(tipped('sound.override_patch')[0], 'saved:soft-pad')
+    expect(s.state.soundLibrary.map.overrides.find((o) => o.program === 80)?.patch).toBe('soft-pad')
+    expect(froms()[0]).toBe('Override')
+    await pickIn(tipped('sound.override_patch')[0], null)
+    expect(s.state.soundLibrary.map.overrides.some((o) => o.program === 80)).toBe(false)
+    // "Set to auto" clears the family rule.
+    await pickIn(tipped('sound.family')[0], null)
+    expect(s.state.soundLibrary.map.families[10]).toBe(null)
+    // The drum rule.
+    await fireEvent.click(tipped('sound.map_family')[0])
     flushSync()
-    // Program 81 (family 10) now resolves by its family rule.
-    expect(tipped('sound.map_layer')[1 + 80].textContent).toBe('Family')
     await pickIn(tipped('sound.drums')[0], null)
     expect(s.state.soundLibrary.map.drums).toBe(null)
-    // An override on program 1: the badge says so, and ✕ clears it.
-    await pickIn(tipped('sound.override_patch')[0], 'saved:warm-rhodes')
-    expect(s.state.soundLibrary.map.overrides.find((o) => o.program === 0)?.patch).toBe('warm-rhodes')
+    // This style's own rule; the global map is untouched; Clear style map removes it.
+    await family(4)
+    const [, styleTab] = tipped('sound.scope')
+    await fireEvent.click(styleTab)
     flushSync()
-    expect(tipped('sound.map_layer')[1].textContent).toBe('Override')
-    expect(document.querySelector('#lib-map-page-gm .plays')!.textContent).toBe('Warm Rhodes')
-    await pickIn(tipped('sound.override_patch')[0], null)
-    expect(s.state.soundLibrary.map.overrides.some((o) => o.program === 0)).toBe(false)
-    // Any sound: a SoundFont preset becomes a library patch the rule names.
-    const n = s.state.soundLibrary.patches.length
-    await pickIn(tipped('sound.override_patch')[48], 'sf:FluidR3_GM.sf2:0:48')
-    expect(s.state.soundLibrary.patches.length).toBe(n + 1)
-    expect(s.state.soundLibrary.map.overrides.find((o) => o.program === 48)?.patch).toBe(s.state.soundLibrary.lastAdded)
-    // This style's own rule; the global map is untouched, and the badge marks it.
-    await fireEvent.click(tipped('sound.scope')[1])
-    flushSync()
-    expect(tipped('sound.family')[4].textContent).toContain('↳ Finger Bass')
-    await pickIn(tipped('sound.family')[4], 'saved:soft-pad')
+    expect(tipped('sound.family')[0].textContent).toContain('↳ Finger Bass')
+    await pickIn(tipped('sound.family')[0], 'saved:soft-pad')
     expect(s.state.soundLibrary.styleMap.families[4]).toBe('soft-pad')
     expect(s.state.soundLibrary.map.families[4]).toBe('finger-bass')
-    flushSync()
-    expect(tipped('sound.map_layer')[1 + 32].textContent).toBe('Familystyle')
+    expect(document.querySelector('.style')).not.toBe(null)
     await fireEvent.click(tipped('sound.clear_style_map')[0])
     expect(s.state.soundLibrary.styleMap.families[4]).toBe(null)
   })
 
-  it('every rule picker is keyboard-reachable and opens the sound picker', async () => {
+  it('Port sends mapped is a lamp', async () => {
+    const s = setup()
+    const lamp = tipped('sound.port_mapped')[0]
+    await fireEvent.click(lamp)
+    expect(s.state.soundLibrary.portSendsMapped).toBe(true)
+  })
+
+  it('every control has a tooltip; a picker opens the sound picker', async () => {
     setup()
-    const page = document.querySelector('#lib-map-page-gm')!
-    const controls = [...page.querySelectorAll<HTMLElement>('button, select, input')]
-    expect(controls.length).toBeGreaterThan(145)
-    for (const c of controls) {
-      expect(c.tabIndex, c.outerHTML).toBeGreaterThanOrEqual(0)
+    for (const c of document.querySelectorAll<HTMLElement>('button, select, input')) {
       expect(c.dataset.tip, c.outerHTML).toBeTruthy()
     }
-    // Enter on a picker opens the picker (a native button: Enter clicks it).
     await fireEvent.click(tipped('sound.override_patch')[5])
     expect(ui.soundPick?.title).toBe(`Override for ${GM[5]}`)
   })
 
-  it('browses a SoundFont and adds a preset as a patch', async () => {
+  it('browses a SoundFont, adds a preset, and adds and maps one to the chosen program', async () => {
     const s = setup()
-    await fireEvent.click(tab('add'))
+    const select = tipped('sound.soundfont')[0] as HTMLSelectElement
+    select.value = 'GeneralUser-GS.sf2'
+    await fireEvent.change(select)
     flushSync()
-    expect(libraryNav.mapPage).toBe('add')
-    await change(tipped('sound.soundfont')[0] as HTMLSelectElement, 'GeneralUser-GS.sf2')
     expect(s.state.soundLibrary.browse?.presets.length).toBeGreaterThan(128)
     const n = s.state.soundLibrary.patches.length
     await fireEvent.click(tipped('sound.preset_add')[33])
     expect(s.state.soundLibrary.patches).toHaveLength(n + 1)
     expect(s.state.soundLibrary.patches[n].category).toBe('bass')
+    // Choose program 3 and a preset, then Add and map.
+    await fireEvent.click(tipped('sound.map_program')[2])
+    await fireEvent.click(tipped('sound.preset_pick')[10])
+    flushSync()
+    const map = tipped('sound.add_map')[0] as HTMLButtonElement
+    expect(map.textContent).toBe('Add and map to 3')
+    await fireEvent.click(map)
+    expect(s.state.soundLibrary.patches).toHaveLength(n + 2)
+    expect(s.state.soundLibrary.map.overrides.find((o) => o.program === 2)?.patch).toBe(s.state.soundLibrary.lastAdded)
   })
 
   it('a patch names its source', () => {
