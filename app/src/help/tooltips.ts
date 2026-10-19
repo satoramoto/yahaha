@@ -3416,8 +3416,8 @@ const catalog = {
     launchkey: null,
   },
   'app.theme': {
-    title: 'Light / dark',
-    body: 'Switches between the dark stage theme and a light one.',
+    title: 'Theme',
+    body: 'Dark, light, or System, which follows your computer’s light or dark setting.',
     genos: null,
     keys: [],
     launchkey: null,
@@ -3591,6 +3591,220 @@ const catalog = {
   ...multiPadsTips,
   ...looperTips,
   ...harmArpTips,
+  // ── The missing Push screens (contract) ─────────────────────────────────
+  'app.floating_tips': {
+    title: 'Pop-up tips',
+    body: 'In help mode, also shows the entry in a small card next to the control you point at. Off by default.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'firstrun.choose_style': {
+    title: 'Choose a style',
+    body: 'Opens Library › Styles to pick the style the band plays.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'firstrun.step_styles': {
+    title: 'Styles',
+    body: 'Step one: the styles found in your style folders. Lit once there is at least one; else put .sty, .prs or .sst files in the folder shown and they are found by themselves.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'firstrun.step_sounds': {
+    title: 'Sounds',
+    body: 'Step two: something to play the sounds. Lit once there is a SoundFont in the soundfonts folder or an instrument plugin; without either, the band only plays out of the yahaha MIDI port.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'firstrun.step_launchkey': {
+    title: 'Launchkey',
+    body: 'Step three: plug in the Launchkey. The app finds it by itself within a couple of seconds.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'firstrun.ready': {
+    title: 'Ready now',
+    body: 'The style loaded and its tempo: you can press Start and play now. Click to close this panel.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'prompt.store': {
+    title: 'Store the rack',
+    body: 'Stores the live rack on the Quick Rack button you chose, replacing what was there.',
+    genos: 'MEMORY',
+    keys: [],
+    launchkey: null,
+  },
+  'prompt.unsaved': {
+    title: 'Unsaved changes',
+    body: 'The live rack has changes that are not saved. Save them, discard them, or cancel and stay.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'prompt.sound_names': {
+    title: 'Name the sounds',
+    body: 'Keeps or renames the sounds this rack loads before it is saved.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'prompt.delete': {
+    title: 'Delete',
+    body: 'Deletes it for good. This cannot be undone.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'prompt.open_file_wait': {
+    title: 'Opening a file',
+    body: 'Waits while the file dialog is open. Choose a file there, or cancel it to come back.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'rack.map_done': {
+    title: 'Done',
+    body: 'Closes the controller map editor, keeping the changes in the live rack.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'rack.map_default': {
+    title: 'Default map',
+    body: 'Puts the faders and knobs back to what they control by default.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'channel.style_send': {
+    title: 'Style part send',
+    body: 'How much of this Style part goes to the send effect. The style sets it; turning it overrides the style.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'channel.reset_to_style': {
+    title: 'Reset to style',
+    body: 'Puts this Style part’s mix back to what the style sets.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'sounds.quick_list': {
+    title: 'Sound list',
+    body: 'The sounds near this part’s sound: pick one to load it now. Library › Sounds has them all.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  // Each screen lane appends its entries inside its own block, so lanes never touch the same lines.
+  // --- lane: pads ---
+  // --- end lane: pads ---
+  // --- lane: help-swap ---
+  // --- end lane: help-swap ---
+  // --- lane: firstrun ---
+  // --- end lane: firstrun ---
+  // --- lane: rack ---
+  'rack.octave': {
+    title: 'Octave',
+    body: 'Shifts this part up or down by whole octaves, −2 to +2. Scroll, drag or use the arrow keys; double-click puts it back to 0.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'rack.insert': {
+    title: 'Insert effect',
+    body: 'The part’s first insert effect and its amount. Opens the part’s Channel, where you choose the effect and set it.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'rack.sends': {
+    title: 'Sends 4–6',
+    body: 'How much of this part goes to each send effect you added. Opens the part’s Channel to set them.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'rack.map_part': {
+    title: 'Part',
+    body: 'Shows the targets of this keyboard part: its level, pan, sends and insert settings.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  // --- end lane: rack ---
+  // --- lane: dialogs ---
+  // --- end lane: dialogs ---
+  // --- lane: sounds ---
+  'sounds.quick_row': {
+    title: 'Play this sound',
+    body: 'Loads this sound on the part now; the list stays open so you can try the next. The sound playing now is the white row.',
+    genos: 'Voice Selection',
+    keys: [],
+    launchkey: null,
+  },
+  'sounds.quick_search': {
+    title: 'Search sounds',
+    body: 'Type a name, SoundFont or maker to search every sound, or a number to find that sound in My Sounds.',
+    genos: 'Voice Selection › Search',
+    keys: [],
+    launchkey: null,
+  },
+  'sounds.quick_more': {
+    title: 'More in Library',
+    body: 'Opens Library › Sounds loading into this part, with every sound, and closes the list.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'sounds.quick_close': {
+    title: 'Close',
+    body: 'Closes the sound list. The sound you last picked stays on the part.',
+    genos: 'EXIT',
+    keys: ['esc'],
+    launchkey: null,
+  },
+  // --- end lane: sounds ---
+  // --- lane: stylemap ---
+  'sound.map_family': {
+    title: 'GM family',
+    body: 'Shows this family\'s programs and its rule. A filled dot: the family has a rule; hollow: it plays auto, the best preset in your SoundFonts.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'sound.map_program': {
+    title: 'GM program',
+    body: 'Chooses this program: Add and map maps a SoundFont preset to it. From says which rule decided what it plays: its override, its family\'s rule, or auto.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'sound.preset_pick': {
+    title: 'Choose preset',
+    body: 'Chooses this preset for Add and map.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'sound.add_map': {
+    title: 'Add and map',
+    body: 'Saves the chosen preset to My Sounds and makes it the chosen program\'s override (or the drum rule), in the map the scope names.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  // --- end lane: stylemap ---
+  // --- lane: channel ---
+  // --- end lane: channel ---
 } satisfies Record<string, Tip>
 
 export type TipKey = keyof typeof catalog

@@ -6,7 +6,10 @@
   reduced strength, `--absent-<family>`, no fill: an absent Intro reads as a faded yellow pad),
   playing and running (a solid fill of the hue, the label in `--on-ink`), next and armed (waiting: a
   2px ring and a faint fill of the hue, the label in `--t`, and a small "NEXT" or "ARMED" tag at the
-  top, placed absolutely so the label stays centred). Next and armed flash: the parent passes the
+  top, placed absolutely so the label stays centred; with `tagCorner`, a solid tag in the top-right
+  corner instead). Lamp (a switch on: the lime face, `--lamp-ink` label), chosen (the white block,
+  the label in `--g`) and unavailable (the plain `--btn` face, a dim name) are the pad pages'
+  faces; any face can carry a `tag` ("Save over"). Next and armed flash: the parent passes the
   phase in `lit`; unlit drops the fill and falls back to the 1px outline. Utility pads are neutral
   (`--neutral`, solid when on); Start / Stop goes solid `--ok` when running. Outlines are inset
   box-shadows, so the size never changes.
@@ -28,7 +31,9 @@
         part hue (`r1` blue, `r2` pink, `r3` orange, `l` teal) for a pad the engine lights in that colour. */
     family?: Family
     /** The face. `dark` (absent) draws the family's hue at reduced strength. */
-    state?: 'idle' | 'dark' | 'playing' | 'next' | 'armed' | 'running'
+    state?: 'idle' | 'dark' | 'playing' | 'next' | 'armed' | 'running' | 'lamp' | 'chosen' | 'unavailable'
+    /** A tag to draw in place of the face's own (NEXT / ARMED): "Save over". */
+    tag?: string
     /** The flash phase of `next` and `armed`: false drops the fill and draws the 1px outline. */
     lit?: boolean
     /** The accessible name. Default: "{label} (pad {index})". */
@@ -39,6 +44,17 @@
     tipAction?: Action<HTMLElement, string>
     /** Called on a click, Space or Enter. */
     onpress?: () => void
+    /**
+     * Draw the NEXT / ARMED tag as a small tag in the pad's top-right corner (solid hue, `--on-ink`),
+     * not a line over the label, so the pad stays one line ("Main C"). Off by default (the golden Stage sets it).
+     */
+    tagCorner?: boolean
+    /**
+     * A transport pad (Start / Stop, Sync Start, Sync Stop, Tap, Auto Fill on the Sections bank):
+     * a `util` or `start` pad draws in the hue of time (`--transport`), as its twin on the screen's
+     * transport, solid while running. Off by default (the golden Stage sets it on the Sections bank).
+     */
+    transport?: boolean
   }
 
   let {
@@ -46,21 +62,27 @@
     index = '',
     family = 'main',
     state = 'idle',
+    tag: tagText,
     lit = true,
     name,
     tip,
     tipAction,
     onpress,
+    tagCorner = false,
+    transport = false,
   }: Props = $props()
 
   let util = $derived(family === 'util' || family === 'start')
-  /** The hue token: the family's (`neutral` for utilities, `ok` for a running Start / Stop); a dark
-      pad takes the same hue's absent token (`absent-intro`, `absent-neutral`). */
-  let base = $derived(family === 'start' && state === 'running' ? 'ok' : util ? 'neutral' : family)
+  /** The hue token: the family's (`neutral` for utilities, `ok` for a running Start / Stop; with
+      `transport`, `transport` for both); a dark pad takes the same hue's absent token
+      (`absent-intro`, `absent-neutral`). */
+  let base = $derived(
+    util && transport ? 'transport' : family === 'start' && state === 'running' ? 'ok' : util ? 'neutral' : family,
+  )
   let hue = $derived(state === 'dark' ? `absent-${base}` : base)
   /** The glow token's hue: the neutral glow is the white one. */
   let glow = $derived(base === 'neutral' ? 't' : base)
-  let tag = $derived(state === 'next' ? 'NEXT' : state === 'armed' ? 'ARMED' : '')
+  let tag = $derived(tagText ?? (state === 'next' ? 'NEXT' : state === 'armed' ? 'ARMED' : ''))
   let solid = $derived(state === 'playing' || state === 'running')
   let waiting = $derived(state === 'next' || state === 'armed')
 
@@ -93,7 +115,7 @@
   onclick={() => onpress?.()}
   use:tipped={tip}
 >
-  {#if tag}<span class="tag" aria-hidden="true">{tag}</span>{/if}
+  {#if tag}<span class="tag" class:corner={tagCorner} aria-hidden="true">{tag}</span>{/if}
   <span class="label">{label}</span>
 </button>
 
@@ -137,6 +159,17 @@
     letter-spacing: var(--tracking-text);
     text-align: center;
   }
+  /* `tagCorner`: the tag in the top-right corner, a solid block of the hue with --on-ink, out of the
+     label's line, so the label reads on its own. */
+  .tag.corner {
+    top: 0;
+    left: auto;
+    padding: 0 var(--space-4);
+    background: var(--hue);
+    color: var(--on-ink);
+    /* As deep as the words themselves, so it clears the centred label in a short pad. */
+    line-height: 1;
+  }
 
   .solid {
     background: var(--hue);
@@ -173,6 +206,24 @@
   }
   .waiting.unlit::before {
     content: none;
+  }
+
+  /* The pad pages' lamp grammar (pages 2–5): lime = a switch on, white block = the chosen one of a
+     set, and a dim name on the plain face = can't apply now. */
+  .face-lamp {
+    background: var(--lamp);
+    box-shadow: inset 0 0 0 var(--outline-width) var(--lamp);
+    color: var(--lamp-ink);
+  }
+  .face-chosen {
+    background: var(--t);
+    box-shadow: inset 0 0 0 var(--outline-width) var(--t);
+    color: var(--g);
+  }
+  .face-unavailable {
+    background: var(--btn);
+    box-shadow: none;
+    color: var(--absent-neutral);
   }
 
   .pad:focus-visible {

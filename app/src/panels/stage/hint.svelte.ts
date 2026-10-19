@@ -18,7 +18,7 @@ export function useStatusHint(): { readonly current: StatusHint | null } {
     last = shown
     since = untrack(() => app.state.message?.seq ?? 0)
   })
-  const current = $derived(statusHint({ key: tips.shown, help: tips.help, message: app.state.message, since }))
+  const current = $derived(statusHint({ key: tips.shown, text: tips.shownText, help: tips.help, message: app.state.message, since }))
   return {
     get current() {
       return current

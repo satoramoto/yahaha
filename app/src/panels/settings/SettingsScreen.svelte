@@ -88,7 +88,10 @@
       ui.openLibrary('sounds', target.sounds)
       return
     }
-    if (target === 'browser') ui.browser = true
+    if (target === 'browser') {
+      ui.settings = false
+      ui.openLibrary('styles')
+    }
     else if (target === 'settingsAudio') nav.page = 'system'
     else if (target === 'rack' && !ui.rack) ui.toggleDrawer('rack')
   }
@@ -153,7 +156,7 @@
   })
 </script>
 
-<div class="scaler" data-theme={ui.theme} bind:this={box}>
+<div class="scaler" data-theme={ui.resolvedTheme} bind:this={box}>
   <div class="artboard" style:transform={`translate(-50%, -50%) scale(${scale})`}>
     <Blooms
       playing={s.transport.running}

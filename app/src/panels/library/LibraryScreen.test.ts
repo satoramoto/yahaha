@@ -160,6 +160,5 @@ describe('Library screen', () => {
     step(session)
     expect(ui.view).toBe('library')
     expect(ui.libraryTab).toBe('styles')
-    expect(ui.browser).toBe(false)
   })
 })

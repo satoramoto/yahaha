@@ -18,7 +18,7 @@
   import Blooms from '../../ui/Blooms/Blooms.svelte'
   import { levelOf } from '../../ui/Blooms/blooms'
   import Library from '../../ui/Library/Library.svelte'
-  import { prefs } from '../browser/prefs.svelte'
+  import { prefs } from './stylePrefs.svelte'
   import { rangeFor } from '../keystrip/keyboard'
   import { nav as settingsNav } from '../settings/nav.svelte'
   import { stageActions, type OpenTarget } from '../stage/actions'
@@ -33,6 +33,7 @@
   import { libraryNav } from './nav.svelte'
   import { racksActions, racksProps } from './racksModel'
   import { racksState } from './racksState.svelte'
+  import { pickFileWaiting } from '../prompts/fileWait.svelte'
   import { presetsToList, soundsActions, soundsProps } from './soundsModel'
   import { soundsPage } from './soundsState.svelte'
   import { stylesActions, stylesOrigin, stylesProps } from './stylesModel'
@@ -90,15 +91,6 @@
     const s = app.state
     const part = ui.libraryPart
     untrack(() => followPendingEditor(s, part, instrumentsState, (p) => app.pluginEditor(p, true)))
-  })
-
-  // ── A rack prompt (a Quick Rack over unsaved changes, sound names) is asked in the Rack drawer,
-  // which opens over Library (the old Library asked it in its docked Rack panel).
-  let asked = false
-  $effect(() => {
-    const now = app.state.liveRack.prompt !== null
-    if (now && !asked && !ui.rack) untrack(() => ui.toggleDrawer('rack'))
-    asked = now
   })
 
   // ── Pages and links
@@ -167,6 +159,8 @@
     styles: stylesState,
     close: () => (ui.view = 'stage'),
     isOpen: () => ui.view === 'library' && ui.libraryTab === 'styles',
+    // Open file…: the waiting card (panels/prompts) shows while the system chooser is up.
+    pick: pickFileWaiting,
   })
   const soundsCb = soundsActions({
     state: () => app.state,
@@ -242,7 +236,7 @@
 
 {#snippet map()}<MapTab />{/snippet}
 
-<div class="scaler" data-theme={ui.theme} bind:this={box}>
+<div class="scaler" data-theme={ui.resolvedTheme} bind:this={box}>
   <div class="artboard" style:transform={`translate(-50%, -50%) scale(${scale})`}>
     <Blooms
       playing={app.state.transport.running}

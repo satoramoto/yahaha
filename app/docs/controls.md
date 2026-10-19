@@ -221,6 +221,12 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Edit** | Opens the part's plugin window over the app. What you change there marks the sound "edited" until you save it. SoundFont sounds have no editor. | Voice Edit | — | — |
 | **Save sound** | Keeps the plugin edits in the sound: your own sound is updated; a factory preset is never overwritten and is saved as a new sound of yours instead. The part's mix is not part of the sound. | Voice Setting › Save | — | — |
 | **Replace…** | The plugin this part plays isn't installed, so the part is silent. Opens Library › Sounds with this part as the target: the sound you pick replaces it and the part keeps its level, pan, sends and octave. Nothing is saved until you save the rack; reinstalling the plugin brings the sound back. | — | — | — |
+| **Done** | Closes the controller map editor, keeping the changes in the live rack. | — | — | — |
+| **Default map** | Puts the faders and knobs back to what they control by default. | — | — | — |
+| **Octave** | Shifts this part up or down by whole octaves, −2 to +2. Scroll, drag or use the arrow keys; double-click puts it back to 0. | — | — | — |
+| **Insert effect** | The part’s first insert effect and its amount. Opens the part’s Channel, where you choose the effect and set it. | — | — | — |
+| **Sends 4–6** | How much of this part goes to each send effect you added. Opens the part’s Channel to set them. | — | — | — |
+| **Part** | Shows the targets of this keyboard part: its level, pan, sends and insert settings. | — | — | — |
 
 ## Stage | Library
 
@@ -301,6 +307,11 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Plugin that failed** | This plugin failed to load last time (⚠ says why). Picking it tries again; until it loads, the part plays its SoundFont voice. | — | — | — |
 | **Star** | Adds the sound to your Favourites, or takes it out. | Voice Selection › Favorite | — | — |
 | **Add to my sounds** | Keeps this preset in your sounds (the sound library), once, so it shows in Sounds and can be a map rule. Nothing changes on the part. | — | — | — |
+| **Sound list** | The sounds near this part’s sound: pick one to load it now. Library › Sounds has them all. | — | — | — |
+| **Play this sound** | Loads this sound on the part now; the list stays open so you can try the next. The sound playing now is the white row. | Voice Selection | — | — |
+| **Search sounds** | Type a name, SoundFont or maker to search every sound, or a number to find that sound in My Sounds. | Voice Selection › Search | — | — |
+| **More in Library** | Opens Library › Sounds loading into this part, with every sound, and closes the list. | — | — | — |
+| **Close** | Closes the sound list. The sound you last picked stays on the part. | EXIT | `Esc` | — |
 
 ## Keyboard Harmony / Arpeggio
 
@@ -571,6 +582,10 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Library file** | The path of a sound library file to import: a full library, or a list of patches. | — | — | — |
 | **Import** | Adds a bundle's (or library file's) sounds to your library, clashing ids getting new ones, and its map rules too; nothing you have is replaced. SoundFonts are found by file name in your SoundFont folder; any that are missing are listed, and their sounds are kept for when you add the files. | — | — | — |
 | **Sound number** | Each sound in the Library has a number: what swap mode dials and the Launchkey display shows (R1: 23 Rhodes Soft). The numbers stay put while the Library is unchanged. | — | — | Swap mode: knob 1 steps through them |
+| **GM family** | Shows this family's programs and its rule. A filled dot: the family has a rule; hollow: it plays auto, the best preset in your SoundFonts. | — | — | — |
+| **GM program** | Chooses this program: Add and map maps a SoundFont preset to it. From says which rule decided what it plays: its override, its family's rule, or auto. | — | — | — |
+| **Choose preset** | Chooses this preset for Add and map. | — | — | — |
+| **Add and map** | Saves the chosen preset to My Sounds and makes it the chosen program's override (or the drum rule), in the map the scope names. | — | — | — |
 
 ## Launchkey pad pages
 
@@ -718,4 +733,32 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 |---|---|---|---|---|
 | **Audio health** | How the audio is doing: "Audio" when all is well, "Audio off" when the built-in synth isn't running. A keyboard part whose plugin failed ("R3 failed") opens its Channel when clicked. Dropouts in the last 30 seconds ("2 dropouts", with "buffer 256?" when the buffer is under 1024) or the synth's CPU at 70% or more ("CPU 74%") open the audio settings, where a larger buffer gives each block more time. | — | — | — |
 | **Help mode** | Keeps the last control you hovered or tabbed to in the status line above the keys while you try it, instead of the line going back to its message. Controls keep working. | — | `?` | — |
-| **Light / dark** | Switches between the dark stage theme and a light one. | — | — | — |
+| **Theme** | Dark, light, or System, which follows your computer’s light or dark setting. | — | — | — |
+| **Pop-up tips** | In help mode, also shows the entry in a small card next to the control you point at. Off by default. | — | — | — |
+
+## First run
+
+| control | what it does | Genos | key | Launchkey |
+|---|---|---|---|---|
+| **Choose a style** | Opens Library › Styles to pick the style the band plays. | — | — | — |
+| **Styles** | Step one: the styles found in your style folders. Lit once there is at least one; else put .sty, .prs or .sst files in the folder shown and they are found by themselves. | — | — | — |
+| **Sounds** | Step two: something to play the sounds. Lit once there is a SoundFont in the soundfonts folder or an instrument plugin; without either, the band only plays out of the yahaha MIDI port. | — | — | — |
+| **Launchkey** | Step three: plug in the Launchkey. The app finds it by itself within a couple of seconds. | — | — | — |
+| **Ready now** | The style loaded and its tempo: you can press Start and play now. Click to close this panel. | — | — | — |
+
+## Prompts
+
+| control | what it does | Genos | key | Launchkey |
+|---|---|---|---|---|
+| **Store the rack** | Stores the live rack on the Quick Rack button you chose, replacing what was there. | MEMORY | — | — |
+| **Unsaved changes** | The live rack has changes that are not saved. Save them, discard them, or cancel and stay. | — | — | — |
+| **Name the sounds** | Keeps or renames the sounds this rack loads before it is saved. | — | — | — |
+| **Delete** | Deletes it for good. This cannot be undone. | — | — | — |
+| **Opening a file** | Waits while the file dialog is open. Choose a file there, or cancel it to come back. | — | — | — |
+
+## Channel
+
+| control | what it does | Genos | key | Launchkey |
+|---|---|---|---|---|
+| **Style part send** | How much of this Style part goes to the send effect. The style sets it; turning it overrides the style. | — | — | — |
+| **Reset to style** | Puts this Style part’s mix back to what the style sets. | — | — | — |

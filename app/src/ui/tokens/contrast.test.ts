@@ -14,7 +14,7 @@ const light = read('./light.css')
 const palette = read('./palette.css')
 
 /** The part and section hues: drawn as text, and as fills under --solid-ink (Stage C6). */
-const FILLS = ['--r1', '--r2', '--r3', '--l', '--intro', '--main', '--ending', '--brk', '--fill', '--ok']
+const FILLS = ['--r1', '--r2', '--r3', '--l', '--intro', '--main', '--ending', '--brk', '--fill', '--ok', '--transport']
 /** Every hue drawn as text on the ground and on the button face (Stage C6). */
 const HUES = [...FILLS, '--a', '--warn', '--rec']
 

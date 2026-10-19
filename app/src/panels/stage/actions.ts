@@ -20,7 +20,8 @@ export type OpenTarget =
   | { page: string }
   /** Channel for a part (0–3 keyboard, 4–11 Style). */
   | { channel: number }
-  /** The quick sound list for a keyboard part: for now Library › Sounds loading into it. */
+  /** The quick sound list for a keyboard part (0–3): StageScreen opens it (`ui.soundList`,
+   * panels/sounds/SoundPick); the other screens open Library › Sounds loading into it. */
   | { sounds: number }
   | 'browser'
   | 'rack'
@@ -265,6 +266,7 @@ export function stageActions(d: StageDeps): StageActions {
     ontempoup: (down) => d.tempo(1, down),
     ontempodown: (down) => d.tempo(-1, down),
     onstyletempo: () => send({ type: 'resetTempo' }),
+    ontaptempo: () => send({ type: 'tapTempo' }),
     // A drag, scroll or arrow key on the display's tempo: that tempo, whole BPM, 5–500.
     ontempo: (bpm) => {
       if (Number.isFinite(bpm)) send({ type: 'setTempo', bpm: Math.max(5, Math.min(500, Math.round(bpm))) })

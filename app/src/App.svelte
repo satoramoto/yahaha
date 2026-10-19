@@ -16,11 +16,14 @@
   The display pages (Channel, Effects, Quick Racks, Multi Pads, Looper, Harm/Arp) are page
   tabs on the Stage; each has an Alt key that shows it (lib/nav.ts): Alt+C Channel, Alt+E
   Effects, Alt+Q Quick Racks, Alt+P Multi Pads, Alt+L Looper, Alt+H Harm/Arp. Alt+T shows
-  Settings, Alt+B Library, Alt+R Library › Racks, Alt+Y Library › Style map, Alt+S the style
-  Browser and Alt+O the Rack drawer. The Rack drawer (lib/ui/Overlay), the style Browser and
-  the Sound Browser stay as they were, unscaled, in the old tokens. Library (`ui.view`: the
-  app bar's Library tab, Alt+B) takes the Stage's place as the library's Library screen
-  (panels/library/LibraryScreen), scaled like the Stage.
+  Settings, Alt+B Library, Alt+R Library › Racks, Alt+Y Library › Style map, Alt+S Library ›
+  Styles and Alt+O the Rack. Library (`ui.view` 'library': the app bar's Library tab, Alt+B)
+  takes the Stage's place as the library's Library screen (panels/library/LibraryScreen),
+  scaled like the Stage; so does the Rack (`ui.view` 'rack', for now the old RackPanel, docked,
+  until the Rack lane replaces it). The Sound Browser stays as it was, unscaled, in the old tokens.
+
+  Over every page: one dialog host (panels/prompts/PromptHost) and the quick sound list
+  (panels/sounds/SoundPick, while `ui.soundList` is set).
 -->
 <script lang="ts">
   import { onDestroy, untrack } from 'svelte'
@@ -30,11 +33,12 @@
   import { app, clock, ui } from './lib/store.svelte'
   import { TIPS } from './help/tooltips'
   import { plainTip, tips, TOOLTIP_ID } from './lib/tooltip/tip.svelte'
-  import Browser from './panels/browser/Browser.svelte'
   import { channelNav } from './panels/channel/nav.svelte'
+  import PromptHost from './panels/prompts/PromptHost.svelte'
   import RackPanel from './panels/rack/RackPanel.svelte'
   import LibraryScreen from './panels/library/LibraryScreen.svelte'
   import SettingsScreen from './panels/settings/SettingsScreen.svelte'
+  import SoundPick from './panels/sounds/SoundPick.svelte'
   import SoundPicker from './panels/sounds/SoundPicker.svelte'
   import StageScreen from './panels/stage/StageScreen.svelte'
   import { stagePage } from './panels/stage/page.svelte'
@@ -51,8 +55,11 @@
   })
   onDestroy(() => session.dispose())
 
+  // Theme 'system' follows the computer's light/dark setting while the app runs.
+  $effect(() => ui.watchSystemTheme())
+
   $effect(() => {
-    document.documentElement.dataset.theme = ui.theme
+    document.documentElement.dataset.theme = ui.resolvedTheme
     document.documentElement.dataset.help = tips.help ? 'on' : 'off'
   })
 
@@ -73,6 +80,13 @@
     })
   })
 
+  // A rack prompt that opened the Rack page goes back where it came from once answered
+  // (panels/quickracks/rackPromptDrawer), until PromptHost asks the prompts as dialogs.
+  $effect(() => {
+    const asking = app.state.liveRack.prompt !== null
+    if (!asking) untrack(() => ui.promptReturn && ui.promptAnswered())
+  })
+
   /** Esc closes what's open over the stage first (handleKey), then goes back to the Stage. */
   function onKey(e: KeyboardEvent) {
     handleKey(e)
@@ -91,6 +105,9 @@
   {:else if ui.view === 'library'}
     <!-- Library replaces the stage (panels/library/LibraryScreen, scaled like it); the band keeps playing. -->
     <main class="stage-slot"><LibraryScreen /></main>
+  {:else if ui.view === 'rack'}
+    <!-- The Rack page (Alt+O): the old Rack panel, docked, until the Rack lane replaces it. -->
+    <main class="stage-slot rack-slot"><RackPanel docked /></main>
   {:else}
     <main class="stage-slot"><StageScreen /></main>
   {/if}
@@ -99,11 +116,13 @@
 <!-- The focused control's entry as plain text, for screen readers (`aria-describedby`). -->
 <div id={TOOLTIP_ID} class="visually-hidden">{tips.focused ? plainTip(TIPS[tips.focused]) : ''}</div>
 
-{#if ui.rack}<RackPanel />{/if}
-{#if ui.browser}<Browser />{/if}
 <!-- The Sound Browser only picks for a program map rule now (Style map); Library took over
      choosing a part's sound. -->
 {#if ui.soundPick !== null}<SoundPicker pick={ui.soundPick} />{/if}
+<!-- A part's quick sound list (the Stage's sound row), over any page. -->
+{#if ui.soundList !== null}<SoundPick list={ui.soundList} />{/if}
+<!-- The one dialog host: rack prompts and the open-file wait card. -->
+<PromptHost />
 
 <style>
   .app {
@@ -117,5 +136,9 @@
     flex: 1;
     min-height: 0;
     display: flex;
+  }
+  .rack-slot > :global(*) {
+    flex: 1;
+    min-width: 0;
   }
 </style>

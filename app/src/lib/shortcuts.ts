@@ -33,8 +33,8 @@ export function handleKey(e: KeyboardEvent) {
     else if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) document.activeElement.blur()
     return
   }
-  // The style and sound browsers own the keyboard while open (their filters take typed
-  // keys). Side drawers don't: performance keys keep working next to them.
+  // The sound picker owns the keyboard while open (its filter takes typed keys). Pages
+  // don't: performance keys keep working on them.
   // The quick-nav keys (Alt + a letter) work everywhere, even over those.
   const b = binding(e)
   if (b && 'nav' in b) {
@@ -42,14 +42,14 @@ export function handleKey(e: KeyboardEvent) {
     if (!e.repeat) NAV.find((n) => n.key === b.nav)?.toggle()
     return
   }
-  if (ui.browser || ui.soundPick !== null) return
+  if (ui.soundPick !== null) return
   if (isTextField(target)) return
   if (target instanceof HTMLButtonElement && (e.key === ' ' || e.key === 'Enter')) return
   if (!b) return
   e.preventDefault()
   if ('app' in b) {
     if (e.repeat) return
-    if (b.app === 'browser') ui.browser = true
+    if (b.app === 'browser') ui.openLibrary('styles')
     else if (b.app === 'help') tips.toggleHelp()
     return
   }

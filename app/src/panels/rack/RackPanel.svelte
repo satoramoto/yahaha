@@ -1,892 +1,309 @@
 <!--
-  The Rack panel (docs/racks.md "Screens"; the owner's wireframe v5, `rackEditor`): what's
-  under your hands, as one rack. It replaces Parts & OTS. On Stage it is the right-hand
-  drawer (open while `ui.rack`, Alt+O); with `docked` it renders without the drawer frame,
-  for Library's dock.
+  RackPanel: the app's wiring of the Rack page (ui/Rack, docs/design/push/Rack-Dark.dc.html), in
+  the main slot while `ui.view === 'rack'` (the app bar's rack readout, Alt+O). A tall page: the
+  Stage's frame (app bar, section row, status line, keys) with the Rack in the display's place,
+  grown to 468px, and the band at half height under it, so nothing covers Start / Stop.
 
-  ┌ RACK  Soul Ballad  Mine  ● modified          [Save rack] [Save as…] [Revert] ┐
-  │ YOUR HANDS                                                                    │
-  │ Split − F#2 +   Harmony/Arp [Duet ▾] (on)   Transpose − 0 +                   │
-  │ Manual Bass  Left Hold                                                        │
-  │ ▸ Controller map   (faders 1–4, knobs 1–8: a select each, setRackControl)     │
-  │ KEYBOARD PARTS                                                                │
-  │ four RackSlots: R1, R2, R3, L (each with its strip: sends, comp, inserts)    │
-  │ SEND EFFECTS                                                                  │
-  │ 1 Reverb · Hall  [Override]   (1–3: the style's; the rack can keep the type)  │
-  │ 4 [Phaser ▾] Return ━━○━ [Remove]    [Hall ▾] [Add send]  (up to 6)          │
-  │ ONE TOUCH SETTINGS · <style>                                                  │
-  │ OTS Link · timing · OTS 1–4 cards, each with its rack select                  │
-  │   (Style's own / one of your racks: `setOtsRack`, `clearOtsRack`)             │
-  │ AS WRITTEN FOR (the band's voices per channel)                                │
-  └───────────────────────────────────────────────────────────────────────────────┘
+  It reads the stores, turns them into the page's props (model.ts), and turns its callbacks into
+  commands. "Edit map" opens the controller map editor (ui/RackMapEditor; Rack-MapEdit board) in
+  the parts table's place; a pick sends `setRackControl`, "Default map" sends the default targets
+  with `setRackControl` (no single reset command exists). The rack prompts (`liveRack.prompt`)
+  are asked by PromptHost, not here.
 
-  State: liveRack, keyboardParts, chord, harmonyArp, ots, mixer.styleParts, plugins,
-  soundLibrary. Commands: all existing ones (moveSplit, stepTranspose, setHarmonyType,
-  setArpPattern, setHarmonyArpOn, toggleManualBass, toggleLeftHold, recallOts,
-  toggleOtsLink and the part commands in RackSlot), and the rack commands: Save rack
-  (`saveRack`), Save as… (a name form, `saveRackAs`), Revert (`revertRack`, only when
-  modified), the Controller map's selects (`setRackControl`). `liveRack.prompt` shows inline under the head: `soundNames` as a name field
-  per edited part, resent with `soundNames`; `unsavedChanges` as Save first (`saveRack`;
-  the engine makes the held switch once saved), Discard and switch (the switch with `discard`) and Keep editing
-  (`dismissRackPrompt`). Send effects (`effects.sends`): Override on sends 1–3
-  (`setRackSendOverride`); on 4–6 type, return and Remove (`setSendKind`, `setSendReturn`,
-  `removeSend`); Add send (`addSend`).
+  Scaling as StageScreen: laid out at 1440 × 900, scaled uniformly to fit, centred, under
+  `data-theme`. `docked` is kept for App.svelte; the page is always docked now.
 -->
 <script lang="ts">
-  import { untrack } from 'svelte'
-  import type { GmMapRow, RackControl, RackSwitch, SendKind } from '../../lib/api/types'
-  import { app, ui } from '../../lib/store.svelte'
-  import { tip } from '../../lib/tooltip/tip.svelte'
-  import HwButton from '../../lib/ui/HwButton.svelte'
-  import Overlay from '../../lib/ui/Overlay.svelte'
-  import Toggle from '../../lib/ui/Toggle.svelte'
-  import { PART_SHORT, linkedMain, otsLine, otsTip } from '../parts/parts'
-  import { instrumentName, playingId } from '../sounds/model'
-  import { rackName, signed, soundBadge, targetKey, targetLabel, targetOptions } from './rack'
-  import RackSlot from './RackSlot.svelte'
-  import HSlider from '../settings/HSlider.svelte'
-  import { addedSends, MAX_SENDS, SEND_KIND_OPTIONS, STYLE_SEND_ROLES, STYLE_SENDS } from './strip'
+  import type { Action } from 'svelte/action'
+  import type { Meters } from '../../lib/api/types'
+  import { dropouts } from '../../lib/dropouts.svelte'
+  import { app, clock, ui, PART_IDS } from '../../lib/store.svelte'
+  import { TempoHold } from '../../lib/tempoHold'
+  import { tip, tips } from '../../lib/tooltip/tip.svelte'
+  import Blooms from '../../ui/Blooms/Blooms.svelte'
+  import { levelOf } from '../../ui/Blooms/blooms'
+  import Rack from '../../ui/Rack/Rack.svelte'
+  import RackMapEditor from '../../ui/RackMapEditor/RackMapEditor.svelte'
+  import Stage from '../../ui/Stage/Stage.svelte'
+  import { rangeFor } from '../keystrip/keyboard'
+  import { nav as settingsNav } from '../settings/nav.svelte'
+  import { stageActions, type OpenTarget } from '../stage/actions'
+  import { useStatusHint } from '../stage/hint.svelte'
+  import { appBar, display, faders, keys, knobs, pads, sectionRow, status } from '../stage/model'
+  import { stagePage } from '../stage/page.svelte'
+  import { keysActions, splitPick } from '../stage/splitPick.svelte'
+  import {
+    defaultMapCommands,
+    mapRows,
+    pickerOptions,
+    rackHands,
+    rackHead,
+    rackKeyboard,
+    rackMapSummary,
+    rackNow,
+    rackOneTouch,
+    rackSends,
+    targetsByKey,
+  } from './model'
+  import { MAX_SENDS } from './strip'
 
-  let { docked = false }: { docked?: boolean } = $props()
+  // Kept so App.svelte mounts it unchanged; the Rack is a page now, always docked.
+  let { docked = true }: { docked?: boolean } = $props()
 
-  const s = $derived(app.state)
-  const rack = $derived(s.liveRack)
-  const parts = $derived(s.keyboardParts)
-  const chord = $derived(s.chord)
-  const ots = $derived(s.ots)
-  const h = $derived(s.harmonyArp)
-  // The slices themselves, so a state that leaves them alone re-runs nothing below.
-  const NO_ROWS: GmMapRow[] = []
-  const patches = $derived(s.soundLibrary.patches)
-  const gmMap = $derived(s.soundLibrary.gmMap ?? NO_ROWS)
-  const ctx = $derived.by(() => ({ patches, gmMap }))
-  const pluginList = $derived(s.plugins.list)
-  const soundFontFile = $derived(s.io.soundFontFile)
-  /** Each part's instrument and badge, for its slot. */
-  const slots = $derived(parts.map((p) => ({ instrument: instrumentName(p, ctx, pluginList, soundFontFile), badge: soundBadge(p, playingId(p, ctx)) })))
-  const types = $derived(app.library.harmonyTypes ?? [])
-  const patterns = $derived(app.library.arpPatterns ?? [])
-  const waiting = $derived(parts.flatMap((p, i) => (p.waiting ? [i] : [])))
-  const panelPage = $derived(s.mixer.faderPage === 'panel')
+  const WIDTH = 1440
+  const HEIGHT = 900
+  const METER_MS = 100
 
-  let showMap = $state(false)
+  const tipAction = tip as unknown as Action<HTMLElement, string>
 
-  // ── Send effects (the mixer rework): the rack keeps sends 4–6 and, per send 1–3, its type
-  // when overridden. Each part's level to them is in its slot. ──
-  const sends = $derived(s.effects.sends)
-  const styleSends = $derived(sends.filter((x) => x.send < STYLE_SENDS))
-  const rackSends = $derived(addedSends(sends))
-  /** The type the next Add send plays. */
-  let newSendKind = $state<SendKind>('hall')
-
-  // ── Controller map (the wireframe's `mapTable`): a select per fader 1–4 and knob 1–8 ──
-  const mapRows = $derived([
-    ...rack.controls.faders.map((target, index) => ({ control: 'fader' as const, index, target, name: `Fader ${index + 1}` })),
-    ...rack.controls.knobs.map((target, index) => ({ control: 'knob' as const, index, target, name: `Knob ${index + 1}` })),
-  ])
-
-  /** The map's long option list, grouped: "—" alone, then one group per part (level, pan,
-   * sends, inserts), then the rest under "Rack". */
-  function targetGroups(opts: ReturnType<typeof targetOptions>) {
-    const groups: { label: string; opts: typeof opts }[] = []
-    for (const o of opts) {
-      const label = o.target.kind === 'none' ? '' : 'part' in o.target ? (PART_NAMES[o.target.part] ?? '?') : 'Rack'
-      const g = groups.find((x) => x.label === label)
-      if (g) g.opts.push(o)
-      else groups.push({ label, opts: [o] })
+  // ── Meters (the faders and the app bar's CPU) and the wall clock (the dropouts' window)
+  let meters = $state.raw<Meters | null>(null)
+  let nowMs = $state(Date.now())
+  $effect(() => {
+    let live = true
+    const read = () => {
+      nowMs = Date.now()
+      app.meters().then((m) => live && (meters = m))
     }
-    return groups
-  }
-
-  function setTarget(control: RackControl, index: number, key: string) {
-    const o = targetOptions(control).find((x) => x.key === key)
-    if (o) app.send({ type: 'setRackControl', control, index, target: o.target })
-  }
-
-  // ── Saving (the rack commands, docs/app-api.md `liveRack.prompt`) ─────────────
-  const PART_NAMES = ['Right 1', 'Right 2', 'Right 3', 'Left']
-  const prompt = $derived(rack.prompt)
-  /** The Save as… form's rack name; null while the form is closed. */
-  let saveAsName = $state<string | null>(null)
-  /** The Save as… form's error from the engine (a name taken), shown under the name. */
-  let saveAsError = $state<string | null>(null)
-  /** A Save as… sent and not yet answered: the name, the rack id and message seq before it. */
-  let saveAsSent = $state<{ name: string; id: string | null; seq: number } | null>(null)
-  /** The names typed for a soundNames prompt, by part. */
-  let soundNames = $state<Record<number, string>>({})
-  const canSave = $derived(rack.modified || rack.id === null)
-
-  // A new soundNames prompt starts from each preset's own name. Keyed on the prompt's
-  // content, not its object: every state snapshot is a new object, and names being typed
-  // must survive them.
-  const soundNamesKey = $derived(prompt?.kind === 'soundNames' ? JSON.stringify([prompt.saveAs, prompt.parts]) : '')
-  $effect(() => {
-    const key = soundNamesKey
-    untrack(() => {
-      const p = prompt
-      soundNames = key && p?.kind === 'soundNames' ? Object.fromEntries(p.parts.map((x) => [x.part, x.suggested])) : {}
-    })
+    read()
+    const t = setInterval(read, METER_MS)
+    return () => {
+      live = false
+      clearInterval(t)
+    }
   })
-  // Save as…: the form stays open until the engine answers. Saved (a new rack id under
-  // that name) closes it; a refusal (the name is taken) shows inline and keeps the name;
-  // a sound-names prompt carries the name on, so the form gives way to it.
-  $effect(() => {
-    const sent = saveAsSent
-    if (!sent) return
-    const m = s.message
-    const r = rack
-    untrack(() => {
-      if (r.prompt?.kind === 'soundNames') {
-        closeSaveAs()
-      } else if (m && m.error && m.seq !== sent.seq) {
-        saveAsError = m.text
-        saveAsSent = null
-      } else if (r.id !== null && r.id !== sent.id && r.name === sent.name) {
-        closeSaveAs()
+
+  const tempoHold = new TempoHold((cmd) => app.send(cmd))
+  $effect(() => () => tempoHold.releaseAll())
+
+  let artboard: HTMLDivElement
+
+  /** Show a display page on the Stage (leaving the Rack). */
+  function showPage(id: string) {
+    stagePage.show(id)
+  }
+
+  // ── Links: a page tab leaves the Rack for it; the rest as on the Stage.
+  function open(target: OpenTarget) {
+    if (typeof target === 'object' && 'page' in target) {
+      if (target.page === 'settings') {
+        ui.settings = true
+        return
       }
-    })
+      if (target.page === 'library') {
+        ui.openLibrary()
+        return
+      }
+      showPage(target.page)
+      return
+    }
+    if (typeof target === 'object' && 'channel' in target) return openChannel(target.channel)
+    if (typeof target === 'object' && 'sounds' in target) return openSounds(target.sounds)
+    if (target === 'browser') ui.openLibrary('styles')
+    else if (target === 'settingsAudio') {
+      settingsNav.tab = 'audio'
+      ui.settings = true
+    } else if (target === 'rack') ui.view = 'stage'
+  }
+
+  function openChannel(part: number) {
+    ui.selectedPart = part
+    if (part < 4) app.send({ type: 'selectPart', part })
+    showPage('channel')
+  }
+
+  /** The part's quick sound list, under the control that asked. */
+  function openSounds(part: number) {
+    const el = document.activeElement
+    const anchor = el instanceof HTMLElement && artboard?.contains(el) ? el.getBoundingClientRect() : null
+    ui.soundList = { part: PART_IDS[Math.max(0, Math.min(3, part))], anchor }
+  }
+
+  const actions = stageActions({
+    state: () => app.state,
+    shift: () => ui.shift,
+    send: (cmd) => app.send(cmd),
+    open,
+    toggleHelp: () => tips.toggleHelp(),
+    tempo: (dir, down) => tempoHold.set(dir, down),
   })
 
-  /** The form opens on a click and typing the name is next: focus it, without scrolling the drawer. */
-  function focusName(el: HTMLInputElement) {
-    el.focus({ preventScroll: true })
-    el.select()
+  // ── The controller map editor
+  let mapOpen = $state(false)
+  function pick(control: 'fader' | 'knob', index: number, key: string) {
+    const target = targetsByKey(app.state).get(key)
+    if (target) app.send({ type: 'setRackControl', control, index, target })
   }
-  function sendSwitch(to: RackSwitch, discard: boolean) {
-    app.send(to.kind === 'load' ? { type: 'loadRack', id: to.id, ...(discard ? { discard } : {}) } : { type: 'newRack', ...(discard ? { discard } : {}) })
-  }
-  function saveRack() {
-    if (canSave) app.send({ type: 'saveRack' })
-  }
-  function submitSaveAs(e: SubmitEvent) {
-    e.preventDefault()
-    const name = saveAsName?.trim()
-    if (!name) return
-    saveAsError = null
-    saveAsSent = { name, id: rack.id, seq: s.message?.seq ?? -1 }
-    app.send({ type: 'saveRackAs', name })
-  }
-  function closeSaveAs() {
-    saveAsName = null
-    saveAsError = null
-    saveAsSent = null
-  }
-  function submitSoundNames(e: SubmitEvent) {
-    e.preventDefault()
-    if (prompt?.kind !== 'soundNames') return
-    const names = Object.fromEntries(prompt.parts.map((x) => [x.part, (soundNames[x.part] ?? '').trim()]))
-    if (Object.values(names).some((n) => !n)) return
-    app.send(prompt.saveAs === null ? { type: 'saveRack', soundNames: names } : { type: 'saveRackAs', name: prompt.saveAs, soundNames: names })
-  }
-  /** Save first: the engine holds the switch and makes it once the save is done (and
-   * drops it if the save fails), so the panel only saves. */
-  function saveFirst() {
-    app.send({ type: 'saveRack' })
-  }
-  function keepEditing() {
-    app.send({ type: 'dismissRackPrompt' })
+  function defaultMap() {
+    for (const c of defaultMapCommands(app.state)) app.send({ type: 'setRackControl', ...c })
   }
 
-  /** The Harmony/Arp select's value: `h<index>` or `a<index>`. */
-  const harmonyValue = $derived(h.mode === 'arpeggio' ? `a${h.arpPattern}` : `h${h.harmonyType}`)
-  function pickHarmony(v: string) {
-    const i = Number(v.slice(1))
-    app.send(v[0] === 'a' ? { type: 'setArpPattern', index: i } : { type: 'setHarmonyType', index: i })
-  }
+  // ── The regions
+  const s = $derived(app.state)
+  const appBarData = $derived(appBar({ state: s, meters, page: 'rack', dropouts: dropouts.recent(nowMs) }))
+  const sectionRowData = $derived(sectionRow({ state: s, help: tips.help }))
+  const displayData = $derived(display({ state: s, library: app.library, pos: 0 }))
+  const faderData = $derived(faders({ state: s, meters, holds: [] }))
+  const knobData = $derived(knobs({ state: s }))
+  const padBase = $derived(pads({ state: s, beats: 0 }))
+  const lit = $derived(clock.beats - Math.floor(clock.beats) < 0.5)
+  const padData = $derived({ ...padBase, lit })
+  const hint = useStatusHint()
+  const statusData = $derived(status(s, hint.current))
+  const keyCb = keysActions({ state: () => app.state, send: (cmd) => app.send(cmd), arm: (on) => (splitPick.armed = on) })
+  const keyData = $derived({ ...keys(s, rangeFor(ui.keyRange, s.io.inputs), splitPick.armed), tipAction, ...keyCb })
 
-  // Flash the slots once on each OTS recall (UI only: the engine owns the values).
-  let recalled = $state(0)
-  let lastApplied = -1
-  let lastStyle = -1
+  const now = $derived(rackNow(s, app.library))
+  const keyboard = $derived(rackKeyboard(s))
+  const head = $derived(rackHead(s))
+  const hands = $derived(rackHands(s))
+  const mapSummary = $derived(rackMapSummary(s))
+  const rows = $derived(mapOpen ? mapRows(s) : null)
+  const picker = $derived(mapOpen ? pickerOptions(s) : null)
+  const sends = $derived(rackSends(s))
+  const oneTouch = $derived(rackOneTouch(s))
+
+  // ── Scale to fit
+  let box: HTMLDivElement
+  let boxW = $state(WIDTH)
+  let boxH = $state(HEIGHT)
+  const scale = $derived(Math.max(0.1, Math.min(boxW / WIDTH, boxH / HEIGHT)))
   $effect(() => {
-    const a = ots.applied
-    const style = s.style.id
-    if (lastApplied >= 0 && style === lastStyle && a !== lastApplied && a > 0) untrack(() => recalled++)
-    lastApplied = a
-    lastStyle = style
+    const measure = () => {
+      boxW = box.clientWidth || WIDTH
+      boxH = box.clientHeight || HEIGHT
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure)
+      return () => window.removeEventListener('resize', measure)
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(box)
+    return () => observer.disconnect()
   })
-  function recall(i: number) {
-    app.send({ type: 'recallOts', index: i })
-    recalled++
-  }
 
-  /** OTS `i`'s rack of yours for this style, when one is chosen and still there. */
-  const styleRack = (i: number) => {
-    const r = ots.racks[i]
-    return r && r.rack !== null && !r.missing ? r : null
-  }
-  /** The OTS rack select: '' is the style's own. */
-  function pickOtsRack(i: number, id: string) {
-    app.send(id ? { type: 'setOtsRack', index: i, id } : { type: 'clearOtsRack', index: i })
-  }
+  const send = (c: Parameters<typeof app.send>[0]) => app.send(c)
 </script>
 
-{#snippet body()}
-  <div class="rack" class:docked>
-    <!-- The head: which rack, whether it changed, and saving it. ──────────────────── -->
-    <div class="rackhead">
-      <span class="k">Rack</span>
-      <span class="rn">{rackName(rack)}</span>
-      {#if rack.id !== null}<span class="badge mine">Mine</span>{/if}
-      {#if rack.modified}<span class="dot">● modified</span>{/if}
-      <span class="grow"></span>
-      <button type="button" class="mini mat-raised" class:primary={canSave} aria-disabled={!canSave} use:tip={'rack.save'} onclick={saveRack}>Save rack</button>
-      <button type="button" class="mini mat-raised" aria-expanded={saveAsName !== null} use:tip={'rack.save_as'} onclick={() => (saveAsName === null ? (saveAsName = rack.id === null ? rackName(rack) : `${rack.name} copy`) : closeSaveAs())}>Save as…</button>
-      {#if rack.modified && rack.id !== null}<button type="button" class="mini mat-raised" use:tip={'rack.revert'} onclick={() => app.send({ type: 'revertRack' })}>Revert</button>{/if}
-    </div>
-
-    {#if prompt?.kind === 'unsavedChanges'}
-      <div class="form unsaved" role="alert">
-        <span>The rack has unsaved changes{prompt.then.kind === 'load' ? `: save them before loading ${prompt.then.name}?` : ': save them before starting a new rack?'}</span>
-        <div class="row">
-          <button type="button" class="mini mat-raised primary" use:tip={'rack.save_first'} onclick={saveFirst}>Save first</button>
-          <button type="button" class="mini mat-raised" use:tip={'rack.discard_switch'} onclick={() => prompt.kind === 'unsavedChanges' && sendSwitch(prompt.then, true)}>Discard and switch</button>
-          <button type="button" class="mini mat-raised" use:tip={'rack.keep_editing'} onclick={keepEditing}>Keep editing</button>
-        </div>
-      </div>
-    {:else if prompt?.kind === 'soundNames'}
-      <form class="form names" onsubmit={submitSoundNames}>
-        <span class="note">Edited presets are saved as new sounds of yours: name each one.</span>
-        {#each prompt.parts as x (x.part)}
-          <div class="row">
-            <label for="rack-sn-{x.part}" class="k">{PART_NAMES[x.part]} sound</label>
-            <input id="rack-sn-{x.part}" bind:value={soundNames[x.part]} placeholder={x.suggested} use:tip={'rack.sound_name'} />
-          </div>
-        {/each}
-        <div class="row">
-          <button type="submit" class="mini mat-raised primary" use:tip={'rack.save_names'}>Save rack</button>
-          <button type="button" class="mini mat-raised" use:tip={'rack.cancel_save'} onclick={keepEditing}>Cancel</button>
-        </div>
-      </form>
-    {/if}
-    {#if saveAsName !== null}
-      <form class="form saveas" onsubmit={submitSaveAs}>
-        <div class="row">
-          <label for="rack-saveas" class="k">Rack name</label>
-          <input id="rack-saveas" bind:value={saveAsName} placeholder="e.g. Sunday Gospel" aria-invalid={saveAsError !== null} aria-describedby={saveAsError ? 'rack-saveas-error' : undefined} use:focusName use:tip={'rack.save_as_name'} />
-        </div>
-        {#if saveAsError}<p id="rack-saveas-error" class="error" role="alert">{saveAsError}</p>{/if}
-        <div class="row">
-          <button type="submit" class="mini mat-raised primary" aria-disabled={!saveAsName.trim()} use:tip={'rack.save_as_commit'}>Save rack</button>
-          <button type="button" class="mini mat-raised" use:tip={'rack.cancel_save'} onclick={closeSaveAs}>Cancel</button>
-        </div>
-      </form>
-    {/if}
-
-    <!-- Your hands ─────────────────────────────────────────────────────────────── -->
-    <section aria-labelledby="rack-hands">
-      <h3 id="rack-hands" class="engraved">Your hands</h3>
-      <div class="row">
-        <span class="k">Split</span>
-        <HwButton tip="split.down" label="Split point down" onclick={() => app.send({ type: 'moveSplit', delta: -1 })}>−</HwButton>
-        <!-- svelte-ignore a11y_no_noninteractive_tabindex (focusable so its tooltip is reachable from the keyboard) -->
-        <b class="val" tabindex="0" use:tip={'split.display'}>{chord.splitName}</b>
-        <HwButton tip="split.up" label="Split point up" onclick={() => app.send({ type: 'moveSplit', delta: 1 })}>+</HwButton>
-        <span class="gap"></span>
-        <span class="k">Transpose</span>
-        <HwButton tip="transpose.keyboard_down" label="Keyboard transpose down" onclick={() => app.send({ type: 'stepTranspose', keyboard: -1, master: 0 })}>−</HwButton>
-        <!-- svelte-ignore a11y_no_noninteractive_tabindex (focusable so its tooltip is reachable from the keyboard) -->
-        <b class="val" tabindex="0" use:tip={'transpose.display'}>{signed(chord.transposeKeyboard)}</b>
-        <HwButton tip="transpose.keyboard_up" label="Keyboard transpose up" onclick={() => app.send({ type: 'stepTranspose', keyboard: 1, master: 0 })}>+</HwButton>
-      </div>
-      <div class="row">
-        <label for="rack-harm" class="k">Harmony / Arp</label>
-        <select id="rack-harm" value={harmonyValue} onchange={(e) => pickHarmony(e.currentTarget.value)} use:tip={'rack.harmony_type'}>
-          <optgroup label="Harmony">
-            {#each types as t, i (i)}<option value="h{i}">{t.name}</option>{/each}
-          </optgroup>
-          <optgroup label="Arpeggio">
-            {#each patterns as t, i (i)}<option value="a{i}">{t.name}</option>{/each}
-          </optgroup>
-        </select>
-        <Toggle on={h.on} tip="harmony.switch" onclick={() => app.send({ type: 'setHarmonyArpOn', on: !h.on })}>On</Toggle>
-      </div>
-      <div class="row">
-        <!-- Lit only when in effect: the engine ignores it in Lower, where the Launchkey pad is dark too. -->
-        <Toggle on={chord.manualBassActive} tip="detection.manual_bass" onclick={() => app.send({ type: 'toggleManualBass' })}>Manual Bass</Toggle>
-        <Toggle on={chord.leftHold} tip="detection.left_hold" onclick={() => app.send({ type: 'toggleLeftHold' })}>Left Hold</Toggle>
-        <span class="note">
-          {#if chord.manualBassActive}Left plays the style's Bass
-          {:else if chord.upper}Manual Bass off
-          {:else}Manual Bass: Upper only{/if}
-        </span>
-      </div>
-      <div class="row">
-        <button type="button" class="disc" aria-expanded={showMap} use:tip={'rack.map'} onclick={() => (showMap = !showMap)}>{showMap ? '▾' : '▸'} Controller map</button>
-        <span class="note">What the Launchkey faders and knobs do while this rack is loaded</span>
-      </div>
-      {#if showMap}
-        <table class="map">
-          <thead><tr><th>Launchkey</th><th>Controls</th></tr></thead>
-          <tbody>
-            {#each mapRows as row (row.name)}
-              {@const opts = targetOptions(row.control)}
-              {@const key = targetKey(row.target)}
-              <tr>
-                <td>{row.name}</td>
-                <td>
-                  <select
-                    aria-label="{row.name} target"
-                    use:tip={'rack.map_target'}
-                    value={key}
-                    onchange={(e) => setTarget(row.control, row.index, e.currentTarget.value)}
-                  >
-                    {#if !opts.some((o) => o.key === key)}<option value={key} disabled>{targetLabel(row.target)}</option>{/if}
-                    {#each targetGroups(opts) as g (g.label)}
-                      {#if g.label}
-                        <optgroup label={g.label}>
-                          {#each g.opts as o (o.key)}<option value={o.key}>{o.label}</option>{/each}
-                        </optgroup>
-                      {:else}
-                        {#each g.opts as o (o.key)}<option value={o.key}>{o.label}</option>{/each}
-                      {/if}
-                    {/each}
-                  </select>
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
+<div class="scaler" class:docked data-theme={ui.resolvedTheme} bind:this={box}>
+  <div class="artboard tall" style:transform={`translate(-50%, -50%) scale(${scale})`} bind:this={artboard}>
+    <Blooms
+      playing={s.transport.running}
+      bpm={s.transport.tempo}
+      beatsPerBar={s.transport.beatsPerBar}
+      level={levelOf(meters?.masterRms)}
+      section={displayData.nowPlaying.hue}
+      beat={() => clock.pos}
+    />
+    <Stage
+      appBar={appBarData}
+      sectionRow={sectionRowData}
+      display={displayData}
+      page={rackPage}
+      faders={faderData}
+      knobs={knobData}
+      pads={padData}
+      status={statusData}
+      keys={keyData}
+      {tipAction}
+      {...actions}
+    />
+    {#snippet rackPage()}
+      <Rack
+        {now}
+        {keyboard}
+        {head}
+        {hands}
+        map={mapSummary}
+        {mapOpen}
+        editor={rows && picker ? mapEditor : undefined}
+        {sends}
+        canAddSend={sends.length < MAX_SENDS}
+        {oneTouch}
+        {tipAction}
+        onsplit={(delta) => send({ type: 'moveSplit', delta })}
+        ontranspose={(delta) => send({ type: 'stepTranspose', keyboard: delta, master: 0 })}
+        onharmony={(on) => send({ type: 'setHarmonyArpOn', on })}
+        onharmonytype={() => showPage('harmArp')}
+        onmanualbass={() => send({ type: 'toggleManualBass' })}
+        onlefthold={() => send({ type: 'toggleLeftHold' })}
+        onstore={() => send({ type: 'toggleQuickRackStore' })}
+        onrevert={() => send({ type: 'revertRack' })}
+        onsave={() => send({ type: 'saveRack' })}
+        onsaveas={(name) => send({ type: 'saveRackAs', name })}
+        onsound={openSounds}
+        onpart={(i, on) => actions.onlamp?.(PART_IDS[i], on)}
+        onpartlong={(i) => actions.onlamplong?.(PART_IDS[i])}
+        onpartrelease={(i) => actions.onlamprelease?.(PART_IDS[i])}
+        onlevel={(part, volume) => send({ type: 'setPartVolume', part, volume })}
+        onpan={(part, pan) => send({ type: 'setPartPan', part, pan })}
+        onsend={(part, n, value) =>
+          n === 2
+            ? send({ type: 'setStripSend', strip: part, send: 2, level: value })
+            : send({ type: 'setPartSend', part, send: n === 0 ? 'reverb' : 'chorus', value })}
+        onoctave={(part, octave) => send({ type: 'setPartOctave', part, octave })}
+        onchannel={openChannel}
+        onedit={(part) => app.pluginEditor(part, true)}
+        onreload={(part) => send({ type: 'reloadPartPlugin', part })}
+        onsavesound={(part) => send({ type: 'saveSound', part })}
+        oninprocess={(part) => {
+          const id = s.keyboardParts[part]?.plugin?.id
+          const entry = id ? s.plugins.list.find((x) => x.id === id) : undefined
+          if (entry?.canRunInProcess) send({ type: 'setPluginInProcess', id: entry.id, inProcess: !entry.inProcess })
+        }}
+        onreplace={(part) => ui.openLibrary('sounds', part)}
+        onmap={(on) => (mapOpen = on)}
+        ondefaultmap={defaultMap}
+        onaddsend={() => send({ type: 'addSend', kind: 'hall' })}
+        onremovesend={(n) => send({ type: 'removeSend', send: n })}
+        onkeeptype={(n, on) => send({ type: 'setRackSendOverride', send: n, on })}
+        onots={(index) => send({ type: 'recallOts', index })}
+        onlink={(on) => send({ type: 'setOtsLink', on })}
+        ontiming={(timing) => send({ type: 'setOtsLinkTiming', timing })}
+        onchangeots={() => showPage('quickRacks')}
+      />
+    {/snippet}
+    {#snippet mapEditor()}
+      {#if rows && picker}
+        <RackMapEditor faders={rows.faders} knobs={rows.knobs} rack={picker.rack} parts={picker.parts} {tipAction} onpick={pick} />
       {/if}
-    </section>
-
-    <!-- Keyboard parts ─────────────────────────────────────────────────────────── -->
-    <section aria-labelledby="rack-parts">
-      <h3 id="rack-parts" class="engraved">Keyboard parts</h3>
-      {#each parts as p, i (i)}
-        <RackSlot
-          part={p}
-          index={i}
-          instrument={slots[i].instrument}
-          badge={slots[i].badge}
-          {recalled}
-        />
-      {/each}
-      <p class="pickup" class:on={waiting.length > 0} use:tip={'mixer.pickup'}>
-        <span class="mark">↕</span>
-        {#if waiting.length}
-          Launchkey {waiting.length > 1 ? 'faders' : 'fader'} {waiting.map((i) => i + 1).join(', ')} waiting: move {waiting.length > 1 ? 'them' : 'it'} to the level to pick up{panelPage ? '' : ' (on the Panel fader page)'}.
-        {:else}
-          Launchkey faders 1–4 are in step with these levels.
-        {/if}
-      </p>
-    </section>
-
-    <!-- Send effects: 1–3 the style's (the rack can keep their type), 4–6 the rack's own ── -->
-    <section aria-labelledby="rack-sends">
-      <h3 id="rack-sends" class="engraved">Send effects</h3>
-      {#each styleSends as sd (sd.send)}
-        <div class="row send">
-          <span class="snum">{sd.send + 1}</span>
-          <span class="sname">{STYLE_SEND_ROLES[sd.send]} · {sd.name}</span>
-          <span class="grow"></span>
-          <Toggle on={sd.setByRack} tip="fx.send_rack_override" onclick={() => app.send({ type: 'setRackSendOverride', send: sd.send, on: !sd.setByRack })}>Override</Toggle>
-        </div>
-      {/each}
-      {#each rackSends as sd (sd.send)}
-        <div class="row send">
-          <span class="snum">{sd.send + 1}</span>
-          <select aria-label="Send {sd.send + 1} type" value={sd.kind} use:tip={'fx.send_kind'} onchange={(e) => app.send({ type: 'setSendKind', send: sd.send, kind: e.currentTarget.value })}>
-            {#if !SEND_KIND_OPTIONS.some((o) => o.kind === sd.kind)}<option value={sd.kind} disabled>{sd.name}</option>{/if}
-            {#each SEND_KIND_OPTIONS as o (o.kind)}<option value={o.kind}>{o.name}</option>{/each}
-          </select>
-          <span class="k">Return</span>
-          <span class="ret">
-            <HSlider value={sd.returnLevel} tip="fx.send_return" label="Send {sd.send + 1} return" unity={64} onchange={(v) => app.send({ type: 'setSendReturn', send: sd.send, level: v })} />
-          </span>
-          <button type="button" class="mini mat-raised" aria-label="Remove send {sd.send + 1}" use:tip={'fx.send_remove'} onclick={() => app.send({ type: 'removeSend', send: sd.send })}>Remove</button>
-        </div>
-      {/each}
-      {#if sends.length < MAX_SENDS}
-        <div class="row send">
-          <select aria-label="New send type" bind:value={newSendKind} use:tip={'fx.send_kind'}>
-            {#each SEND_KIND_OPTIONS as o (o.kind)}<option value={o.kind}>{o.name}</option>{/each}
-          </select>
-          <button type="button" class="mini mat-raised" use:tip={'fx.send_add'} onclick={() => app.send({ type: 'addSend', kind: newSendKind })}>Add send</button>
-          <span class="note">Each part's level to it is in its slot above.</span>
-        </div>
-      {/if}
-    </section>
-
-    <!-- One Touch Settings ─────────────────────────────────────────────────────── -->
-    <section aria-labelledby="rack-ots">
-      <h3 id="rack-ots" class="engraved">One Touch Settings · {s.style.name}</h3>
-      <div class="row">
-        <Toggle on={ots.link} tip="ots.link" onclick={() => app.send({ type: 'toggleOtsLink' })}>OTS Link</Toggle>
-        <!-- svelte-ignore a11y_no_noninteractive_tabindex (focusable so its tooltip is reachable from the keyboard) -->
-        <span class="timing" tabindex="0" use:tip={'ots.link_timing'}>
-          {ots.linkTiming === 'immediate' ? 'Immediate · on press' : 'At Main Section Change'}
-        </span>
-        <span class="note">{ots.link ? 'Main A–D recall OTS 1–4' : 'Mains leave your sounds alone'}</span>
-      </div>
-      <div class="cards">
-        {#each [0, 1, 2, 3] as i (i)}
-          {@const o = ots.settings[i]}
-          {@const applied = ots.applied === i + 1}
-          {@const sr = styleRack(i)}
-          {@const mine = sr ? s.racks.find((r) => r.id === sr.rack) : undefined}
-          <div class="otsw">
-            <button
-              type="button"
-              class="card mat-raised"
-              class:applied
-              class:missing={!o}
-              class:linked={ots.link && s.transport.main === i}
-              aria-pressed={applied}
-              aria-disabled={!o}
-              use:tip={otsTip(i)}
-              onclick={() => o && recall(i)}
-            >
-              <span class="chead">
-                <span class="lamp" aria-hidden="true"></span>
-                <span class="cname">{o?.name ?? `OTS ${i + 1}`}</span>
-                <span class="badge" class:mine={!!mine}>{mine ? 'Mine' : 'Style'}</span>
-                {#if applied}<span class="tag">last recalled</span>{/if}
-                {#if ots.link}<span class="main">{linkedMain(i)}</span>{/if}
-              </span>
-              {#if o && mine}
-                <span class="clines">
-                  <span class="rackname">{mine.name}</span>
-                  {#each mine.parts as p, j (j)}
-                    <span class="cline" class:off={!mine.on[j]}><b>{PART_SHORT[j]}</b><span class="ctext">{mine.on[j] ? p : `off · ${p}`}</span></span>
-                  {/each}
-                </span>
-              {:else if o}
-                <span class="clines">
-                  {#if ots.racks[i]?.missing}<span class="gone">⚠ The rack chosen is gone: the style's own plays</span>{/if}
-                  {#each o.parts as op, j (j)}
-                    <span class="cline" class:off={!op.on}><b>{PART_SHORT[j]}</b><span class="ctext">{op.on ? otsLine(op) : `off · ${op.voiceName}`}</span></span>
-                  {/each}
-                </span>
-              {:else}
-                <span class="none">Not in this style</span>
-              {/if}
-            </button>
-            {#if o}
-              <select
-                class="otsrack"
-                aria-label="OTS {i + 1} rack"
-                value={sr?.rack ?? ''}
-                disabled={ots.racksReadOnly}
-                use:tip={'ots.rack'}
-                onchange={(e) => pickOtsRack(i, e.currentTarget.value)}
-              >
-                <option value="">Style's own</option>
-                {#each s.racks as r (r.id)}<option value={r.id}>{r.name}</option>{/each}
-              </select>
-            {/if}
-          </div>
-        {/each}
-      </div>
-      <p class="note">Not in the rack: the style, tempo and Multi Pad bank.</p>
-    </section>
-
-    <!-- As written for ─────────────────────────────────────────────────────────── -->
-    <section aria-labelledby="rack-written">
-      <h3 id="rack-written" class="engraved">As written for</h3>
-      <p class="note">The band's voices, per channel on the <code>yahaha</code> port: what to load in Ableton.</p>
-      <ul class="written">
-        {#each s.mixer.styleParts as sp (sp.channel)}
-          <li use:tip={'part.written_for'} class:muted={sp.mutedByManualBass}>
-            <span class="wch">ch {sp.channel}</span>
-            <span class="wname">{sp.name}</span>
-            <span class="wvoice">{sp.voice?.label ?? '—'}</span>
-            {#if sp.mutedByManualBass}<span class="wtag">your left hand</span>{/if}
-          </li>
-        {/each}
-      </ul>
-    </section>
+    {/snippet}
   </div>
-{/snippet}
-
-{#if docked}
-  <aside class="dock mat-chassis" aria-label="Rack">{@render body()}</aside>
-{:else}
-  <Overlay id="rack" title="Rack" closeTip="drawer.close" onclose={() => (ui.rack = false)}>{@render body()}</Overlay>
-{/if}
+</div>
 
 <style>
-  .dock {
-    height: 100%;
-    overflow: auto;
-    padding: 0.8rem;
-    border-radius: var(--r-panel);
-    font-size: 15px;
-  }
-  .rack {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  h3 {
-    margin: 0;
-    font-size: 0.78rem;
-  }
-  .rackhead {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.45rem;
-  }
-  .rn {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 1.15rem;
-    letter-spacing: 0.02em;
-  }
-  .grow {
+  .scaler {
+    position: relative;
     flex: 1;
-  }
-  .gap {
-    width: 0.8rem;
-  }
-  .dot {
-    font-size: 0.78rem;
-    color: var(--accent);
-    white-space: nowrap;
-  }
-  .badge {
-    flex: none;
-    padding: 0.05em 0.45em;
-    border-radius: 4px;
-    border: 1px solid var(--seam);
-    font-family: var(--font-display);
-    font-size: 0.66rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-  .badge.mine {
-    color: var(--accent);
-    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  }
-  .k {
-    font-family: var(--font-display);
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--engrave, var(--muted));
-    white-space: nowrap;
-  }
-  .row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.4rem;
-  }
-  .row :global(.hw) {
-    width: 2.2rem;
-  }
-  .send .snum {
-    min-width: 1.2rem;
-    font-family: var(--font-display);
-    font-weight: 700;
-    color: var(--muted);
-  }
-  .send .sname {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 0.85rem;
-  }
-  .send .ret {
-    flex: 1;
-    min-width: 8rem;
-  }
-  .row :global(.btn) {
-    height: 2rem;
-    font-size: 1rem;
-  }
-  .val {
-    min-width: 2.4rem;
-    text-align: center;
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 1rem;
-    border-radius: 4px;
-  }
-  select {
-    flex: 1;
-    min-width: 8rem;
-    max-width: 14rem;
-    min-height: 2rem;
-    font: inherit;
-    font-size: 0.85rem;
-  }
-  .note {
-    margin: 0;
-    font-size: var(--fs-small);
-    color: var(--muted);
-  }
-  .mini {
-    min-height: 1.9rem;
-    padding: 0 0.65em;
-    border-radius: 5px;
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 0.8rem;
-    color: var(--ink);
-    white-space: nowrap;
-  }
-  .mini.primary {
-    color: var(--accent);
-  }
-  .form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-    padding: 0.6rem 0.7rem;
-    border-radius: 6px;
-    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--seam));
-    font-size: var(--fs-small);
-  }
-  .form input {
-    flex: 1;
-    min-width: 8rem;
-    max-width: 16rem;
-    min-height: 1.9rem;
-    font: inherit;
-  }
-  .form .error {
-    margin: 0;
-    color: var(--danger);
-  }
-  .mini[aria-disabled='true'] {
-    opacity: 0.45;
-    cursor: default;
-  }
-  .disc {
-    padding: 0.2rem 0.3rem;
-    border: 0;
-    background: none;
-    color: var(--ink);
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-  }
-  .map {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: var(--fs-small);
-  }
-  .map th,
-  .map td {
-    padding: 0.2rem 0.5rem;
-    text-align: left;
-    border-bottom: 1px solid color-mix(in srgb, var(--seam) 60%, transparent);
-  }
-  .map th {
-    color: var(--muted);
-    font-weight: 600;
-  }
-  .pickup {
-    display: flex;
-    align-items: baseline;
-    gap: 0.4rem;
-    margin: 0;
-    font-size: var(--fs-small);
-    color: var(--muted);
-    line-height: 1.3;
-  }
-  .mark {
-    flex: none;
-    font-weight: 700;
-    font-size: 0.75rem;
-    color: var(--accent-ink);
-    background: var(--lamp-off);
-    border-radius: 3px;
-    padding: 0 0.25em;
-  }
-  .pickup.on {
-    color: var(--ink);
-  }
-  .pickup.on .mark {
-    background: var(--accent);
-  }
-  .timing {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 0.85rem;
-    border-radius: 4px;
-  }
-
-  /* ── OTS ── */
-  .cards {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.45rem;
-  }
-  .card {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.35rem;
-    min-height: 6.4rem;
-    padding: 0.5rem 0.55rem;
-    border-radius: 7px;
-    text-align: left;
-    color: var(--ink);
-    font-family: var(--font-body);
-  }
-  .card.applied {
-    outline: 2px solid var(--accent);
-    outline-offset: -1px;
-  }
-  .card.linked:not(.applied) {
-    outline: 1px dashed var(--accent);
-    outline-offset: -1px;
-  }
-  .card.missing {
-    opacity: 0.5;
-    cursor: default;
-  }
-  .chead {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
     min-width: 0;
+    min-height: 0;
+    /* clip, not hidden: focusing a control near the edge must not scroll the artboard. */
+    overflow: clip;
+    background: var(--g);
+    color: var(--t);
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
   }
-  .lamp {
-    flex: none;
-    width: 0.6rem;
-    height: 0.6rem;
-    border-radius: 50%;
-    background: var(--lamp-off);
-    box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.6);
+  .artboard {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1440px;
+    height: 900px;
+    transform-origin: center;
+    --backdrop-ground: transparent;
   }
-  .applied .lamp {
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent);
+  /* The tall page (Rack board, H1): the display's box grows to 468 and the band goes half
+     height, 176, under a 20px gap; its faders, knobs and pads shrink to fit, clipped. */
+  .tall :global(.screen.grid) {
+    --display-height: 468px;
+    --band-height: 176px;
+    --stage-gap-display: 12px;
+    --stage-gap-band: 20px;
+    --pad-size: 28px;
   }
-  .cname {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 1rem;
-    letter-spacing: 0.03em;
-  }
-  .tag,
-  .main {
-    font-family: var(--font-display);
-    font-size: 0.66rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-  .tag {
-    color: var(--accent);
-  }
-  .main {
-    margin-left: auto;
-    color: var(--muted);
-  }
-  .clines {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-    font-size: 0.76rem;
-  }
-  .cline {
-    display: grid;
-    grid-template-columns: 1.6rem minmax(0, 1fr);
-    min-width: 0;
-  }
-  .cline b {
-    font-family: var(--font-display);
-    font-weight: 700;
-    color: var(--engrave);
-  }
-  .ctext {
-    white-space: nowrap;
+  .tall :global(.screen.grid .band) {
     overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .cline.off {
-    color: var(--muted);
-    opacity: 0.7;
-  }
-  .none {
-    font-size: var(--fs-small);
-    color: var(--muted);
-  }
-  .otsw {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    min-width: 0;
-  }
-  .otsw .card {
-    flex: 1 0 auto;
-  }
-  .otsrack {
-    flex: none;
-    max-width: none;
-    min-width: 0;
-    min-height: 1.8rem;
-    font-size: 0.78rem;
-  }
-  .rackname {
-    font-family: var(--font-display);
-    font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .gone {
-    color: var(--danger);
-  }
-
-  /* ── As written for ── */
-  code {
-    font-size: 0.95em;
-  }
-  .written {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    border-radius: 6px;
-    border: 1px solid var(--seam);
-    overflow: hidden;
-  }
-  .written li {
-    display: grid;
-    grid-template-columns: 2.6rem 4.4rem minmax(0, 1fr) auto;
-    align-items: baseline;
-    gap: 0.4rem;
-    padding: 0.28rem 0.5rem;
-    font-size: var(--fs-small);
-  }
-  .written li + li {
-    border-top: 1px solid color-mix(in srgb, var(--seam) 60%, transparent);
-  }
-  .wch {
-    color: var(--muted);
-  }
-  .wname {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 0.92rem;
-  }
-  .wvoice {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .muted .wvoice {
-    color: var(--muted);
-  }
-  .wtag {
-    font-size: 0.68rem;
-    color: var(--accent);
-    white-space: nowrap;
   }
 </style>

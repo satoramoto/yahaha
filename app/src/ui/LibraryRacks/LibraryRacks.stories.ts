@@ -6,7 +6,7 @@ import { racksBoard, racksStyle } from './LibraryRacks.fixtures'
 /**
  * Library › Racks: the zone header (count, search, Needs attention, + New rack), the rack list
  * with the live rack's "Loaded now" line, the chosen rack's details (rename, parts, Load,
- * Duplicate, Delete with its inline confirm), and the loaded style's Style racks.
+ * Duplicate, Delete…, which the app asks about in a dialog), and the loaded style's Style racks.
  */
 const meta = {
   title: 'Components/LibraryRacks',
@@ -56,7 +56,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** As the board: Sunday drive loaded (modified, Right 3's plugin missing), Organ chosen with its delete confirm open. */
+/** As the board: Sunday drive loaded (modified, Right 3's plugin missing), Organ chosen. */
 export const Board: Story = {
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement)
@@ -78,11 +78,6 @@ export const Board: Story = {
     await expect(args.onduplicate).toHaveBeenCalled()
     await userEvent.click(canvas.getByRole('button', { name: 'Delete Organ' }))
     await expect(args.onaskdelete).toHaveBeenCalled()
-    await expect(canvas.getByRole('alertdialog')).toHaveTextContent('Quick Rack A4 will be empty.')
-    await userEvent.click(canvas.getByRole('button', { name: 'Cancel: keep Organ' }))
-    await expect(args.oncanceldelete).toHaveBeenCalled()
-    await userEvent.click(canvas.getByRole('button', { name: 'Delete Organ for good' }))
-    await expect(args.ondelete).toHaveBeenCalled()
 
     const name = canvas.getByRole('textbox', { name: 'Rack name' })
     await userEvent.clear(name)

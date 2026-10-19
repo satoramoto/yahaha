@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MockSession } from '../../lib/api/mock'
 import type { AppCmd, AppState, LibraryEntry, LibraryList } from '../../lib/api/types'
-import type { Category } from '../browser/model'
+import type { Category } from './styleIndex'
 import type { FilePick } from '../../lib/files'
 import { STYLE_FILE, stylesActions, stylesOrigin, stylesProps, type StylesCursor, type StylesPrefs } from './stylesModel'
 

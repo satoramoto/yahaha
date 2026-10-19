@@ -7,6 +7,13 @@
   press calls with `true` then `false`. No boxes: the glyphs and the number brighten on hover and
   show the focus ring on keyboard focus. Holds no tempo and no timers: every change is asked for
   through a callback, and the number shows `bpm` as given.
+
+  `cells` (the golden Stage): it fills its container, which must be a size container
+  (`container-type: size`). The number and its unit sit flush left on the container's foot, and
+  + over − are one column right beside them (a fib-8 gap), standing on the same baseline, exactly
+  the number's cap height: two squares outlined in the hue of time (`--transport`, as the
+  transport and the metronome) with a hard fib-8 gap between them (not a shared border), the + and
+  − drawn large at the numeral's stroke weight, in the same hue.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -30,9 +37,29 @@
     onminus?: (down: boolean) => void
     /** The number double-clicked: back to the style's own tempo. */
     onreset?: () => void
+    /** Fill the size container it sits in: the number on its foot, + over − as one square beside it, cut in half across. */
+    cells?: boolean
+    /**
+     * With `cells`: the unit set at the `large` role (32px), in the numeral's white ink, on the
+     * numeral's baseline a fib-13 after it, and + − a fib-21 after the unit (the golden Stage,
+     * designer pass). Off (the default): the unit in the small text.
+     */
+    unitLarge?: boolean
   }
 
-  let { bpm, unit = 'BPM', min = 5, max = 500, tipAction, ontempo, onplus, onminus, onreset }: Props = $props()
+  let {
+    bpm,
+    unit = 'BPM',
+    min = 5,
+    max = 500,
+    tipAction,
+    ontempo,
+    onplus,
+    onminus,
+    onreset,
+    cells = false,
+    unitLarge = false,
+  }: Props = $props()
 
   /** Pixels of drag per BPM. */
   const DRAG_PX = 4
@@ -117,8 +144,8 @@
   }
 </script>
 
-<div class="tempo">
-  <span class="reading">
+<div class="tempo" class:cells class:large={cells && unitLarge} data-cells={cells || undefined}>
+  <span class="reading" class:large={cells && unitLarge}>
     <span
       class="bpm"
       bind:this={number}
@@ -143,7 +170,7 @@
   <span class="steps" role="group" aria-label="Tempo">
     <button
       type="button"
-      class="step"
+      class="step plus"
       aria-label="Tempo up (Scene Launch)"
       data-tip="tempo.up"
       use:tipOn={'tempo.up'}
@@ -155,7 +182,7 @@
     >
     <button
       type="button"
-      class="step"
+      class="step minus"
       aria-label="Tempo down (Function)"
       data-tip="tempo.down"
       use:tipOn={'tempo.down'}
@@ -231,5 +258,86 @@
   }
   .step:hover {
     color: var(--t);
+  }
+
+  /* Cells: the whole size container. The reading flush left on the foot: its line boxes trimmed
+     to the alphabetic baseline, so the number stands on the bottom edge. */
+  .tempo.cells {
+    display: flex;
+    align-items: flex-end;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    gap: var(--fib-8);
+  }
+  .cells .reading {
+    flex: none;
+    gap: var(--fib-8);
+    min-width: 0;
+  }
+  /* `unitLarge`: the unit at the large role (32px), the numeral's white ink, a fib-13 after it on
+     the same baseline; + − a fib-21 after the unit. */
+  .tempo.cells.large {
+    gap: var(--fib-21);
+  }
+  .cells .reading.large {
+    gap: var(--fib-13);
+  }
+  .cells .large .unit {
+    font: var(--type-large);
+    letter-spacing: var(--tracking-large);
+    color: var(--t);
+  }
+  /* The trimmed-off descent (no ink for digits or capitals) clipped, so it doesn't spill below. */
+  .cells .bpm,
+  .cells .unit {
+    text-box: trim-end cap alphabetic;
+    overflow: clip;
+  }
+  /* + over −: one column right beside the reading, standing on its baseline, exactly the number's
+     cap height (1cap in the number's own face), so number and control share one top line and one
+     foot. + the top half, − the bottom, a hard fib-8 gap between them (not a shared border), so a
+     tap near the middle lands on neither rather than on the wrong one; each half a square, its
+     side half the cap less the gap. */
+  .cells .steps {
+    --half: calc((1cap - var(--fib-8)) / 2);
+    flex: none;
+    gap: var(--fib-8);
+    width: var(--half);
+    height: 1cap;
+    font: var(--type-poster);
+  }
+  .cells .step {
+    position: relative;
+    flex: 1 1 0;
+    width: 100%;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    font: inherit;
+    box-shadow: inset 0 0 0 var(--outline-width) var(--transport);
+    color: var(--transport);
+  }
+  /* The + and − drawn large, at the numeral's stroke weight (the light face's stem, 0.075 of its
+     size, measured on "1"): bars a golden major of the half long, in the face's own ink, so the
+     halves read as keys, not empty panels. */
+  .cells .step > span {
+    display: none;
+  }
+  .cells .step::before,
+  .cells .step::after {
+    position: absolute;
+    top: calc(50% - 0.0375em);
+    left: calc(50% - var(--half) / var(--interval-phi) / 2);
+    width: calc(var(--half) / var(--interval-phi));
+    height: 0.075em;
+    background: currentColor;
+    content: '';
+  }
+  .cells .step.plus::after {
+    transform: rotate(90deg);
+  }
+  .cells .step.minus::after {
+    display: none;
   }
 </style>

@@ -4,14 +4,19 @@
   a prop changes in the Controls panel), and renders Stage with that state. Every handler calls the
   prop's callback too, so each press still shows in the Actions panel. One timer, story-only: while
   the band runs, a ticker steps the beat at the tempo so the display's beat bar moves (the
-  components take the beat as a prop and hold no timers). Every other change happens on a press.
+  components take the beat as a prop and hold no timers). Every other change happens on a press,
+  except the fade: while fading and running it counts the ticker's beats for four bars (its
+  progress drains Fade's wedge in the golden layout), then the band stops. Fill ▲ / ▼ while running
+  queue the next Main up or down after a fill (its pad NEXT, the transport's Fill key armed).
 
   Pads, deterministic: stopped, a Main (or Break) becomes the playing section at once, and an Intro
   or Ending arms (press again to disarm). Running, a section pad is queued (`next`); press the queued
   pad again and it lands (`playing`); a landed Ending plays out and the band stops. Start (pad 16 or
   the section row) turns an armed pad into the playing section and queues the Main that was
   playing. Stop clears whatever was queued or armed. Sync Start (pad 4 and the section row's lamp
-  are one switch), Auto Fill and Sync Stop toggle. The other pad banks' pads toggle.
+  are one switch), Auto Fill and Sync Stop toggle; Tap (the pad, or Tap under the tempo) sets the
+  tempo from two or more taps' interval, the last four counting (`tapTempo`). The other pad banks'
+  pads toggle.
 -->
 <script lang="ts">
   import { untrack, type ComponentProps } from 'svelte'
@@ -28,6 +33,7 @@
     stageStyles,
     stageStyleTempo,
   } from './Stage.fixtures'
+  import { tapTempo } from './tapTempo'
 
   type Props = ComponentProps<typeof Stage>
   type Hue = NonNullable<Props['display']['nowPlaying']['hue']>
@@ -158,6 +164,13 @@
   let status = $derived({ ...p.status })
   /** Each part's sound, as its row steps it through `stageSounds`. */
   let sounds = $derived(Object.fromEntries(p.display.soundRow.parts.map((part) => [part.id, part.sound])))
+  /** Tap tempo: the taps that still count; two or more set the tempo from their interval. */
+  let taps: number[] = []
+  function tap() {
+    const next = tapTempo(taps, performance.now())
+    taps = next.taps
+    if (next.bpm !== undefined) bpm = clamp(next.bpm, TEMPO_MIN, TEMPO_MAX)
+  }
 
   // ---- The beat: a story-only ticker at the tempo while running (the components take it as a prop)
   const beatsPerBar = $derived(
@@ -177,6 +190,39 @@
     const t = setInterval(() => (beat = (beat % beats) + 1), 60000 / bpm)
     return () => clearInterval(t)
   })
+
+  // ---- The fade: while fading and running, it runs for FADE_BARS bars of the ticker's beats (its
+  // progress drains Fade's wedge in the golden layout); a fade-out stops the band when it ends, a
+  // fade-in (Fade pressed while stopped, then Start) just ends.
+  const FADE_BARS = 4
+  let fadeBeats = $state(0)
+  let fadeIn = $state(false)
+  $effect(() => {
+    void beat
+    if (!fading || !running) {
+      untrack(() => (fadeBeats = 0))
+      return
+    }
+    untrack(() => {
+      fadeBeats += 1
+      if (fadeBeats >= FADE_BARS * beatsPerBar) {
+        fadeBeats = 0
+        fading = false
+        if (!fadeIn) stop()
+      }
+    })
+  })
+  let fadeProgress = $derived(fading && running ? fadeBeats / (FADE_BARS * beatsPerBar) : undefined)
+
+  /** Queues a fill to the next Main up or down from the one playing (running only): that Main is next. */
+  function queueFill(dir: 1 | -1) {
+    if (!running) return
+    const mains = pads.map((pad, i) => [pad, i] as const).filter(([pad]) => pad.family === 'main' && pad.state !== 'dark')
+    const at = mains.findIndex(([pad]) => pad.state === 'playing')
+    const to = mains[at + dir]
+    if (at < 0 || !to) return
+    pads = only(pads, to[1], 'next')
+  }
 
   let knobsShown: KnobItem[] = $derived(
     knobs.map((knob) =>
@@ -212,6 +258,8 @@
 
   function stop() {
     running = false
+    // Stopping ends a fade under way.
+    fading = false
     pads = pads.map((pad) => (pad.state === 'next' || pad.state === 'armed' ? { ...pad, state: 'idle' } : pad))
   }
 
@@ -230,7 +278,7 @@
     if (!pad || pad.state === 'dark') return
     if (pad.family === 'start') return running ? stop() : start()
     if (pad.family === 'util') {
-      if (plain(pad.label) === 'Tap') return
+      if (plain(pad.label) === 'Tap') return tap()
       if (plain(pad.label) === 'Sync Start') {
         section = { ...section, syncStart: !section.syncStart }
         return
@@ -263,7 +311,8 @@
   let padsShown: PadItem[] = $derived(
     padBank !== 0 ? (otherPads[padBank] ?? []) : pads.map((pad) => {
       if (pad.family === 'util' && plain(pad.label) === 'Sync Start') {
-        return { ...pad, state: section.syncStart ? 'playing' : 'idle' }
+        // Armed (pulsing) while on, as the app's pads.
+        return { ...pad, state: section.syncStart ? 'armed' : 'idle' }
       }
       if (pad.family === 'start') {
         const word = running ? 'running' : 'stopped'
@@ -316,7 +365,7 @@
 <Stage
   {...p}
   appBar={{ ...p.appBar, chosen }}
-  sectionRow={{ ...section, running, fading }}
+  sectionRow={{ ...section, running, fading, fadeProgress, fadeIn: fading && fadeIn }}
   {display}
   faders={{ ...p.faders, page, layer, strips, partLamps, functionLamps }}
   knobs={{ ...p.knobs, knobs: knobsShown, page: knobPage }}
@@ -337,10 +386,12 @@
   }}
   onfillup={() => {
     p.onfillup?.()
+    queueFill(1)
     status = { ...status, text: 'Fill ▲: a fill, then the next Main up', error: false, seq: (status.seq ?? 0) + 1 }
   }}
   onfilldown={() => {
     p.onfilldown?.()
+    queueFill(-1)
     status = { ...status, text: 'Fill ▼: a fill, then the next Main down', error: false, seq: (status.seq ?? 0) + 1 }
   }}
   onknobpage={(index) => {
@@ -446,6 +497,7 @@
   onfade={() => {
     p.onfade?.()
     fading = !fading
+    if (fading) fadeIn = !running
   }}
   ontempoup={(down) => {
     p.ontempoup?.(down)
@@ -458,6 +510,10 @@
   onstyletempo={() => {
     p.onstyletempo?.()
     bpm = stageStyleTempo
+  }}
+  ontaptempo={() => {
+    p.ontaptempo?.()
+    tap()
   }}
   ontempo={(next) => {
     p.ontempo?.(next)

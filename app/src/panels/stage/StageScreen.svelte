@@ -15,7 +15,7 @@
   import type { Action } from 'svelte/action'
   import type { Meters } from '../../lib/api/types'
   import { dropouts } from '../../lib/dropouts.svelte'
-  import { clock, app, ui } from '../../lib/store.svelte'
+  import { clock, app, ui, PART_IDS } from '../../lib/store.svelte'
   import { TempoHold } from '../../lib/tempoHold'
   import { tip, tips } from '../../lib/tooltip/tip.svelte'
   import { rangeFor } from '../keystrip/keyboard'
@@ -25,7 +25,12 @@
   import { levelOf } from '../../ui/Blooms/blooms'
   import MetronomePopover from '../../ui/MetronomePopover/MetronomePopover.svelte'
   import Stage from '../../ui/Stage/Stage.svelte'
+  import HelpCard from '../../ui/HelpCard/HelpCard.svelte'
+  import SwapPanel from '../../ui/SwapPanel/SwapPanel.svelte'
+  import { swapPanel } from '../../ui/SwapPanel/swap'
+  import { helpCard } from '../../lib/tooltip/helpCard.svelte'
   import ChannelPage from '../channel/ChannelPage.svelte'
+  import FirstRunPanel from '../firstrun/FirstRunPanel.svelte'
   import EffectsPage from '../effects/EffectsPage.svelte'
   import HarmArpPage from '../harmony/HarmArpPage.svelte'
   import LooperPage from '../looper/LooperPage.svelte'
@@ -116,7 +121,10 @@
       return
     }
     if (typeof target === 'object' && 'sounds' in target) {
-      ui.openLibrary('sounds', target.sounds)
+      // The part's quick sound list (panels/sounds/SoundPick), under the row that asked.
+      const el = document.activeElement
+      const anchor = el instanceof HTMLElement && artboard?.contains(el) ? el.getBoundingClientRect() : null
+      ui.soundList = { part: PART_IDS[Math.max(0, Math.min(3, target.sounds))], anchor }
       return
     }
     if (target === 'browser') ui.openLibrary('styles')
@@ -161,6 +169,22 @@
   const page = $derived(ui.settings ? 'settings' : stagePage.page)
   /** The display page in the Stage's display box; none on the Stage itself. */
   const PageComponent = $derived(PAGE_COMPONENTS[stagePage.page])
+  /**
+   * The display's side panel (its right third), by state, first match wins: first run (never
+   * started on this computer, the band stopped), help mode (the help card), the swap layer
+   * held (the swap panel); else none.
+   */
+  const sideKind = $derived.by((): 'firstRun' | 'help' | 'swap' | null => {
+    if (!ui.firstRunDone && !s.transport.running) return 'firstRun'
+    if (tips.help) return 'help'
+    if (s.surface.layer.type === 'swap') return 'swap'
+    return null
+  })
+  // First run ends the first time the band starts (FirstRun board); the panel's own
+  // "Choose a style" ends it too.
+  $effect(() => {
+    if (s.transport.running && !ui.firstRunDone) ui.setFirstRunDone(true)
+  })
   const appBarData = $derived(appBar({ state: s, meters, page, dropouts: dropouts.recent(nowMs) }))
   const sectionRowData = $derived({
     ...sectionRow({ state: s, help: tips.help }),
@@ -218,6 +242,7 @@
       sectionRow={sectionRowData}
       display={displayData}
       page={PageComponent ? pageSlot : undefined}
+      side={sideKind ? sideSlot : undefined}
       faders={faderData}
       knobs={knobData}
       pads={padData}
@@ -242,6 +267,15 @@
     {/if}
     {#snippet pageSlot()}
       {#if PageComponent}<PageComponent {tipAction} />{/if}
+    {/snippet}
+    {#snippet sideSlot()}
+      {#if sideKind === 'firstRun'}
+        <FirstRunPanel {tipAction} />
+      {:else if sideKind === 'help'}
+        <HelpCard {...helpCard()} {tipAction} />
+      {:else if sideKind === 'swap'}
+        <SwapPanel data={swapPanel(s)} {tipAction} onrelease={() => app.send({ type: 'setLayer', layer: { type: 'none' } })} />
+      {/if}
     {/snippet}
   </div>
 </div>

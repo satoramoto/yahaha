@@ -84,7 +84,7 @@
   const ledChosen = $derived(data.paletteLeds === null ? null : data.paletteLeds ? 'palette' : 'rgb')
 
   const themeTabs = $derived([
-    { id: 'system', label: 'System', name: 'System: follow the computer', tip: 'app.theme', disabled: true },
+    { id: 'system', label: 'System', name: 'System: follow the computer', tip: 'app.theme' },
     { id: 'dark', label: 'Dark', tip: 'app.theme' },
     { id: 'light', label: 'Light', tip: 'app.theme' },
   ])
@@ -120,7 +120,7 @@
   }
 
   function chooseTheme(id: string) {
-    if ((id === 'dark' || id === 'light') && id !== data.theme) onchange?.({ type: 'theme', theme: id })
+    if ((id === 'dark' || id === 'light' || id === 'system') && id !== data.theme) onchange?.({ type: 'theme', theme: id })
   }
 
   function rescan() {

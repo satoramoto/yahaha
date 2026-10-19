@@ -5,6 +5,12 @@
   word and glyph; no boxes: each control is plain text that brightens on hover and shows the focus
   ring on keyboard focus. A long style name ends in an ellipsis (its full name in `title`); the
   category and metre keep their width up to half the line.
+
+  `cells` (the grid Stage): the line fills its container (width and height 100%; give it a size,
+  about a control-height band), ‹ › become squares as tall as the line (the golden Stage: the
+  glyph alone in the style's hue, the square outlined only on hover and keyboard focus), and the
+  category and metre (or the waiting style) follow › on the same line, so the style and what
+  qualifies it read as one phrase.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -26,9 +32,21 @@
     onnext?: () => void
     /** Called when the style's name is pressed (opens Library › Styles). */
     onbrowse?: () => void
+    /** Fill the container (the golden Stage's band), ‹ › as squares as tall as the line, outlined only on hover and focus. */
+    cells?: boolean
   }
 
-  let { styleName, category = '', timeSignature = '', queued = '', tipAction, onprev, onnext, onbrowse }: Props = $props()
+  let {
+    styleName,
+    category = '',
+    timeSignature = '',
+    queued = '',
+    tipAction,
+    onprev,
+    onnext,
+    onbrowse,
+    cells = false,
+  }: Props = $props()
 
   const name = $derived(styleName.trim() || 'No style')
   const hasQueued = $derived(queued.trim() !== '')
@@ -40,7 +58,7 @@
   }
 </script>
 
-<div class="line">
+<div class="line" class:cells data-cells={cells || undefined}>
   <button
     type="button"
     class="glyph"
@@ -141,5 +159,32 @@
   }
   .arrow {
     color: var(--m);
+  }
+
+  /* Cells: the whole container; ‹ › squares as tall as the line, the glyph alone in the style's
+     hue (--a, as the name), the square's outline drawn only on hover and keyboard focus (the
+     owner's exception to "every clickable outlined": a boxed arrow read apart from its line). */
+  .line.cells {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+  }
+  .cells button {
+    height: 100%;
+  }
+  .cells .glyph {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    padding: 0;
+    color: var(--a);
+  }
+  .cells .glyph:hover,
+  .cells .glyph:focus-visible {
+    box-shadow: inset 0 0 0 var(--outline-width) var(--a);
+    color: var(--a);
+  }
+  .cells .glyph:first-child {
+    margin-left: 0;
   }
 </style>

@@ -280,8 +280,8 @@ export interface SystemPageData {
   /** The `.sf2` files found, and the main one. */
   soundFonts: string[]
   soundFontMain: string | null
-  /** The app's theme. "System" (follow the computer) is shown, not choosable yet. */
-  theme: 'dark' | 'light'
+  /** The app's theme: dark, light, or system (follow the computer). */
+  theme: 'dark' | 'light' | 'system'
 }
 
 export type SystemChange =
@@ -293,7 +293,7 @@ export type SystemChange =
   | { type: 'input'; name: string; on: boolean }
   | { type: 'paletteLeds'; on: boolean }
   | { type: 'rescan' }
-  | { type: 'theme'; theme: 'dark' | 'light' }
+  | { type: 'theme'; theme: 'dark' | 'light' | 'system' }
 
 // ── Launchkey: the pad page order ────────────────────────────────────────────────────────────────
 

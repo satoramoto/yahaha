@@ -5,9 +5,14 @@
   line is too long it wraps to a second small line (and a long fingering wraps inside itself). A
   long chord steps down the hero sizes (--hero-4 … --hero-8) until it fits its column, measured
   after each change. Held (detection unsure, the band keeps the last chord): the chord muted,
-  without its glow, and "held" on the small line. A readout, not a control.
+  without its glow, and "held" on the small line. A readout, not a control. Its spoken name says
+  everything drawn, the whole fingering included; with `tip` and `tipAction`, the fingering takes
+  the app's tooltip on hover (no native title), the whole fingering as the tip's first line
+  (`data-tip-text`) above the `tip` entry, so a fingering cut off by its container still shows whole.
 -->
 <script lang="ts">
+  import type { Action } from 'svelte/action'
+
   type Note = {
     /** The note's name ("A", "C", "F♯"). */
     note: string
@@ -28,9 +33,41 @@
     held?: boolean
     /** The readout's spoken name before the chord ("Chord"). */
     label?: string
+    /** The fingering's tooltip key ("fingering.select"), set as `data-tip`. */
+    tip?: string
+    /** The app's tooltip action (`use:tip`), applied to the fingering when `tip` is set. */
+    tipAction?: Action<HTMLElement, string>
   }
 
-  let { chord, extension = '', notes = [], fingering = '', held = false, label = 'Chord' }: Props = $props()
+  let {
+    chord,
+    extension = '',
+    notes = [],
+    fingering = '',
+    held = false,
+    label = 'Chord',
+    tip,
+    tipAction,
+  }: Props = $props()
+
+  type TipOn = { key: string | undefined; text: string }
+
+  /** The tooltip action with the fingering as its free text (`data-tip-text`), set before the
+   * action is told, so a tip already showing follows the chord. */
+  function tipOn(node: HTMLElement, p: TipOn) {
+    if (!tipAction || !p.key) return
+    node.dataset.tipText = p.text
+    const handle = tipAction(node, p.key)
+    return {
+      update(next: TipOn) {
+        node.dataset.tipText = next.text
+        if (next.key) handle?.update?.(next.key)
+      },
+      destroy() {
+        handle?.destroy?.()
+      },
+    }
+  }
 
   const FITS = ['full', '4', '5', '6', '8']
 
@@ -71,9 +108,10 @@
   <div class="chord" class:none bind:this={hero} data-fit={size} aria-hidden="true">
     {none ? '—' : chord}<span class="ext">{none ? '' : extension}</span>
   </div>
+  <!-- The line is drawn only: the readout's spoken name (role="img") already says it whole. -->
   <p class="line" aria-hidden="true">
     {#if tones}<span class="tones">{tones}</span>{/if}
-    {#if fingering}<span class="fingering">{fingering}</span>{/if}
+    {#if fingering}<span class="fingering" data-tip={tip} use:tipOn={{ key: tip, text: fingering }}>{fingering}</span>{/if}
     {#if held}<span class="held-word">held</span>{/if}
   </p>
 </div>

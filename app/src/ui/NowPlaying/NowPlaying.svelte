@@ -5,7 +5,8 @@
   armed" (and the armed Intro). Below, the tempo at the section's size with Tempo + and − stacked
   at its right (TempoReadout). Two sizes only: the section and the tempo share --type-poster,
   every other word is --type-text. Holds no state and no timers: the parent repeats Tempo ±
-  between the two hold calls.
+  between the two hold calls. `show` draws one of the three alone, its container's width, for a
+  Golden layout that gives each its own cell.
 -->
 <script lang="ts">
   import type { Action } from 'svelte/action'
@@ -33,6 +34,12 @@
     running?: boolean
     /** Stopped with Sync Start armed: "Sync Start armed" on the small line. */
     syncStart?: boolean
+    /**
+     * What to draw: `all` (the section, the small line and the tempo, a third of the display
+     * wide), or one of them alone, `section`, `next` (the small line) or `tempo`, filling its
+     * container's width with no top margin, so a Golden layout can give each its own cell.
+     */
+    show?: 'all' | 'section' | 'next' | 'tempo'
     /** The app's tooltip action (`use:tip`), applied to the tempo's controls. */
     tipAction?: Action<HTMLElement, string>
     /** Tempo + held (`true`) and released (`false`); from the keyboard, a press calls with `true` then `false`. */
@@ -55,6 +62,7 @@
     bpm,
     running = false,
     syncStart = false,
+    show = 'all',
     tipAction,
     ontempoup,
     ontempodown,
@@ -69,13 +77,21 @@
     if (parts.length === 0 && bar > 0 && bars > 0) return `bar ${bar} of ${bars}`
     return parts.join(' · ')
   })
+
+  /** The block's spoken name, for what it shows. */
+  const NAMES = { all: 'Section and tempo', section: 'Section', next: 'Next section', tempo: 'Tempo' } as const
 </script>
 
-<div class="song" role="group" aria-label="Section and tempo">
+<div class="song" class:alone={show !== 'all'} role="group" aria-label={NAMES[show]}>
+  {#if show === 'all' || show === 'section'}
   <div class="section">
     <SectionName label={playing} {hue} idle={!running} />
   </div>
+  {/if}
+  {#if show === 'all' || show === 'next'}
   <p class="line" class:sync={!running && syncStart}>{line}</p>
+  {/if}
+  {#if show === 'all' || show === 'tempo'}
   <div class="tempo">
     <TempoReadout
       {bpm}
@@ -86,6 +102,7 @@
       onreset={onstyletempo}
     />
   </div>
+  {/if}
 </div>
 
 <style>
@@ -119,5 +136,13 @@
   .tempo {
     margin-top: var(--now-tempo-gap);
     display: flex;
+  }
+  /* One part alone (`show`): its container's width, no top margin. */
+  .song.alone {
+    width: 100%;
+  }
+  .alone .line,
+  .alone .tempo {
+    margin-top: 0;
   }
 </style>
