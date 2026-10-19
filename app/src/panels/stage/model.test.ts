@@ -717,47 +717,66 @@ describe('pads, page by page, as develop lit them', () => {
     expect(face(m.state, 15)).toBe('start:running')
   })
 
-  it('Racks: Quick Racks blue when stored, red when loaded, dark when empty; OTS, Bank and Store in the page\'s orange', () => {
+  // Pages 2–5 draw the boards' faces from each pad's action and the state (PadsPage2,
+  // PadsChord, PadsMultiPads, PadsSetup): chosen = white block, lamp = lime, unavailable = dim.
+  it('Racks: loaded the white block, stored plain, empty hollow; Store lime when armed; "Save over" under Sound', () => {
     const m = fresh()
     page(m, 'racks')
     const empty = m.state.quickRacks.buttons.findIndex((b) => !b.rack)
-    expect(face(m.state, empty)).toBe('r1:dark')
+    expect(face(m.state, empty)).toBe('util:dark')
     m.send({ type: 'storeRack', slot: empty })
     page(m, 'racks')
-    const loaded = m.state.quickRacks.buttons[empty].loaded
-    expect(face(m.state, empty)).toBe(loaded ? 'ending:playing' : 'r1:playing')
-    expect(face(m.state, 12)).toBe(m.state.quickRacks.bank > 0 ? 'r3:idle' : 'r3:dark') // Bank −
-    expect(face(m.state, 14)).toBe('r3:idle') // Store
-    // Undo (#564): lit in the page's orange while there's a store to undo.
-    expect(pads({ state: m.state, beats: 0 }).pads[15]).toMatchObject({ label: 'UNDO', family: 'r3', state: 'idle' })
+    const b = m.state.quickRacks.buttons[empty]
+    expect(face(m.state, empty)).toBe(b.loaded ? 'util:chosen' : 'util:idle')
+    expect(pads({ state: m.state, beats: 0 }).pads[empty].label).toBe(b.name)
+    expect(face(m.state, 12)).toBe(m.state.quickRacks.bank > 0 ? 'util:idle' : 'util:dark') // Bank −
+    expect(face(m.state, 14)).toBe('util:idle') // Store
+    expect(pads({ state: m.state, beats: 0 }).pads[15]).toMatchObject({ label: 'Undo', state: 'idle', tip: 'quick.undo' })
+    if (b.loaded) {
+      m.state.surface.layer = { type: 'sound' }
+      expect(pads({ state: m.state, beats: 0 }).pads[empty]).toMatchObject({ state: 'chosen', tag: 'Save over', tip: 'quick.store_rack' })
+      m.state.surface.layer = { type: 'none' }
+    }
     m.send({ type: 'toggleQuickRackStore' })
-    expect(face(m.state, 14)).toBe('ending:next') // Store armed: flashing red
+    expect(face(m.state, 14)).toBe('util:lamp') // Store armed: lime
   })
 
-  it('Chord: the top row dark, the switches in the page\'s colour, lit when on', () => {
+  it('Chord: the top row dark, switches lime when on, Manual Bass dim off Upper, Split never lit', () => {
     const m = fresh()
     page(m, 'chord')
     expect(face(m.state, 0)).toBe('util:dark')
-    expect(face(m.state, 9)).toBe(m.state.transport.stopAcmp ? 'l:playing' : 'l:idle') // STOP ACMP
+    expect(face(m.state, 9)).toBe(m.state.transport.stopAcmp ? 'util:lamp' : 'util:idle') // Stop ACMP
     m.send({ type: 'toggleStopAcmp' })
-    expect(face(m.state, 9)).toBe(m.state.transport.stopAcmp ? 'l:playing' : 'l:idle')
+    expect(face(m.state, 9)).toBe(m.state.transport.stopAcmp ? 'util:lamp' : 'util:idle')
+    expect(face(m.state, 8)).toBe(m.state.chord.upper ? (m.state.chord.manualBass ? 'util:lamp' : 'util:idle') : 'util:unavailable')
+    m.state.chord.transposeKeyboard = 2
+    expect([10, 11, 12, 13, 14].map((i) => face(m.state, i))).toEqual(['util:idle', 'util:idle', 'util:idle', 'util:lamp', 'util:lamp'])
   })
 
-  it('Setup: the fingering chosen lit in the page\'s pink, the others available', () => {
+  it('Setup: the fingering chosen and the Stop ACMP mode the white block, Upper and OTS Link lime when on', () => {
     const m = fresh()
     page(m, 'setup')
     const chosen = FINGERINGS.findIndex((f) => f.id === m.state.chord.fingering)
-    expect(face(m.state, chosen)).toBe('r2:playing')
-    expect(face(m.state, (chosen + 1) % 7)).toBe('r2:idle')
+    expect(face(m.state, chosen)).toBe('util:chosen')
+    expect(face(m.state, (chosen + 1) % 7)).toBe('util:idle')
+    expect(face(m.state, 7)).toBe(m.state.chord.upper ? 'util:lamp' : 'util:idle')
+    expect(face(m.state, 8)).toBe(m.state.ots.link ? 'util:lamp' : 'util:idle')
+    const mode = m.state.transport.stopAcmpMode
+    expect(face(m.state, 9)).toBe(mode === 'style' ? 'util:chosen' : 'util:idle')
+    expect(face(m.state, 10)).toBe(mode === 'fixed' ? 'util:chosen' : 'util:idle')
   })
 
-  it('Multi Pads: an empty pad dark; Stop available only with data', () => {
+  it('Multi Pads: each pad\'s lamp, Select lime when armed, Stop lit while it sounds', () => {
     const m = fresh()
     page(m, 'multiPads')
     const lamps = m.state.multiPad.pads.map((p) => p.lamp)
     lamps.forEach((lamp, i) => {
-      const expected = { empty: 'r1:dark', ready: 'r1:playing', playing: 'ending:playing', queued: 'r3:next', armed: 'ending:next' }[lamp]
+      const expected = { empty: 'fill:dark', ready: 'fill:idle', playing: 'ending:playing', queued: 'intro:next', armed: 'ending:armed' }[lamp]
       expect(face(m.state, i), `pad ${i + 1} ${lamp}`).toBe(expected)
+      const select = lamp === 'empty' ? 'util:dark' : lamp === 'armed' ? 'util:lamp' : 'util:idle'
+      expect(face(m.state, 8 + i), `select ${i + 1}`).toBe(select)
+      const stop = lamp === 'empty' ? 'util:dark' : lamp === 'playing' || lamp === 'queued' ? 'util:idle' : 'util:unavailable'
+      expect(face(m.state, 12 + i), `stop ${i + 1}`).toBe(stop)
     })
   })
 })

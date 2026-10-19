@@ -7,7 +7,9 @@
   playing and running (a solid fill of the hue, the label in `--on-ink`), next and armed (waiting: a
   2px ring and a faint fill of the hue, the label in `--t`, and a small "NEXT" or "ARMED" tag at the
   top, placed absolutely so the label stays centred; with `tagCorner`, a solid tag in the top-right
-  corner instead). Next and armed flash: the parent passes the
+  corner instead). Lamp (a switch on: the lime face, `--lamp-ink` label), chosen (the white block,
+  the label in `--g`) and unavailable (the plain `--btn` face, a dim name) are the pad pages'
+  faces; any face can carry a `tag` ("Save over"). Next and armed flash: the parent passes the
   phase in `lit`; unlit drops the fill and falls back to the 1px outline. Utility pads are neutral
   (`--neutral`, solid when on); Start / Stop goes solid `--ok` when running. Outlines are inset
   box-shadows, so the size never changes.
@@ -204,6 +206,24 @@
   }
   .waiting.unlit::before {
     content: none;
+  }
+
+  /* The pad pages' lamp grammar (pages 2–5): lime = a switch on, white block = the chosen one of a
+     set, and a dim name on the plain face = can't apply now. */
+  .face-lamp {
+    background: var(--lamp);
+    box-shadow: inset 0 0 0 var(--outline-width) var(--lamp);
+    color: var(--lamp-ink);
+  }
+  .face-chosen {
+    background: var(--t);
+    box-shadow: inset 0 0 0 var(--outline-width) var(--t);
+    color: var(--g);
+  }
+  .face-unavailable {
+    background: var(--btn);
+    box-shadow: none;
+    color: var(--absent-neutral);
   }
 
   .pad:focus-visible {
