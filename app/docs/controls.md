@@ -729,10 +729,10 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | control | what it does | Genos | key | Launchkey |
 |---|---|---|---|---|
 | **Choose a style** | Opens Library › Styles to pick the style the band plays. | — | — | — |
-| **Styles** | Step one: pick a style in Library › Styles. | — | — | — |
-| **Sounds** | Step two: choose the sound each keyboard part plays from the sound row. | — | — | — |
+| **Styles** | Step one: the styles found in your style folders. Lit once there is at least one; else put .sty, .prs or .sst files in the folder shown and they are found by themselves. | — | — | — |
+| **Sounds** | Step two: something to play the sounds. Lit once there is a SoundFont in the soundfonts folder or an instrument plugin; without either, the band only plays out of the yahaha MIDI port. | — | — | — |
 | **Launchkey** | Step three: plug in the Launchkey. The app finds it by itself within a couple of seconds. | — | — | — |
-| **Ready now** | What is set up already, so you can press Start and play. | — | — | — |
+| **Ready now** | The style loaded and its tempo: you can press Start and play now. Click to close this panel. | — | — | — |
 
 ## Prompts
 
