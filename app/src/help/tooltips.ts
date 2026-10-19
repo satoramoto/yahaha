@@ -3716,6 +3716,34 @@ const catalog = {
   // --- lane: dialogs ---
   // --- end lane: dialogs ---
   // --- lane: sounds ---
+  'sounds.quick_row': {
+    title: 'Play this sound',
+    body: 'Loads this sound on the part now; the list stays open so you can try the next. The sound playing now is the white row.',
+    genos: 'Voice Selection',
+    keys: [],
+    launchkey: null,
+  },
+  'sounds.quick_search': {
+    title: 'Search sounds',
+    body: 'Type a name, SoundFont or maker to search every sound, or a number to find that sound in My Sounds.',
+    genos: 'Voice Selection › Search',
+    keys: [],
+    launchkey: null,
+  },
+  'sounds.quick_more': {
+    title: 'More in Library',
+    body: 'Opens Library › Sounds loading into this part, with every sound, and closes the list.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'sounds.quick_close': {
+    title: 'Close',
+    body: 'Closes the sound list. The sound you last picked stays on the part.',
+    genos: 'EXIT',
+    keys: ['esc'],
+    launchkey: null,
+  },
   // --- end lane: sounds ---
   // --- lane: stylemap ---
   // --- end lane: stylemap ---

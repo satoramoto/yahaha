@@ -304,6 +304,10 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Star** | Adds the sound to your Favourites, or takes it out. | Voice Selection › Favorite | — | — |
 | **Add to my sounds** | Keeps this preset in your sounds (the sound library), once, so it shows in Sounds and can be a map rule. Nothing changes on the part. | — | — | — |
 | **Sound list** | The sounds near this part’s sound: pick one to load it now. Library › Sounds has them all. | — | — | — |
+| **Play this sound** | Loads this sound on the part now; the list stays open so you can try the next. The sound playing now is the white row. | Voice Selection | — | — |
+| **Search sounds** | Type a name, SoundFont or maker to search every sound, or a number to find that sound in My Sounds. | Voice Selection › Search | — | — |
+| **More in Library** | Opens Library › Sounds loading into this part, with every sound, and closes the list. | — | — | — |
+| **Close** | Closes the sound list. The sound you last picked stays on the part. | EXIT | `Esc` | — |
 
 ## Keyboard Harmony / Arpeggio
 

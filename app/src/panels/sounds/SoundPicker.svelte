@@ -1,5 +1,6 @@
 <!--
-  Picks a sound for a program map rule (Library › Style map, `ui.soundPick`): a modal list
+  Picks a sound for a program map rule (Library › Style map, `ui.soundPick`), on the Push
+  Dialog (ui/Dialog, the SoundPicker board): a modal list
   of every sound, with the Sounds tab's chips and filter. Enter or a click hands the sound
   over and closes. It is what is left of the old Sound Browser (#117), which Library
   replaced (docs/racks.md, item 13).
@@ -20,7 +21,7 @@
   import type { GmMapRow } from '../../lib/api/types'
   import { app, ui, type SoundPick } from '../../lib/store.svelte'
   import { tip, tips } from '../../lib/tooltip/tip.svelte'
-  import Overlay from '../../lib/ui/Overlay.svelte'
+  import Dialog from '../../ui/Dialog/Dialog.svelte'
   import { moveCursor } from '../library/styleIndex'
   import { SOURCE_BADGE, allSoundIds, categoryCounts, instruments, mapSlots, patchesById, soundNumber, visibleSounds, type SoundView } from './model'
 
@@ -151,7 +152,7 @@
   const chipTotal = $derived(query.trim() ? visibleSounds(catalog, view, '', ctx).length : rows.length)
 </script>
 
-<Overlay id="sounds" title="Sounds · {pick.title}" side="center" modal closeTip="sounds.close" onclose={close}>
+<Dialog title="Sounds · {pick.title}" width={1040} onclose={close}>
   <div class="sb">
     <nav class="side" aria-label="Sound chips">
       <button type="button" class="cat" class:on={is({ kind: 'all' })} aria-pressed={is({ kind: 'all' })} use:tip={'sounds.all'} onclick={() => show({ kind: 'all' })}>
@@ -166,7 +167,7 @@
       <button type="button" class="cat" class:on={is({ kind: 'mine' })} aria-pressed={is({ kind: 'mine' })} use:tip={'sounds.saved'} onclick={() => show({ kind: 'mine' })}>
         <span><span class="ico" aria-hidden="true">●</span> My Sounds</span><span class="n">{mine}</span>
       </button>
-      <h3 class="engraved">Categories</h3>
+      <h3>Categories</h3>
       {#each cats as c (c.id)}
         {@const v: SoundView = { kind: 'category', id: c.id }}
         <button type="button" class="cat sub" class:on={is(v)} aria-pressed={is(v)} use:tip={'sounds.category'} onclick={() => show(v)}>
@@ -174,7 +175,7 @@
         </button>
       {/each}
       {#if insts.length}
-        <h3 class="engraved">Instruments</h3>
+        <h3>Instruments</h3>
         {#each insts as ins (ins.id)}
           {@const v: SoundView = { kind: 'instrument', id: ins.id }}
           <button type="button" class="cat sub inst" class:on={is(v)} aria-pressed={is(v)} use:tip={'sounds.instrument'} onclick={() => show(v)}>
@@ -189,7 +190,6 @@
         <input
           bind:this={input}
           bind:value={query}
-          class="mat-well"
           type="text"
           placeholder="Filter by name, file or maker"
           spellcheck="false"
@@ -205,10 +205,10 @@
           oninput={() => void tick().then(onfilter)}
           onfocus={() => queueMicrotask(() => input && tips.hide(input))}
         />
-        <span class="count engraved">{rows.length.toLocaleString()} of {chipTotal.toLocaleString()}{#if listingChip}&nbsp;· listing presets{:else if chipError}<span class="warn" title={chipError}>&nbsp;· presets not listed: {chipError}</span>{:else if app.state.sounds?.scanning}&nbsp;· scanning plugins{/if}</span>
+        <span class="count">{rows.length.toLocaleString()} of {chipTotal.toLocaleString()}{#if listingChip}&nbsp;· listing presets{:else if chipError}<span class="warn" title={chipError}>&nbsp;· presets not listed: {chipError}</span>{:else if app.state.sounds?.scanning}&nbsp;· scanning plugins{/if}</span>
       </div>
 
-      <div class="screen mat-screen">
+      <div class="screen">
         <div class="scroller" bind:this={list} onscroll={() => (scrollTop = list?.scrollTop ?? 0)}>
           <div class="rows" id="sounds-list" role="listbox" tabindex="-1" aria-label="Sounds" style:height="{rows.length * ROW}px">
             {#each slice as i, k (entries[i].id)}
@@ -251,17 +251,18 @@
 
       <footer class="foot">
         <span class="now">Pick the sound for <b>{pick.title}</b></span>
+        <button type="button" class="close" use:tip={'sounds.close'} onclick={close}>Close</button>
       </footer>
     </section>
   </div>
-</Overlay>
+</Dialog>
 
 <style>
   .sb {
     display: grid;
     grid-template-columns: 12rem minmax(0, 1fr);
-    gap: 1rem;
-    height: 100%;
+    gap: var(--space-16);
+    height: min(640px, calc(100vh - 160px));
     min-height: 0;
   }
   .side {
@@ -272,36 +273,38 @@
     overflow: auto;
   }
   h3 {
-    margin: 0.8rem 0.5rem 0.3rem;
-    font-size: 0.72rem;
+    margin: var(--space-12) var(--space-8) var(--space-4);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--line);
+    color: var(--m);
+    font-size: 12px;
+    font-weight: 400;
   }
   .cat {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 0.5rem;
-    min-height: 2.2rem;
-    padding: 0 0.6rem;
-    border: 1px solid transparent;
-    border-radius: 5px;
+    gap: var(--space-8);
+    min-height: 32px;
+    padding: 0 var(--space-8);
+    border: 0;
+    border-radius: 0;
     background: none;
     text-align: left;
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: var(--ink);
-  }
-  .cat.sub {
-    font-family: var(--font-body);
-    font-weight: 500;
-    font-size: var(--fs-small);
+    font: inherit;
+    color: var(--t);
+    cursor: pointer;
   }
   .cat:hover {
-    background: rgb(127 127 127 / 0.1);
+    background: var(--btn);
   }
   .cat.on {
-    border-color: color-mix(in srgb, var(--accent) 60%, transparent);
-    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    background: var(--t);
+    color: var(--g);
+  }
+  .cat.on .n,
+  .cat.on .ico {
+    color: var(--g);
   }
   .iname {
     min-width: 0;
@@ -310,44 +313,45 @@
     white-space: nowrap;
   }
   .ico {
-    color: var(--accent);
+    color: var(--a);
   }
   .n {
-    color: var(--muted);
-    font-size: 0.8rem;
+    color: var(--m);
+    font-size: 12px;
   }
   .main {
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: var(--space-8);
     min-width: 0;
     min-height: 0;
   }
   .filter {
     display: flex;
     align-items: center;
-    gap: 0.8rem;
+    gap: var(--space-12);
+    border-bottom: 1px solid var(--t);
   }
   .filter input {
     flex: 1;
     min-width: 0;
-    height: 2.4rem;
-    padding: 0 0.8rem;
-    border: 1px solid var(--well-edge);
-    border-radius: 6px;
-    color: var(--screen-ink);
-    font-size: 1rem;
+    height: 34px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--t);
+    font: inherit;
+    outline: none;
   }
   .count {
     white-space: nowrap;
+    color: var(--m);
+    font-size: 12px;
   }
   .screen {
-    --accent: #f3b843;
-    --danger: #ff7a6b;
     flex: 1;
     min-height: 0;
     display: flex;
-    border-radius: 8px;
     overflow: hidden;
   }
   .scroller {
@@ -368,28 +372,41 @@
     display: grid;
     grid-template-columns: 1.8rem 1rem 2.2rem minmax(8rem, 1.4fr) 3.2rem minmax(0, 1fr);
     align-items: center;
-    column-gap: 0.6rem;
-    padding: 0 0.5rem 0 0.25rem;
-    color: var(--screen-ink);
+    column-gap: var(--space-8);
+    padding: 0 var(--space-8) 0 var(--space-4);
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--line);
+    color: var(--t);
     cursor: pointer;
     white-space: nowrap;
     contain: layout paint;
   }
   .row:hover {
-    background: rgb(255 255 255 / 0.045);
+    background: var(--btn);
   }
   .row.active {
-    background: color-mix(in srgb, var(--accent) 22%, transparent);
-    box-shadow: inset 2px 0 0 var(--accent);
+    background: var(--t);
+    color: var(--g);
+  }
+  .row.active .num,
+  .row.active .detail,
+  .row.active .star,
+  .row.active .badge {
+    color: var(--g);
   }
   .row.playing .name,
   .mark {
-    color: var(--accent);
+    color: var(--a);
+  }
+  .row.active.playing .name,
+  .row.active .mark {
+    color: var(--g);
   }
   .num {
     text-align: right;
-    font-variant-numeric: tabular-nums;
-    color: var(--screen-dim);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--m);
   }
   .name,
   .detail {
@@ -398,50 +415,43 @@
     min-width: 0;
   }
   .detail {
-    color: var(--screen-dim);
-    font-size: var(--fs-small);
+    color: var(--m);
+    font-size: 12px;
   }
   .warn {
-    color: var(--danger);
+    color: var(--rec);
   }
   .badge {
     justify-self: start;
-    padding: 1px 4px;
-    border: 1px solid rgb(223 244 255 / 0.25);
-    border-radius: 3px;
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 0.72rem;
-    letter-spacing: 0.06em;
-  }
-  .badge.plugin {
-    border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+    color: var(--m);
+    font-size: 12px;
   }
   .badge.saved {
-    color: var(--accent);
+    color: var(--a);
   }
   button.star {
     border: 0;
     background: none;
     padding: 0;
     height: 36px;
-    color: var(--screen-dim);
+    color: var(--d);
+    cursor: pointer;
   }
   .star.on {
-    color: var(--accent);
+    color: var(--t);
   }
   .empty {
     position: absolute;
-    inset: 1.5rem 1rem auto;
+    inset: var(--space-24) var(--space-16) auto;
     margin: 0;
     text-align: center;
-    color: var(--screen-dim);
+    color: var(--m);
   }
   .foot {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    min-height: 2.6rem;
+    gap: var(--space-12);
+    min-height: 40px;
   }
   .now {
     flex: 1;
@@ -449,10 +459,21 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: var(--fs-small);
-    color: var(--muted);
+    font-size: 12px;
+    color: var(--m);
   }
   .now b {
-    color: var(--ink);
+    color: var(--t);
+    font-weight: 500;
+  }
+  .close {
+    height: 32px;
+    padding: 0 var(--space-12);
+    border: 0;
+    border-radius: 4px;
+    background: var(--btn);
+    color: var(--t2);
+    font: inherit;
+    cursor: pointer;
   }
 </style>

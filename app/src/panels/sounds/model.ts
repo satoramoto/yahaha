@@ -11,6 +11,7 @@
 import { partSound } from '../../lib/api/part-sound'
 import { CATEGORY_LABELS } from '../../lib/api/sound-library'
 import type { GmMapRow, PatchCategory, PatchInfo, PluginStatus, SoundCatalog, SoundEntry, SoundSource } from '../../lib/api/types'
+import type { SoundPickGroup, SoundPickRow } from '../../ui/SoundPickList/types'
 
 /** A chip. An instrument is `sf:<file>` (a SoundFont) or `au:<component id>` (a plugin). */
 export type SoundView =
@@ -180,6 +181,54 @@ export function nowPlaying(p: PlayingPart & { voiceName: string }, ctx: SoundCon
   const inst = instrumentName(p, ctx, plugins, soundFontFile)
   const sound = p.sound?.name ?? p.voiceName
   return sound === inst ? inst : `${inst} · ${sound}`
+}
+
+/** How many rows each quick-list group shows; the search shows up to `QUICK_MATCHES`. */
+export const QUICK_GROUP = 6
+export const QUICK_MATCHES = 30
+
+/** A catalog entry as a quick-list row (the SoundPick board). */
+export function quickRow(e: SoundEntry, byId: ReadonlyMap<string, PatchInfo>, playing: string | null): SoundPickRow {
+  return {
+    id: e.id,
+    number: soundNumber(e, byId),
+    name: e.name,
+    source: e.source === 'saved' ? 'Mine' : e.source === 'plugin' ? 'Factory' : 'SoundFont',
+    favourite: e.favourite,
+    on: e.id === playing,
+  }
+}
+
+/**
+ * The quick sound list's groups for a part playing `playing` (the SoundPick board): with no
+ * search, Similar (All sounds' members in the playing sound's category), Favourites, Last used
+ * (the catalog's recents, newest first), Plugins and My Sounds, each at most `QUICK_GROUP` rows.
+ * With a search, one "Matches" group over the whole catalog: a number first matches that
+ * library sound, then every word must be in the name, detail or source.
+ */
+export function quickGroups(catalog: SoundCatalog, ctx: SoundContext, playing: string | null, query: string): SoundPickGroup[] {
+  const byId = patchesById(ctx.patches)
+  const { entries } = catalog
+  const row = (e: SoundEntry) => quickRow(e, byId, playing)
+  const q = query.trim()
+  if (q) {
+    const n = /^\d+$/.test(q) ? Number(q) : null
+    const numbered = n === null ? [] : entries.filter((e) => soundNumber(e, byId) === n)
+    const words = q.toLowerCase().split(/\s+/)
+    const named = entries.filter((e) => !numbered.includes(e) && words.every((w) => `${e.name} ${e.detail} ${SOURCE_BADGE[e.source]}`.toLowerCase().includes(w)))
+    return [{ label: 'Matches', rows: [...numbered, ...named].slice(0, QUICK_MATCHES).map(row) }]
+  }
+  const take = (pick: (e: SoundEntry) => boolean) => entries.filter(pick).slice(0, QUICK_GROUP).map(row)
+  const now = playing ? entries.find((e) => e.id === playing) : undefined
+  const all = allSoundIds(ctx)
+  const at = new Map(entries.map((e) => [e.id, e]))
+  return [
+    { label: 'Similar sounds', rows: now ? take((e) => e.id !== now.id && all.has(e.id) && e.category === now.category) : [] },
+    { label: 'Favourites', rows: take((e) => e.favourite) },
+    { label: 'Last used', rows: catalog.recents.flatMap((id) => (at.has(id) ? [at.get(id)!] : [])).slice(0, QUICK_GROUP).map(row) },
+    { label: 'Plugins', rows: take((e) => e.source === 'plugin' && !e.parent) },
+    { label: 'My Sounds', rows: take((e) => e.source === 'saved') },
+  ]
 }
 
 /** The file name a preset name saves as (as `presets::safe_name`). */
