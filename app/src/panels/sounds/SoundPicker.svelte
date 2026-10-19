@@ -21,7 +21,7 @@
   import { app, ui, type SoundPick } from '../../lib/store.svelte'
   import { tip, tips } from '../../lib/tooltip/tip.svelte'
   import Overlay from '../../lib/ui/Overlay.svelte'
-  import { moveCursor } from '../browser/model'
+  import { moveCursor } from '../library/styleIndex'
   import { SOURCE_BADGE, allSoundIds, categoryCounts, instruments, mapSlots, patchesById, soundNumber, visibleSounds, type SoundView } from './model'
 
   let { pick }: { pick: SoundPick } = $props()

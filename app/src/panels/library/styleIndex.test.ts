@@ -4,7 +4,7 @@ import { LIBRARY, MockSession } from '../../lib/api/mock'
 import { syntheticStyles } from '../../lib/api/mock-library'
 import type { LibraryEntry } from '../../lib/api/types'
 import { neighbours } from '../../lib/surface'
-import { folderTree, indexLibrary, keepCursor, moveCursor, sectionLamps, setOf, stem, visibleRows } from './model'
+import { folderTree, indexLibrary, keepCursor, moveCursor, sectionLamps, setOf, stem, visibleRows } from './styleIndex'
 
 const entry = (id: number, folder: string, name: string, file = name.replace(/ /g, '') + '.sty'): LibraryEntry => ({
   id, name, folder, path: `/s/${folder ? folder + '/' : ''}${file}`, status: 'ok', error: null,

@@ -3416,8 +3416,8 @@ const catalog = {
     launchkey: null,
   },
   'app.theme': {
-    title: 'Light / dark',
-    body: 'Switches between the dark stage theme and a light one.',
+    title: 'Theme',
+    body: 'Dark, light, or System, which follows your computer’s light or dark setting.',
     genos: null,
     keys: [],
     launchkey: null,
@@ -3591,6 +3591,136 @@ const catalog = {
   ...multiPadsTips,
   ...looperTips,
   ...harmArpTips,
+  // ── The missing Push screens (contract) ─────────────────────────────────
+  'app.floating_tips': {
+    title: 'Pop-up tips',
+    body: 'In help mode, also shows the entry in a small card next to the control you point at. Off by default.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'firstrun.choose_style': {
+    title: 'Choose a style',
+    body: 'Opens Library › Styles to pick the style the band plays.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'firstrun.step_styles': {
+    title: 'Styles',
+    body: 'Step one: pick a style in Library › Styles.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'firstrun.step_sounds': {
+    title: 'Sounds',
+    body: 'Step two: choose the sound each keyboard part plays from the sound row.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'firstrun.step_launchkey': {
+    title: 'Launchkey',
+    body: 'Step three: plug in the Launchkey. The app finds it by itself within a couple of seconds.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'firstrun.ready': {
+    title: 'Ready now',
+    body: 'What is set up already, so you can press Start and play.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'prompt.store': {
+    title: 'Store the rack',
+    body: 'Stores the live rack on the Quick Rack button you chose, replacing what was there.',
+    genos: 'MEMORY',
+    keys: [],
+    launchkey: null,
+  },
+  'prompt.unsaved': {
+    title: 'Unsaved changes',
+    body: 'The live rack has changes that are not saved. Save them, discard them, or cancel and stay.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'prompt.sound_names': {
+    title: 'Name the sounds',
+    body: 'Keeps or renames the sounds this rack loads before it is saved.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'prompt.delete': {
+    title: 'Delete',
+    body: 'Deletes it for good. This cannot be undone.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'prompt.open_file_wait': {
+    title: 'Opening a file',
+    body: 'Waits while the file dialog is open. Choose a file there, or cancel it to come back.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'rack.map_done': {
+    title: 'Done',
+    body: 'Closes the controller map editor, keeping the changes in the live rack.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'rack.map_default': {
+    title: 'Default map',
+    body: 'Puts the faders and knobs back to what they control by default.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'channel.style_send': {
+    title: 'Style part send',
+    body: 'How much of this Style part goes to the send effect. The style sets it; turning it overrides the style.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'channel.reset_to_style': {
+    title: 'Reset to style',
+    body: 'Puts this Style part’s mix back to what the style sets.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  'sounds.quick_list': {
+    title: 'Sound list',
+    body: 'The sounds near this part’s sound: pick one to load it now. Library › Sounds has them all.',
+    genos: null,
+    keys: [],
+    launchkey: null,
+  },
+  // Each screen lane appends its entries inside its own block, so lanes never touch the same lines.
+  // --- lane: pads ---
+  // --- end lane: pads ---
+  // --- lane: help-swap ---
+  // --- end lane: help-swap ---
+  // --- lane: firstrun ---
+  // --- end lane: firstrun ---
+  // --- lane: rack ---
+  // --- end lane: rack ---
+  // --- lane: dialogs ---
+  // --- end lane: dialogs ---
+  // --- lane: sounds ---
+  // --- end lane: sounds ---
+  // --- lane: stylemap ---
+  // --- end lane: stylemap ---
+  // --- lane: channel ---
+  // --- end lane: channel ---
 } satisfies Record<string, Tip>
 
 export type TipKey = keyof typeof catalog

@@ -87,10 +87,6 @@ const STATES: [string, Setup][] = [
   ['help mode', () => (tips.help = true)],
   ['Settings tab (the Settings drawer)', () => click('nav.settings')],
   ['a message on the status line', (s) => s.send({ type: 'auditionStyle', id: 1 })],
-  ['style browser open', () => (ui.browser = true)],
-  ['style browser open, stopped (preview buttons)', (s) => (s.send({ type: 'stop' }), (ui.browser = true))],
-  ['style browser, previewing', (s) => (s.send({ type: 'stop' }), s.send({ type: 'auditionStyle', id: 1 }), (ui.browser = true))],
-  ['style browser, style queued for the next bar', (s) => (s.send({ type: 'queueStyle', id: 1 }), (ui.browser = true))],
   // Library (docs/racks.md, "Screens"): each tab, and the states that show more controls.
   ['Library › Sounds on Right 1 (a SoundFont voice: Copy to My Sounds)', () => ui.openLibrary('sounds', 0)],
   ['Library › Sounds, an edited plugin sound: edited, Save as… open, instrument filter', (s) => {
@@ -136,7 +132,6 @@ const STATES: [string, Setup][] = [
     s.send({ type: 'browseSoundFont', file: 'GeneralUser-GS.sf2' })
     s.send({ type: 'auditionPreset', file: 'GeneralUser-GS.sf2', bank: 0, program: 4 })
   }],
-  ['Library with the Rack drawer open over it', () => ((ui.rack = true), ui.openLibrary('sounds', 1))],
   ['sound browser picking for a map rule', () => (ui.soundPick = { title: 'Piano family', value: 'stage-grand', onpick: () => {} })],
   ['settings open', () => (ui.settings = true)],
   ['settings open, a pitch-bend pedal learning its CC', (s) => {
@@ -246,7 +241,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
-  ui.browser = false
+  ui.soundList = null
   ui.soundPick = null
   ui.view = 'stage'
   ui.libraryTab = 'sounds'

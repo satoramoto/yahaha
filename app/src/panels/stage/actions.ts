@@ -20,7 +20,8 @@ export type OpenTarget =
   | { page: string }
   /** Channel for a part (0–3 keyboard, 4–11 Style). */
   | { channel: number }
-  /** The quick sound list for a keyboard part: for now Library › Sounds loading into it. */
+  /** The quick sound list for a keyboard part (0–3): StageScreen opens it (`ui.soundList`,
+   * panels/sounds/SoundPick); the other screens open Library › Sounds loading into it. */
   | { sounds: number }
   | 'browser'
   | 'rack'

@@ -20,10 +20,10 @@ import { tips } from './tooltip/tip.svelte'
 export function applyUrlParams(search = location.search) {
   const p = new URLSearchParams(search)
   const theme = p.get('theme')
-  if (theme === 'light' || theme === 'dark') ui.theme = theme
+  if (theme === 'light' || theme === 'dark' || theme === 'system') ui.theme = theme
   if (p.get('help') === '1') tips.help = true
   const open = p.get('open')
-  if (open === 'browser') ui.browser = true
+  if (open === 'browser') ui.openLibrary('styles')
   // Library (the Sounds modal, the Sound Library drawer and the Quick Racks drawer moved into it).
   const tab = p.get('tab')
   if (open === 'library') ui.openLibrary(tab === 'racks' || tab === 'sounds' || tab === 'instruments' || tab === 'map' ? tab : undefined, 0)

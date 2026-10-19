@@ -29,7 +29,9 @@
         part hue (`r1` blue, `r2` pink, `r3` orange, `l` teal) for a pad the engine lights in that colour. */
     family?: Family
     /** The face. `dark` (absent) draws the family's hue at reduced strength. */
-    state?: 'idle' | 'dark' | 'playing' | 'next' | 'armed' | 'running'
+    state?: 'idle' | 'dark' | 'playing' | 'next' | 'armed' | 'running' | 'lamp' | 'chosen' | 'unavailable'
+    /** A tag to draw in place of the face's own (NEXT / ARMED): "Save over". */
+    tag?: string
     /** The flash phase of `next` and `armed`: false drops the fill and draws the 1px outline. */
     lit?: boolean
     /** The accessible name. Default: "{label} (pad {index})". */
@@ -58,6 +60,7 @@
     index = '',
     family = 'main',
     state = 'idle',
+    tag: tagText,
     lit = true,
     name,
     tip,
@@ -77,7 +80,7 @@
   let hue = $derived(state === 'dark' ? `absent-${base}` : base)
   /** The glow token's hue: the neutral glow is the white one. */
   let glow = $derived(base === 'neutral' ? 't' : base)
-  let tag = $derived(state === 'next' ? 'NEXT' : state === 'armed' ? 'ARMED' : '')
+  let tag = $derived(tagText ?? (state === 'next' ? 'NEXT' : state === 'armed' ? 'ARMED' : ''))
   let solid = $derived(state === 'playing' || state === 'running')
   let waiting = $derived(state === 'next' || state === 'armed')
 

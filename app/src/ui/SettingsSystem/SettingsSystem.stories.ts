@@ -92,9 +92,9 @@ export const Board: Story = {
     await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'paletteLeds', on: true })
 
     const system = canvas.getByRole('tab', { name: 'System: follow the computer' })
-    await expect(system).toHaveAttribute('aria-disabled', 'true')
+    await expect(system).not.toHaveAttribute('aria-disabled', 'true')
     await userEvent.click(system)
-    await expect(args.onchange).toHaveBeenCalledTimes(4)
+    await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'theme', theme: 'system' })
     await userEvent.click(canvas.getByRole('tab', { name: 'Light' }))
     await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'theme', theme: 'light' })
 
@@ -107,7 +107,7 @@ export const Board: Story = {
     master.focus()
     await userEvent.keyboard('{ArrowUp}')
     await expect(args.onchange).toHaveBeenLastCalledWith({ type: 'master', volume: 101 })
-    await expect(args.onchange).toHaveBeenCalledTimes(7)
+    await expect(args.onchange).toHaveBeenCalledTimes(8)
   },
 }
 

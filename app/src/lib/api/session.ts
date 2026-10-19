@@ -37,8 +37,15 @@ export async function connect(): Promise<Session> {
     const { TauriSession } = await import('./tauri')
     return TauriSession.connect()
   }
-  const { MockSession } = await import('./mock')
-  const mock = new MockSession({ demo: params.get('demo') !== '0', styles: Number(params.get('styles')) || 0, chart: params.get('chart') === '1' })
+  const { MockSession, MOCK_SCENARIOS } = await import('./mock')
+  // `?scenario=firstRun|swapRight1|styleSends`: one of the screens' states (mock.ts MockScenario).
+  const scenario = MOCK_SCENARIOS.find((s) => s === params.get('scenario'))
+  const mock = new MockSession({
+    demo: params.get('demo') !== '0' && scenario !== 'firstRun',
+    styles: Number(params.get('styles')) || 0,
+    chart: params.get('chart') === '1',
+    scenario,
+  })
   // `?dropouts=N`: N audio dropouts a moment after start (the dropout notice, for screenshots).
   const dropouts = Number(params.get('dropouts')) || 0
   if (dropouts > 0) setTimeout(() => mock.dropouts(dropouts), 500)

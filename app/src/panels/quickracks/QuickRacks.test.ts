@@ -177,9 +177,9 @@ describe('Quick Racks page', () => {
     flushSync()
     await click(tipped('quick.1')[0])
     expect(s.state.liveRack.prompt).toEqual({ kind: 'unsavedChanges', then: { kind: 'load', id: strings, name: 'Strings' } })
-    // The prompt is asked in one place: the Rack drawer, not the bar.
+    // The prompt is asked in one place: the Rack page (the bar's page gives way to it).
     expect(ui.rack).toBe(true)
-    expect(q(STAGE).textContent).not.toContain('Strings?')
+    expect(document.querySelector(STAGE)).toBeNull()
     expect(document.querySelectorAll('[role="alert"]').length).toBeGreaterThan(0)
     expect(tipped('rack.keep_editing')).toHaveLength(1)
     await click(tipped('rack.keep_editing')[0])

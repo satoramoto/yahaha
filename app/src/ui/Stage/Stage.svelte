@@ -61,6 +61,9 @@
     display: Data<typeof Display>
     /** A display page shown in the display's box instead of the Display (its size: `--page-width`, `--page-height`). */
     page?: Snippet
+    /** A side panel over the display's right third (first run, the help card, the swap panel);
+     * none: the Display alone. Ignored while `page` is set. */
+    side?: Snippet
     /** The band's faders: strips, page and layer tabs, lamps. */
     faders: Data<typeof FaderBank>
     /** The band's knobs and their page tabs. */
@@ -189,6 +192,7 @@
       onstyletempo={p.onstyletempo}
       ontempo={p.ontempo}
     />
+    {#if p.side}<div class="side" data-slot="side">{@render p.side()}</div>{/if}
   </div>
   {/if}
   <div class="band">
@@ -249,7 +253,19 @@
     margin-top: var(--stage-gap-row);
   }
   .display {
+    position: relative;
     margin-top: var(--stage-gap-display);
+  }
+  /* The side panel: the display's right third, on the ground, over what the Display draws there. */
+  .side {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: calc(100% / 3);
+    box-sizing: border-box;
+    overflow: hidden;
+    background: var(--g);
   }
   /* The page slot: the Display's box, exactly; the page lays out against its size. */
   .page {
