@@ -1,7 +1,11 @@
 // `use:tip={'catalog.key'}` on every interactive element. It marks the element with
 // `data-tip` (the coverage test looks for it) and, on hover or keyboard focus, shows the
 // catalog entry in the status line above the keys (panels/stage/hint.svelte.ts turns
-// `tips.shown` into the line's hint). Nothing floats over the instrument.
+// `tips.shown` into the line's hint).
+//
+// Help mode (Stage-Help): the control whose entry is pinned carries the hover mark
+// (`data-help-mark`, a 2px outline the help card's styles draw), and `anchor` is where it
+// is on screen, for the pop-up tip (`app.floating_tips`) the help card floats next to it.
 //
 // Free text: an element can also carry `data-tip-text`, data to show with its entry (the
 // whole of a value cut off with an ellipsis, say). The tip shows that text as its first line,
@@ -13,6 +17,14 @@ import { keyLabel, isTipKey, type Tip, type TipKey } from '../../help/tooltips'
 /** How long the entry stays after the pointer leaves a control, so moving across the gap
  * to the next one doesn't flash the status message back. */
 export const CLEAR_MS = 350
+
+/** A control's box on screen, in viewport pixels. */
+export interface TipAnchor {
+  left: number
+  top: number
+  right: number
+  bottom: number
+}
 
 class TipState {
   /** The entry the status line shows: the control hovered or focused. */
@@ -27,6 +39,9 @@ class TipState {
   text = $state<string | null>(null)
   /** Help mode: the pinned entry's free text. */
   pinnedText = $state<string | null>(null)
+  /** Help mode: where the hovered or focused control is on screen (viewport pixels), for
+   * the pop-up tip; null when no control is under the pointer or focus. */
+  anchor = $state.raw<TipAnchor | null>(null)
 
   private clearTimer: ReturnType<typeof setTimeout> | null = null
   private owner: HTMLElement | null = null
@@ -54,8 +69,17 @@ class TipState {
     if (this.help) {
       this.pinned = key
       this.pinnedText = this.text
-      this.pinnedOwner = el
+      this.mark(el)
+      const r = el.getBoundingClientRect()
+      this.anchor = { left: r.left, top: r.top, right: r.right, bottom: r.bottom }
     }
+  }
+
+  /** Help mode: `el` (or nothing) carries the hover mark and is the pinned control. */
+  private mark(el: HTMLElement | null) {
+    if (this.pinnedOwner && this.pinnedOwner !== el) delete this.pinnedOwner.dataset.helpMark
+    this.pinnedOwner = el
+    if (el) el.dataset.helpMark = ''
   }
 
   /** `el`'s key or free text changed: where its tip is showing (hovered, leaving, or pinned
@@ -75,7 +99,7 @@ class TipState {
 
   /** `el` is gone: stop following it (what's pinned stays as it was). */
   forget(el: HTMLElement) {
-    if (this.pinnedOwner === el) this.pinnedOwner = null
+    if (this.pinnedOwner === el) this.mark(null)
   }
 
   /** The pointer left `el` (or it lost focus): clear after `CLEAR_MS`, unless another
@@ -99,7 +123,8 @@ class TipState {
     if (!this.help) {
       this.pinned = null
       this.pinnedText = null
-      this.pinnedOwner = null
+      this.mark(null)
+      this.anchor = null
     }
   }
 
@@ -110,7 +135,7 @@ class TipState {
     this.help = false
     this.pinned = null
     this.pinnedText = null
-    this.pinnedOwner = null
+    this.mark(null)
     this.focused = null
   }
 
@@ -119,6 +144,7 @@ class TipState {
     this.key = null
     this.text = null
     this.owner = null
+    this.anchor = null
   }
 
   private cancel() {
