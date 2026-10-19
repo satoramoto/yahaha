@@ -27,6 +27,8 @@
   import Stage from '../../ui/Stage/Stage.svelte'
   import HelpCard from '../../ui/HelpCard/HelpCard.svelte'
   import SwapPanel from '../../ui/SwapPanel/SwapPanel.svelte'
+  import { swapPanel } from '../../ui/SwapPanel/swap'
+  import { helpCard } from '../../lib/tooltip/helpCard.svelte'
   import ChannelPage from '../channel/ChannelPage.svelte'
   import FirstRunPanel from '../firstrun/FirstRunPanel.svelte'
   import EffectsPage from '../effects/EffectsPage.svelte'
@@ -270,9 +272,9 @@
       {#if sideKind === 'firstRun'}
         <FirstRunPanel {tipAction} />
       {:else if sideKind === 'help'}
-        <HelpCard />
+        <HelpCard {...helpCard()} {tipAction} />
       {:else if sideKind === 'swap'}
-        <SwapPanel />
+        <SwapPanel data={swapPanel(s)} {tipAction} onrelease={() => app.send({ type: 'setLayer', layer: { type: 'none' } })} />
       {/if}
     {/snippet}
   </div>
