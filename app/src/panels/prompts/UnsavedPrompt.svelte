@@ -15,10 +15,12 @@
     then: RackSwitch
     busy: boolean
     send: (cmd: AppCmd) => void
+    /** Sends a cancel: never locked. */
+    cancel: (cmd: AppCmd) => void
     tipAction: Action<HTMLElement, string>
   }
 
-  let { rack, then, busy, send, tipAction }: Props = $props()
+  let { rack, then, busy, send, cancel, tipAction }: Props = $props()
 
   // svelte-ignore state_referenced_locally
   let name = $state(rack.name)
@@ -28,7 +30,7 @@
   const disabled = $derived(busy || (fresh && trimmed === ''))
   const target = $derived(then.kind === 'load' ? `switch to ${then.name}` : 'start a new rack')
 
-  const keep = () => !busy && send({ type: 'dismissRackPrompt' })
+  const keep = () => cancel({ type: 'dismissRackPrompt' })
   function discard() {
     if (busy) return
     send(then.kind === 'load' ? { type: 'loadRack', id: then.id, discard: true } : { type: 'newRack', discard: true })
@@ -51,7 +53,7 @@
     <NameField id="dlg-unsaved-field-0" label="Rack name" bind:value={name} tipKey="rack.save_as_name" ariaLabel="Rack name" onenter={save} />
   {/if}
   <div class="actions">
-    <Button label="Keep editing" size="md" disabled={busy} name="Keep editing: stay on {shown}" tip="rack.keep_editing" {tipAction} onpress={keep} />
+    <Button label="Keep editing" size="md" name="Keep editing: stay on {shown}" tip="rack.keep_editing" {tipAction} onpress={keep} />
     <Button
       label="Discard and switch"
       size="md"

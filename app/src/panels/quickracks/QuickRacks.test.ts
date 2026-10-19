@@ -15,11 +15,16 @@ import { quickLook } from '../../lib/api/quick-racks'
 import { app, ui } from '../../lib/store.svelte'
 import { tip } from '../../lib/tooltip/tip.svelte'
 import { stagePage } from '../stage/page.svelte'
+import PromptHost from '../prompts/PromptHost.svelte'
 import QuickRacksPage from './QuickRacksPage.svelte'
 
-/** The Quick Racks page tab, alone (StageScreen puts it in the Stage's display box). */
-const renderPage = () =>
-  render(QuickRacksPage, { props: { tipAction: tip as unknown as Action<HTMLElement, string> } })
+/** The Quick Racks page tab (StageScreen puts it in the Stage's display box), with the prompt
+ * dialogs App mounts over it (a waiting Store asks there). */
+const renderPage = () => {
+  const page = render(QuickRacksPage, { props: { tipAction: tip as unknown as Action<HTMLElement, string> } })
+  render(PromptHost)
+  return page
+}
 
 /** The app on session `s` with the Quick Racks page tab chosen: the page in the Stage's display box, and the prompt dialogs. */
 function renderApp(s: MockSession) {
@@ -85,7 +90,7 @@ describe('Quick Racks page', () => {
     // Nothing stored yet: the button waits for the save, and the bar asks.
     expect(s.state.quickRacks.storeWaiting).toBe(2)
     expect(s.state.quickRacks.buttons[2].rack).toBeNull()
-    expect(q('[aria-label="Save the rack to store it on A3"]').textContent).toContain('A3 waiting for Save · name the new rack')
+    expect(q('[role="dialog"]').getAttribute('aria-label')).toBe('Store to Quick Rack A3?')
     expect(q('[data-tip="quick.3"]').getAttribute('aria-label')).toBe('Quick Rack A3, empty, waiting for Save')
     const input = q<HTMLInputElement>('[data-tip="quick.save_name"]')
     expect(input.value).toBe('New rack')
@@ -113,7 +118,7 @@ describe('Quick Racks page', () => {
     await click(tipped('quick.store')[0])
     await click(tipped('quick.4')[0])
     expect(s.state.quickRacks.storeWaiting).toBe(3)
-    expect(q('[aria-label="Save the rack to store it on A4"]').textContent).toContain('A4 waiting for Save · Ballad modified')
+    expect(q('[data-prompt="store"]').textContent?.replace(/\s+/g, ' ')).toContain('Ballad has unsaved changes, so it is saved first.')
     expect(tipped('quick.save_name')).toHaveLength(0)
     await click(tipped('quick.save')[0])
     expect(s.state.liveRack).toMatchObject({ name: 'Ballad', modified: false })

@@ -15,10 +15,12 @@
     saveAs: string | null
     busy: boolean
     send: (cmd: AppCmd) => void
+    /** Sends a cancel: never locked. */
+    cancel: (cmd: AppCmd) => void
     tipAction: Action<HTMLElement, string>
   }
 
-  let { parts, saveAs, busy, send, tipAction }: Props = $props()
+  let { parts, saveAs, busy, send, cancel: sendCancel, tipAction }: Props = $props()
 
   // svelte-ignore state_referenced_locally
   let values = $state(parts.map((p) => p.suggested))
@@ -27,7 +29,7 @@
   const disabled = $derived(busy || names.some((n) => n === ''))
   const listed = $derived(listOf(names.map((n) => n || '(no name)')))
 
-  const cancel = () => !busy && send({ type: 'dismissRackPrompt' })
+  const cancel = () => sendCancel({ type: 'dismissRackPrompt' })
   function save() {
     if (disabled) return
     const soundNames = Object.fromEntries(parts.map((p, i) => [p.part, names[i]]))
@@ -58,7 +60,7 @@
     {/each}
   </div>
   <div class="actions">
-    <Button label="Cancel" size="md" disabled={busy} name="Cancel: don't save the rack" tip="rack.cancel_save" {tipAction} onpress={cancel} />
+    <Button label="Cancel" size="md" name="Cancel: don't save the rack" tip="rack.cancel_save" {tipAction} onpress={cancel} />
     <Button
       label={many ? 'Save sounds' : 'Save sound'}
       size="md"

@@ -19,10 +19,12 @@
     rack: { name: string; id: string | null; modified: boolean }
     busy: boolean
     send: (cmd: AppCmd) => void
+    /** Sends a cancel: never locked. */
+    cancel: (cmd: AppCmd) => void
     tipAction: Action<HTMLElement, string>
   }
 
-  let { bank, buttons, slot, rack, busy, send, tipAction }: Props = $props()
+  let { bank, buttons, slot, rack, busy, send, cancel: sendCancel, tipAction }: Props = $props()
 
   const label = $derived(quickLabel(bank, slot))
   // svelte-ignore state_referenced_locally
@@ -39,7 +41,7 @@
     return b.rack ? 'stored' : 'empty'
   }
 
-  const cancel = () => !busy && send({ type: 'toggleQuickRackStore' })
+  const cancel = () => sendCancel({ type: 'toggleQuickRackStore' })
   function save() {
     if (disabled) return
     send(fresh && trimmed !== rack.name ? { type: 'saveRackAs', name: trimmed } : { type: 'saveRack' })
@@ -67,7 +69,7 @@
     <NameField id="dlg-store-field-0" label="Rack name" bind:value={name} tipKey="quick.save_name" ariaLabel="Rack name" onenter={save} />
   {/if}
   <div class="actions">
-    <Button label="Cancel" size="md" disabled={busy} name="Cancel: nothing is saved or stored" tip="quick.cancel_store" {tipAction} onpress={cancel} />
+    <Button label="Cancel" size="md" name="Cancel: nothing is saved or stored" tip="quick.cancel_store" {tipAction} onpress={cancel} />
     <Button label="Save and store" size="md" chosen {disabled} name={saveName} tip="quick.save" {tipAction} onpress={save} />
   </div>
 </Dialog>
