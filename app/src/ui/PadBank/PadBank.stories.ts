@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite'
 import { expect, fn, userEvent, within } from 'storybook/test'
 import PadBank from './PadBank.svelte'
-import { padBanks, sectionLegend, sectionPads } from './PadBank.fixtures'
+import { chordPads, multiPads, padBanks, racksPads, sectionLegend, sectionPads, setupPads } from './PadBank.fixtures'
 
 /**
  * The band's Pads section: the pad bank tabs after the title, the bank's hue legend at the header's
@@ -67,3 +67,15 @@ export const FourByFour: Story = {
 
 /** The flash's off phase: Main C keeps NEXT; its faint fill goes and its ring drops to the 1px outline. */
 export const FlashOff: Story = { args: { lit: false } }
+
+/** Pad page 2, Racks (PadsPage2), Sound latched: the loaded rack is the white block with "Save over", stored racks plain, empty ones hollow. */
+export const Racks: Story = { args: { pads: racksPads, bank: 1, legend: [] } }
+
+/** Pad page 3, Chord (PadsChord): Kbd Tr + and Tr Reset lime, Manual Bass dim (Lower detection). */
+export const Chord: Story = { args: { pads: chordPads, bank: 2, legend: [] } }
+
+/** Pad page 4, Multi Pads (PadsMultiPads): NEXT / ARMED tags, Select 3 lime, Stop 1–2 lit, Stop 3–4 dim. */
+export const MultiPads: Story = { args: { pads: multiPads, bank: 3, legend: [] } }
+
+/** Pad page 5, Setup (PadsSetup): Fingered and ACMP Style the white chosen blocks. */
+export const Setup: Story = { args: { pads: setupPads, bank: 4, legend: [] } }
