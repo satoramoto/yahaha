@@ -407,7 +407,18 @@ export interface MockOptions {
   styles?: number
   /** Import the demo chart playlist and turn chart mode on (`?chart=1`). */
   chart?: boolean
+  /** Start in one of the screens' states (`?scenario=…`, `MockSession.scenario`). */
+  scenario?: MockScenario
 }
+
+/**
+ * The states the missing Push screens are drawn in (`MockSession.scenario`):
+ * - `firstRun`: stopped, the live rack "New rack" (never saved, unmodified), no Launchkey;
+ * - `swapRight1`: the swap layer held for Right 1 (its Panel fader button and a knob);
+ * - `styleSends`: Style part Rhythm 2 (index 1) with its reverb and chorus sends set.
+ */
+export type MockScenario = 'firstRun' | 'swapRight1' | 'styleSends'
+export const MOCK_SCENARIOS: readonly MockScenario[] = ['firstRun', 'swapRight1', 'styleSends']
 
 export class MockSession implements Session {
   readonly kind = 'mock' as const
@@ -528,6 +539,7 @@ export class MockSession implements Session {
     derive(this.state, this.lib, this.hardware(), [...this.leftHand, ...this.rightHand])
     this.sound.derive(this.state)
     this.catalogMock.derive(this.state)
+    if (opts.scenario) this.scenario(opts.scenario)
     if (!opts.manual) {
       this.last = performance.now()
       this.timer = setInterval(() => {
@@ -646,6 +658,28 @@ export class MockSession implements Session {
     const st = this.state
     st.keyboardParts.forEach((p, i) => (p.selected = i === (part & 3)))
     st.surface.partSelectSeq = (st.surface.partSelectSeq + 1) >>> 0
+    this.publish()
+  }
+
+  /** Puts the session in one of the screens' states (`MockScenario`; tests, `?scenario=`). */
+  scenario(name: MockScenario) {
+    const st = this.state
+    switch (name) {
+      case 'firstRun':
+        if (st.transport.running) this.stopBand()
+        st.liveRack = { ...st.liveRack, name: 'New rack', id: null, modified: false, prompt: null }
+        st.ots.applied = 0
+        st.pads.connected = false
+        st.message = null
+        break
+      case 'swapRight1':
+        this.cmd({ type: 'setLayer', layer: { type: 'swap', part: 0 } })
+        break
+      case 'styleSends':
+        this.cmd({ type: 'setStylePartSend', part: 1, send: 'reverb', value: 90 })
+        this.cmd({ type: 'setStylePartSend', part: 1, send: 'chorus', value: 40 })
+        break
+    }
     this.publish()
   }
 

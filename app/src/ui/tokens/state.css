@@ -25,4 +25,6 @@
   --absent-transport: color-mix(in srgb, var(--transport) var(--absent-mix), var(--g));
   /* A control with no hue of its own (a disabled tab, a neutral button). */
   --absent: var(--absent-neutral);
+  /* The scrim behind a modal dialog (ui/Dialog): the ground at most of its strength. */
+  --scrim: color-mix(in srgb, var(--g) 72%, transparent);
 }

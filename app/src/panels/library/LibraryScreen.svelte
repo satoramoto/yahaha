@@ -18,7 +18,7 @@
   import Blooms from '../../ui/Blooms/Blooms.svelte'
   import { levelOf } from '../../ui/Blooms/blooms'
   import Library from '../../ui/Library/Library.svelte'
-  import { prefs } from '../browser/prefs.svelte'
+  import { prefs } from './stylePrefs.svelte'
   import { rangeFor } from '../keystrip/keyboard'
   import { nav as settingsNav } from '../settings/nav.svelte'
   import { stageActions, type OpenTarget } from '../stage/actions'
@@ -97,7 +97,7 @@
   let asked = false
   $effect(() => {
     const now = app.state.liveRack.prompt !== null
-    if (now && !asked && !ui.rack) untrack(() => ui.toggleDrawer('rack'))
+    if (now && !asked && !ui.rack) untrack(() => ui.openRackForPrompt())
     asked = now
   })
 
@@ -242,7 +242,7 @@
 
 {#snippet map()}<MapTab />{/snippet}
 
-<div class="scaler" data-theme={ui.theme} bind:this={box}>
+<div class="scaler" data-theme={ui.resolvedTheme} bind:this={box}>
   <div class="artboard" style:transform={`translate(-50%, -50%) scale(${scale})`}>
     <Blooms
       playing={app.state.transport.running}

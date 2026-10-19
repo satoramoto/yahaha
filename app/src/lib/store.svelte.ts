@@ -238,13 +238,37 @@ const now = () => (typeof performance !== 'undefined' ? performance.now() : Date
 
 export const clock = new BeatClock()
 
-export type Theme = 'dark' | 'light'
+/** The theme chosen: dark, light, or `system` (follow the computer's `prefers-color-scheme`). */
+export type Theme = 'dark' | 'light' | 'system'
 
 function storedTheme(): Theme {
   try {
-    return localStorage.getItem('yahaha.theme') === 'light' ? 'light' : 'dark'
+    const t = localStorage.getItem('yahaha.theme')
+    return t === 'light' || t === 'system' ? t : 'dark'
   } catch {
     return 'dark'
+  }
+}
+
+/** Whether the computer asks for dark (`prefers-color-scheme`); dark where it can't tell. */
+function systemDark(): boolean {
+  if (typeof matchMedia === 'undefined') return true
+  return !matchMedia('(prefers-color-scheme: light)').matches
+}
+
+function storedFlag(key: string): boolean {
+  try {
+    return localStorage.getItem(key) === '1'
+  } catch {
+    return false
+  }
+}
+
+function storeFlag(key: string, on: boolean) {
+  try {
+    localStorage.setItem(key, on ? '1' : '0')
+  } catch {
+    /* private window: not remembered */
   }
 }
 
@@ -270,25 +294,54 @@ export interface SoundPick {
   onpick: (id: string) => void
 }
 
-/** The top-level page under the header (docs/racks.md, "Screens"): the stage, or Library. */
-export type View = 'stage' | 'library'
+/** The top-level page under the header (docs/racks.md, "Screens"): the stage, Library, or the Rack. */
+export type View = 'stage' | 'library' | 'rack'
+
+/** A keyboard part, as the library's sound row names it (ui/SoundRow); `PART_IDS[i]` is
+ * the commands' `part` i. */
+export type PartId = 'right1' | 'right2' | 'right3' | 'left'
+export const PART_IDS: readonly PartId[] = ['right1', 'right2', 'right3', 'left']
+
+/** The quick sound list open for a keyboard part (panels/sounds/SoundPick), anchored under the
+ * control that opened it (null: no anchor, centred). */
+export interface SoundList {
+  part: PartId
+  anchor: DOMRect | null
+}
 
 /** Library's tabs. */
 export type LibraryTab = 'styles' | 'racks' | 'sounds' | 'instruments' | 'map'
 
 class UiStore {
-  /** The page in place of the stage: Stage | Library (the header's switch, Alt+B). Drawers
-   * open over either. */
+  /** The page in the main slot: Stage | Library (the header's switch, Alt+B) | Rack (Alt+O).
+   * Settings opens over any of them. */
   view = $state<View>('stage')
   /** Library's tab, kept while it's closed. */
   libraryTab = $state<LibraryTab>('sounds')
   /** The keyboard part (0-3) Library's Sounds and Instruments load into: "Loads into". */
   libraryPart = $state(0)
-  /** Overlays and drawers around the hardware view. */
-  browser = $state(false)
+  /** Settings, over whichever page is shown. */
   settings = $state(false)
-  /** The Rack panel's drawer on Stage (docs/racks.md). */
-  rack = $state(false)
+  /** Pop-up tips in help mode: the hovered control's entry also floats next to it
+   * (Stage-Help, `app.floating_tips`). Off by default. */
+  floatingTips = $state(storedFlag('yahaha.floatingTips'))
+  /** The first-run panel has been put away (the player started the band or chose a style);
+   * remembered on this computer. */
+  firstRunDone = $state(storedFlag('yahaha.firstRunDone'))
+  /** The quick sound list open for a part (panels/sounds/SoundPick); null: closed. */
+  soundList = $state.raw<SoundList | null>(null)
+  /** Whether the computer asks for dark, kept up by `watchSystemTheme`. */
+  systemDark = $state(systemDark())
+
+  /** The Rack page (docs/racks.md): `view === 'rack'`. Setting it shows the Rack page, or,
+   * when off, goes back to the Stage if the Rack was showing. */
+  get rack(): boolean {
+    return this.view === 'rack'
+  }
+  set rack(on: boolean) {
+    if (on) this.view = 'rack'
+    else if (this.view === 'rack') this.view = 'stage'
+  }
   /** The part the Channel page shows: 0–3 the keyboard parts (Right 1–3, Left), 4–11 the
    * Style parts (Rhythm 1 … Phrase 2). */
   selectedPart = $state(0)
@@ -306,11 +359,33 @@ class UiStore {
     return this.shiftLatched || this.shiftHeld
   }
 
-  /** Open the Rack drawer or Settings (closing the other), or close it if it's open. */
+  /** Show the Rack page or Settings (closing the other), or close it if it's open. */
   toggleDrawer(d: 'rack' | 'settings') {
     const open = !this[d]
     this.rack = this.settings = false
     this[d] = open
+  }
+
+  /** The page to go back to once a rack prompt that opened the Rack page is answered (App
+   * does); null: none pending. Goes when PromptHost asks the prompts. */
+  promptReturn = $state<{ view: View; settings: boolean } | null>(null)
+
+  /** A rack prompt appeared: show the Rack page, where it is asked, remembering where we were. */
+  openRackForPrompt() {
+    if (this.view === 'rack') return
+    this.promptReturn = { view: this.view, settings: this.settings }
+    this.settings = false
+    this.view = 'rack'
+  }
+
+  /** The prompt was answered: back to where it was asked from, if the Rack page is still showing. */
+  promptAnswered() {
+    const r = this.promptReturn
+    this.promptReturn = null
+    if (r && this.view === 'rack') {
+      this.view = r.view
+      this.settings = r.settings
+    }
   }
 
   /** Show Library, on `tab` (else the last one) and loading into `part` (else the last one). */
@@ -329,6 +404,34 @@ class UiStore {
     }
   }
 
+  /** The theme to draw in: `system` resolved through `prefers-color-scheme`. Every
+   * `data-theme` reads this, never `theme`. */
+  get resolvedTheme(): 'dark' | 'light' {
+    if (this.theme !== 'system') return this.theme
+    return this.systemDark ? 'dark' : 'light'
+  }
+
+  /** Follow the computer's light/dark setting while it lasts (App does, for its life).
+   * Returns the stop function. */
+  watchSystemTheme(): () => void {
+    if (typeof matchMedia === 'undefined') return () => {}
+    const q = matchMedia('(prefers-color-scheme: light)')
+    const on = () => (this.systemDark = !q.matches)
+    on()
+    q.addEventListener?.('change', on)
+    return () => q.removeEventListener?.('change', on)
+  }
+
+  setFloatingTips(on: boolean) {
+    this.floatingTips = on
+    storeFlag('yahaha.floatingTips', on)
+  }
+
+  setFirstRunDone(done: boolean) {
+    this.firstRunDone = done
+    storeFlag('yahaha.firstRunDone', done)
+  }
+
   setKeyRange(k: KeyRange | null) {
     this.keyRange = k
     try {
@@ -341,15 +444,17 @@ class UiStore {
 
   /** Esc: close the topmost overlay. Returns whether anything closed. */
   escape(): boolean {
+    if (this.soundList !== null) {
+      this.soundList = null
+      return true
+    }
     if (this.soundPick !== null) {
       this.soundPick = null
       return true
     }
-    if (this.browser) return !(this.browser = false)
     if (this.settings) return !(this.settings = false)
-    if (this.rack) return !(this.rack = false)
-    // Library is a page, not an overlay: Esc goes back to Stage once nothing is open over it.
-    if (this.view === 'library') {
+    // Library and the Rack are pages, not overlays: Esc goes back to Stage once nothing is open over them.
+    if (this.view !== 'stage') {
       this.view = 'stage'
       return true
     }

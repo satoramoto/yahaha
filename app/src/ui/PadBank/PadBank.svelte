@@ -78,12 +78,13 @@
   </GroupHeader>
   <div class="pads" style:--pad-columns={columns}>
     {#each pads as pad, i (i)}
-      <div class="cell">
+      <div class="cell" data-state={pad.state}>
         <Pad
           label={pad.label}
           index={String(i + 1)}
           family={pad.family}
           state={pad.state}
+          tag={pad.tag}
           {lit}
           name={pad.name}
           tip={pad.tip}

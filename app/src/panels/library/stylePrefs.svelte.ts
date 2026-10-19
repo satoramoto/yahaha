@@ -7,7 +7,7 @@
 // change when the folder is rescanned.
 
 import { app } from '../../lib/store.svelte'
-import { setOf, type Category } from './model'
+import { setOf, type Category } from './styleIndex'
 
 const KEY = 'yahaha.browser.v1'
 const MAX_RECENTS = 50

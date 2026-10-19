@@ -221,6 +221,8 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Edit** | Opens the part's plugin window over the app. What you change there marks the sound "edited" until you save it. SoundFont sounds have no editor. | Voice Edit | — | — |
 | **Save sound** | Keeps the plugin edits in the sound: your own sound is updated; a factory preset is never overwritten and is saved as a new sound of yours instead. The part's mix is not part of the sound. | Voice Setting › Save | — | — |
 | **Replace…** | The plugin this part plays isn't installed, so the part is silent. Opens Library › Sounds with this part as the target: the sound you pick replaces it and the part keeps its level, pan, sends and octave. Nothing is saved until you save the rack; reinstalling the plugin brings the sound back. | — | — | — |
+| **Done** | Closes the controller map editor, keeping the changes in the live rack. | — | — | — |
+| **Default map** | Puts the faders and knobs back to what they control by default. | — | — | — |
 
 ## Stage | Library
 
@@ -301,6 +303,7 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 | **Plugin that failed** | This plugin failed to load last time (⚠ says why). Picking it tries again; until it loads, the part plays its SoundFont voice. | — | — | — |
 | **Star** | Adds the sound to your Favourites, or takes it out. | Voice Selection › Favorite | — | — |
 | **Add to my sounds** | Keeps this preset in your sounds (the sound library), once, so it shows in Sounds and can be a map rule. Nothing changes on the part. | — | — | — |
+| **Sound list** | The sounds near this part’s sound: pick one to load it now. Library › Sounds has them all. | — | — | — |
 
 ## Keyboard Harmony / Arpeggio
 
@@ -718,4 +721,32 @@ Every control in the app, as its tooltip describes it. Hover over any control in
 |---|---|---|---|---|
 | **Audio health** | How the audio is doing: "Audio" when all is well, "Audio off" when the built-in synth isn't running. A keyboard part whose plugin failed ("R3 failed") opens its Channel when clicked. Dropouts in the last 30 seconds ("2 dropouts", with "buffer 256?" when the buffer is under 1024) or the synth's CPU at 70% or more ("CPU 74%") open the audio settings, where a larger buffer gives each block more time. | — | — | — |
 | **Help mode** | Keeps the last control you hovered or tabbed to in the status line above the keys while you try it, instead of the line going back to its message. Controls keep working. | — | `?` | — |
-| **Light / dark** | Switches between the dark stage theme and a light one. | — | — | — |
+| **Theme** | Dark, light, or System, which follows your computer’s light or dark setting. | — | — | — |
+| **Pop-up tips** | In help mode, also shows the entry in a small card next to the control you point at. Off by default. | — | — | — |
+
+## First run
+
+| control | what it does | Genos | key | Launchkey |
+|---|---|---|---|---|
+| **Choose a style** | Opens Library › Styles to pick the style the band plays. | — | — | — |
+| **Styles** | Step one: pick a style in Library › Styles. | — | — | — |
+| **Sounds** | Step two: choose the sound each keyboard part plays from the sound row. | — | — | — |
+| **Launchkey** | Step three: plug in the Launchkey. The app finds it by itself within a couple of seconds. | — | — | — |
+| **Ready now** | What is set up already, so you can press Start and play. | — | — | — |
+
+## Prompts
+
+| control | what it does | Genos | key | Launchkey |
+|---|---|---|---|---|
+| **Store the rack** | Stores the live rack on the Quick Rack button you chose, replacing what was there. | MEMORY | — | — |
+| **Unsaved changes** | The live rack has changes that are not saved. Save them, discard them, or cancel and stay. | — | — | — |
+| **Name the sounds** | Keeps or renames the sounds this rack loads before it is saved. | — | — | — |
+| **Delete** | Deletes it for good. This cannot be undone. | — | — | — |
+| **Opening a file** | Waits while the file dialog is open. Choose a file there, or cancel it to come back. | — | — | — |
+
+## Channel
+
+| control | what it does | Genos | key | Launchkey |
+|---|---|---|---|---|
+| **Style part send** | How much of this Style part goes to the send effect. The style sets it; turning it overrides the style. | — | — | — |
+| **Reset to style** | Puts this Style part’s mix back to what the style sets. | — | — | — |

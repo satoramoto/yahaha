@@ -47,6 +47,13 @@ const GROUPS: [string, string][] = [
   ['midi', 'MIDI'],
   ['pedal', 'Pedals and wheels'],
   ['app', 'App'],
+  // The missing Push screens (their lanes add entries under these prefixes only).
+  ['firstrun', 'First run'],
+  ['prompt', 'Prompts'],
+  ['channel', 'Channel'],
+  ['help', 'Help mode'],
+  ['swap', 'Swap mode'],
+  ['stylemap', 'Style map'],
 ]
 
 const cell = (s: string) => s.replace(/\|/g, '\\|').replace(/\n/g, ' ')

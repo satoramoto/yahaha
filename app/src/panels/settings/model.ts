@@ -212,7 +212,7 @@ function launchkeyModel(inputs: string[]): string {
 }
 
 /** `app.cpu`: the meters' CPU share, 0–1 (null: not measured). */
-export function systemPage(state: AppState, app: { theme: 'dark' | 'light'; cpu: number | null; dropouts: number }): SystemPageData {
+export function systemPage(state: AppState, app: { theme: 'dark' | 'light' | 'system'; cpu: number | null; dropouts: number }): SystemPageData {
   const synth = state.io.synth
   const view = settings.view(state)
   const rate = synth?.sampleRate || 48000

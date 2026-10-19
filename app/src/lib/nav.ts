@@ -36,7 +36,7 @@ const page = (id: string) => ({ open: () => stagePage.showing(id), toggle: () =>
 
 export const NAV: NavItem[] = [
   { tip: 'nav.library', label: 'Library', key: 'alt+b', open: () => ui.view === 'library', toggle: () => toggleLibrary() },
-  { tip: 'nav.styles', label: 'Styles', key: 'alt+s', open: () => ui.browser, toggle: () => (ui.browser = !ui.browser) },
+  { tip: 'nav.styles', label: 'Styles', key: 'alt+s', open: () => ui.view === 'library' && ui.libraryTab === 'styles', toggle: () => toggleLibrary('styles') },
   { tip: 'nav.channel', label: 'Channel', key: 'alt+c', ...page('channel') },
   { tip: 'nav.effects', label: 'Effects', key: 'alt+e', ...page('effects') },
   { tip: 'nav.quick', label: 'Quick Racks', key: 'alt+q', ...page('quickRacks') },

@@ -1,7 +1,7 @@
 // Library › Styles: the page's app-only state. The cursor (the highlighted style, by library
 // id, so it stays on the same style while the list changes around it) and the filter text.
 // Neither goes to the engine; the category, favourites, recents and Preview on select are the
-// style browser's remembered prefs (panels/browser/prefs.svelte.ts), shared with it.
+// style browser's remembered prefs (stylePrefs.svelte.ts).
 
 export class StylesState {
   /** The highlighted style's library id; null = none (the first row is drawn as the cursor). */

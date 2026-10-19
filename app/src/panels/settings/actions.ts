@@ -23,7 +23,7 @@ export interface SettingsDeps {
   /** The settings adapter's `send` (lib/api/settings.svelte.ts): drops what the engine lacks. */
   settingsSend: (cmd: SettingsCmd) => void
   /** `ui.setTheme`. */
-  setTheme: (theme: 'dark' | 'light') => void
+  setTheme: (theme: 'dark' | 'light' | 'system') => void
   /** Show another Settings page. */
   openPage: (page: SettingsPageId) => void
   /** Arm or disarm the split pick on the main keyboard (`splitPick.armed`, ../stage/splitPick.svelte.ts). */

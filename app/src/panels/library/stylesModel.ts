@@ -31,9 +31,9 @@ import { pickFailure, pickFile, type FilePick } from '../../lib/files'
 import type { FolderItem } from '../../ui/FolderList/types'
 import type { StyleLoad, StyleView, StyleViewTab } from '../../ui/LibraryStyles/types'
 import type { ListRow } from '../../ui/ListTable/types'
-import { folderTree, indexLibrary, type Category, type Indexed } from '../browser/model'
+import { folderTree, indexLibrary, type Category, type Indexed } from './styleIndex'
 
-/** The prefs the page reads (panels/browser/prefs.svelte.ts `prefs`). */
+/** The prefs the page reads (stylePrefs.svelte.ts `prefs`). */
 export interface StylesPrefsView {
   readonly favourites: ReadonlySet<string>
   readonly recents: readonly string[]
