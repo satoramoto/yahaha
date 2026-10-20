@@ -6,6 +6,10 @@
 // is what the status line above the keys shows on hover.
 // A new panel is covered automatically once it's in App.svelte; if it shows controls only
 // in some state, add that state to STATES below.
+//
+// The Stage is zen's (panels/zen/ZenStageScreen). The same states run once more on the former
+// Stage (`ui.legacyStage`, panels/stage/StageScreen), and every tooltip key a control showed
+// there must show on zen's Stage in some state too, or be in LEGACY_ONLY with the reason.
 
 import { render, cleanup } from '@testing-library/svelte'
 import { flushSync } from 'svelte'
@@ -233,6 +237,20 @@ const STATES: [string, Setup][] = [
   ['Stage, Sound latched', (s) => s.send({ type: 'setLayer', layer: { type: 'sound' } })],
 ]
 
+/** The tooltip keys of every interactive element in `root`. */
+function tipKeys(root: ParentNode): string[] {
+  return [...root.querySelectorAll(INTERACTIVE)].map((el) => el.getAttribute('data-tip')).filter((k): k is string => k !== null)
+}
+
+/**
+ * Tooltip keys a control shows on the former Stage and on no control of zen's Stage, each with
+ * the reason. Anything else the former Stage showed must show on zen's.
+ */
+export const LEGACY_ONLY: Record<string, string> = {}
+
+/** Tooltip keys seen across every state, on zen's Stage (the default) and on the former one. */
+const seen = { zen: new Set<string>(), legacy: new Set<string>() }
+
 // Other files leave hover and focus state in the shared tooltip module (isolate: false).
 beforeEach(() => {
   ;(document.activeElement as HTMLElement | null)?.blur()
@@ -258,7 +276,11 @@ afterEach(() => {
   ui.shiftLatched = false
   tips.help = false
   stagePage.page = 'stage'
+  ui.legacyStage = false
 })
+
+/** Every display page tab but the Stage's own: its page in the Stage's `page` slot. */
+const PAGE_TABS = DISPLAY_TABS.filter((t) => t.id !== 'stage').map((t) => t.id)
 
 describe('tooltip coverage', () => {
   for (const [name, setup] of STATES) {
@@ -271,24 +293,78 @@ describe('tooltip coverage', () => {
       const found = document.body.querySelectorAll(INTERACTIVE).length
       expect(found, 'the app rendered no controls at all').toBeGreaterThan(10)
       expect(untipped(document.body)).toEqual([])
+      for (const k of tipKeys(document.body)) seen.zen.add(k)
     })
   }
 
-  // Every display page tab: its page in the Stage's display box, the band and keys as on the Stage.
+  // Every display page tab: its page in the Stage's page slot, the band and keys as on the Stage.
   // (Library and Settings are screens of their own: their states are in STATES above.)
-  for (const { id: page } of DISPLAY_TABS.filter((t) => t.id !== 'stage')) {
+  for (const page of PAGE_TABS) {
     it(`every interactive element has a catalog tooltip: page tab ${page}`, () => {
       const session = new MockSession({ demo: true, manual: true })
       render(App, { props: { session } })
       stagePage.page = page
       session.advance(16)
       flushSync()
-      expect(document.querySelector('[data-slot="page"]'), 'the page slot').toBeTruthy()
-      expect(document.querySelector('section[aria-label="Faders"]'), 'the band').toBeTruthy()
-      expect(document.querySelectorAll('nav[aria-label="Pages"] button')).toHaveLength(PAGES.length)
+      expect(document.querySelector('.zen-stage [data-slot="page"]'), 'the page slot').toBeTruthy()
+      expect(document.querySelector('.zen-stage [data-region="mixer"]'), 'the band').toBeTruthy()
+      const tabs = document.querySelectorAll('.zen-stage [role="tablist"][aria-label$="pages"] [role="tab"]')
+      expect(tabs).toHaveLength(PAGES.length)
       expect(untipped(document.body)).toEqual([])
+      for (const k of tipKeys(document.body)) seen.zen.add(k)
     })
   }
+
+  it('the side panel (first run) has catalog tooltips', () => {
+    const session = new MockSession({ manual: true, scenario: 'firstRun' })
+    const done = ui.firstRunDone
+    ui.setFirstRunDone(false)
+    try {
+      render(App, { props: { session } })
+      session.advance(16)
+      flushSync()
+      expect(document.querySelector('.zen-stage [data-slot="side"]'), 'the side slot').toBeTruthy()
+      expect(untipped(document.body)).toEqual([])
+      for (const k of tipKeys(document.body)) seen.zen.add(k)
+    } finally {
+      ui.setFirstRunDone(done)
+    }
+  })
+})
+
+describe('zen\'s Stage reaches every control the former Stage did', () => {
+  // The same states on the former Stage (`?legacy`), collecting its tooltip keys.
+  for (const [name, setup] of STATES) {
+    it(`the former Stage: ${name}`, () => {
+      ui.legacyStage = true
+      const session = new MockSession({ demo: true, manual: true })
+      render(App, { props: { session } })
+      setup(session)
+      session.advance(16)
+      flushSync()
+      for (const k of tipKeys(document.body)) seen.legacy.add(k)
+    })
+  }
+  for (const page of PAGE_TABS) {
+    it(`the former Stage: page tab ${page}`, () => {
+      ui.legacyStage = true
+      const session = new MockSession({ demo: true, manual: true })
+      render(App, { props: { session } })
+      stagePage.page = page
+      session.advance(16)
+      flushSync()
+      for (const k of tipKeys(document.body)) seen.legacy.add(k)
+    })
+  }
+
+  it('every tooltip key the former Stage showed shows on zen\'s, or is a named exception', () => {
+    expect(seen.legacy.size, 'the former Stage ran').toBeGreaterThan(50)
+    expect(seen.zen.size, 'zen\'s Stage ran').toBeGreaterThan(50)
+    const missing = [...seen.legacy].filter((k) => !seen.zen.has(k) && !(k in LEGACY_ONLY)).sort()
+    expect(missing).toEqual([])
+    // An exception that zen's Stage now reaches is stale: drop it.
+    expect(Object.keys(LEGACY_ONLY).filter((k) => seen.zen.has(k))).toEqual([])
+  })
 
   it('the checker catches a control without a tooltip', () => {
     document.body.innerHTML = '<button>x</button><div role="slider" tabindex="0" data-tip="nope"></div><button data-tip="transport.start_stop">ok</button>'
