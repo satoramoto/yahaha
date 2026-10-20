@@ -2,7 +2,7 @@
 
 Follow-up to `status-2026-10-19.md` section 3 (inbox 61, approved 2026-10-20). Every branch on origin that is not an ancestor of `develop` was classified at the time of writing; the rule for deletion is the one in the status page: the branch is contained in a merged PR (its head, an ancestor of a merged head, or its files identical to `develop` at that PR's merge commit), or every file it touched is gone from `develop`. Branches that satisfy neither are left on origin and listed at the end.
 
-**Deleted: 381 branches.** Each was deleted one by one with `git push origin --delete <branch>` from this list.
+**Deleted: 380 branches.** Each was deleted one by one with `git push origin --delete <branch>` from this list.
 
 | Branch | Why it is stale |
 |---|---|
@@ -223,7 +223,6 @@ Follow-up to `status-2026-10-19.md` section 3 (inbox 61, approved 2026-10-20). E
 | `m7/registration` | merged PR #99 |
 | `m8/ireal-core` | merged PR #80 |
 | `m8/ireal-player` | merged PR #98 |
-| `main` | no changes vs merge-base |
 | `master-comp-eq` | merged PR #420 |
 | `mocks-sound-numbers` | merged PR #485 |
 | `ots/recall` | merged PR #248 |
@@ -388,7 +387,7 @@ Follow-up to `status-2026-10-19.md` section 3 (inbox 61, approved 2026-10-20). E
 | `voices/bank10-map` | merged PR #274 |
 | `voices/bank9-map` | merged PR #273 |
 
-**Kept (6):** `dependabot/npm_and_yarn/app/source-map-js-1.2.2` (open PR), `docs/status-2026-10-19` (open PR), `spec/ui-appbar-section` (listed keep), `spec/ui-band` (open PR), `spec/ui-components-all` (listed keep), `spec/ui-display` (listed keep; #581 merged 2026-10-20).
+**Kept (7):** `main` (GitHub default and release branch, behind develop with no divergence; the "no changes vs merge-base" rule caught it and it was excluded by hand), `dependabot/npm_and_yarn/app/source-map-js-1.2.2` (open PR), `docs/status-2026-10-19` (open PR), `spec/ui-appbar-section` (listed keep), `spec/ui-band` (open PR), `spec/ui-components-all` (listed keep), `spec/ui-display` (listed keep; #581 merged 2026-10-20).
 
 **Left on origin, not covered by the rule (6).** Deleting these needs a separate decision.
 
