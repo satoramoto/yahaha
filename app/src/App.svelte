@@ -42,8 +42,12 @@
   import SoundPicker from './panels/sounds/SoundPicker.svelte'
   import StageScreen from './panels/stage/StageScreen.svelte'
   import { stagePage } from './panels/stage/page.svelte'
+  import ZenStageScreen from './panels/zen/ZenStageScreen.svelte'
 
   let { session }: { session: Session } = $props()
+
+  // `?zen`: start on the pilot of zen's Svelte Stage instead of the app's own.
+  if (new URLSearchParams(location.search).has('zen')) ui.view = 'zen'
 
   $effect(() => {
     app.attach(session)
@@ -105,6 +109,9 @@
   {:else if ui.view === 'library'}
     <!-- Library replaces the stage (panels/library/LibraryScreen, scaled like it); the band keeps playing. -->
     <main class="stage-slot"><LibraryScreen /></main>
+  {:else if ui.view === 'zen'}
+    <!-- The pilot of zen's Svelte Stage (`?zen`); the Stage below stays the default. -->
+    <main class="stage-slot"><ZenStageScreen /></main>
   {:else if ui.view === 'rack'}
     <!-- The Rack page (Alt+O): the old Rack panel, docked, until the Rack lane replaces it. -->
     <main class="stage-slot rack-slot"><RackPanel docked /></main>

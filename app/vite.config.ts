@@ -18,13 +18,26 @@ async function storybookDocgen(): Promise<PluginOption[]> {
   })
 }
 
+/**
+ * A local zen checkout (`ZEN_SOURCE=~/Code/satoramoto/zen`, `npm run dev:zen`): zen's
+ * `zen-source` export condition resolves its TS and Svelte source, hot-reloaded. It needs
+ * `node_modules/@satoramoto/zen` linked to the checkout first: `npm install --no-save $ZEN_SOURCE`
+ * (zen's AGENTS.md, "Running an app against a local zen").
+ */
+const zenSource = process.env.ZEN_SOURCE
+const zenConditions = zenSource ? ['zen-source', 'module', 'browser', 'development|production'] : []
+
 // Tauri expects a fixed port and wants to see Rust errors, so don't clear the screen.
 export default defineConfig(async () => ({
   plugins: [svelte(), ...(process.env.VITEST ? await storybookDocgen() : [])],
   clearScreen: false,
-  server: { port: 5173, strictPort: true },
+  // Without ZEN_SOURCE, Vite's own default (the workspace root) stays.
+  server: { port: 5173, strictPort: true, ...(zenSource ? { fs: { allow: ['.', zenSource] } } : {}) },
   build: { target: 'es2022' },
-  resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
+  resolve:
+    process.env.VITEST || zenSource
+      ? { conditions: [...new Set([...zenConditions, ...(process.env.VITEST ? ['browser'] : [])])] }
+      : undefined,
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
