@@ -156,7 +156,8 @@ describe('Library screen', () => {
 
   it('the Stage\'s Browse (the style line) opens Library › Styles', async () => {
     const session = setup()
-    await fireEvent.click(document.querySelector<HTMLElement>('.scaler [data-tip="browser.open"]')!)
+    // zen's Stage (panels/zen/ZenStageScreen): the style name in the Display opens the browser.
+    await fireEvent.click(document.querySelector<HTMLElement>('.zen-stage [data-region="hero"] [data-tip="browser.open"]')!)
     step(session)
     expect(ui.view).toBe('library')
     expect(ui.libraryTab).toBe('styles')

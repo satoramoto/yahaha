@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:zen": "ZEN_SOURCE=${ZEN_SOURCE:-$HOME/Code/satoramoto/zen} vite",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json --fail-on-warnings && tsc -p tsconfig.node.json",
@@ -55,6 +56,7 @@
     "@fontsource/barlow-condensed": "^5.3.0",
     "@fontsource/dm-sans": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
+    "@satoramoto/zen": "github:satoramoto/zen#02ba4a90ffb1fcfd342d82d72ccce7c5864c6aa1",
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-dialog": "~2.7.3"
   }

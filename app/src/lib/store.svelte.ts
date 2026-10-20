@@ -316,6 +316,9 @@ class UiStore {
   /** The page in the main slot: Stage | Library (the header's switch, Alt+B) | Rack (Alt+O).
    * Settings opens over any of them. */
   view = $state<View>('stage')
+  /** The Stage is the former one (panels/stage/StageScreen) instead of zen's (panels/zen/ZenStageScreen):
+   * the `?legacy` URL parameter, kept for one release. */
+  legacyStage = $state(false)
   /** Library's tab, kept while it's closed. */
   libraryTab = $state<LibraryTab>('sounds')
   /** The keyboard part (0-3) Library's Sounds and Instruments load into: "Loads into". */
