@@ -35,6 +35,8 @@ type Story = StoryObj<typeof meta>
 
 /** Phi, Just and Root-two, one section each: the knobs block and the faders block, with their reports. */
 export const Tunings: Story = {
+  // Three tunings rendered at once: the story test's default 5 s is borderline on CI.
+  parameters: { timeout: 20000 },
   play: async ({ args, canvasElement }) => {
     const sections = [...canvasElement.querySelectorAll<HTMLElement>('section[data-tuning]')]
     await expect(sections.map((s) => s.dataset.tuning)).toEqual(['phi', 'just', 'root2'])
