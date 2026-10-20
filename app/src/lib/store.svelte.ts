@@ -294,8 +294,9 @@ export interface SoundPick {
   onpick: (id: string) => void
 }
 
-/** The top-level page under the header (docs/racks.md, "Screens"): the stage, Library, or the Rack. */
-export type View = 'stage' | 'library' | 'rack'
+/** The top-level page under the header (docs/racks.md, "Screens"): the stage, Library, or the Rack;
+ * 'zen' is the pilot of zen's Svelte Stage (panels/zen/ZenStageScreen, the `?zen` URL parameter). */
+export type View = 'stage' | 'library' | 'rack' | 'zen'
 
 /** A keyboard part, as the library's sound row names it (ui/SoundRow); `PART_IDS[i]` is
  * the commands' `part` i. */

@@ -145,7 +145,8 @@ for (const [path, mod] of Object.entries(modules)) {
             expect(result.error, 'the a11y check failed to run').toBeUndefined()
             expect(result.violations?.map((v) => `${v.id}: ${v.help}`) ?? []).toEqual([])
           }
-        })
+          // A slow story may ask for more time (`parameters.timeout`, ms); the rest keep the default.
+        }, typeof story.parameters.timeout === 'number' ? story.parameters.timeout : undefined)
       }
     }
   })
