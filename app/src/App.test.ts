@@ -1,8 +1,8 @@
-// The app shell (App.svelte): the Stage screen (panels/stage/StageScreen) in a scaler that
-// carries the kit's theme, with no help footer; Library in the Stage's place; a display page tab
-// showing its page in the Stage's display box until Esc or the Stage tab (and its Alt key), and
-// Settings opening the Settings screen; tooltips in the status line; and a Stage control sending
-// its command.
+// The app shell (App.svelte): the Stage screen (panels/zen/ZenStageScreen, zen's Svelte Stage) in a
+// box that carries the kit's theme, with no help footer; Library in the Stage's place; a display
+// page tab showing its page in the Stage's `page` slot until Esc or the Stage tab (and its Alt
+// key), and Settings opening the Settings screen; tooltips in the status line; a Stage control
+// sending its command; and the former Stage (panels/stage/StageScreen) behind `?legacy`.
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte'
 import { flushSync, tick } from 'svelte'
@@ -21,6 +21,7 @@ afterEach(() => {
   ui.libraryPart = 0
   ui.rack = false
   ui.settings = false
+  ui.soundList = null
   stagePage.page = 'stage'
 })
 
@@ -32,19 +33,34 @@ function setup() {
   return session
 }
 
+/** The Stage's box (ZenStageScreen). */
+const stage = () => document.querySelector<HTMLElement>('.app > main .zen-stage')
+/** Library's and Settings' scaled box (they keep the former Stage's scaler). */
 const scaler = () => document.querySelector<HTMLElement>('.app > main .scaler[data-theme]')
+/** A page tab, on the Stage's app bar (zen's tabs) or on Library's and Settings' (the app's own). */
 const tab = (label: string) =>
-  [...document.querySelectorAll<HTMLButtonElement>('nav[aria-label="Pages"] button')].find((b) => b.textContent?.trim() === label)!
+  [...document.querySelectorAll<HTMLButtonElement>('nav[aria-label="Pages"] button, [role="tablist"][aria-label$="pages"] [role="tab"]')].find(
+    (b) => b.textContent?.trim() === label,
+  )!
+/** The tab is the current page: `aria-selected` on zen's tabs, `aria-current` on the app's. */
+const current = (label: string) => {
+  const t = tab(label)
+  return t.getAttribute('aria-selected') === 'true' || t.getAttribute('aria-current') === 'page'
+}
+const band = () => document.querySelector('.zen-stage [data-region="mixer"]')
+const slot = () => document.querySelector('.zen-stage [data-slot="page"]')
 
 describe('the shell', () => {
-  it('mounts the Stage, scaled in a themed box, with no help footer', () => {
+  it('mounts zen\'s Stage in a themed box, with no help footer', () => {
     setup()
-    const box = scaler()
+    const box = stage()
     expect(box).toBeTruthy()
     expect(box!.dataset.theme).toBe(ui.theme)
-    expect(box!.querySelector('section[aria-label="Faders"]')).toBeTruthy()
-    expect(box!.querySelector('nav[aria-label="Pages"]')).toBeTruthy()
-    expect(box!.querySelector('[role="toolbar"][aria-label="Transport, switches and helpers"]')).toBeTruthy()
+    expect(box!.querySelector<HTMLElement>('.lib-scope')!.dataset.mode).toBe(ui.resolvedTheme)
+    expect(box!.querySelector('.yh-stage')!.getAttribute('data-backdrop')).toBe('transparent')
+    expect(document.querySelector('.scaler')).toBeNull()
+    expect(band()).toBeTruthy()
+    expect(box!.querySelector('[role="tablist"][aria-label="Display pages"]')).toBeTruthy()
     // The column holds the Stage's slot alone.
     const column = [...document.querySelector('.app')!.children]
     expect(column).toHaveLength(1)
@@ -53,33 +69,51 @@ describe('the shell', () => {
     expect(document.querySelector('footer')).toBeNull()
   })
 
-  it('shows the Library screen in the Stage\'s place while ui.view is library, scaled the same way', () => {
+  it('shows the Library screen in the Stage\'s place while ui.view is library', () => {
     setup()
     ui.openLibrary('sounds', 0)
     flushSync()
-    expect(scaler()!.querySelector('section[aria-label="Faders"]')).toBeNull()
+    expect(stage()).toBeNull()
     expect(scaler()!.querySelector('section[aria-label="Library: Sounds"]')).toBeTruthy()
     ui.view = 'stage'
     flushSync()
-    expect(scaler()!.querySelector('section[aria-label="Faders"]')).toBeTruthy()
+    expect(band()).toBeTruthy()
     expect(document.querySelector('section[aria-label^="Library:"]')).toBeNull()
   })
 })
 
-describe('page tabs', () => {
-  const slot = () => document.querySelector('.scaler [data-slot="page"]')
-  const band = () => document.querySelector('.scaler section[aria-label="Faders"]')
+describe('the former Stage (`?legacy`, ui.legacyStage)', () => {
+  afterEach(() => {
+    ui.legacyStage = false
+  })
 
-  it('Effects shows its page in the display box, the band and keys stay; Esc comes back to the Stage', async () => {
+  it('mounts the former Stage, scaled, in zen\'s Stage\'s place; Accomp toggles', async () => {
+    ui.legacyStage = true
+    const session = setup()
+    expect(stage()).toBeNull()
+    const box = scaler()!
+    expect(box.querySelector('section[aria-label="Faders"]')).toBeTruthy()
+    expect(box.querySelector('nav[aria-label="Pages"]')).toBeTruthy()
+    const before = session.state.transport.acmp
+    await fireEvent.click(box.querySelector<HTMLButtonElement>('[data-tip="transport.acmp"]')!)
+    session.advance(16)
+    flushSync()
+    expect(session.state.transport.acmp).toBe(!before)
+  })
+})
+
+describe('page tabs', () => {
+  it('Effects shows its page in the page slot, the band and keys stay; Esc comes back to the Stage', async () => {
     setup()
     expect(slot()).toBeNull()
     await fireEvent.click(tab('Effects'))
     flushSync()
     expect(stagePage.page).toBe('effects')
     expect(slot()).toBeTruthy()
+    expect(document.querySelector('.yh-stage')!.getAttribute('data-hero')).toBe('page')
     expect(band()).toBeTruthy()
-    expect(document.querySelector('.scaler [role="toolbar"][aria-label="Transport, switches and helpers"]')).toBeTruthy()
-    expect(tab('Effects').getAttribute('aria-current')).toBe('page')
+    expect(document.querySelector('.zen-stage [data-region="keys"]')).toBeTruthy()
+    expect(current('Effects')).toBe(true)
     await fireEvent.keyDown(window, { key: 'Escape' })
     flushSync()
     expect(stagePage.page).toBe('stage')
@@ -102,7 +136,7 @@ describe('page tabs', () => {
       flushSync()
       expect(ui.view).toBe('stage')
       expect(stagePage.page).toBe(page)
-      expect(tab(label).getAttribute('aria-current')).toBe('page')
+      expect(current(label)).toBe(true)
       expect(slot()).toBeTruthy()
       // No drawer over it.
       expect(document.querySelector('[role="complementary"]')).toBeNull()
@@ -128,6 +162,16 @@ describe('page tabs', () => {
     expect(stagePage.page).toBe('effects')
   })
 
+  it('a part strip\'s sound opens that part\'s sound list (launchkey.fader_sound)', async () => {
+    setup()
+    const sound = screen.getByRole('button', { name: /^Right 2 sound: .+, choose a sound$/ })
+    expect(sound.dataset.tip).toBe('launchkey.fader_sound')
+    await fireEvent.click(sound)
+    flushSync()
+    expect(ui.soundList?.part).toBe('right2')
+    expect(stagePage.page).toBe('stage')
+  })
+
   it('Library, a full tab, shows the Library screen; the Stage tab and Esc come back', async () => {
     setup()
     await fireEvent.click(tab('Library'))
@@ -135,12 +179,12 @@ describe('page tabs', () => {
     expect(ui.view).toBe('library')
     expect(screen.queryByText('Coming soon')).toBeNull()
     expect(document.querySelector('section[aria-label^="Library:"]')).toBeTruthy()
-    expect(tab('Library').getAttribute('aria-current')).toBe('page')
+    expect(current('Library')).toBe(true)
     await fireEvent.click(tab('Stage'))
     flushSync()
     expect(ui.view).toBe('stage')
     expect(stagePage.page).toBe('stage')
-    expect(document.querySelector('section[aria-label="Faders"]')).toBeTruthy()
+    expect(band()).toBeTruthy()
     await fireEvent.click(tab('Library'))
     flushSync()
     await fireEvent.keyDown(window, { key: 'Escape' })
@@ -156,11 +200,11 @@ describe('page tabs', () => {
     flushSync()
     expect(ui.settings).toBe(true)
     expect(screen.queryByText('Coming soon')).toBeNull()
-    expect(tab('Settings').getAttribute('aria-current')).toBe('page')
+    expect(current('Settings')).toBe(true)
     // The screen, not the old drawer, and not the Stage under it.
     expect(scaler()!.querySelector('nav[aria-label="Settings pages"]')).toBeTruthy()
     expect(document.querySelector('[role="complementary"]')).toBeNull()
-    expect(document.querySelector('section[aria-label="Faders"]')).toBeNull()
+    expect(stage()).toBeNull()
     // Chord & Split's Upper: the change reaches the session and comes back.
     await fireEvent.click(scaler()!.querySelector<HTMLElement>('[data-tip="detection.upper"]')!)
     session.advance(16)
@@ -173,7 +217,7 @@ describe('page tabs', () => {
     expect(ui.settings).toBe(false)
     expect(stagePage.page).toBe('stage')
     expect(document.querySelector('nav[aria-label="Settings pages"]')).toBeNull()
-    expect(document.querySelector('section[aria-label="Faders"]')).toBeTruthy()
+    expect(band()).toBeTruthy()
   })
 
   it('Alt+T shows the same Settings screen, with its tab current; Esc leaves it', async () => {
@@ -183,7 +227,7 @@ describe('page tabs', () => {
     expect(ui.settings).toBe(true)
     expect(document.querySelector('nav[aria-label="Settings pages"]')).toBeTruthy()
     expect(document.querySelector('[role="complementary"]')).toBeNull()
-    expect(tab('Settings').getAttribute('aria-current')).toBe('page')
+    expect(current('Settings')).toBe(true)
     await fireEvent.keyDown(window, { key: 'Escape' })
     flushSync()
     expect(ui.settings).toBe(false)
@@ -203,10 +247,28 @@ describe('page tabs', () => {
   })
 })
 
+describe('the side panel', () => {
+  it('help mode shows the help card in the side slot', () => {
+    setup()
+    expect(document.querySelector('.zen-stage [data-slot="side"]')).toBeNull()
+    tips.help = true
+    flushSync()
+    expect(document.querySelector('.zen-stage [data-slot="side"]')).toBeTruthy()
+    expect(document.querySelector('.yh-stage')!.getAttribute('data-hero')).toMatch(/^side/)
+    tips.help = false
+    flushSync()
+    expect(document.querySelector('.zen-stage [data-slot="side"]')).toBeNull()
+  })
+})
+
 describe('the metronome popover and the global keys', () => {
-  const popover = () => document.getElementById('metronome-settings')
+  const toggle = () => document.querySelector<HTMLElement>('.zen-stage [aria-controls][aria-haspopup], .zen-stage [aria-controls][aria-expanded]')!
+  const popover = () => {
+    const id = toggle().getAttribute('aria-controls')!
+    return document.getElementById(id)
+  }
   const openPopover = async () => {
-    await fireEvent.click(document.querySelector<HTMLElement>('[aria-controls="metronome-settings"]')!)
+    await fireEvent.click(toggle())
     flushSync()
     expect(popover()).toBeTruthy()
   }
@@ -215,7 +277,8 @@ describe('the metronome popover and the global keys', () => {
     setup()
     await fireEvent.click(tab('Looper'))
     await openPopover()
-    await fireEvent.keyDown(window, { key: 'Escape' })
+    // One Esc, pressed in the popover (it bubbles to the window's keys).
+    await fireEvent.keyDown(popover()!.querySelector<HTMLElement>('[role="slider"]')!, { key: 'Escape' })
     flushSync()
     expect(popover()).toBeNull()
     expect(stagePage.page).toBe('looper')
@@ -234,9 +297,9 @@ describe('the metronome popover and the global keys', () => {
 })
 
 describe('tooltips in the status line', () => {
-  const line = () => document.querySelector<HTMLElement>('.scaler p[role="status"]')!
-  const hintText = () => line().querySelector('.hint')?.textContent ?? ''
-  const control = (key: string) => document.querySelector<HTMLElement>(`.scaler [data-tip="${key}"]`)!
+  const line = () => document.querySelector<HTMLElement>('.zen-stage [role="status"].yh-status-line')!
+  const hintText = () => line().querySelector('[data-part="hint"]')?.textContent ?? ''
+  const control = (key: string) => document.querySelector<HTMLElement>(`.zen-stage [data-tip="${key}"]`)!
   const hover = (el: HTMLElement) => fireEvent.pointerEnter(el, { pointerType: 'mouse' })
   const leave = (el: HTMLElement) => fireEvent.pointerLeave(el, { pointerType: 'mouse' })
 
@@ -263,15 +326,15 @@ describe('tooltips in the status line', () => {
     const t = TIPS['transport.acmp']
     expect(hintText()).toContain(t.title)
     expect(hintText()).toContain(t.body)
-    expect(line().querySelector('.hint')!.getAttribute('aria-hidden')).toBe('true')
+    expect(line().querySelector('[data-part="hint"]')!.getAttribute('aria-hidden')).toBe('true')
     // The message stays in the live region, under the hint.
-    expect(line().querySelector('button.line.under')!.textContent).toContain(message)
+    expect(line().querySelector('.yh-status-line-under')!.textContent).toContain(message)
 
     await leave(accomp)
     vi.advanceTimersByTime(CLEAR_MS)
     flushSync()
-    expect(line().querySelector('.hint')).toBeNull()
-    expect(line().querySelector('button.line:not(.under)')!.textContent).toContain(message)
+    expect(line().querySelector('[data-part="hint"]')).toBeNull()
+    expect(line().querySelector('.yh-status-line-button:not(.yh-status-line-under)')!.textContent).toContain(message)
   })
 
   it('an error that arrives during a hover shows; the next control shows its entry again', async () => {
@@ -282,7 +345,7 @@ describe('tooltips in the status line', () => {
     session.send({ type: 'auditionStyle', id: 1 })
     session.advance(16)
     flushSync()
-    expect(line().querySelector('.hint')).toBeNull()
+    expect(line().querySelector('[data-part="hint"]')).toBeNull()
     expect(line().textContent).toContain(session.state.message!.text)
     await hover(control('transport.sync_start'))
     flushSync()
@@ -334,42 +397,12 @@ describe('the Stage\'s controls', () => {
   it('Accomp toggles the session\'s accompaniment', async () => {
     const session = setup()
     const before = session.state.transport.acmp
-    const accomp = document.querySelector<HTMLButtonElement>('.scaler [data-tip="transport.acmp"]')!
+    const accomp = document.querySelector<HTMLButtonElement>('.zen-stage [data-tip="transport.acmp"]')!
     expect(accomp.getAttribute('aria-pressed')).toBe(String(before))
     await fireEvent.click(accomp)
     session.advance(16)
     flushSync()
     expect(session.state.transport.acmp).toBe(!before)
     expect(accomp.getAttribute('aria-pressed')).toBe(String(!before))
-  })
-})
-
-describe('zen\'s Stage (`?zen`, ui.zenStage)', () => {
-  afterEach(() => {
-    ui.zenStage = false
-  })
-
-  it('takes the Stage\'s place in a theme scope; a page tab shows its page over the hero; Accomp toggles', async () => {
-    ui.zenStage = true
-    const session = setup()
-    const box = document.querySelector<HTMLElement>('.app > main .zen-stage')!
-    expect(box).toBeTruthy()
-    expect(document.querySelector('.scaler')).toBeNull()
-    expect(box.querySelector<HTMLElement>('.lib-scope')!.dataset.mode).toBe(ui.resolvedTheme)
-    expect(box.querySelector('[data-region="mixer"]')).toBeTruthy()
-
-    const accomp = box.querySelector<HTMLButtonElement>('[data-tip="transport.acmp"]')!
-    const before = session.state.transport.acmp
-    await fireEvent.click(accomp)
-    session.advance(16)
-    flushSync()
-    expect(session.state.transport.acmp).toBe(!before)
-
-    await fireEvent.click(tab('Effects'))
-    flushSync()
-    expect(stagePage.page).toBe('effects')
-    expect(tab('Effects').getAttribute('aria-selected')).toBe('true')
-    expect(box.querySelector('[data-slot="page"]')).toBeTruthy()
-    expect(box.querySelector('[data-region="mixer"]')).toBeTruthy()
   })
 })

@@ -140,12 +140,27 @@ export function fillPending(state: AppState): 'up' | 'down' | undefined {
 
 /** The app's part hue names (r1 r2 r3 l) as zen's hue slots (`yahaha/hues.ts` PART_HUE_INDEX). */
 const HUE_SLOT = { r1: 1, r2: 2, r3: 3, l: 4 } as const
+/** zen's part (a hue slot name) as the app's part id, what the sound list opens for. */
+const PART_ID = { r1: 'right1', r2: 'right2', r3: 'right3', l: 'left' } as const
 
 type BankLamp = StageProps['faders']['partLamps'][number]
 type AppLamp = ReturnType<typeof faders>['partLamps'][number]
 
 /** A fader lamp in zen's hues: `m` (the app's deprecated alias of `t`) draws neutral; the rest, `ok` included, pass through. */
 const lamp = (l: AppLamp): BankLamp => ({ ...l, hue: l.hue === 'm' ? 't' : l.hue })
+
+type BankStrip = StageProps['faders']['strips'][number]
+
+/**
+ * A strip: a part's (r1 r2 r3 l) strip shows its sound under the name, as the former Display's
+ * sound row did, and the sound is its own button (`faders.onSound`) with that row's tooltip.
+ */
+function strip(state: AppState, x: BankStrip): BankStrip {
+  if (!(x.hue in HUE_SLOT)) return x
+  const part = state.keyboardParts[HUE_SLOT[x.hue as keyof typeof HUE_SLOT] - 1]
+  if (!part) return x
+  return { ...x, sound: part.sound?.name ?? part.voiceName, soundTip: 'launchkey.fader_sound' }
+}
 
 /** zen's Stage props from the app's state. */
 export function stageProps(state: AppState, extras: Partial<StageExtras> = {}): StageProps {
@@ -204,7 +219,7 @@ export function stageProps(state: AppState, extras: Partial<StageExtras> = {}): 
     },
     songForm: songForm(state, x.beats),
     faders: {
-      strips: mixer.strips,
+      strips: mixer.strips.map((x) => strip(state, x)),
       pageTabs: mixer.pageTabs,
       page: mixer.page,
       layerTabs: mixer.layerTabs,
@@ -299,7 +314,7 @@ export function stageHandlers(send: (cmd: AppCmd) => void, deps: StageHandlerDep
       onNext: a.onnext,
       onBrowse: a.onbrowse,
       onOneTouch: a.ononetouch,
-      onSound: (part) => a.onsound((['right1', 'right2', 'right3', 'left'] as const)[HUE_SLOT[part] - 1]),
+      onSound: (part) => a.onsound(PART_ID[part]),
       onTempoUp: a.ontempoup,
       onTempoDown: a.ontempodown,
       onTempo: a.ontempo,
@@ -325,6 +340,8 @@ export function stageHandlers(send: (cmd: AppCmd) => void, deps: StageHandlerDep
       onChooseLayer: a.onchooseLayer,
       onLevel: a.onlevel,
       onOpen: a.onopen,
+      // A part strip's sound: that part's sound list (the former Display's `launchkey.fader_sound`).
+      onSound: (part) => a.onsound(PART_ID[part]),
       onLamp: a.onlamp,
       onLampLong: a.onlamplong,
       onLampRelease: a.onlamprelease,

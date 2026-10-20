@@ -1,15 +1,16 @@
 <!--
-  ZenStageScreen: the Stage drawn by zen's Svelte Stage (`@satoramoto/zen/svelte`), shown in the
-  Stage's place while `ui.zenStage` is on (the `?zen` URL parameter). It reads the stores
-  (app.state, app.library, the clocks, ui, tips), turns them into zen's Stage props with
-  lib/zen/stage.ts, and its callbacks into commands and links (the same actions as the app's own
-  Stage, panels/stage/actions.ts). The app's own Stage (panels/stage/StageScreen) stays the
-  default until zen's Stage has page and side slots.
+  ZenStageScreen: the app's Stage, drawn by zen's Svelte Stage (`@satoramoto/zen/svelte`). It reads
+  the stores (app.state, app.library, the clocks, ui, tips), turns them into zen's Stage props with
+  lib/zen/stage.ts, and its callbacks into commands and links (the same actions as the former
+  Stage, panels/stage/actions.ts). The former Stage (panels/stage/StageScreen) stays reachable
+  with `?legacy` (`ui.legacyStage`) for one release.
 
-  zen's Stage has no page or side slot: a display page tab (Channel, Effects, Quick Racks, Multi
-  Pads, Looper, Harm/Arp, PAGE_COMPONENTS) and the side panel (first run, the help card, the swap
-  panel) are drawn over its hero region, measured from the screen (`[data-region="hero"]`). The
-  blooms (ui/Blooms) breathe behind it; the Stage paints no ground of its own here.
+  A display page tab (Channel, Effects, Quick Racks, Multi Pads, Looper, Harm/Arp, PAGE_COMPONENTS)
+  shows through the Stage's `page` slot, in the Display's place; the side panel (first run, the
+  help card, the swap panel) through its `side` slot, in the hero's right third. The blooms
+  (ui/Blooms) breathe behind it: the Stage stands on `backdrop="transparent"`. The layout is
+  `split` (the hero across the top), the one zen's page slot is laid out for, as the former
+  Stage's display was.
 -->
 <script lang="ts">
   import type { Component } from 'svelte'
@@ -45,14 +46,14 @@
   import { stagePage, type PageProps } from '../stage/page.svelte'
   import { splitPick } from '../stage/splitPick.svelte'
 
-  /** How often the meters are read (about 30 Hz, as the old Stage did). */
+  /** How often the meters are read (about 30 Hz, as the former Stage did). */
   const METER_MS = 33
 
   const pack = packs.find((p) => p.id === 'yahaha-push')!
   const tipAction = tip as unknown as StageTipAction
   const pageTip = tip as unknown as Action<HTMLElement, string>
 
-  /** The display pages, by page tab id (panels/stage/model.ts DISPLAY_TABS), drawn over the hero. */
+  /** The display pages, by page tab id (panels/stage/model.ts DISPLAY_TABS), in the Stage's `page` slot. */
   const PAGE_COMPONENTS: Partial<Record<string, Component<PageProps>>> = {
     channel: ChannelPage,
     effects: EffectsPage,
@@ -91,7 +92,7 @@
     return () => clearInterval(t)
   })
 
-  // ── A rack prompt opens the Rack drawer, where it is asked (as on the old Stage).
+  // ── A rack prompt opens the Rack drawer, where it is asked (as on the former Stage).
   openRackDrawerOnPrompt()
 
   // ── Tempo − / + held
@@ -101,7 +102,7 @@
   let metronomeOpen = $state(false)
   let root: HTMLDivElement
 
-  // ── Links: a page tab shows its page; the rest open today's drawers and screens (as the old Stage).
+  // ── Links: a page tab shows its page; the rest open today's drawers and screens (as the former Stage).
   function open(target: OpenTarget) {
     if (typeof target === 'object' && 'page' in target) {
       if (target.page === 'settings') {
@@ -183,33 +184,25 @@
       shift: ui.shift,
     }),
   )
-  /** The bloom's section hue, from the old Stage's display model. */
+  /** The bloom's section hue, from the former Stage's display model. */
   const section = $derived(display({ state: s, library: app.library, pos: 0 }).nowPlaying.hue)
 
-  // ── The hero region's box, relative to this screen: where a page or the side panel is drawn.
-  let hero = $state<{ left: number; top: number; width: number; height: number } | null>(null)
-  function measureHero() {
-    const el = root?.querySelector<HTMLElement>('[data-region="hero"]')
-    if (!el) return void (hero = null)
-    const r = el.getBoundingClientRect()
-    const b = root.getBoundingClientRect()
-    const next = { left: r.left - b.left, top: r.top - b.top, width: r.width, height: r.height }
-    if (!hero || hero.left !== next.left || hero.top !== next.top || hero.width !== next.width || hero.height !== next.height) hero = next
+  // The page's box, for the pages laid out to `--page-width` × `--page-height`.
+  let pageWidth = $state(0)
+  let pageHeight = $state(0)
+  /** Measures the page slot's box (jsdom, the tests, has no ResizeObserver: the pages' defaults apply). */
+  const measure: Action<HTMLElement> = (el) => {
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => {
+      pageWidth = el.clientWidth
+      pageHeight = el.clientHeight
+    })
+    observer.observe(el)
+    return { destroy: () => observer.disconnect() }
   }
-  $effect(() => {
-    measureHero()
-    window.addEventListener('resize', measureHero)
-    // jsdom (the tests) has no ResizeObserver.
-    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measureHero)
-    observer?.observe(root)
-    return () => {
-      window.removeEventListener('resize', measureHero)
-      observer?.disconnect()
-    }
-  })
-  const overlay = $derived(PageComponent !== undefined || sideKind !== null)</script>
+</script>
 
-<!-- The UI library's tokens (the blooms', the pages') apply under `data-theme` on this box, as on the old Stage. -->
+<!-- The UI library's tokens (the blooms', the pages') apply under `data-theme` on this box, as on the former Stage. -->
 <div class="zen-stage" data-theme={ui.theme} bind:this={root}>
   <Blooms
     playing={s.transport.running}
@@ -222,7 +215,8 @@
   <ThemeScope facets={pack.facets} principles={pack.principles} mode={ui.resolvedTheme} bleed>
     <Stage
       {tipAction}
-      onPlacement={() => queueMicrotask(measureHero)}
+      layout="split"
+      backdrop="transparent"
       appBar={{ ...props.appBar, ...on.appBar }}
       display={{ ...props.display, ...on.display }}
       songForm={{ ...props.songForm, ...on.songForm }}
@@ -231,34 +225,35 @@
       pads={{ ...props.pads, ...on.pads }}
       keys={{ ...props.keys, ...on.keys }}
       status={{ ...props.status, ...on.status }}
+      page={PageComponent ? pageSlot : undefined}
+      side={sideKind ? sideSlot : undefined}
     />
   </ThemeScope>
-  {#if overlay && hero}
-    <div
-      class="hero"
-      style:left={`${hero.left}px`}
-      style:top={`${hero.top}px`}
-      style:width={`${hero.width}px`}
-      style:height={`${hero.height}px`}
-      style:--page-width={`${hero.width}px`}
-      style:--page-height={`${hero.height}px`}
-    >
-      {#if PageComponent}
-        <div class="page" data-slot="page"><PageComponent tipAction={pageTip} /></div>
-      {:else if sideKind}
-        <div class="side" data-slot="side">
-          {#if sideKind === 'firstRun'}
-            <FirstRunPanel tipAction={pageTip} />
-          {:else if sideKind === 'help'}
-            <HelpCard {...helpCard()} tipAction={pageTip} />
-          {:else}
-            <SwapPanel data={swapPanel(s)} tipAction={pageTip} onrelease={() => app.send({ type: 'setLayer', layer: { type: 'none' } })} />
-          {/if}
-        </div>
-      {/if}
-    </div>
-  {/if}
 </div>
+
+{#snippet pageSlot()}
+  <div
+    class="page"
+    data-slot="page"
+    use:measure
+    style:--page-width={pageWidth ? `${pageWidth}px` : undefined}
+    style:--page-height={pageHeight ? `${pageHeight}px` : undefined}
+  >
+    {#if PageComponent}<PageComponent tipAction={pageTip} />{/if}
+  </div>
+{/snippet}
+
+{#snippet sideSlot()}
+  <div class="side" data-slot="side">
+    {#if sideKind === 'firstRun'}
+      <FirstRunPanel tipAction={pageTip} />
+    {:else if sideKind === 'help'}
+      <HelpCard {...helpCard()} tipAction={pageTip} />
+    {:else if sideKind === 'swap'}
+      <SwapPanel data={swapPanel(s)} tipAction={pageTip} onrelease={() => app.send({ type: 'setLayer', layer: { type: 'none' } })} />
+    {/if}
+  </div>
+{/snippet}
 
 <style>
   .zen-stage {
@@ -273,39 +268,24 @@
     /* Its own stacking context: the blooms (z-index -1) paint over this ground, under the Stage. */
     isolation: isolate;
   }
-  /* The blooms show through: the scope and the Stage paint no ground of their own here. */
-  .zen-stage :global(.lib-scope),
-  .zen-stage :global(.yh-stage) {
+  /* The theme scope paints the ground too, and has no transparent option: the Stage's own ground
+     is off (`backdrop="transparent"`), so the scope's is the one rule left between it and the blooms. */
+  .zen-stage :global(.lib-scope) {
     position: relative;
     background: transparent;
   }
-  /* A page or the side panel, over the hero region (measured: `hero`). */
-  .hero {
-    position: absolute;
-    z-index: 1;
-    pointer-events: none;
-  }
+  /* A page or the side panel, filling its slot; in the UI library's tokens (`data-theme` above). */
   .page,
   .side {
-    pointer-events: auto;
     box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
     overflow: hidden;
-    background: var(--g);
     color: var(--t);
     font-family: var(--font-sans);
   }
   .page {
-    position: absolute;
-    inset: 0;
     display: flex;
     flex-direction: column;
-  }
-  /* The side panel: the hero's right third, over what the Display draws there. */
-  .side {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: calc(100% / 3);
   }
 </style>

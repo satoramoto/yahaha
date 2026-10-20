@@ -1,13 +1,14 @@
 <!--
   The layout shell (docs/specs/push/Stage.md, "The app shell around it"): a column filling
-  the window, holding the Stage screen (panels/stage/StageScreen, the library's Stage scaled to
-  fit; zen's Svelte Stage, panels/zen/ZenStageScreen, with `?zen`). There is no help footer: the hovered or focused control's tooltip shows in the status
-  line above the keys (panels/stage/hint.svelte.ts), on the Stage and on Library alike.
+  the window, holding the Stage screen (panels/zen/ZenStageScreen, zen's Svelte Stage laid out to
+  the window; the former Stage, panels/stage/StageScreen scaled from 1440 × 900, with `?legacy`
+  for one release). There is no help footer: the hovered or focused control's tooltip shows in
+  the status line above the keys (panels/stage/hint.svelte.ts), on the Stage and on Library alike.
 
   ┌──────────────────────────────────────────────────────────────────┐
-  │ StageScreen: the 1440 × 900 Stage, scaled and centred            │
-  │   app bar · section row · display · band · status line · keys   │
-  │   (a display page tab: its page in the display's box, the rest   │
+  │ ZenStageScreen: zen's Stage, laid out to the window              │
+  │   app bar · display · song form · band · status line · keys     │
+  │   (a display page tab: its page in the display's place, the rest │
   │    as on the Stage; the Settings tab and Alt+T show the Settings │
   │    screen instead: panels/settings/SettingsScreen, while         │
   │    `ui.settings` is on)                                          │
@@ -46,9 +47,8 @@
 
   let { session }: { session: Session } = $props()
 
-  // `?zen`: zen's Svelte Stage (panels/zen/ZenStageScreen) instead of the app's own, until zen's
-  // Stage has page and side slots.
-  if (new URLSearchParams(location.search).has('zen')) ui.zenStage = true
+  // `?legacy`: the former Stage (panels/stage/StageScreen) instead of zen's, for one release.
+  if (new URLSearchParams(location.search).has('legacy')) ui.legacyStage = true
 
   // The session attaches before the screens mount, so they mount on its state: zen's Stage
   // (its Tree) throws when the state changes in the same flush as its first mount.
@@ -115,11 +115,12 @@
   {:else if ui.view === 'rack'}
     <!-- The Rack page (Alt+O): the old Rack panel, docked, until the Rack lane replaces it. -->
     <main class="stage-slot rack-slot"><RackPanel docked /></main>
-  {:else if ui.zenStage}
-    <!-- zen's Svelte Stage (`?zen`), the whole mapping; the default once it has page and side slots. -->
-    <main class="stage-slot"><ZenStageScreen /></main>
-  {:else}
+  {:else if ui.legacyStage}
+    <!-- The former Stage (`?legacy`), for one release. -->
     <main class="stage-slot"><StageScreen /></main>
+  {:else}
+    <!-- The Stage: zen's Svelte Stage, with the display pages and side panels in its slots. -->
+    <main class="stage-slot"><ZenStageScreen /></main>
   {/if}
 </div>
 
