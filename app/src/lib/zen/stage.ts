@@ -1,4 +1,4 @@
-// The pilot's bridge to zen's Stage (`@satoramoto/zen/svelte`): pure functions from the app's
+// The bridge to zen's Stage (`@satoramoto/zen/svelte`, the app's Stage): pure functions from the app's
 // `AppState` (docs/app-api.md) to the props of zen's `Stage`, and from its callbacks back to
 // `AppCmd`s. It reuses the app's own Stage model (panels/stage/model.ts, actions.ts), which
 // draws the same regions for the app's UI library, and translates their shapes to zen's:
@@ -13,6 +13,7 @@ import type { KeyRange } from '../store.svelte'
 import { stageActions, type OpenTarget } from '../../panels/stage/actions'
 import { appBar, display, faders, keys, knobs, pads, status, whenText } from '../../panels/stage/model'
 import { keysActions } from '../../panels/stage/splitPick.svelte'
+import type { StatusHint } from '../../ui/StatusLine/StatusLine.svelte'
 
 /** zen's song form section ids, as its `SongForm` names them. */
 type SectionId = NonNullable<StageProps['songForm']['playing']>
@@ -40,6 +41,12 @@ export interface StageExtras {
   pos: number
   /** The metronome's settings popover is open. */
   metronomeOpen: boolean
+  /** The hovered or focused control's tooltip, in the status line's place (panels/stage/hint.svelte.ts). */
+  hint: StatusHint | null
+  /** A split pick is armed on the keyboard (panels/stage/splitPick.svelte.ts). */
+  picking: boolean
+  /** The Shift layer held (`ui.shift`): the pads show their Shift faces. */
+  shift: boolean
 }
 
 /** The defaults for what AppState doesn't carry: a still Stage, nothing measured, 61 keys. */
@@ -54,6 +61,9 @@ export const DEFAULTS: StageExtras = {
   beats: 0,
   pos: 0,
   metronomeOpen: false,
+  hint: null,
+  picking: false,
+  shift: false,
 }
 
 const MAINS = ['mainA', 'mainB', 'mainC', 'mainD'] as const
@@ -104,6 +114,7 @@ export function songForm(state: AppState, beats = 0): StageProps['songForm'] {
     nextAt: whenText(state) || undefined,
     // An empty section list (no style yet) marks nothing absent.
     absent: has.size === 0 ? [] : ALL_SECTIONS.filter(([, name]) => !has.has(name)).map(([id]) => id),
+    fillPending: fillPending(state),
     accomp: t.acmp,
     syncStart: t.syncStart,
     syncStop: t.syncStop,
@@ -113,34 +124,39 @@ export function songForm(state: AppState, beats = 0): StageProps['songForm'] {
   }
 }
 
+/**
+ * Which way a queued fill goes (zen's `fillPending`): a fill queued (`transport.queued` names a
+ * fill) landing on a Main to the right of the one playing is Fill ▲, to the left Fill ▼. A fill
+ * landing on the Main playing (Fill Self), the Break, or nothing queued: none.
+ */
+export function fillPending(state: AppState): 'up' | 'down' | undefined {
+  const t = state.transport
+  if (!t.queued?.startsWith('Fill') || t.queued === 'Fill In BA' || !t.landing) return undefined
+  const m = /^Main ([A-D])$/.exec(t.landing)
+  if (!m) return undefined
+  const to = ABCD.indexOf(m[1])
+  return to > t.main ? 'up' : to < t.main ? 'down' : undefined
+}
+
 /** The app's part hue names (r1 r2 r3 l) as zen's hue slots (`yahaha/hues.ts` PART_HUE_INDEX). */
 const HUE_SLOT = { r1: 1, r2: 2, r3: 3, l: 4 } as const
-
-/**
- * The app's pad faces zen's Pad lacks, as the nearest it has: a chosen setting and a lit lamp
- * are on (`playing`, "on / loaded / chosen"), an unavailable one is `dark`.
- */
-const PAD_STATE: Partial<Record<string, PadItem['state']>> = { chosen: 'playing', lamp: 'playing', unavailable: 'dark' }
 
 type BankLamp = StageProps['faders']['partLamps'][number]
 type AppLamp = ReturnType<typeof faders>['partLamps'][number]
 
-/**
- * A fader lamp in zen's hues: zen has no `ok` (the Style page's mute buttons, green) and no `m`
- * (the app's deprecated alias of `t`); both draw neutral (`t`).
- */
-const lamp = (l: AppLamp): BankLamp => ({ ...l, hue: l.hue === 'ok' || l.hue === 'm' ? 't' : l.hue })
+/** A fader lamp in zen's hues: `m` (the app's deprecated alias of `t`) draws neutral; the rest, `ok` included, pass through. */
+const lamp = (l: AppLamp): BankLamp => ({ ...l, hue: l.hue === 'm' ? 't' : l.hue })
 
 /** zen's Stage props from the app's state. */
 export function stageProps(state: AppState, extras: Partial<StageExtras> = {}): StageProps {
   const x: StageExtras = { ...DEFAULTS, ...extras }
-  const input = { ...x, state, shift: false }
+  const input = { ...x, state }
   const bar = appBar(input)
   const shown = display(input)
   const mixer = faders(input)
   const knobBank = knobs(input)
   const padBank = pads(input)
-  const k = keys(state, x.keyRange)
+  const k = keys(state, x.keyRange, x.picking)
   const m = state.metronome
   const { rightPart, ...keysRest } = k
   return {
@@ -198,7 +214,7 @@ export function stageProps(state: AppState, extras: Partial<StageExtras> = {}): 
     },
     knobs: knobBank,
     pads: {
-      pads: padBank.pads.map((p) => ({ ...p, state: PAD_STATE[p.state] ?? p.state })) as PadItem[],
+      pads: padBank.pads as PadItem[],
       banks: padBank.banks,
       bank: padBank.bank,
       bankTips: padBank.bankTips,
@@ -206,7 +222,7 @@ export function stageProps(state: AppState, extras: Partial<StageExtras> = {}): 
       lit: padBank.lit,
     },
     keys: { ...keysRest, rightHue: HUE_SLOT[rightPart ?? 'r1'], leftHue: HUE_SLOT.l },
-    status: status(state),
+    status: status(state, x.hint),
   }
 }
 
@@ -225,6 +241,10 @@ export interface StageHandlerDeps {
   metronomeClose?: () => void
   /** The keyboard's split asked for (a note). */
   split?: (note: number) => void
+  /** The Shift layer held (`ui.shift`): pads and page buttons send their Shift action. Default: never. */
+  shift?: () => boolean
+  /** The keyboard's split pick armed or disarmed (`splitPick.armed`). Default: nothing. */
+  arm?: (armed: boolean) => void
 }
 
 type Handlers = {
@@ -247,7 +267,7 @@ export function stageHandlers(send: (cmd: AppCmd) => void, deps: StageHandlerDep
   const { state } = deps
   const a = stageActions({
     state,
-    shift: () => false,
+    shift: deps.shift ?? (() => false),
     send,
     open: deps.open ?? (() => {}),
     // zen's ? asks for a state (onHelp); the app's own toggle is never called from here.
@@ -256,7 +276,7 @@ export function stageHandlers(send: (cmd: AppCmd) => void, deps: StageHandlerDep
     tempo: deps.tempo ?? ((dir, down) => down && send({ type: dir > 0 ? 'tempoUp' : 'tempoDown' })),
     metronomeSettings: deps.metronomeSettings,
   })
-  const split = keysActions({ state, send, arm: () => {} }).onsplit
+  const keyCb = keysActions({ state, send, arm: deps.arm ?? (() => {}) })
   /** A switch asked for `on`: the command toggles, so it is sent only on a change. */
   const toggle = (now: boolean, on: boolean, cmd: AppCmd) => {
     if (now !== on) send(cmd)
@@ -322,7 +342,8 @@ export function stageHandlers(send: (cmd: AppCmd) => void, deps: StageHandlerDep
       onPress: a.onpadpress,
     },
     keys: {
-      onSplit: (note) => (deps.split ?? split)(note),
+      onSplit: (note) => (deps.split ?? keyCb.onsplit)(note),
+      onPick: keyCb.onpick,
     },
     status: {
       onClear: a.onclear,

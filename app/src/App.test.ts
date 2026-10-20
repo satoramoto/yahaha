@@ -343,3 +343,33 @@ describe('the Stage\'s controls', () => {
     expect(accomp.getAttribute('aria-pressed')).toBe(String(!before))
   })
 })
+
+describe('zen\'s Stage (`?zen`, ui.zenStage)', () => {
+  afterEach(() => {
+    ui.zenStage = false
+  })
+
+  it('takes the Stage\'s place in a theme scope; a page tab shows its page over the hero; Accomp toggles', async () => {
+    ui.zenStage = true
+    const session = setup()
+    const box = document.querySelector<HTMLElement>('.app > main .zen-stage')!
+    expect(box).toBeTruthy()
+    expect(document.querySelector('.scaler')).toBeNull()
+    expect(box.querySelector<HTMLElement>('.lib-scope')!.dataset.mode).toBe(ui.resolvedTheme)
+    expect(box.querySelector('[data-region="mixer"]')).toBeTruthy()
+
+    const accomp = box.querySelector<HTMLButtonElement>('[data-tip="transport.acmp"]')!
+    const before = session.state.transport.acmp
+    await fireEvent.click(accomp)
+    session.advance(16)
+    flushSync()
+    expect(session.state.transport.acmp).toBe(!before)
+
+    await fireEvent.click(tab('Effects'))
+    flushSync()
+    expect(stagePage.page).toBe('effects')
+    expect(tab('Effects').getAttribute('aria-selected')).toBe('true')
+    expect(box.querySelector('[data-slot="page"]')).toBeTruthy()
+    expect(box.querySelector('[data-region="mixer"]')).toBeTruthy()
+  })
+})
