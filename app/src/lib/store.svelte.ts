@@ -294,9 +294,8 @@ export interface SoundPick {
   onpick: (id: string) => void
 }
 
-/** The top-level page under the header (docs/racks.md, "Screens"): the stage, Library, or the Rack;
- * 'zen' is the pilot of zen's Svelte Stage (panels/zen/ZenStageScreen, the `?zen` URL parameter). */
-export type View = 'stage' | 'library' | 'rack' | 'zen'
+/** The top-level page under the header (docs/racks.md, "Screens"): the stage, Library, or the Rack. */
+export type View = 'stage' | 'library' | 'rack'
 
 /** A keyboard part, as the library's sound row names it (ui/SoundRow); `PART_IDS[i]` is
  * the commands' `part` i. */
@@ -317,6 +316,9 @@ class UiStore {
   /** The page in the main slot: Stage | Library (the header's switch, Alt+B) | Rack (Alt+O).
    * Settings opens over any of them. */
   view = $state<View>('stage')
+  /** The Stage is zen's (panels/zen/ZenStageScreen) instead of the app's own (panels/stage/StageScreen):
+   * the `?zen` URL parameter, until zen's Stage has page and side slots. */
+  zenStage = $state(false)
   /** Library's tab, kept while it's closed. */
   libraryTab = $state<LibraryTab>('sounds')
   /** The keyboard part (0-3) Library's Sounds and Instruments load into: "Loads into". */

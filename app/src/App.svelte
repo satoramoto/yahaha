@@ -1,7 +1,7 @@
 <!--
   The layout shell (docs/specs/push/Stage.md, "The app shell around it"): a column filling
   the window, holding the Stage screen (panels/stage/StageScreen, the library's Stage scaled to
-  fit). There is no help footer: the hovered or focused control's tooltip shows in the status
+  fit; zen's Svelte Stage, panels/zen/ZenStageScreen, with `?zen`). There is no help footer: the hovered or focused control's tooltip shows in the status
   line above the keys (panels/stage/hint.svelte.ts), on the Stage and on Library alike.
 
   ┌──────────────────────────────────────────────────────────────────┐
@@ -46,11 +46,14 @@
 
   let { session }: { session: Session } = $props()
 
-  // `?zen`: start on the pilot of zen's Svelte Stage instead of the app's own.
-  if (new URLSearchParams(location.search).has('zen')) ui.view = 'zen'
+  // `?zen`: zen's Svelte Stage (panels/zen/ZenStageScreen) instead of the app's own, until zen's
+  // Stage has page and side slots.
+  if (new URLSearchParams(location.search).has('zen')) ui.zenStage = true
 
+  // The session attaches before the screens mount, so they mount on its state: zen's Stage
+  // (its Tree) throws when the state changes in the same flush as its first mount.
+  untrack(() => app.attach(session))
   $effect(() => {
-    app.attach(session)
     clock.start()
     return () => {
       clock.stop()
@@ -109,12 +112,12 @@
   {:else if ui.view === 'library'}
     <!-- Library replaces the stage (panels/library/LibraryScreen, scaled like it); the band keeps playing. -->
     <main class="stage-slot"><LibraryScreen /></main>
-  {:else if ui.view === 'zen'}
-    <!-- The pilot of zen's Svelte Stage (`?zen`); the Stage below stays the default. -->
-    <main class="stage-slot"><ZenStageScreen /></main>
   {:else if ui.view === 'rack'}
     <!-- The Rack page (Alt+O): the old Rack panel, docked, until the Rack lane replaces it. -->
     <main class="stage-slot rack-slot"><RackPanel docked /></main>
+  {:else if ui.zenStage}
+    <!-- zen's Svelte Stage (`?zen`), the whole mapping; the default once it has page and side slots. -->
+    <main class="stage-slot"><ZenStageScreen /></main>
   {:else}
     <main class="stage-slot"><StageScreen /></main>
   {/if}

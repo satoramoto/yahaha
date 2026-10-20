@@ -4,8 +4,8 @@ import { app } from '../../lib/store.svelte'
 import ZenStageScreen from './ZenStageScreen.svelte'
 
 /**
- * The pilot of zen's Svelte Stage, wired to the app's store on a still mock session (`manual`:
- * no clock runs, so the frame holds). Its controls send to that mock, as the app's do.
+ * The app's Stage (zen's Svelte Stage), wired to the app's store on a still mock session
+ * (`manual`: no clock runs, so the frame holds). Its controls send to that mock, as the app's do.
  */
 const meta = {
   title: 'Screens/Zen Stage',
