@@ -41,7 +41,7 @@
     "pixelmatch": "^7.2.0",
     "playwright-core": "^1.63.0",
     "pngjs": "^7.0.0",
-    "storybook": "^10.6.1",
+    "storybook": "^10.6.3",
     "storybook-addon-pseudo-states": "^10.6.1",
     "svelte": "^5.57.0",
     "svelte-check": "^4.7.6",
